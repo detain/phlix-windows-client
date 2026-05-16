@@ -1,259 +1,270 @@
-# Phlex Media Server
+# Phlex Windows Desktop App
 
-A comprehensive media server platform built with PHP 8.3+, featuring real-time WebSocket communication, HTTP REST APIs, and support for multiple client platforms including Roku, Samsung Tizen, and Windows.
+A native Windows desktop application for the Phlex Media Server, built with Electron, React, and TypeScript.
 
-## Overview
+## Project Overview
 
-Phlex Media Server provides a complete media management and streaming solution:
-
-- **Media Library Management**: Organize and browse media collections with automatic scanning
-- **User Authentication**: JWT-based auth with refresh tokens
-- **Real-time SyncPlay**: Watch content together with friends
-- **Live TV Support**: DVR and guide integration
-- **DLNA Streaming**: Standard protocol support for compatible devices
-- **Transcoding**: On-the-fly media conversion via FFmpeg with automatic quality selection
-- **HLS Streaming**: Adaptive bitrate streaming for web clients with multi-quality playlists
-- **WebSocket Events**: Real-time progress and notification delivery
-- **Multi-Source Metadata**: Automatic metadata fetching from TMDB (movies), TVDB (TV series), Fanart.tv (artwork), and local NFO files with 24-hour cache and provider fallback
-- **Content Filtering**: Parental controls with rating and genre-based filtering
-
-## Architecture
-
-```
-src/
-├── Server/
-│   ├── Core/           # Application bootstrap and core
-│   ├── Http/            # HTTP REST API layer
-│   │   ├── Controllers/ # Request handlers
-│   │   ├── Request.php  # HTTP request representation
-│   │   ├── Response.php # HTTP response builder
-│   │   └── Router.php  # Route dispatching
-│   ├── WebSocket/       # Real-time communication
-│   │   ├── Connection.php      # Client connection wrapper
-│   │   ├── ConnectionPool.php  # Connection management
-│   │   ├── MessageHandler.php  # Event routing
-│   │   ├── WebSocketServer.php # Server implementation
-│   │   └── Events.php          # Event type constants
-│   └── WebPortal/       # Web portal (HTML UI)
-│       ├── WebPortalRouter.php # REST API for portal
-│       └── PageRenderer.php    # Smarty template rendering
-├── Session/            # Playback session management
-├── Media/              # Media library and metadata
-│   ├── Library/        # Library management (LibraryManager, ItemRepository, MediaScanner)
-│   ├── Metadata/      # Metadata fetching (TMDB, TVDB, Fanart, NFO providers)
-│   ├── Transcoding/    # FFmpeg transcoding with EncodingHelper
-│   └── Streaming/      # HLS streaming with adaptive bitrate
-├── Auth/               # Authentication services
-└── Common/             # Shared utilities
-
-public/
-├── index.php           # Web portal entry point
-├── templates/          # Smarty templates
-└── assets/             # Static assets (css, js)
-```
-
-## Requirements
-
-- **PHP**: 8.3 or higher
-- **MySQL**: 8.0+ or MariaDB 10.6+
-- **Workerman**: 5.0+ (bundled via Composer)
-- **FFmpeg**: For transcoding (optional)
+Phlex Windows provides a full-featured media server client for Windows, enabling users to browse, stream, and manage their media library with native desktop integration including system tray, media keys, and native menus.
 
 ## Features
 
-### Web Portal
-- **Smarty-based Templates**: Server-side rendered HTML pages using Smarty
-- **REST API Endpoints**: Complete API for library browsing, media info, and user data
-- **JWT Authentication**: Integrated token-based auth with refresh support
-- **Responsive Design**: CSS-first approach with utility classes
-- **JavaScript Client**: ApiClient helper with auth, library, and player helpers
-- **Continue Watching**: Track and display in-progress media
-- **Library Browser**: Browse media by library with item counts
+- **Media Library Browser** - Browse and search your media collection with grid views
+- **Video Player** - Full-featured video playback with controls
+- **System Tray Integration** - Minimize to tray with media controls
+- **Native Menus** - Full application menu with keyboard shortcuts
+- **Media Key Support** - Play/Pause, Stop, Rewind, Forward via system tray
+- **Authentication** - Secure login with session persistence
+- **Responsive UI** - Modern React-based interface with sidebar navigation
+- **Settings Management** - Configurable preferences including minimize-to-tray behavior
 
-### Authentication & Security
-- **JWT-based Authentication**: Stateless auth with access tokens (1 hour TTL) and refresh tokens (7 days TTL)
-- **Secure Password Hashing**: Argon2ID for password storage
-- **Multi-Device Sessions**: Track and manage sessions across devices
-- **User Profiles**: Multiple profiles per account with parental controls
-  - Up to 5 profiles per user account
-  - Profile-specific content rating restrictions (G, PG, PG-13, R, NC-17, X, UNRATED)
-  - PIN protection (4 or 6 digits) for profile settings
-  - Genre-based filtering (allowed/blocked genre lists)
-  - Daily watch time limits per profile
-- **Content Rating Filters**: Age-based access restrictions
-- **Audit Logging**: Complete security event logging
+## Prerequisites
 
-### SyncPlay - Group Watching
-- **Synchronized Playback**: Watch content together with friends across devices with sub-second sync accuracy
-- **Host-Controlled Playback**: Only the host can control play/pause/seek; all members receive synchronized commands
-- **NTP-Style Time Sync**: Network time synchronization with latency compensation and drift correction
-- **In-Group Chat**: Real-time messaging with typing indicators and message history
-- **Playback Queue**: Host-managed queue with media info (title, thumbnail)
-- **Host Election**: Automatic host election when current host leaves (oldest member becomes host)
-- **Password Protection**: Optional password protection for private watch parties
-- **Position Tolerance**: Configurable sync tolerance (default 2s) to prevent excessive seeking
+Before setting up the project, ensure you have the following installed:
 
-### Session Management
-- **Device Sessions**: Track authenticated devices with activity timestamps
-- **Playback Progress**: Resume where you left off across sessions
-- **Continue Watching**: Track items in progress per profile
-- **Watch History**: Complete viewing history per profile with:
-  - Automatic completion detection at 90% progress threshold
-  - Watch time statistics (total, daily, by period)
-  - Resume position tracking for seamless playback continuation
+- **Node.js** v18.x or later (LTS recommended)
+- **npm** v9.x or later (comes with Node.js)
+- **Git** for version control
+- **Windows 10/11** as the target platform
 
-### Live TV & DVR
-- **Multi-Tuner Support**: DVB-T, DVB-S, DVB-C, and ATSC tuner types
-- **Channel Scanning**: Automatic discovery of broadcast services
-- **Electronic Program Guide**: Full EPG with program info, categories, and search
-- **DVR Scheduling**: Schedule recordings with priority management
-- **Time-Shifting**: Pause and rewind live TV with buffer
-- **Channel Lineups**: Custom channel lineups per user
-- **Favorites**: Personal favorite channels per user
-- **Storage Management**: Recording storage tracking and limits
+For development:
+- **Visual Studio Code** (recommended) with extensions:
+  - ESLint
+  - Prettier
+  - TypeScript and related tools
 
 ## Installation
 
-```bash
-# Clone the repository
-git clone https://github.com/your-org/phlex.git
-cd phlex
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/phlex/phlex-windows.git
+   cd phlex-windows
+   ```
 
-# Install dependencies
-composer install
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-# Configure environment
-cp .env.example .env
-# Edit .env with your database and service credentials
+3. **Configure environment** (optional)
 
-# Run database migrations
-php scripts/migrate.php
-
-# Start the development server
-php start.php server
-```
+   Create a `.env` file in the root directory if you need custom API settings:
+   ```
+   VITE_API_URL=http://localhost:8080
+   ```
 
 ## Configuration
 
-Configuration is managed via PHP files in `config/`:
+The application stores configuration in the user's app data directory:
+- **Windows**: `%APPDATA%\phlex-windows`
 
-```php
-// config/server.php
-return [
-    'server' => [
-        'name' => 'Phlex Media Server',
-        'host' => '0.0.0.0',
-        'port' => 8080,
-    ],
-    'websocket' => [
-        'host' => '0.0.0.0',
-        'port' => 8097,
-    ],
-    'database' => [
-        'host' => '127.0.0.1',
-        'port' => 3306,
-        'database' => 'phlex',
-        'username' => 'phlex',
-        'password' => 'secure-password',
-    ],
-    'debug' => false,
-];
+### Configuration Options
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `minimizeToTray` | `true` | Minimize to system tray instead of closing |
+| `apiUrl` | Auto-detected | Media server API URL |
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VITE_API_URL` | `http://localhost:8080` | Media server API endpoint |
+| `NODE_ENV` | `development` | Runtime environment |
+
+## Building the App
+
+### Development Mode
+
+Run the application in development mode with hot reload:
+
+```bash
+npm run dev
 ```
 
-## API Reference
+This starts:
+- Vite dev server on `http://localhost:5173`
+- Electron app with automatic reload on changes
 
-### HTTP Endpoints
+### Production Build
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/health` | Health check |
-| GET | `/system/info` | Server information |
-| POST | `/api/v1/auth/register` | User registration |
-| POST | `/api/v1/auth/login` | User login |
-| POST | `/api/v1/auth/refresh` | Token refresh |
-| GET | `/api/v1/auth/me` | Current user profile |
-| GET | `/api/v1/sessions` | List user sessions |
-| DELETE | `/api/v1/sessions/{id}` | End a session |
-| POST | `/api/v1/sessions/{id}/progress` | Report playback progress |
-| GET | `/api/v1/sessions/{id}/progress` | Get playback state |
+**Build both renderer and main process:**
+```bash
+npm run build
+```
 
-### WebSocket Events
+**Build only the renderer (React app):**
+```bash
+npm run build:vite
+```
 
-**Connection Events:**
-- `connected` - Sent on successful connection
-- `client_disconnected` - Broadcast when client disconnects
+**Build only the main process (Electron):**
+```bash
+npm run build:electron
+```
 
-**Authentication Events:**
-- `auth_request` - Request authentication
-- `auth_success` - Authentication successful
-- `auth_failure` - Authentication failed
+### Packaging
 
-**Playback Events:**
-- `playback_start` - Playback started
-- `playback_pause` - Playback paused
-- `playback_stop` - Playback stopped
-- `playback_progress` - Progress update
-- `playback_seek` - Seek performed
+Package the app for Windows distribution:
 
-**SyncPlay Events:**
-- `syncplay_create_group` - Create watch group
-- `syncplay_join_group` - Join watch group
-- `syncplay_leave_group` - Leave watch group
-- `syncplay_sync_state` - State synchronization
+**NSIS Installer (recommended):**
+```bash
+npm run package
+```
 
-## Development
+**Windows Store (APPX):**
+```bash
+npm run package:store
+```
+
+The packaged output will be in the `release/` directory.
+
+## Testing
 
 ### Running Tests
 
 ```bash
 # Run all tests
-./vendor/bin/phpunit
+npm test
 
-# Run with coverage
-./vendor/bin/phpunit --coverage-html coverage-report
+# Run tests in watch mode
+npm test -- --watch
 
-# Run specific test suite
-./vendor/bin/phpunit --testsuite Unit
-./vendor/bin/phpunit --testsuite Integration
+# Run tests with coverage
+npm test -- --coverage
 ```
 
-### Code Standards
+### Test Structure
 
-This project follows PSR-12 coding standards and uses static analysis tools:
+- Unit tests located in `tests/unit/`
+- Test files use Vitest with TypeScript
+- Tests for API client, stores, and utilities
+
+### Linting
 
 ```bash
-# Check code style
-./vendor/bin/phpcs --standard=PSR12 src/
+# Run ESLint
+npm run lint
 
-# Run static analysis
-./vendor/bin/phpstan analyze src/ --level=9
-./vendor/bin/psalm
+# Fix auto-fixable issues
+npm run lint -- --fix
 ```
 
-### Git Workflow
+## Project Structure
 
-1. Create a feature branch: `git checkout -b feature/my-feature`
-2. Make changes and commit: `git commit -am 'Add new feature'`
-3. Push to remote: `git push origin feature/my-feature`
-4. Create Pull Request on GitHub
-5. After review, merge via squash-merge
+```
+phlex-windows/
+├── src/
+│   ├── main/           # Electron main process
+│   │   └── index.ts    # Main entry point, window management, IPC, tray
+│   ├── preload/        # Preload scripts (context bridge)
+│   │   └── index.ts   # Secure IPC exposure to renderer
+│   └── renderer/       # React application
+│       ├── components/    # Reusable UI components
+│       ├── pages/         # Page-level components
+│       ├── stores/        # Zustand state stores
+│       ├── utils/         # Utility functions and API client
+│       ├── styles/        # CSS styles
+│       ├── App.tsx        # Root component
+│       └── main.tsx       # Renderer entry point
+├── tests/
+│   └── unit/           # Unit tests
+├── build/              # Build resources (icons)
+├── release/            # Packaged application output
+├── package.json
+├── vite.config.ts
+└── tsconfig.json
+```
 
-## Contributing
+## Architecture
 
-1. Fork the repository
-2. Create your feature branch
-3. Ensure all tests pass (`./vendor/bin/phpunit`)
-4. Follow PSR-12 coding standards
-5. Submit a pull request
+### Electron Process Model
+
+1. **Main Process** (`src/main/index.ts`)
+   - Creates BrowserWindow
+   - Manages system tray and menus
+   - Handles IPC from renderer
+   - Manages app lifecycle
+
+2. **Preload Script** (`src/preload/index.ts`)
+   - Exposes safe APIs via contextBridge
+   - Provides IPC invoke/send methods
+   - Handles media control events
+
+3. **Renderer Process** (`src/renderer/`)
+   - React 18 application
+   - Zustand for state management
+   - React Router for navigation
+   - Vite for development and bundling
+
+### State Management
+
+State is managed using Zustand with three main stores:
+
+- **authStore** - Authentication state and user session
+- **playbackStore** - Media playback state
+- **uiStore** - UI state (sidebar, modals, etc.)
+
+## Deployment
+
+### GitHub Actions CI/CD
+
+The project uses GitHub Actions for continuous integration:
+
+- **test.yml** - Runs on every push/PR to validate code
+- **build.yml** - Creates releases on tags and publishes packages
+
+### Release Process
+
+1. Update version in `package.json`
+2. Create git tag:
+   ```bash
+   git tag -a v1.0.0 -m "Release v1.0.0"
+   git push origin v1.0.0
+   ```
+3. GitHub Actions will automatically:
+   - Run tests
+   - Build the application
+   - Create GitHub Release
+   - Upload artifacts
+
+### Windows Installer
+
+The build workflow produces:
+- **NSIS Installer** - Traditional `.exe` installer
+- **APPX Package** - For Windows Store distribution
+
+## Troubleshooting
+
+### Common Issues
+
+**App doesn't start:**
+- Ensure Node.js 18+ is installed
+- Run `npm install` to install dependencies
+- Check console for error messages
+
+**Vite server port conflict:**
+- Kill processes using port 5173
+- Modify `vite.config.ts` to use a different port
+
+**Build fails with native modules:**
+- Run `npm rebuild` to rebuild native dependencies
+- Ensure electron-builder is up to date
+
+### Logs
+
+Application logs are stored in:
+- **Windows**: `%APPDATA%\phlex-windows\logs\`
+
+Use `electron-log` for runtime logging:
+```typescript
+import log from 'electron-log';
+log.info('Application started');
+```
 
 ## License
 
-Proprietary - All rights reserved.
+MIT License - see project repository for details.
 
 ## Support
 
 For issues and feature requests, please use the GitHub issue tracker.
-
----
-
-For detailed development documentation, see [DEVELOPER.md](DEVELOPER.md).
