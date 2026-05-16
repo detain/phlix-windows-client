@@ -35,17 +35,16 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ itemId, playbackInfo }
         await video.play();
         setIsPlaying(true);
       } catch (error) {
-        console.error('Playback failed:', error);
+        console.error('Playback failed:', error); // eslint-disable-line no-console
       }
     };
-
     startPlayback();
 
     return () => {
       video.pause();
       video.src = '';
     };
-  }, [itemId, playbackInfo]);
+  }, [itemId, playbackInfo, volume]);
 
   // Auto-hide controls
   useEffect(() => {
@@ -117,7 +116,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ itemId, playbackInfo }
         setIsFullscreen(false);
       }
     } catch (error) {
-      console.error('Fullscreen error:', error);
+      console.error('Fullscreen error:', error); // eslint-disable-line no-console
     }
   }, []);
 
@@ -165,7 +164,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ itemId, playbackInfo }
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPlaying, volume, duration]);
+  }, [isPlaying, volume, duration, handleSeek, handleVolumeChange, toggleFullscreen]);
 
   return (
     <div

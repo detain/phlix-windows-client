@@ -15,7 +15,7 @@ export const Library: React.FC = () => {
         const response = await api.getLibraryItems(id);
         setItems(response.Items);
       } catch (err) {
-        console.error('Failed to fetch library items:', err);
+        console.error('Failed to fetch library items:', err); // eslint-disable-line no-console
       } finally {
         setLoading(false);
       }

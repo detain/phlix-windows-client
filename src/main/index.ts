@@ -172,7 +172,7 @@ function toggleFullscreen(): void {
 }
 
 function showAbout(): void {
-  const { dialog } = require('electron');
+  const { dialog } = require('electron'); // eslint-disable-line @typescript-eslint/no-var-requires
   dialog.showMessageBox(mainWindow!, {
     type: 'info',
     title: 'About Phlex',

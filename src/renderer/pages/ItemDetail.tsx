@@ -15,7 +15,7 @@ export const ItemDetail: React.FC = () => {
         const result = await api.getItem(id);
         setItem(result);
       } catch (err) {
-        console.error('Failed to fetch item:', err);
+        console.error('Failed to fetch item:', err); // eslint-disable-line no-console
       } finally {
         setLoading(false);
       }
