@@ -23,7 +23,7 @@ interface PlaybackState {
   updateTime: (time: number) => void;
 }
 
-export const usePlaybackStore = create<PlaybackState>((set, get) => ({
+export const usePlaybackStore = create<PlaybackState>((set, _get) => ({
   currentItem: null,
   playbackInfo: null,
   isPlaying: false,
@@ -48,7 +48,7 @@ export const usePlaybackStore = create<PlaybackState>((set, get) => ({
         isPlaying: false
       });
     } catch (error) {
-      console.error('Failed to load item:', error);
+      console.error('Failed to load item:', error); // eslint-disable-line no-console
     }
   },
 

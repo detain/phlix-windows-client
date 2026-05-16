@@ -21,6 +21,7 @@ export const App: React.FC = () => {
       setIsLoading(false);
     };
     init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (isLoading) {

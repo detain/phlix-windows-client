@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api, { Library } from '../utils/api';
-import { MediaGrid } from '../components/MediaGrid';
 
 export const Home: React.FC = () => {
   const [libraries, setLibraries] = useState<Library[]>([]);
@@ -13,7 +12,7 @@ export const Home: React.FC = () => {
         const libs = await api.getLibraries();
         setLibraries(libs);
       } catch (err) {
-        console.error('Failed to fetch libraries:', err);
+        console.error('Failed to fetch libraries:', err); // eslint-disable-line no-console
       } finally {
         setLoading(false);
       }

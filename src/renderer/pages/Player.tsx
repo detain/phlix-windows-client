@@ -15,6 +15,7 @@ export const Player: React.FC = () => {
     return () => {
       stop();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const handleBack = () => {
