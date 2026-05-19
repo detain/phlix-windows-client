@@ -1,0 +1,56 @@
+.skip-marker-btn {
+  position: absolute;
+  top: 70px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  transition: background 0.2s, transform 0.1s;
+  z-index: 10;
+  animation: fadeIn 0.3s ease;
+}
+
+.skip-marker-btn:hover {
+  background: rgba(0, 0, 0, 0.85);
+  transform: scale(1.05);
+}
+
+.skip-marker-btn:active {
+  transform: scale(0.98);
+}
+
+.skip-marker-btn--intro {
+  border: 2px solid #9b59b6;
+}
+
+.skip-marker-btn--outro {
+  border: 2px solid #e67e22;
+}
+
+.skip-marker-btn__icon {
+  font-size: 18px;
+}
+
+.skip-marker-btn__text {
+  letter-spacing: 0.5px;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

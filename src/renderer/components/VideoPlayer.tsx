@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { PlaybackInfoResponse } from '../utils/api';
+import { SkipButton } from './SkipButton';
 import './VideoPlayer.css';
 
 interface VideoPlayerProps {
@@ -19,8 +20,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ itemId, playbackInfo }
   const [buffered, setBuffered] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [showSyncPlayPanel, setShowSyncPlayPanel] = useState(false);
 
   const hideControlsTimeout = useRef<NodeJS.Timeout>();
+
+  // SyncPlay integration
+  const { currentGroup, isConnected } = useSyncPlayStore();
 
   // Initialize playback
   useEffect(() => {
@@ -60,6 +65,49 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ itemId, playbackInfo }
       }
     };
   }, [isPlaying, showControls]);
+
+  // SyncPlay playback command handler
+  useEffect(() => {
+    if (!currentGroup) return;
+
+    const handleSyncPlayCommand = (type: 'play' | 'pause' | 'seek', position: number) => {
+      const video = videoRef.current;
+      if (!video) return;
+
+      switch (type) {
+        case 'play':
+          video.currentTime = position;
+          video.play();
+          setIsPlaying(true);
+          break;
+        case 'pause':
+          video.pause();
+          video.currentTime = position;
+          setIsPlaying(false);
+          break;
+        case 'seek':
+          video.currentTime = position;
+          break;
+      }
+    };
+
+    // Register handler with syncPlayService
+    if (isConnected) {
+      syncPlayService.connect({
+        serverUrl: import.meta.env.VITE_PHLEX_SERVER_URL || 'http://localhost:8096',
+        accessToken: localStorage.getItem('auth_token') || '',
+        userId: 'local-user',
+        userName: 'Local User',
+        onPlaybackCommand: handleSyncPlayCommand,
+      });
+    }
+
+    return () => {
+      if (isConnected) {
+        syncPlayService.disconnect();
+      }
+    };
+  }, [currentGroup, isConnected]);
 
   // Event handlers
   const handleTimeUpdate = useCallback(() => {
@@ -188,6 +236,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ itemId, playbackInfo }
       <div className={`controls-overlay ${showControls ? 'visible' : ''}`}>
         <div className="controls-top">
           <span className="video-title">{playbackInfo.item?.Name}</span>
+          <SkipButton
+            markers={playbackInfo.playback_info.markers}
+            currentTime={currentTime}
+            onSkip={handleSeek}
+          />
         </div>
 
         <div className="controls-center">
