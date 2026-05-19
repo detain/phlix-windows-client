@@ -16,6 +16,7 @@ Phlex Windows provides a full-featured media server client for Windows, enabling
 - **Authentication** - Secure login with session persistence
 - **Responsive UI** - Modern React-based interface with sidebar navigation
 - **Settings Management** - Configurable preferences including minimize-to-tray behavior
+- **Hub Mode** - Connect to a Phlex Hub to manage multiple servers, with support for direct-LAN and relay connection modes
 
 ## Prerequisites
 
@@ -69,6 +70,7 @@ The application stores configuration in the user's app data directory:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `VITE_API_URL` | `http://localhost:8080` | Media server API endpoint |
+| `VITE_PHLEX_HUB_URL` | (none) | Phlex Hub URL for hub-mode |
 | `NODE_ENV` | `development` | Runtime environment |
 
 ## Building the App
@@ -158,16 +160,20 @@ phlex-windows/
 │   │   └── index.ts    # Main entry point, window management, IPC, tray
 │   ├── preload/        # Preload scripts (context bridge)
 │   │   └── index.ts   # Secure IPC exposure to renderer
+│   ├── hub/            # Hub service and types
+│   │   └── HubService.ts
+│   ├── api/            # API clients
+│   │   └── hubAwareClient.ts
 │   └── renderer/       # React application
-│       ├── components/    # Reusable UI components
+│       ├── components/    # Reusable UI components (including HubSettings)
 │       ├── pages/         # Page-level components
-│       ├── stores/        # Zustand state stores
+│       ├── stores/        # Zustand state stores (including hubStore)
 │       ├── utils/         # Utility functions and API client
 │       ├── styles/        # CSS styles
 │       ├── App.tsx        # Root component
 │       └── main.tsx       # Renderer entry point
 ├── tests/
-│   └── unit/           # Unit tests
+│   └── unit/           # Unit tests (including hub/)
 ├── build/              # Build resources (icons)
 ├── release/            # Packaged application output
 ├── package.json
@@ -232,6 +238,42 @@ The project uses GitHub Actions for continuous integration:
 The build workflow produces:
 - **NSIS Installer** - Traditional `.exe` installer
 - **APPX Package** - For Windows Store distribution
+
+## Hub Mode
+
+Hub Mode allows you to connect to a Phlex Hub to manage and access multiple Phlex servers through a single interface. This is useful for users with servers in different locations or network environments.
+
+### Features
+
+- **Hub Authentication** - Sign in to your Phlex Hub account
+- **Server Switcher** - Quickly switch between your claimed servers
+- **Connection Modes**:
+  - **Direct** - Connect directly to servers via LAN for lowest latency
+  - **Relay** - Route traffic through the hub for remote access
+- **Session Persistence** - Hub session persists across app restarts
+
+### Configuration
+
+#### Environment Variable
+```
+VITE_PHLEX_HUB_URL=https://hub.example.com
+```
+
+#### In-App Configuration
+1. Open Settings
+2. Navigate to Hub Mode section
+3. Enter your Hub URL
+4. Sign in with your Hub credentials
+5. Select a server from your claimed servers list
+6. Choose connection mode (Direct or Relay)
+
+### Connection Flow
+
+1. User configures Hub URL and signs in
+2. App fetches list of claimed servers from Hub
+3. User selects active server and connection mode
+4. API calls route through direct-LAN or hub-relay based on mode
+5. Active server and connection mode persist across sessions
 
 ## Troubleshooting
 
