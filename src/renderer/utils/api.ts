@@ -73,12 +73,20 @@ export interface MediaItemsResponse {
   StartIndex: number;
 }
 
+export interface PlaybackMarkers {
+  skip_intro_start: number | null;
+  skip_intro_end: number | null;
+  skip_outro_start: number | null;
+  skip_outro_end: number | null;
+}
+
 export interface PlaybackInfoResponse {
   item: MediaItem;
   playback_info: {
     url: string;
     container: string;
     mime_type: string;
+    markers?: PlaybackMarkers;
   };
 }
 
@@ -314,6 +322,24 @@ class ApiClient {
       position_ticks: positionTicks,
       is_paused: isPaused
     });
+  }
+
+  // Download methods
+  async getDownloadUrl(itemId: string, quality: string = 'high'): Promise<{
+    url: string;
+    filename: string;
+    size: number;
+    container: string;
+  }> {
+    return this.request<{ url: string; filename: string; size: number; container: string }>(
+      'GET',
+      `/Media/${itemId}/Download?quality=${quality}`,
+      {}
+    );
+  }
+
+  async getItemPlaybackInfoOffline(itemId: string): Promise<PlaybackInfoResponse> {
+    return this.request<PlaybackInfoResponse>('GET', `/Items/${itemId}/PlaybackInfo?offline=true`, {});
   }
 
   // Helper methods

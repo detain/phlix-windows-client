@@ -7,7 +7,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: ['./src/renderer/test-setup.ts'],
+    setupFiles: ['./src/renderer/test-setup.ts', '@testing-library/jest-dom'],
     include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
     coverage: {
       provider: 'v8',
