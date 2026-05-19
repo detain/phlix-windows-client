@@ -38,5 +38,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onOpenSettings: (callback: () => void) => {
     ipcRenderer.on('open-settings', callback);
     return () => ipcRenderer.removeListener('open-settings', callback);
-  }
+  },
+
+  // Hub configuration
+  hubGetConfig: () => ipcRenderer.invoke('hub:get-config'),
+  hubSetConfig: (config: { hubUrl?: string; activeServerId?: string; connectionMode?: string }) =>
+    ipcRenderer.invoke('hub:set-config', config)
 });

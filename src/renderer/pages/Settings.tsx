@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAuthStore } from '../stores/authStore';
+import { HubSettings } from '../components/HubSettings';
 
 export const Settings: React.FC = () => {
   const { user, logout } = useAuthStore();
@@ -21,6 +22,11 @@ export const Settings: React.FC = () => {
             Sign Out
           </button>
         </div>
+      </div>
+
+      <div className="settings-section">
+        <h2 className="settings-section-title">Hub Mode</h2>
+        <HubSettings />
       </div>
 
       <div className="settings-section">

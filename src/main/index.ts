@@ -194,6 +194,21 @@ ipcMain.on('minimize-to-tray', () => {
   mainWindow?.hide();
 });
 
+// Hub configuration handlers
+ipcMain.handle('hub:get-config', () => {
+  return {
+    hubUrl: store.get('hubUrl', null),
+    activeServerId: store.get('activeServerId', null),
+    connectionMode: store.get('connectionMode', 'direct')
+  };
+});
+
+ipcMain.handle('hub:set-config', (_, config: { hubUrl?: string; activeServerId?: string; connectionMode?: string }) => {
+  if (config.hubUrl !== undefined) store.set('hubUrl', config.hubUrl);
+  if (config.activeServerId !== undefined) store.set('activeServerId', config.activeServerId);
+  if (config.connectionMode !== undefined) store.set('connectionMode', config.connectionMode);
+});
+
 // App lifecycle
 app.whenReady().then(() => {
   log.info('App ready');

@@ -317,7 +317,7 @@ class ApiClient {
   }
 
   // Helper methods
-  private async request<T>(
+  async request<T>(
     method: string,
     path: string,
     data?: unknown
