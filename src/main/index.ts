@@ -11,7 +11,7 @@ let tray: Tray | null = null;
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
 log.initialize();
-log.info('Phlex Windows starting...');
+log.info('Phlix Windows starting...');
 
 function createWindow(): void {
   log.info('Creating main window');
@@ -72,7 +72,7 @@ function createTray(): void {
   tray = new Tray(icon.resize({ width: 16, height: 16 }));
 
   const contextMenu = Menu.buildFromTemplate([
-    { label: 'Show Phlex', click: () => mainWindow?.show() },
+    { label: 'Show Phlix', click: () => mainWindow?.show() },
     { type: 'separator' },
     { label: 'Play/Pause', click: () => mainWindow?.webContents.send('media-play-pause') },
     { label: 'Stop', click: () => mainWindow?.webContents.send('media-stop') },
@@ -83,7 +83,7 @@ function createTray(): void {
     }}
   ]);
 
-  tray.setToolTip('Phlex Media Server');
+  tray.setToolTip('Phlix Media Server');
   tray.setContextMenu(contextMenu);
 
   tray.on('click', () => {
@@ -132,7 +132,7 @@ function createMenu(): void {
     {
       label: 'Help',
       submenu: [
-        { label: 'About Phlex', click: () => showAbout() }
+        { label: 'About Phlix', click: () => showAbout() }
       ]
     }
   ];
@@ -175,8 +175,8 @@ function showAbout(): void {
   const { dialog } = require('electron'); // eslint-disable-line @typescript-eslint/no-var-requires
   dialog.showMessageBox(mainWindow!, {
     type: 'info',
-    title: 'About Phlex',
-    message: 'Phlex Media Server',
+    title: 'About Phlix',
+    message: 'Phlix Media Server',
     detail: `Version ${app.getVersion()}\n\nA free media server for your home.`
   });
 }

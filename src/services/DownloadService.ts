@@ -425,7 +425,7 @@ class DownloadService {
    */
   private openIndexedDB(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open('phlex-downloads', 1);
+      const request = indexedDB.open('phlix-downloads', 1);
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve(request.result);
       request.onupgradeneeded = (event) => {
