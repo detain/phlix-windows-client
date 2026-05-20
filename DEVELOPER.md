@@ -1,10 +1,10 @@
-# Phlex Windows - Developer Guide
+# Phlix Windows - Developer Guide
 
-This document provides detailed information for developers working on the Phlex Windows desktop application.
+This document provides detailed information for developers working on the Phlix Windows desktop application.
 
 ## Architecture Overview
 
-The Phlex Windows app follows the standard Electron architecture with three distinct processes:
+The Phlix Windows app follows the standard Electron architecture with three distinct processes:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -56,7 +56,7 @@ The main process is responsible for:
 
 5. **Logging**
    - Uses `electron-log` for comprehensive logging
-   - Logs to `%APPDATA%\phlex-windows\logs\`
+   - Logs to `%APPDATA%\phlix-windows\logs\`
    - Global exception handlers for uncaught errors
 
 ### Preload Script (`src/preload/index.ts`)

@@ -94,7 +94,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ itemId, playbackInfo }
     // Register handler with syncPlayService
     if (isConnected) {
       syncPlayService.connect({
-        serverUrl: import.meta.env.VITE_PHLEX_SERVER_URL || 'http://localhost:8096',
+        serverUrl: import.meta.env.VITE_PHLIX_SERVER_URL || 'http://localhost:8096',
         accessToken: localStorage.getItem('auth_token') || '',
         userId: 'local-user',
         userName: 'Local User',

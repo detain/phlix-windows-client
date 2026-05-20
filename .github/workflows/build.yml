@@ -73,7 +73,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: phlex-windows-${{ matrix.target }}
+          name: phlix-windows-${{ matrix.target }}
           path: |
             release/*.exe
             release/*.appx
@@ -92,13 +92,13 @@ jobs:
       - name: Download NSIS artifacts
         uses: actions/download-artifact@v4
         with:
-          name: phlex-windows-nsis
+          name: phlix-windows-nsis
           path: artifacts/nsis
 
       - name: Download APPX artifacts
         uses: actions/download-artifact@v4
         with:
-          name: phlex-windows-appx
+          name: phlix-windows-appx
           path: artifacts/appx
 
       - name: Get version

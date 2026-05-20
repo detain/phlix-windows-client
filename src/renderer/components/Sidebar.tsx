@@ -9,7 +9,7 @@ export const Sidebar: React.FC = () => {
     <aside className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
         <span className="sidebar-logo">📺</span>
-        {!sidebarCollapsed && <span className="sidebar-logo-text">Phlex</span>}
+        {!sidebarCollapsed && <span className="sidebar-logo-text">Phlix</span>}
       </div>
       <nav className="sidebar-nav">
         <NavLink to="/" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} end>

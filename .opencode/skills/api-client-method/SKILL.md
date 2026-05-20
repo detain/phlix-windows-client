@@ -1,13 +1,13 @@
 ---
 name: api-client-method
-description: Adds a new method to the `ApiClient` class in `src/renderer/utils/api.ts`. Defines exported TypeScript request/response interfaces (matching `MediaItem`/`Library`/`AuthResult` style), calls `this.request<T>(method, path, data)` so axios interceptors attach `Authorization: Bearer` and `X-Phlex-Session-ID` headers automatically against `${VITE_PHLEX_SERVER_URL}/api/v1`. Use `URLSearchParams` for GET query strings (see `getLibraryItems`). Use when user says 'add API call', 'new endpoint method', 'call /api/v1/...', or hits a Phlex Media Server route not yet wired. Do NOT use for raw `axios.create` outside `ApiClient` or for bypassing the `request()` helper.
+description: Adds a new method to the `ApiClient` class in `src/renderer/utils/api.ts`. Defines exported TypeScript request/response interfaces (matching `MediaItem`/`Library`/`AuthResult` style), calls `this.request<T>(method, path, data)` so axios interceptors attach `Authorization: Bearer` and `X-Phlix-Session-ID` headers automatically against `${VITE_PHLIX_SERVER_URL}/api/v1`. Use `URLSearchParams` for GET query strings (see `getLibraryItems`). Use when user says 'add API call', 'new endpoint method', 'call /api/v1/...', or hits a Phlix Media Server route not yet wired. Do NOT use for raw `axios.create` outside `ApiClient` or for bypassing the `request()` helper.
 ---
 
 # API Client Method
 
 ## Critical
 
-- All HTTP traffic to the Phlex Media Server MUST go through `ApiClient.request<T>()` in `src/renderer/utils/api.ts`. Never call `axios.get/post/put/delete` directly from a method — the `request()` helper is what attaches the bearer token, session ID, and base URL via the constructor-installed interceptors.
+- All HTTP traffic to the Phlix Media Server MUST go through `ApiClient.request<T>()` in `src/renderer/utils/api.ts`. Never call `axios.get/post/put/delete` directly from a method — the `request()` helper is what attaches the bearer token, session ID, and base URL via the constructor-installed interceptors.
 - Never create a second `axios.create({...})` instance. The single `this.client` instance in `ApiClient` is the only one allowed. New methods reuse it via `this.request()`.
 - All public methods MUST be `async` and return `Promise<T>` where `T` is an exported interface. Do NOT return `any` or untyped `AxiosResponse` objects — `request()` already unwraps `response.data`.
 - Endpoint paths passed to `this.request()` are RELATIVE to `/api/v1` (the base URL). Pass `/libraries`, NOT `/api/v1/libraries` and NOT a full URL.
@@ -121,9 +121,9 @@ description: Adds a new method to the `ApiClient` class in `src/renderer/utils/a
 ## Common Issues
 
 - **`Property 'request' is private` or `is protected`** when calling `this.request()`. The helper is declared `private` in `ApiClient` — that's fine inside class methods. If you see this error you're calling it from OUTSIDE the class (e.g. from a store). Fix: move the call into a new `ApiClient` method and have the store call `apiClient.yourMethod(...)` instead.
-- **`401 Unauthorized` followed by an immediate logout** even though the user is signed in. The response interceptor clears the token on any 401. Verify: (a) the path you passed does not double up `/api/v1` (the base URL already includes it, so `/api/v1/foo` becomes `/api/v1/api/v1/foo`), and (b) `localStorage.getItem('phlex_auth_token')` is non-null at call time. Open DevTools → Network and inspect the actual request URL.
+- **`401 Unauthorized` followed by an immediate logout** even though the user is signed in. The response interceptor clears the token on any 401. Verify: (a) the path you passed does not double up `/api/v1` (the base URL already includes it, so `/api/v1/foo` becomes `/api/v1/api/v1/foo`), and (b) `localStorage.getItem('phlix_auth_token')` is non-null at call time. Open DevTools → Network and inspect the actual request URL.
 - **Query parameters arrive as `undefined` on the server.** You passed them via a third-arg object (`this.request('GET', '/foo', { id })`) — but `request()` sends the third argument as the body, not as params. Fix: build the query string with `URLSearchParams` and append it to the path, as shown in `getLibraryItems`.
 - **`TypeError: response.data is undefined`** in the caller. You returned the raw `AxiosResponse` instead of letting `request()` unwrap it. Fix: ensure your method body is `return this.request<T>(...)` with no `.then(r => r)` or manual `await` + `.data` access.
 - **Body sent as `[object Object]` string.** You called `JSON.stringify(body)` before passing it. Remove the stringify — axios + the configured `'Content-Type': 'application/json'` header does it for you.
-- **`Cannot find name 'VITE_PHLEX_SERVER_URL'`** when editing the base URL. The constant is read from `import.meta.env.VITE_PHLEX_SERVER_URL` in the constructor — don't reference it directly inside methods. Configure it via `.env` / `.env.local` at the project root and restart Vite.
+- **`Cannot find name 'VITE_PHLIX_SERVER_URL'`** when editing the base URL. The constant is read from `import.meta.env.VITE_PHLIX_SERVER_URL` in the constructor — don't reference it directly inside methods. Configure it via `.env` / `.env.local` at the project root and restart Vite.
 - **Test fails with `apiClient.request is not a function` after mocking.** The test is mocking `apiClient` instead of the underlying axios client. Mirror the existing pattern in `tests/unit/api.test.ts` — mock at the axios layer so the real `ApiClient` logic (URL composition, headers) is exercised.
