@@ -11,7 +11,7 @@ export const Header: React.FC = () => {
     if (path.startsWith('/item/')) return 'Item Details';
     if (path.startsWith('/player/')) return 'Now Playing';
     if (path === '/settings') return 'Settings';
-    return 'Phlex';
+    return 'Phlix';
   };
 
   return (

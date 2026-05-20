@@ -14,7 +14,7 @@ export const Login: React.FC = () => {
   return (
     <div className="login-container">
       <form className="login-form" onSubmit={handleSubmit}>
-        <h1 className="login-title">Phlex</h1>
+        <h1 className="login-title">Phlix</h1>
         {error && <div className="login-error">{error}</div>}
         <div className="form-group">
           <label htmlFor="username">Username</label>
