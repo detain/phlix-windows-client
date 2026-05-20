@@ -1,7 +1,7 @@
 {
-  "name": "phlex-windows",
+  "name": "phlix-windows",
   "version": "1.0.0",
-  "description": "Phlex Media Server Client for Windows",
+  "description": "Phlix Media Server Client for Windows",
   "main": "dist/main/index.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
@@ -18,8 +18,8 @@
     "lint:fix": "eslint . --ext ts,tsx --fix"
   },
   "build": {
-    "appId": "app.phlex.windows",
-    "productName": "Phlex",
+    "appId": "app.phlix.windows",
+    "productName": "Phlix",
     "directories": {
       "output": "release"
     },
@@ -46,10 +46,10 @@
       "allowToChangeInstallationDirectory": true
     },
     "appx": {
-      "identityName": "Phlex",
-      "publisher": "CN=Phlex",
-      "publisherDisplayName": "Phlex",
-      "applicationId": "Phlex"
+      "identityName": "Phlix",
+      "publisher": "CN=Phlix",
+      "publisherDisplayName": "Phlix",
+      "applicationId": "Phlix"
     }
   },
   "dependencies": {

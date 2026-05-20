@@ -126,9 +126,9 @@ class ApiClient {
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
-        'X-Phlex-Device-ID': config.deviceId,
-        'X-Phlex-Device-Name': config.deviceName,
-        'X-Phlex-Device-Type': 'windows'
+        'X-Phlix-Device-ID': config.deviceId,
+        'X-Phlix-Device-Name': config.deviceName,
+        'X-Phlix-Device-Type': 'windows'
       }
     });
 
@@ -138,7 +138,7 @@ class ApiClient {
         config.headers.Authorization = `Bearer ${this.token}`;
       }
       if (this.sessionId) {
-        config.headers['X-Phlex-Session-ID'] = this.sessionId;
+        config.headers['X-Phlix-Session-ID'] = this.sessionId;
       }
       return config;
     });
@@ -378,7 +378,7 @@ class ApiClient {
 }
 
 export const api = new ApiClient({
-  baseUrl: import.meta.env.VITE_PHLEX_SERVER_URL || 'http://localhost:8096',
+  baseUrl: import.meta.env.VITE_PHLIX_SERVER_URL || 'http://localhost:8096',
   deviceId: '',
   deviceName: 'Windows Desktop'
 });

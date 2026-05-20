@@ -1,6 +1,6 @@
-# Phlex Windows — Agent Guide
+# Phlix Windows — Agent Guide
 
-Electron + React 18 + TypeScript desktop client for Phlex Media Server. Packaged as NSIS + APPX via `electron-builder`. Repo: `git@github.com:detain/phlex-windows-client.git`.
+Electron + React 18 + TypeScript desktop client for Phlix Media Server. Packaged as NSIS + APPX via `electron-builder`. Repo: `git@github.com:detain/phlix-windows-client.git`.
 
 ## Commands
 
@@ -37,7 +37,7 @@ Three Electron processes wired by `contextBridge`:
 | `src/renderer/pages/` | `Home.tsx` · `Library.tsx` · `ItemDetail.tsx` · `Player.tsx` · `Settings.tsx` · `Login.tsx` |
 | `src/renderer/components/` | `Sidebar.tsx` · `Header.tsx` · `MediaGrid.tsx` · `VideoPlayer.tsx` (+ `VideoPlayer.css`) |
 | `src/renderer/stores/` | `authStore.ts` · `playbackStore.ts` · `uiStore.ts` (Zustand) |
-| `src/renderer/utils/api.ts` | `ApiClient` class + `api` singleton, axios against `${VITE_PHLEX_SERVER_URL}/api/v1` |
+| `src/renderer/utils/api.ts` | `ApiClient` class + `api` singleton, axios against `${VITE_PHLIX_SERVER_URL}/api/v1` |
 | `src/renderer/types/electron.d.ts` | `window.electronAPI` typings |
 | `src/renderer/styles/global.css` | Global styles + CSS vars (`--color-text-secondary`) |
 | `src/renderer/test-setup.ts` | `localStorage` mock for jsdom env |
@@ -58,7 +58,7 @@ Three Electron processes wired by `contextBridge`:
 - **No `console.*`** — `no-console` is warn. When unavoidable, suffix `// eslint-disable-line no-console` (see `src/renderer/pages/Home.tsx`).
 - **Unused args**: prefix `_` (e.g. `_get` in `src/renderer/stores/playbackStore.ts`); rule `argsIgnorePattern: '^_'`.
 - **Zustand pattern**: `create<State>((set) => ({ ...initialState, action: () => set({...}) }))` — see `src/renderer/stores/authStore.ts`.
-- **API calls** go through the `api` singleton from `src/renderer/utils/api.ts`. Methods use `this.request<T>(method, path, data)`; axios interceptors attach `Authorization: Bearer ${token}` and `X-Phlex-Session-ID`. Static device headers: `X-Phlex-Device-ID` / `X-Phlex-Device-Name` / `X-Phlex-Device-Type: windows`.
+- **API calls** go through the `api` singleton from `src/renderer/utils/api.ts`. Methods use `this.request<T>(method, path, data)`; axios interceptors attach `Authorization: Bearer ${token}` and `X-Phlix-Session-ID`. Static device headers: `X-Phlix-Device-ID` / `X-Phlix-Device-Name` / `X-Phlix-Device-Type: windows`.
 - **Page data fetching**: `useEffect` + `useState<T>` + `try/catch/finally` setting `loading=false`. See `src/renderer/pages/Library.tsx`.
 - **Components**: named exports + default export, `React.FC` typing. See `src/renderer/components/MediaGrid.tsx`.
 - **IPC**: never use `ipcRenderer` directly in renderer — extend `window.electronAPI` via `src/preload/index.ts` and type in `src/renderer/types/electron.d.ts`.
@@ -80,9 +80,9 @@ Three Electron processes wired by `contextBridge`:
 
 ## Build & packaging
 
-- `electron-builder` config lives in `package.json` under `"build"`: `appId: app.phlex.windows`, NSIS (`oneClick: false`, `perMachine: true`) + APPX (`publisher: CN=Phlex`), icon at `build/icon.ico`.
+- `electron-builder` config lives in `package.json` under `"build"`: `appId: app.phlix.windows`, NSIS (`oneClick: false`, `perMachine: true`) + APPX (`publisher: CN=Phlix`), icon at `build/icon.ico`.
 - Main entry shipped is `dist/main/index.js`; preload referenced as `preload.js` next to it (output by `tsc -p tsconfig.main.json`).
-- Logs go to `%APPDATA%\phlex-windows\logs\` via `electron-log`.
+- Logs go to `%APPDATA%\phlix-windows\logs\` via `electron-log`.
 
 ## CI
 

@@ -1,10 +1,10 @@
-# Phlex Windows Desktop App
+# Phlix Windows Desktop App
 
-A native Windows desktop application for the Phlex Media Server, built with Electron, React, and TypeScript.
+A native Windows desktop application for the Phlix Media Server, built with Electron, React, and TypeScript.
 
 ## Project Overview
 
-Phlex Windows provides a full-featured media server client for Windows, enabling users to browse, stream, and manage their media library with native desktop integration including system tray, media keys, and native menus.
+Phlix Windows provides a full-featured media server client for Windows, enabling users to browse, stream, and manage their media library with native desktop integration including system tray, media keys, and native menus.
 
 ## Features
 
@@ -16,7 +16,7 @@ Phlex Windows provides a full-featured media server client for Windows, enabling
 - **Authentication** - Secure login with session persistence
 - **Responsive UI** - Modern React-based interface with sidebar navigation
 - **Settings Management** - Configurable preferences including minimize-to-tray behavior
-- **Hub Mode** - Connect to a Phlex Hub to manage multiple servers, with support for direct-LAN and relay connection modes
+- **Hub Mode** - Connect to a Phlix Hub to manage multiple servers, with support for direct-LAN and relay connection modes
 
 ## Prerequisites
 
@@ -37,8 +37,8 @@ For development:
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/phlex/phlex-windows.git
-   cd phlex-windows
+   git clone https://github.com/phlix/phlix-windows.git
+   cd phlix-windows
    ```
 
 2. **Install dependencies**
@@ -56,7 +56,7 @@ For development:
 ## Configuration
 
 The application stores configuration in the user's app data directory:
-- **Windows**: `%APPDATA%\phlex-windows`
+- **Windows**: `%APPDATA%\phlix-windows`
 
 ### Configuration Options
 
@@ -70,7 +70,7 @@ The application stores configuration in the user's app data directory:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `VITE_API_URL` | `http://localhost:8080` | Media server API endpoint |
-| `VITE_PHLEX_HUB_URL` | (none) | Phlex Hub URL for hub-mode |
+| `VITE_PHLIX_HUB_URL` | (none) | Phlix Hub URL for hub-mode |
 | `NODE_ENV` | `development` | Runtime environment |
 
 ## Building the App
@@ -154,7 +154,7 @@ npm run lint -- --fix
 ## Project Structure
 
 ```
-phlex-windows/
+phlix-windows/
 ├── src/
 │   ├── main/           # Electron main process
 │   │   └── index.ts    # Main entry point, window management, IPC, tray
@@ -241,11 +241,11 @@ The build workflow produces:
 
 ## Hub Mode
 
-Hub Mode allows you to connect to a Phlex Hub to manage and access multiple Phlex servers through a single interface. This is useful for users with servers in different locations or network environments.
+Hub Mode allows you to connect to a Phlix Hub to manage and access multiple Phlix servers through a single interface. This is useful for users with servers in different locations or network environments.
 
 ### Features
 
-- **Hub Authentication** - Sign in to your Phlex Hub account
+- **Hub Authentication** - Sign in to your Phlix Hub account
 - **Server Switcher** - Quickly switch between your claimed servers
 - **Connection Modes**:
   - **Direct** - Connect directly to servers via LAN for lowest latency
@@ -256,7 +256,7 @@ Hub Mode allows you to connect to a Phlex Hub to manage and access multiple Phle
 
 #### Environment Variable
 ```
-VITE_PHLEX_HUB_URL=https://hub.example.com
+VITE_PHLIX_HUB_URL=https://hub.example.com
 ```
 
 #### In-App Configuration
@@ -295,7 +295,7 @@ VITE_PHLEX_HUB_URL=https://hub.example.com
 ### Logs
 
 Application logs are stored in:
-- **Windows**: `%APPDATA%\phlex-windows\logs\`
+- **Windows**: `%APPDATA%\phlix-windows\logs\`
 
 Use `electron-log` for runtime logging:
 ```typescript
