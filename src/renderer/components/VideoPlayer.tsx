@@ -32,7 +32,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ itemId, playbackInfo }
     const video = videoRef.current;
     if (!video || !playbackInfo?.playback_info?.url) return;
 
-    video.src = playbackInfo.playback_info.url;
+    // Prefer the server-minted signed stream URL: the stream route is gated and a
+    // bare `<video src>` can't send the Bearer header. Fall back to `url` for
+    // older servers that don't mint one.
+    video.src = playbackInfo.playback_info.stream_url || playbackInfo.playback_info.url;
     video.volume = volume;
 
     const startPlayback = async () => {
