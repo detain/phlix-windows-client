@@ -84,6 +84,14 @@ export interface PlaybackInfoResponse {
   item: MediaItem;
   playback_info: {
     url: string;
+    /**
+     * Short-lived, signed direct-play URL (`/media/{id}/stream?exp&sig`). The
+     * media server now gates the stream route, and an HTML5 `<video src>` can't
+     * attach the `Authorization: Bearer` header the axios client uses for JSON
+     * calls — so when the server provides this signed URL the player must use it
+     * instead of the bare `url`. Optional: older servers omit it (we fall back).
+     */
+    stream_url?: string;
     container: string;
     mime_type: string;
     markers?: PlaybackMarkers;
