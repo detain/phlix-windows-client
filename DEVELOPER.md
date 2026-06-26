@@ -4,16 +4,19 @@ This document provides detailed information for developers working on the Phlix 
 
 ## Architecture Overview
 
-The Phlix Windows app follows the standard Electron architecture with three distinct processes:
+The Phlix Windows app follows the standard Electron architecture with three distinct processes. The
+renderer is a **thin consumer** of the shared `@phlix/ui` Vue app — it does not ship its own pages,
+components, or stores. It boots `createPhlixApp(config)` and bridges Electron events into it.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    MAIN PROCESS                         │
+│                    MAIN PROCESS                          │
 │  - Window management                                     │
 │  - System tray                                           │
-│  - Native menus                                         │
-│  - IPC handlers                                         │
-│  - App lifecycle                                        │
+│  - Native menus                                          │
+│  - IPC handlers (incl. app:get/set-server-url,           │
+│    app:get-device-id, hub:get/set-config)                │
+│  - App lifecycle                                         │
 └─────────────────────────────────────────────────────────┘
                            │
                     contextBridge
@@ -21,12 +24,22 @@ The Phlix Windows app follows the standard Electron architecture with three dist
                            │
 ┌─────────────────────────────────────────────────────────┐
 │                   RENDERER PROCESS                        │
-│  - React application                                     │
-│  - Zustand stores                                        │
-│  - React Router                                          │
-│  - UI components                                         │
+│  boot() (main.ts)                                        │
+│    ├─ resolveAppConfig()  → app-mode + apiBase           │
+│    ├─ buildPhlixHeaders()  (@phlix/contracts)            │
+│    ├─ createPhlixApp(config)  (@phlix/ui: Vue 3 +        │
+│    │     Pinia + vue-router — the entire UI)             │
+│    ├─ app.mount('#phlix-app')                            │
+│    └─ installElectronBridge(app)                         │
+│         └─ Electron media/window IPC → usePlayerStore    │
+│            + router                                      │
 └─────────────────────────────────────────────────────────┘
 ```
+
+The renderer pins `@phlix/ui` (`github:detain/phlix-ui#v0.51.0`) and `@phlix/contracts`
+(`github:detain/phlix-contracts#v0.1.1`). Vue 3, Pinia, and vue-router are peer deps of `@phlix/ui`.
+All screens, navigation, theming, and state come from `@phlix/ui`; this repo owns only the Electron
+shell and the boot/bridge glue.
 
 ### Main Process (`src/main/index.ts`)
 
@@ -53,6 +66,9 @@ The main process is responsible for:
    - `get-version` - Returns app version
    - `set-always-on-top` - Toggle window always-on-top
    - `minimize-to-tray` - Hide window to tray
+   - `hub:get-config` / `hub:set-config` - Read/write persisted Hub configuration
+   - `app:get-server-url` (`store.get('serverUrl', null)`) / `app:set-server-url` (`store.set('serverUrl', url)`) - Persisted direct media server URL
+   - `app:get-device-id` - Returns the persisted `deviceId`, or generates+persists `windows-<randomUUID()>` on first call
 
 5. **Logging**
    - Uses `electron-log` for comprehensive logging
@@ -83,100 +99,84 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onFileOpened: (callback: (filePath: string) => void) => { ... },
 
   // Settings
-  onOpenSettings: (callback: () => void) => { ... }
+  onOpenSettings: (callback: () => void) => { ... },
+
+  // Hub configuration
+  hubGetConfig: () => ipcRenderer.invoke('hub:get-config'),
+  hubSetConfig: (config) => ipcRenderer.invoke('hub:set-config', config),
+
+  // Direct server URL + stable device id
+  getServerUrl: () => ipcRenderer.invoke('app:get-server-url'),
+  setServerUrl: (url) => ipcRenderer.invoke('app:set-server-url', url),
+  getDeviceId: () => ipcRenderer.invoke('app:get-device-id')
 });
 ```
 
 ### Renderer Process (`src/renderer/`)
 
-The renderer is a standard React 18 application:
+The renderer is a thin consumer of `@phlix/ui` — there are no local pages, components, or stores.
 
 ```
 src/renderer/
-├── components/       # Reusable UI components
-│   ├── Header.tsx
-│   ├── Sidebar.tsx
-│   ├── MediaGrid.tsx
-│   └── VideoPlayer.tsx
-├── pages/           # Route-level components
-│   ├── Home.tsx
-│   ├── Library.tsx
-│   ├── ItemDetail.tsx
-│   ├── Player.tsx
-│   ├── Settings.tsx
-│   └── Login.tsx
-├── stores/          # Zustand state stores
-│   ├── authStore.ts
-│   ├── playbackStore.ts
-│   └── uiStore.ts
-├── utils/          # Utilities and API client
-│   └── api.ts
-├── styles/         # Global CSS
-│   └── global.css
-├── App.tsx         # Root component with routing
-└── main.tsx        # React entry point
+├── main.ts            # Entry: boot() builds config and mounts @phlix/ui, then installs the bridge
+├── resolveConfig.ts   # Pure app-mode + apiBase resolution (hub vs direct server)
+├── electronBridge.ts  # Maps Electron media/window IPC → @phlix/ui player store + router
+├── index.html         # Mounts #phlix-app, loads /main.ts
+├── test-setup.ts      # jsdom localStorage mock
+├── vite-env.d.ts      # Vite client types (VITE_PHLIX_SERVER_URL optional)
+└── types/electron.d.ts  # window.electronAPI typings (HubConfig + new IPC methods)
 ```
 
-## Component Structure
+## Renderer Internals
 
-### Pages (Route Components)
+### Boot sequence (`main.ts`)
 
-Pages are the top-level components that correspond to routes:
+`boot()` runs at module load (`void boot()`) and is exported for testing:
 
-| Page | Route | Purpose |
-|------|-------|---------|
-| `Home` | `/` | Dashboard with library overview |
-| `Library` | `/library/:id` | Browse specific library |
-| `ItemDetail` | `/item/:id` | View item details |
-| `Player` | `/player/:id` | Full-screen media player |
-| `Settings` | `/settings` | App settings |
-| `Login` | - | Authentication (shown when not authenticated) |
+1. Read Electron config defensively — `hubGetConfig()`, `getDeviceId()`, `getServerUrl()`. When
+   `window.electronAPI` is undefined (plain browser dev), it falls back to `deviceId 'windows-dev'`,
+   no hub, and `VITE_PHLIX_SERVER_URL` for the server URL.
+2. `resolveAppConfig({ hub, serverUrl, envUrl })` → `{ app, apiBase }`.
+3. `buildPhlixHeaders({ deviceId, deviceName: 'Phlix for Windows', deviceType: 'windows' })`
+   (`@phlix/contracts`) — no token/sessionId; `@phlix/ui`'s ApiClient owns auth.
+4. `createPhlixApp({ app, apiBase, deviceHeaders, defaultTheme: 'nocturne', branding: { wordmark: 'Phlix' } })`.
+5. `app.mount('#phlix-app')`.
+6. `installElectronBridge(app)`.
 
-### Components
+### App-mode + apiBase resolution (`resolveConfig.ts`)
 
-**Header** - Top navigation bar with search and user menu
+`resolveAppConfig(input)` is pure and unit-tested:
 
-**Sidebar** - Left navigation with:
-- Home link
-- Library sections
-- Settings access
+- **Hub mode** (`{ app: 'hub', apiBase: hub.hubUrl }`) when `hub.hubUrl` is set AND
+  `hub.connectionMode !== 'direct'`.
+- Otherwise **server mode** (`{ app: 'server', apiBase }`) with the base resolved as
+  `serverUrl || envUrl || 'http://localhost:8096'` (empty strings are skipped by `||`).
 
-**MediaGrid** - Grid display for media items with thumbnails
+### Electron → player bridge (`electronBridge.ts`)
 
-**VideoPlayer** - Video playback with controls (play/pause, seek, volume, fullscreen)
+`installElectronBridge(app)` reads `$pinia` and `$router` off `app.config.globalProperties` (both set
+by pinia's and vue-router's `.use()` inside `createPhlixApp`, so they exist after `mount()`), resolves
+`usePlayerStore(pinia)`, and delegates to the pure, structurally-typed `wireElectronBridge(player, router)`:
 
-### State Management with Zustand
+| Electron event | Action |
+|----------------|--------|
+| `media-play-pause` | toggle `player.play()` / `player.pause()` off `player.playing` |
+| `media-stop` | `player.closePlayer()` |
+| `open-settings` | `router.push('/app/settings')` |
+| `media-rewind` / `media-forward` / `file-opened` | deferred no-ops (`// TODO(phase-C)`), pending a `@phlix/ui` player-command/seek seam |
 
-The app uses Zustand for state management with three stores:
+The bridge is a no-op when `window.electronAPI` is absent, and returns a single cleanup function that
+unregisters every listener.
 
-#### authStore (`stores/authStore.ts`)
+> **Deferred / dropped UIs.** The offline Downloads and realtime SyncPlay screens were removed in the
+> migration and will be re-added later as shared `@phlix/ui` seams. The tray Rewind/Forward and
+> Open File commands are wired but no-op until `@phlix/ui` exposes a player-command/seek seam.
 
-```typescript
-interface AuthState {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  error: string | null;
-  login: (username: string, password: string) => Promise<boolean>;
-  logout: () => void;
-  checkAuth: () => Promise<void>;
-}
-```
+## UI & State
 
-#### playbackStore (`stores/playbackStore.ts`)
-
-Manages media playback state:
-- Currently playing item
-- Play/pause state
-- Volume
-- Progress
-
-#### uiStore (`stores/uiStore.ts`)
-
-Manages UI state:
-- Sidebar expanded/collapsed
-- Active modals
-- Loading states
+All UI, navigation, theming, and state come from `@phlix/ui` (Pinia stores + vue-router, router base
+`/app`). This repo defines no Vue components or stores of its own. To change a screen, fix it upstream
+in `@phlix/ui` and bump the pinned `github:detain/phlix-ui#vX.Y.Z` version in `package.json`.
 
 ## Building and Testing
 
@@ -211,20 +211,28 @@ npm test -- --coverage
 
 ### Test Structure
 
-Tests use Vitest with TypeScript:
+Tests use Vitest (`jsdom`, `@vitejs/plugin-vue`) with TypeScript. There are 22 tests across three
+files:
+
+- `tests/unit/resolveConfig.test.ts` — app-mode/apiBase resolution
+- `tests/unit/electronBridge.test.ts` — `wireElectronBridge` + `installElectronBridge`
+- `tests/unit/main.test.ts` — `boot()` entry (hub / direct-server / browser-fallback / env-fallback)
+
+Coverage uses `@vitest/coverage-v8`; the Electron `src/main/**` and `src/preload/**` glue is excluded
+(it needs an Electron runtime, not jsdom). Example (`main.test.ts` mocks `@phlix/ui`, `@phlix/contracts`,
+and `./electronBridge`, plus the CSS side-effect imports):
 
 ```typescript
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
-describe('ApiClient', () => {
-  beforeEach(() => {
-    // Setup before each test
-    localStorage.removeItem('auth_token');
-  });
+vi.mock('@phlix/ui', () => ({ createPhlixApp: vi.fn(() => ({ mount: vi.fn() })) }));
 
-  it('should store token when setToken is called', () => {
-    api.setToken('test-token');
-    expect(localStorage.getItem('auth_token')).toBe('test-token');
+describe('boot (renderer entry)', () => {
+  it('resolves Electron config, mounts the app, and installs the bridge', async () => {
+    // set window.electronAPI fakes, then:
+    const mod = await import('@/main');
+    await mod.boot();
+    // assert createPhlixApp arg object, mount('#phlix-app'), installElectronBridge(app)
   });
 });
 ```
@@ -233,13 +241,15 @@ describe('ApiClient', () => {
 
 The project uses separate TypeScript configs:
 
-- **tsconfig.json** - Renderer/Node targets ES2020 with DOM libs
-- **tsconfig.main.json** - Main process targets CommonJS for Electron compatibility
+- **tsconfig.json** - Renderer; `extends @vue/tsconfig/tsconfig.dom.json`, targets ES2020 with DOM
+  libs, `moduleResolution: bundler`, `noEmit` (no `jsx`). Typecheck with `vue-tsc --noEmit`.
+- **tsconfig.main.json** - Main + preload; CommonJS for Electron compatibility. Typecheck with
+  `tsc -p tsconfig.main.json --noEmit`.
 
 ### Build Pipeline
 
 1. **Vite build** (`npm run build:vite`)
-   - Bundles React app with TypeScript
+   - Bundles the `@phlix/ui` Vue renderer with TypeScript (`@vitejs/plugin-vue`)
    - Outputs to `dist/renderer/`
 
 2. **Electron build** (`npm run build:electron`)
@@ -251,6 +261,8 @@ The project uses separate TypeScript configs:
    - Uses electron-builder
    - Creates NSIS installer and APPX package
    - Output in `release/`
+
+`dist/`, `coverage/`, `release/`, and `*.tsbuildinfo` are gitignored — CI (`build.yml`) builds `dist/`.
 
 ## Security Considerations
 
@@ -295,45 +307,26 @@ webPreferences: {
    myHandler: (...args) => ipcRenderer.invoke('my-handler', ...args),
    ```
 
-3. **Renderer** - Use via `window.electronAPI.myHandler()`
+3. **Type it** in `src/renderer/types/electron.d.ts`, then use via `window.electronAPI.myHandler()`.
 
-### Adding a New Store
+### Adding UI / screens / stores / routes
 
-1. Create `src/renderer/stores/myStore.ts`:
-   ```typescript
-   import { create } from 'zustand';
+UI, Pinia stores, and routes are NOT defined in this repo — they all live in `@phlix/ui`. To add or
+change a screen, store, or route:
 
-   interface MyState {
-     value: string;
-     setValue: (value: string) => void;
-   }
+1. Implement it upstream in `@phlix/ui`.
+2. Cut a new `@phlix/ui` release and bump the pinned
+   `"@phlix/ui": "github:detain/phlix-ui#vX.Y.Z"` in `package.json`.
 
-   export const useMyStore = create<MyState>((set) => ({
-     value: '',
-     setValue: (value) => set({ value }),
-   }));
-   ```
+If a new screen needs to be driven by an Electron tray/menu event, wire that event into the relevant
+`@phlix/ui` store inside `src/renderer/electronBridge.ts` (and add the IPC per the section above).
 
-2. Import and use in components:
-   ```typescript
-   import { useMyStore } from './stores/myStore';
+### Bridging a new Electron media command
 
-   const MyComponent = () => {
-     const { value, setValue } = useMyStore();
-     // ...
-   };
-   ```
-
-### Adding New Routes
-
-1. Add route in `App.tsx`:
-   ```typescript
-   <Route path="/new-page" element={<NewPage />} />
-   ```
-
-2. Create the page component in `pages/`
-
-3. Add navigation link in `Sidebar.tsx`
+1. Emit the event from the main process and expose an `onX(callback)` helper in the preload.
+2. In `wireElectronBridge` (`electronBridge.ts`), register the listener and call the appropriate
+   `@phlix/ui` store action (e.g. `usePlayerStore`). Push its cleanup onto the `cleanups` array.
+   The Rewind/Forward/file-opened no-ops are the placeholders waiting for a player-command/seek seam.
 
 ## Troubleshooting
 
@@ -362,7 +355,9 @@ Wrap tests with jsdom environment or mock localStorage in tests.
 ## Resources
 
 - [Electron Documentation](https://www.electronjs.org/docs)
-- [React Documentation](https://react.dev)
-- [Zustand Documentation](https://zustand.docs.pmnd.rs)
+- [Vue 3 Documentation](https://vuejs.org)
+- [Pinia Documentation](https://pinia.vuejs.org)
+- [Vue Router Documentation](https://router.vuejs.org)
 - [Vite Documentation](https://vitejs.dev)
 - [Vitest Documentation](https://vitest.dev)
+- `@phlix/ui` and `@phlix/contracts` (private — `github:detain/phlix-ui`, `github:detain/phlix-contracts`)

@@ -1,13 +1,13 @@
 import { defineConfig } from 'vitest/config';
-import react from '@vitejs/plugin-react';
+import vue from '@vitejs/plugin-vue';
 import { resolve } from 'path';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [vue()],
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: ['./src/renderer/test-setup.ts', '@testing-library/jest-dom'],
+    setupFiles: ['./src/renderer/test-setup.ts'],
     include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
     coverage: {
       provider: 'v8',
@@ -17,7 +17,9 @@ export default defineConfig({
         'tests/',
         'dist/',
         '**/*.d.ts',
-        'vite.config.ts'
+        'vite.config.mts',
+        'src/main/**',
+        'src/preload/**'
       ]
     }
   },
