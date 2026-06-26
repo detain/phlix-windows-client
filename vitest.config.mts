@@ -17,7 +17,7 @@ export default defineConfig({
         'tests/',
         'dist/',
         '**/*.d.ts',
-        'vite.config.mts',
+        '**/*.config.{ts,mts,js,mjs,cjs}',
         'src/main/**',
         'src/preload/**'
       ]
