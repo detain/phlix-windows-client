@@ -1,0 +1,13 @@
+# Caliber Learnings
+
+Accumulated patterns and anti-patterns from development sessions.
+Auto-managed by [caliber](https://github.com/caliber-ai-org/ai-setup) — do not edit manually.
+
+- **[gotcha]** `npx tsc -p tsconfig.json --noEmit` on this repo reports ~13 PRE-EXISTING baseline errors unrelated to your change — e.g. `Cannot find name 'syncPlayService'` in `VideoPlayer.tsx`, and missing `electronAPI` methods (`deleteFile`/`startDownload`/`getDownloadProgress`) in `src/services/DownloadService.ts`. Do NOT try to fix them all. To prove your edit is clean, `git stash` and re-run tsc to capture the baseline count, then confirm the count is unchanged and that no error references the file/line you touched.
+- **[gotcha]** When reading GitHub Actions logs for an in-progress run, `gh run view --job <id> --log-failed` (and `--log`) returns `run ... is still in progress; logs will be available when it is complete`. To get logs of a still-running job, use `gh api repos/{owner}/{repo}/actions/jobs/{jobId}/logs` instead — that streams partial logs immediately.
+- **[pattern]** Prefix `gh` and `git push` invocations with `unset GITHUB_TOKEN` in this workspace — the remotes are SSH (`git@github.com:detain/...`) and a stale `GITHUB_TOKEN` in the env interferes with auth.
+- **[pattern]** After a bulk `sed -i` rewrite of `.github/workflows/*.yml`, validate each file with `python3 -c "import yaml; yaml.safe_load(open('FILE'))"` before committing — catches YAML breakage the sed could introduce.
+- **[convention]** The renderer build (`tsconfig.json`) is not clean on master; a green `npm test` (vitest, 79 tests) is the real pre-commit signal for renderer changes, not a zero-error `tsc`.
+- **[convention]** The renderer build (`tsconfig.json`) is not clean on master; a green `npm test` (vitest) is the real pre-commit signal for renderer changes, not a zero-error `tsc`. Post Vue/`@phlix/ui` migration the suite is `tests/unit/{resolveConfig,electronBridge,main}.test.ts` (22 tests) and `npx eslint .` now exits 0 — run both (`npx eslint . && npx vitest run`) as the green gate before staging.
+- **[gotcha]** The 4 docs that drift together when the renderer changes are `CLAUDE.md`, `AGENTS.md` (mirrors CLAUDE.md's structure), `README.md`, and `DEVELOPER.md` — update all four. After any stack/architecture edit, grep them for stale terms (`react|zustand|axios|\.tsx|App\.tsx|VITE_API_URL`) to catch leftovers; e.g. `VITE_API_URL` was renamed to `VITE_PHLIX_SERVER_URL` and Hub config is runtime electron-store (`hub:set-config`), not an env var.
+- **[convention]** `.{docs,migration,review,test}-worklog.md` are scratch artifacts — delete them (`rm -f`) before staging a commit; they are not meant to be committed.

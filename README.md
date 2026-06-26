@@ -1,22 +1,24 @@
 # Phlix Windows Desktop App
 
-A native Windows desktop application for the Phlix Media Server, built with Electron, React, and TypeScript.
+A native Windows desktop application for the Phlix Media Server, built with Electron, Vue 3, and TypeScript. The user interface is provided by the shared **`@phlix/ui`** Vue app; this repo is a thin Electron shell + consumer.
 
 ## Project Overview
 
-Phlix Windows provides a full-featured media server client for Windows, enabling users to browse, stream, and manage their media library with native desktop integration including system tray, media keys, and native menus.
+Phlix Windows provides a full-featured media server client for Windows, enabling users to browse, stream, and manage their media library with native desktop integration including system tray, media keys, and native menus. The entire renderer UI is the shared `@phlix/ui` app booted via `createPhlixApp(config)`, so screens and theming stay in sync with the other Phlix clients.
 
 ## Features
 
-- **Media Library Browser** - Browse and search your media collection with grid views
+- **Media Library Browser** - Browse and search your media collection (provided by `@phlix/ui`)
 - **Video Player** - Full-featured video playback with controls
 - **System Tray Integration** - Minimize to tray with media controls
 - **Native Menus** - Full application menu with keyboard shortcuts
-- **Media Key Support** - Play/Pause, Stop, Rewind, Forward via system tray
-- **Authentication** - Secure login with session persistence
-- **Responsive UI** - Modern React-based interface with sidebar navigation
+- **Media Key Support** - Play/Pause and Stop are bridged from the tray/menu into the player (Rewind/Forward and Open File are temporarily no-ops, pending a shared player-command seam)
+- **Authentication** - Secure login with session persistence (handled by `@phlix/ui`)
+- **Shared UI** - Modern Vue 3 interface from `@phlix/ui` with the Nocturne theme
 - **Settings Management** - Configurable preferences including minimize-to-tray behavior
 - **Hub Mode** - Connect to a Phlix Hub to manage multiple servers, with support for direct-LAN and relay connection modes
+
+> **Temporarily dropped in the Vue migration:** the offline Downloads and realtime SyncPlay UIs were removed and will be re-added later as shared `@phlix/ui` seams.
 
 ## Prerequisites
 
@@ -48,9 +50,10 @@ For development:
 
 3. **Configure environment** (optional)
 
-   Create a `.env` file in the root directory if you need custom API settings:
+   Create a `.env` file in the root directory if you need a custom default server URL (used as the
+   build-time fallback when no server URL is persisted and Hub mode is not configured):
    ```
-   VITE_API_URL=http://localhost:8080
+   VITE_PHLIX_SERVER_URL=http://localhost:8096
    ```
 
 ## Configuration
@@ -60,18 +63,20 @@ The application stores configuration in the user's app data directory:
 
 ### Configuration Options
 
-| Setting | Default | Description |
+| Setting (electron-store key) | Default | Description |
 |---------|---------|-------------|
 | `minimizeToTray` | `true` | Minimize to system tray instead of closing |
-| `apiUrl` | Auto-detected | Media server API URL |
+| `serverUrl` | (none) | Persisted direct media server URL (`app:get/set-server-url`) |
+| `deviceId` | Auto-generated | Stable per-install device id `windows-<uuid>` (`app:get-device-id`) |
 
 ### Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `VITE_API_URL` | `http://localhost:8080` | Media server API endpoint |
-| `VITE_PHLIX_HUB_URL` | (none) | Phlix Hub URL for hub-mode |
+| `VITE_PHLIX_SERVER_URL` | `http://localhost:8096` | Build-time fallback media server URL (used when no `serverUrl` is persisted and Hub mode is off) |
 | `NODE_ENV` | `development` | Runtime environment |
+
+Hub mode is configured at runtime (persisted via `hub:set-config` in electron-store), not via an environment variable — see the Hub Mode section below.
 
 ## Building the App
 
@@ -94,7 +99,7 @@ This starts:
 npm run build
 ```
 
-**Build only the renderer (React app):**
+**Build only the renderer (Vue app):**
 ```bash
 npm run build:vite
 ```
@@ -137,18 +142,22 @@ npm test -- --coverage
 
 ### Test Structure
 
-- Unit tests located in `tests/unit/`
-- Test files use Vitest with TypeScript
-- Tests for API client, stores, and utilities
+- Unit tests located in `tests/unit/` (22 tests): `resolveConfig.test.ts`, `electronBridge.test.ts`, `main.test.ts`
+- Test files use Vitest (`jsdom`, `@vitejs/plugin-vue`) with TypeScript
+- Coverage via `@vitest/coverage-v8`; the Electron `src/main/**` and `src/preload/**` glue is excluded
 
-### Linting
+### Linting & Typecheck
 
 ```bash
-# Run ESLint
+# Run ESLint (flat config: eslint.config.mjs)
 npm run lint
 
 # Fix auto-fixable issues
-npm run lint -- --fix
+npm run lint:fix
+
+# Typecheck the renderer (Vue) and the Electron main/preload
+npx vue-tsc --noEmit
+npx tsc -p tsconfig.main.json --noEmit
 ```
 
 ## Project Structure
@@ -158,26 +167,24 @@ phlix-windows/
 ├── src/
 │   ├── main/           # Electron main process
 │   │   └── index.ts    # Main entry point, window management, IPC, tray
-│   ├── preload/        # Preload scripts (context bridge)
-│   │   └── index.ts   # Secure IPC exposure to renderer
-│   ├── hub/            # Hub service and types
-│   │   └── HubService.ts
-│   ├── api/            # API clients
-│   │   └── hubAwareClient.ts
-│   └── renderer/       # React application
-│       ├── components/    # Reusable UI components (including HubSettings)
-│       ├── pages/         # Page-level components
-│       ├── stores/        # Zustand state stores (including hubStore)
-│       ├── utils/         # Utility functions and API client
-│       ├── styles/        # CSS styles
-│       ├── App.tsx        # Root component
-│       └── main.tsx       # Renderer entry point
+│   ├── preload/        # Preload script (context bridge)
+│   │   └── index.ts    # Secure IPC exposure to renderer
+│   └── renderer/       # Thin @phlix/ui consumer (no local pages/components/stores)
+│       ├── main.ts            # Entry: boot() → createPhlixApp() → mount → installElectronBridge
+│       ├── resolveConfig.ts   # Pure app-mode + apiBase resolution (hub vs direct server)
+│       ├── electronBridge.ts  # Maps Electron media/window IPC → @phlix/ui player store + router
+│       ├── index.html         # Mounts #phlix-app
+│       ├── test-setup.ts      # jsdom localStorage mock
+│       ├── vite-env.d.ts
+│       └── types/electron.d.ts
 ├── tests/
-│   └── unit/           # Unit tests (including hub/)
+│   └── unit/           # resolveConfig.test.ts · electronBridge.test.ts · main.test.ts (22 tests)
 ├── build/              # Build resources (icons)
-├── release/            # Packaged application output
+├── release/            # Packaged application output (gitignored)
 ├── package.json
-├── vite.config.ts
+├── vite.config.mts
+├── vitest.config.mts
+├── eslint.config.mjs
 └── tsconfig.json
 ```
 
@@ -188,27 +195,23 @@ phlix-windows/
 1. **Main Process** (`src/main/index.ts`)
    - Creates BrowserWindow
    - Manages system tray and menus
-   - Handles IPC from renderer
+   - Handles IPC from renderer (incl. `app:get-server-url`/`app:set-server-url`/`app:get-device-id`)
    - Manages app lifecycle
 
 2. **Preload Script** (`src/preload/index.ts`)
-   - Exposes safe APIs via contextBridge
+   - Exposes safe APIs via contextBridge (incl. `getServerUrl`/`setServerUrl`/`getDeviceId`)
    - Provides IPC invoke/send methods
-   - Handles media control events
+   - Relays media control events to the renderer
 
 3. **Renderer Process** (`src/renderer/`)
-   - React 18 application
-   - Zustand for state management
-   - React Router for navigation
-   - Vite for development and bundling
+   - A thin consumer of the shared `@phlix/ui` Vue app, booted via `createPhlixApp(config)`
+   - Vue 3 + Pinia + vue-router (peer deps of `@phlix/ui`)
+   - Pinned to `@phlix/ui` `#v0.51.0` and `@phlix/contracts` `#v0.1.1`
+   - Vite (`@vitejs/plugin-vue`) for development and bundling
 
-### State Management
+### UI & State
 
-State is managed using Zustand with three main stores:
-
-- **authStore** - Authentication state and user session
-- **playbackStore** - Media playback state
-- **uiStore** - UI state (sidebar, modals, etc.)
+All screens, navigation, theming, and state live in the shared **`@phlix/ui`** app (Pinia stores + vue-router). This repo does not define its own pages, components, or stores. Configuration passed to `createPhlixApp` (app-mode, `apiBase`, `deviceHeaders`, theme, branding) is resolved at boot from Electron config; device headers are built with `@phlix/contracts` `buildPhlixHeaders`. Electron tray/menu events are bridged into `@phlix/ui`'s player store and router by `src/renderer/electronBridge.ts`.
 
 ## Deployment
 
@@ -254,10 +257,10 @@ Hub Mode allows you to connect to a Phlix Hub to manage and access multiple Phli
 
 ### Configuration
 
-#### Environment Variable
-```
-VITE_PHLIX_HUB_URL=https://hub.example.com
-```
+Hub configuration is persisted at runtime in electron-store (via the `hub:set-config` IPC) — there is
+no environment variable for it. At boot, `resolveAppConfig` runs the app in **hub mode** (against
+`hub.hubUrl`) whenever a Hub URL is configured and the connection mode is not explicitly `direct`;
+otherwise it runs in **server mode** against the persisted direct server URL.
 
 #### In-App Configuration
 1. Open Settings
@@ -269,10 +272,10 @@ VITE_PHLIX_HUB_URL=https://hub.example.com
 
 ### Connection Flow
 
-1. User configures Hub URL and signs in
-2. App fetches list of claimed servers from Hub
-3. User selects active server and connection mode
-4. API calls route through direct-LAN or hub-relay based on mode
+1. User configures Hub URL and signs in; the choice is persisted via `hub:set-config`
+2. On next boot, `resolveAppConfig` selects hub vs direct server mode and the `apiBase`
+3. App fetches the list of claimed servers from the Hub (via `@phlix/ui`)
+4. API calls route through direct-LAN or hub-relay based on the chosen mode
 5. Active server and connection mode persist across sessions
 
 ## Troubleshooting

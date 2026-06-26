@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Electron + React 18 + TypeScript desktop client for Phlix Media Server. Packaged as NSIS + APPX via `electron-builder`. Repo: `git@github.com:detain/phlix-windows-client.git`.
+Electron + Vue 3 + TypeScript desktop client for Phlix Media Server. The renderer is a **thin consumer** of the shared `@phlix/ui` Vue app (all screens/stores/routing come from `@phlix/ui`; this repo only owns the Electron shell + the boot/bridge glue). Packaged as NSIS + APPX via `electron-builder`. Repo: `git@github.com:detain/phlix-windows-client.git`.
 
 ## Commands
 
@@ -17,69 +17,63 @@ npm run package          # NSIS x64 installer → release/
 npm run package:store    # APPX for Windows Store
 npm test                 # vitest run
 npm run test:watch       # vitest watch
-npm run lint             # eslint **/*.{ts,tsx} (--max-warnings 0)
-npm run lint:fix         # auto-fix
+npm run lint             # eslint .
+npm run lint:fix         # eslint . --fix
 ```
 
-Run a single test file: `npx vitest run tests/unit/api.test.ts`. Filter by name: `npx vitest run -t "loads token"`.
+Typecheck: renderer `npx vue-tsc --noEmit`; main/preload `npx tsc -p tsconfig.main.json --noEmit`.
+
+Run a single test file: `npx vitest run tests/unit/main.test.ts`. Filter by name: `npx vitest run -t "browser fallback"`.
 
 ## Architecture
 
-Three Electron processes wired by `contextBridge`:
+Three Electron processes wired by `contextBridge`. The renderer no longer ships its own React UI — it boots `@phlix/ui`'s `createPhlixApp(config)` (Vue 3 + Pinia + vue-router, all peer deps of `@phlix/ui`) and bridges Electron events into it.
 
-- **Main** (`src/main/index.ts`): `BrowserWindow` creation, `Tray`, `Menu` (File/Playback/View/Help), IPC handlers (`get-app-path`, `get-version`, `set-always-on-top`, `minimize-to-tray`), `electron-log` init, `electron-store` for the `minimizeToTray` pref. Sends `media-play-pause`/`media-stop`/`media-rewind`/`media-forward`/`open-settings`/`file-opened` to renderer.
-- **Preload** (`src/preload/index.ts`): exposes `window.electronAPI` via `contextBridge.exposeInMainWorld` with `ipcRenderer.invoke`/`.send`/`.on` wrappers. Listener helpers return cleanup functions.
-- **Renderer** (`src/renderer/`): React 18 + `react-router-dom` v6 (`HashRouter`) + `zustand` stores + `axios` client.
+- **Main** (`src/main/index.ts`): `BrowserWindow` creation, `Tray`, `Menu` (File/Playback/View/Help), `electron-log` init, `electron-store`. IPC handlers: existing `get-app-path` / `get-version` / `set-always-on-top` / `minimize-to-tray` / `hub:get-config` / `hub:set-config`, **plus** `app:get-server-url` (`store.get('serverUrl', null)`), `app:set-server-url` (`store.set('serverUrl', url)`), `app:get-device-id` (returns persisted `deviceId` or generates+persists `windows-<randomUUID()>`). Sends `media-play-pause` / `media-stop` / `media-rewind` / `media-forward` / `open-settings` / `file-opened` to the renderer. Tray/menu/existing IPC unchanged.
+- **Preload** (`src/preload/index.ts`): exposes `window.electronAPI` via `contextBridge.exposeInMainWorld`. Adds `getServerUrl()` / `setServerUrl(url)` / `getDeviceId()` (all `ipcRenderer.invoke`) alongside the existing app-info / window-control / media-event / hub-config members. Listener helpers return cleanup functions.
+- **Renderer** (`src/renderer/`): a thin `@phlix/ui` consumer — no local pages/components/stores. Pinned to `@phlix/ui` (`github:detain/phlix-ui#v0.51.0`) + `@phlix/contracts` (`github:detain/phlix-contracts#v0.1.1`); Vue 3 / Pinia / vue-router are peer deps. Built with Vite + `@vitejs/plugin-vue`.
 
 ### Renderer layout
 
 | Path | Purpose |
 |------|---------|
-| `src/renderer/App.tsx` | Root: `useAuthStore().checkAuth()` → `<Login>` or `<HashRouter>` with `<Sidebar>` + `<Header>` + `<Routes>` |
-| `src/renderer/main.tsx` | `ReactDOM.createRoot` mounts `<App>` into `#root` |
-| `src/renderer/index.html` | CSP locked to self + `https: http: blob:` media + `ws:` connect |
-| `src/renderer/pages/` | `Home.tsx` · `Library.tsx` · `ItemDetail.tsx` · `Player.tsx` · `Settings.tsx` · `Login.tsx` |
-| `src/renderer/components/` | `Sidebar.tsx` · `Header.tsx` · `MediaGrid.tsx` · `VideoPlayer.tsx` (+ `VideoPlayer.css`) |
-| `src/renderer/stores/` | `authStore.ts` · `playbackStore.ts` · `uiStore.ts` (Zustand) |
-| `src/renderer/utils/api.ts` | `ApiClient` class + `api` singleton, axios against `${VITE_PHLIX_SERVER_URL}/api/v1` |
-| `src/renderer/types/electron.d.ts` | `window.electronAPI` typings |
-| `src/renderer/styles/global.css` | Global styles + CSS vars (`--color-text-secondary`) |
-| `src/renderer/test-setup.ts` | `localStorage` mock for jsdom env |
-| `src/renderer/vite-env.d.ts` | Vite client types |
+| `src/renderer/main.ts` | Entry. `boot()` reads Electron config (`hubGetConfig`/`getDeviceId`/`getServerUrl`, defensive when `electronAPI` is undefined in a plain browser dev context), resolves app-mode + apiBase via `resolveAppConfig`, builds `deviceHeaders` via `@phlix/contracts` `buildPhlixHeaders`, `createPhlixApp({app, apiBase, deviceHeaders, defaultTheme:'nocturne', branding})`, `mount('#phlix-app')`, then `installElectronBridge(app)`. Exports `boot` for testing; top-level `void boot()` runs at load. |
+| `src/renderer/resolveConfig.ts` | Pure exported `resolveAppConfig({hub, serverUrl, envUrl})`: returns `{app:'hub', apiBase:hub.hubUrl}` when `hub.hubUrl` set AND `connectionMode !== 'direct'`, else `{app:'server', apiBase}` with serverUrl → envUrl → `http://localhost:8096`. No Electron/DOM deps — unit-testable. |
+| `src/renderer/electronBridge.ts` | `installElectronBridge(app)` pulls `$pinia`/`$router` off `app.config.globalProperties`, resolves `usePlayerStore(pinia)`, delegates to the pure `wireElectronBridge(player, router)`. Maps Electron media/window IPC → the phlix-ui player store + router: play-pause toggles `play()`/`pause()` off `player.playing`; stop → `closePlayer()`; open-settings → `router.push('/app/settings')`. `rewind`/`forward`/`file-opened` are deferred no-ops (`// TODO(phase-C)`) pending a phlix-ui player-command/seek seam. No-op outside Electron; returns a single cleanup that unregisters every listener. |
+| `src/renderer/index.html` | Mounts `#phlix-app`, loads `/main.ts`. CSP locked to self + `https: http: blob:` media + `ws:` connect. |
+| `src/renderer/types/electron.d.ts` | `window.electronAPI` typings (incl. `HubConfig`, `getServerUrl`/`setServerUrl`/`getDeviceId`). |
+| `src/renderer/test-setup.ts` | `localStorage` mock for jsdom env. |
+| `src/renderer/vite-env.d.ts` | Vite client types; `VITE_PHLIX_SERVER_URL` optional. |
 
-### Routes (`src/renderer/App.tsx`)
+### Routing
 
-- `/` → `Home` — lists `api.getLibraries()`
-- `/library/:id` → `Library` — `api.getLibraryItems(id)` → `<MediaGrid>`
-- `/item/:id` → `ItemDetail` — `api.getItem(id)` + play action
-- `/player/:id` → `Player` — wraps `<VideoPlayer>`, uses `usePlaybackStore`
-- `/settings` → `Settings`
-- `*` → `<Navigate to="/" />`
+Routes are NOT defined here — they come from `createPhlixApp` (`@phlix/ui`'s router). The router base is `/app`; the Electron bridge navigates with full paths such as `router.push('/app/settings')`.
 
 ## Conventions
 
-- **TypeScript strict** with `noUnusedLocals` + `noUnusedParameters` (`tsconfig.json`). Avoid `any` — ESLint warns via `.eslintrc.cjs`.
-- **No `console.*`** — `no-console` is warn. When unavoidable, suffix `// eslint-disable-line no-console` (see `src/renderer/pages/Home.tsx`).
-- **Unused args**: prefix `_` (e.g. `_get` in `src/renderer/stores/playbackStore.ts`); rule `argsIgnorePattern: '^_'`.
-- **Zustand pattern**: `create<State>((set) => ({ ...initialState, action: () => set({...}) }))` — see `src/renderer/stores/authStore.ts`.
-- **API calls** go through the `api` singleton from `src/renderer/utils/api.ts`. Methods use `this.request<T>(method, path, data)`; axios interceptors attach `Authorization: Bearer ${token}` and `X-Phlix-Session-ID`. Static device headers: `X-Phlix-Device-ID` / `X-Phlix-Device-Name` / `X-Phlix-Device-Type: windows`.
-- **Page data fetching**: `useEffect` + `useState<T>` + `try/catch/finally` setting `loading=false`. See `src/renderer/pages/Library.tsx`.
-- **Components**: named exports + default export, `React.FC` typing. See `src/renderer/components/MediaGrid.tsx`.
-- **IPC**: never use `ipcRenderer` directly in renderer — extend `window.electronAPI` via `src/preload/index.ts` and type in `src/renderer/types/electron.d.ts`.
+- **Thin consumer**: the renderer owns ZERO UI. All screens, stores, theming, and routing live in `@phlix/ui`. Do not re-add local pages/components/stores — extend `@phlix/ui` upstream and bump the pinned version instead.
+- **Device identity** via `@phlix/contracts` `buildPhlixHeaders({deviceId, deviceName:'Phlix for Windows', deviceType:'windows'})`. No token/sessionId is passed here — `@phlix/ui`'s ApiClient owns `Authorization`/session.
+- **App-mode + apiBase** are resolved once in `resolveAppConfig` (hub vs direct server). Persisted serverUrl comes from `app:get-server-url`; the stable deviceId from `app:get-device-id`.
+- **Electron → player bridge**: Electron IPC events are bridged to `@phlix/ui`'s `usePlayerStore` + router in `electronBridge.ts`, never directly to UI. Add new media commands there.
+- **TypeScript strict** with `noUnusedLocals` + `noUnusedParameters` (`tsconfig.json`). Avoid `any` — `@typescript-eslint/no-explicit-any` is warn.
+- **`console.*`**: `no-console` is warn in the renderer; **off** in `src/main`/`src/preload` (Electron legitimately logs).
+- **Unused args**: prefix `_`; rule `argsIgnorePattern: '^_'`.
+- **IPC**: never use `ipcRenderer` directly in the renderer — extend `window.electronAPI` via `src/preload/index.ts` and type it in `src/renderer/types/electron.d.ts`.
 - **CSP** in `src/renderer/index.html` allows `https: http: blob:` for media and `ws:` for connect — preserve when adding sources.
-- **Auth/session persistence** lives in `localStorage` keys `auth_token` / `session_id` / `device_id` (set via `api.setToken` / `api.setSession`).
+
+> Offline Downloads and realtime SyncPlay UIs were removed in the migration and are TEMPORARILY DROPPED, to be re-added later as shared `@phlix/ui` seams (the same applies to tray Rewind/Forward + file-opened, currently `// TODO(phase-C)` no-ops).
 
 ## Testing
 
-- Vitest with `jsdom` env (`vitest.config.ts`), setup file `src/renderer/test-setup.ts` mocks `localStorage`.
+- Vitest with `jsdom` env (`vitest.config.mts`, `@vitejs/plugin-vue`), setup file `src/renderer/test-setup.ts` mocks `localStorage`.
 - Includes glob: `tests/**/*.test.ts` and `tests/**/*.test.tsx`.
-- Coverage via `v8` provider, reporters `text`/`json`/`html`.
-- Reference test: `tests/unit/api.test.ts` (resets `localStorage` in `beforeEach`).
-- Path aliases: `@` → `src/renderer/` (both `vite.config.ts` and `vitest.config.ts`).
+- Coverage via `@vitest/coverage-v8` (`v8` provider), reporters `text`/`json`/`html`; `src/main/**` and `src/preload/**` are excluded (Electron-process glue, not jsdom-testable).
+- Test files (22 tests): `tests/unit/resolveConfig.test.ts` (app-mode/apiBase resolution), `tests/unit/electronBridge.test.ts` (`wireElectronBridge` + `installElectronBridge`), `tests/unit/main.test.ts` (`boot()` entry — hub/direct/browser-fallback/env-fallback).
+- Path alias: `@` → `src/renderer/` (both `vite.config.mts` and `vitest.config.mts`).
 
 ## TypeScript configs
 
-- `tsconfig.json` — renderer; `module: ESNext`, `moduleResolution: bundler`, `jsx: react-jsx`, `noEmit: true`, `lib: [ES2020, DOM, DOM.Iterable]`.
+- `tsconfig.json` — renderer; `extends @vue/tsconfig/tsconfig.dom.json`; `module: ESNext`, `moduleResolution: bundler`, `noEmit: true`, `lib: [ES2020, DOM, DOM.Iterable]` (no `jsx`). Renderer typecheck via `vue-tsc --noEmit`.
 - `tsconfig.main.json` — main + preload; `module: CommonJS`, `target: ES2020`, `outDir: dist`, `composite: true`. Referenced from `tsconfig.json`.
 
 ## Build & packaging
@@ -87,6 +81,8 @@ Three Electron processes wired by `contextBridge`:
 - `electron-builder` config lives in `package.json` under `"build"`: `appId: app.phlix.windows`, NSIS (`oneClick: false`, `perMachine: true`) + APPX (`publisher: CN=Phlix`), icon at `build/icon.ico`.
 - Main entry shipped is `dist/main/index.js`; preload referenced as `preload.js` next to it (output by `tsc -p tsconfig.main.json`).
 - Logs go to `%APPDATA%\phlix-windows\logs\` via `electron-log`.
+- `dist/` is gitignored and NOT committed — CI (`build.yml`) builds it. `coverage/`, `release/`, and `*.tsbuildinfo` are gitignored too.
+- ESLint is flat config (`eslint.config.mjs`, eslint 9 + `typescript-eslint` + `eslint-plugin-vue`). The old `.eslintrc.cjs`/`.eslintignore` were removed. Vite/Vitest configs use explicit-ESM extensions (`vite.config.mts`, `vitest.config.mts`).
 
 ## CI
 
