@@ -1,5 +1,11 @@
 export {};
 
+interface HubConfig {
+  hubUrl: string | null;
+  activeServerId: string | null;
+  connectionMode: string | null;
+}
+
 declare global {
   interface Window {
     electronAPI: {
@@ -13,6 +19,11 @@ declare global {
       onMediaForward: (callback: () => void) => () => void;
       onFileOpened: (callback: (filePath: string) => void) => () => void;
       onOpenSettings: (callback: () => void) => () => void;
+      hubGetConfig: () => Promise<HubConfig>;
+      hubSetConfig: (config: { hubUrl?: string; activeServerId?: string; connectionMode?: string }) => Promise<void>;
+      getServerUrl: () => Promise<string | null>;
+      setServerUrl: (url: string) => Promise<void>;
+      getDeviceId: () => Promise<string>;
     };
   }
 }

@@ -1,5 +1,6 @@
-import { app, BrowserWindow, Menu, Tray, ipcMain, shell, nativeImage } from 'electron';
+import { app, BrowserWindow, Menu, Tray, ipcMain, shell, nativeImage, dialog } from 'electron';
 import * as path from 'path';
+import { randomUUID } from 'crypto';
 import log from 'electron-log';
 import Store from 'electron-store';
 
@@ -142,7 +143,6 @@ function createMenu(): void {
 }
 
 async function openFile(): Promise<void> {
-  const { dialog } = await import('electron');
   const result = await dialog.showOpenDialog(mainWindow!, {
     properties: ['openFile'],
     filters: [
@@ -172,7 +172,6 @@ function toggleFullscreen(): void {
 }
 
 function showAbout(): void {
-  const { dialog } = require('electron'); // eslint-disable-line @typescript-eslint/no-var-requires
   dialog.showMessageBox(mainWindow!, {
     type: 'info',
     title: 'About Phlix',
@@ -207,6 +206,25 @@ ipcMain.handle('hub:set-config', (_, config: { hubUrl?: string; activeServerId?:
   if (config.hubUrl !== undefined) store.set('hubUrl', config.hubUrl);
   if (config.activeServerId !== undefined) store.set('activeServerId', config.activeServerId);
   if (config.connectionMode !== undefined) store.set('connectionMode', config.connectionMode);
+});
+
+// Direct server URL handlers
+ipcMain.handle('app:get-server-url', () => {
+  return store.get('serverUrl', null);
+});
+
+ipcMain.handle('app:set-server-url', (_, url: string) => {
+  store.set('serverUrl', url);
+});
+
+// Stable device id (generated once, persisted)
+ipcMain.handle('app:get-device-id', () => {
+  let deviceId = store.get('deviceId') as string | undefined;
+  if (!deviceId) {
+    deviceId = `windows-${randomUUID()}`;
+    store.set('deviceId', deviceId);
+  }
+  return deviceId;
 });
 
 // App lifecycle

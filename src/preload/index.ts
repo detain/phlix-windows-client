@@ -43,5 +43,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Hub configuration
   hubGetConfig: () => ipcRenderer.invoke('hub:get-config'),
   hubSetConfig: (config: { hubUrl?: string; activeServerId?: string; connectionMode?: string }) =>
-    ipcRenderer.invoke('hub:set-config', config)
+    ipcRenderer.invoke('hub:set-config', config),
+
+  // Direct server URL
+  getServerUrl: () => ipcRenderer.invoke('app:get-server-url'),
+  setServerUrl: (url: string) => ipcRenderer.invoke('app:set-server-url', url),
+
+  // Stable device id
+  getDeviceId: () => ipcRenderer.invoke('app:get-device-id')
 });
