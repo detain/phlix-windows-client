@@ -9,11 +9,16 @@ export interface BridgePlayer {
   play: () => void;
   pause: () => void;
   closePlayer: () => void;
+  /** Relative seek in seconds (phlix-ui v0.52.0 player command bus). */
+  seekBy: (delta: number) => void;
 }
 
 export interface BridgeRouter {
   push: (to: string) => unknown;
 }
+
+/** Seconds the tray/menu Rewind & Fast-Forward controls jump. */
+const SEEK_STEP_SECONDS = 10;
 
 /**
  * Pure wiring helper: registers the Electron main-process media/window events
@@ -45,19 +50,22 @@ export function wireElectronBridge(player: BridgePlayer, router: BridgeRouter): 
 
   cleanups.push(
     api.onMediaRewind(() => {
-      // TODO(phase-C): needs phlix-ui player-command/seek seam
+      player.seekBy(-SEEK_STEP_SECONDS);
     })
   );
 
   cleanups.push(
     api.onMediaForward(() => {
-      // TODO(phase-C): needs phlix-ui player-command/seek seam
+      player.seekBy(SEEK_STEP_SECONDS);
     })
   );
 
   cleanups.push(
     api.onFileOpened(() => {
-      // TODO(phase-C): needs phlix-ui player-command/seek seam (local-file playback)
+      // Local-file playback is still deferred: phlix-ui's PlayerPage is
+      // API-driven, so a synthetic local item needs a local-source path in the
+      // shared player before `usePlayerStore().playLocalFile(url)` can drive it.
+      // Tracked separately; the seam (playLocalFile) already exists in v0.52.0.
     })
   );
 

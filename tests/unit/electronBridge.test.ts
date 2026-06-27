@@ -13,11 +13,13 @@ const playerStub: BridgePlayer & {
   play: ReturnType<typeof vi.fn>;
   pause: ReturnType<typeof vi.fn>;
   closePlayer: ReturnType<typeof vi.fn>;
+  seekBy: ReturnType<typeof vi.fn>;
 } = {
   playing: false,
   play: vi.fn(),
   pause: vi.fn(),
-  closePlayer: vi.fn()
+  closePlayer: vi.fn(),
+  seekBy: vi.fn()
 };
 const usePlayerStoreMock = vi.fn(() => playerStub);
 vi.mock('@phlix/ui', () => ({
@@ -69,12 +71,14 @@ function makePlayer(playing = false): BridgePlayer & {
   play: ReturnType<typeof vi.fn>;
   pause: ReturnType<typeof vi.fn>;
   closePlayer: ReturnType<typeof vi.fn>;
+  seekBy: ReturnType<typeof vi.fn>;
 } {
   return {
     playing,
     play: vi.fn(),
     pause: vi.fn(),
-    closePlayer: vi.fn()
+    closePlayer: vi.fn(),
+    seekBy: vi.fn()
   };
 }
 
@@ -136,15 +140,26 @@ describe('wireElectronBridge', () => {
     expect(push).toHaveBeenCalledWith('/app/settings');
   });
 
-  it('rewind/forward/file-opened are safe no-ops (no player mutation)', () => {
+  it('rewind/forward relative-seek the player via the command bus', () => {
     const player = makePlayer(true);
     const router: BridgeRouter = { push: vi.fn() };
     wireElectronBridge(player, router);
     fakeApi.fire('media-rewind');
+    expect(player.seekBy).toHaveBeenNthCalledWith(1, -10);
     fakeApi.fire('media-forward');
-    fakeApi.fire('file-opened', 'C:/movie.mkv');
+    expect(player.seekBy).toHaveBeenNthCalledWith(2, 10);
     expect(player.play).not.toHaveBeenCalled();
     expect(player.pause).not.toHaveBeenCalled();
+    expect(player.closePlayer).not.toHaveBeenCalled();
+  });
+
+  it('file-opened is a safe no-op for now (local-file playback deferred)', () => {
+    const player = makePlayer(true);
+    const router: BridgeRouter = { push: vi.fn() };
+    wireElectronBridge(player, router);
+    fakeApi.fire('file-opened', 'C:/movie.mkv');
+    expect(player.seekBy).not.toHaveBeenCalled();
+    expect(player.play).not.toHaveBeenCalled();
     expect(player.closePlayer).not.toHaveBeenCalled();
   });
 
