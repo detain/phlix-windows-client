@@ -2,8 +2,16 @@ name: Build
 
 on:
   push:
+    branches: [master]
     tags:
       - 'v*.*.*'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'electron-builder.*'
+      - '.github/workflows/build.yml'
   workflow_dispatch:
     inputs:
       version:
@@ -83,6 +91,9 @@ jobs:
   release:
     name: Create Release
     needs: build
+    # Only publish a GitHub Release on a version tag — master/PR builds just
+    # upload installer artifacts (above) without cutting a release.
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
 
     steps:
