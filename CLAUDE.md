@@ -39,7 +39,7 @@ Three Electron processes wired by `contextBridge`. The renderer no longer ships 
 |------|---------|
 | `src/renderer/main.ts` | Entry. `boot()` reads Electron config (`hubGetConfig`/`getDeviceId`/`getServerUrl`, defensive when `electronAPI` is undefined in a plain browser dev context), resolves app-mode + apiBase via `resolveAppConfig`, builds `deviceHeaders` via `@phlix/contracts` `buildPhlixHeaders`, `createPhlixApp({app, apiBase, deviceHeaders, defaultTheme:'nocturne', branding})`, `mount('#phlix-app')`, then `installElectronBridge(app)`. Exports `boot` for testing; top-level `void boot()` runs at load. |
 | `src/renderer/resolveConfig.ts` | Pure exported `resolveAppConfig({hub, serverUrl, envUrl})`: returns `{app:'hub', apiBase:hub.hubUrl}` when `hub.hubUrl` set AND `connectionMode !== 'direct'`, else `{app:'server', apiBase}` with serverUrl → envUrl → `http://localhost:8096`. No Electron/DOM deps — unit-testable. |
-| `src/renderer/electronBridge.ts` | `installElectronBridge(app)` pulls `$pinia`/`$router` off `app.config.globalProperties`, resolves `usePlayerStore(pinia)`, delegates to the pure `wireElectronBridge(player, router)`. Maps Electron media/window IPC → the phlix-ui player store + router: play-pause toggles `play()`/`pause()` off `player.playing`; stop → `closePlayer()`; open-settings → `router.push('/app/settings')`. `rewind`/`forward`/`file-opened` are deferred no-ops (`// TODO(phase-C)`) pending a phlix-ui player-command/seek seam. No-op outside Electron; returns a single cleanup that unregisters every listener. |
+| `src/renderer/electronBridge.ts` | `installElectronBridge(app)` pulls `$pinia`/`$router` off `app.config.globalProperties`, resolves `usePlayerStore(pinia)`, delegates to the pure `wireElectronBridge(player, router)`. Maps Electron media/window IPC → the phlix-ui player store + router: play-pause toggles `play()`/`pause()` off `player.playing`; stop → `closePlayer()`; open-settings → `router.push('/app/settings')`. `rewind`/`forward` relative-seek via `player.seekBy(∓10)` (phlix-ui v0.52.0 command bus); `file-opened` stays a no-op pending local-file support in the shared `PlayerPage` (the `playLocalFile` seam exists). No-op outside Electron; returns a single cleanup that unregisters every listener. |
 | `src/renderer/index.html` | Mounts `#phlix-app`, loads `/main.ts`. CSP locked to self + `https: http: blob:` media + `ws:` connect. |
 | `src/renderer/types/electron.d.ts` | `window.electronAPI` typings (incl. `HubConfig`, `getServerUrl`/`setServerUrl`/`getDeviceId`). |
 | `src/renderer/test-setup.ts` | `localStorage` mock for jsdom env. |
@@ -61,7 +61,7 @@ Routes are NOT defined here — they come from `createPhlixApp` (`@phlix/ui`'s r
 - **IPC**: never use `ipcRenderer` directly in the renderer — extend `window.electronAPI` via `src/preload/index.ts` and type it in `src/renderer/types/electron.d.ts`.
 - **CSP** in `src/renderer/index.html` allows `https: http: blob:` for media and `ws:` for connect — preserve when adding sources.
 
-> Offline Downloads and realtime SyncPlay UIs were removed in the migration and are TEMPORARILY DROPPED, to be re-added later as shared `@phlix/ui` seams (the same applies to tray Rewind/Forward + file-opened, currently `// TODO(phase-C)` no-ops).
+> Offline Downloads and realtime SyncPlay UIs were removed in the migration and are TEMPORARILY DROPPED, to be re-added later as shared `@phlix/ui` seams (tray Rewind/Forward now relative-seek via v0.52.0's player command bus; only Open File / local-file playback remains deferred).
 
 ## Testing
 
