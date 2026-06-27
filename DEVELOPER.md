@@ -163,14 +163,16 @@ by pinia's and vue-router's `.use()` inside `createPhlixApp`, so they exist afte
 | `media-play-pause` | toggle `player.play()` / `player.pause()` off `player.playing` |
 | `media-stop` | `player.closePlayer()` |
 | `open-settings` | `router.push('/app/settings')` |
-| `media-rewind` / `media-forward` / `file-opened` | deferred no-ops (`// TODO(phase-C)`), pending a `@phlix/ui` player-command/seek seam |
+| `media-rewind` / `media-forward` | `player.seekBy(-10)` / `player.seekBy(10)` — relative seek via the `@phlix/ui` v0.52.0 player command bus |
+| `file-opened` | deferred no-op — local-file playback needs a local-source path in the shared (API-driven) `PlayerPage`; the `playLocalFile(url)` seam exists |
 
 The bridge is a no-op when `window.electronAPI` is absent, and returns a single cleanup function that
 unregisters every listener.
 
 > **Deferred / dropped UIs.** The offline Downloads and realtime SyncPlay screens were removed in the
-> migration and will be re-added later as shared `@phlix/ui` seams. The tray Rewind/Forward and
-> Open File commands are wired but no-op until `@phlix/ui` exposes a player-command/seek seam.
+> migration and will be re-added later as shared `@phlix/ui` seams. Tray Rewind/Forward now
+> relative-seek via v0.52.0's player command bus; the Open File command stays a no-op until the
+> shared `PlayerPage` supports a local file source.
 
 ## UI & State
 
@@ -326,7 +328,8 @@ If a new screen needs to be driven by an Electron tray/menu event, wire that eve
 1. Emit the event from the main process and expose an `onX(callback)` helper in the preload.
 2. In `wireElectronBridge` (`electronBridge.ts`), register the listener and call the appropriate
    `@phlix/ui` store action (e.g. `usePlayerStore`). Push its cleanup onto the `cleanups` array.
-   The Rewind/Forward/file-opened no-ops are the placeholders waiting for a player-command/seek seam.
+   Rewind/Forward use `player.seekBy(±10)` (v0.52.0 command bus); the file-opened handler is the
+   remaining placeholder, waiting on local-file support in the shared `PlayerPage`.
 
 ## Troubleshooting
 
