@@ -26,6 +26,14 @@ export async function boot(): Promise<void> {
   const app = createPhlixApp({
     app: appMode,
     apiBase,
+    // This desktop app ships with no server baked in. When `apiBase` is empty
+    // (nothing persisted/seeded yet) @phlix/ui routes to its first-run Connect
+    // screen instead of showing a login form aimed at nothing. Mirror the chosen
+    // URL back into Electron-store so resolveAppConfig re-seeds it next launch.
+    requireConnection: true,
+    onConnectionChange: (url) => {
+      void api?.setServerUrl(url ?? '');
+    },
     deviceHeaders,
     defaultTheme: 'nocturne',
     branding: { wordmark: 'Phlix' }

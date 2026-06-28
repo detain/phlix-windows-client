@@ -82,6 +82,8 @@ describe('boot (renderer entry)', () => {
     expect(createPhlixApp).toHaveBeenCalledWith({
       app: 'hub',
       apiBase: 'https://hub.example.com',
+      requireConnection: true,
+      onConnectionChange: expect.any(Function),
       deviceHeaders: FAKE_HEADERS,
       defaultTheme: 'nocturne',
       branding: { wordmark: 'Phlix' }
@@ -119,14 +121,15 @@ describe('boot (renderer entry)', () => {
     const mod = await import('@/main');
     await mod.boot();
 
-    // Browser fallback: no api → app:'server', device 'windows-dev', localhost base.
+    // Browser fallback: no api → app:'server', device 'windows-dev', and an EMPTY
+    // base (no localhost guess) → @phlix/ui shows the first-run Connect screen.
     expect(buildPhlixHeaders).toHaveBeenLastCalledWith({
       deviceId: 'windows-dev',
       deviceName: 'Phlix for Windows',
       deviceType: 'windows'
     });
     expect(createPhlixApp).toHaveBeenLastCalledWith(
-      expect.objectContaining({ app: 'server', apiBase: 'http://localhost:8096' })
+      expect.objectContaining({ app: 'server', apiBase: '', requireConnection: true })
     );
     expect(mountSpy).toHaveBeenCalledWith('#phlix-app');
     expect(installElectronBridge).toHaveBeenLastCalledWith(fakeApp);
@@ -142,5 +145,28 @@ describe('boot (renderer entry)', () => {
     expect(createPhlixApp).toHaveBeenLastCalledWith(
       expect.objectContaining({ app: 'server', apiBase: 'http://env-server:8096' })
     );
+  });
+
+  it('mirrors a Connect-screen choice back into Electron-store via setServerUrl', async () => {
+    const api = {
+      hubGetConfig: vi.fn(async () => ({ hubUrl: null, activeServerId: null, connectionMode: 'direct' })),
+      getDeviceId: vi.fn(async () => 'device-1'),
+      getServerUrl: vi.fn(async () => null),
+      setServerUrl: vi.fn(async () => {})
+    };
+    setElectronApi(api);
+
+    const mod = await import('@/main');
+    await mod.boot();
+
+    // Pull the onConnectionChange callback handed to @phlix/ui and exercise it.
+    const cfg = createPhlixApp.mock.calls.at(-1)?.[0] as {
+      onConnectionChange: (url: string | null) => void;
+    };
+    cfg.onConnectionChange('http://chosen:8096');
+    expect(api.setServerUrl).toHaveBeenCalledWith('http://chosen:8096');
+    // A clear (null) writes an empty string so resolveAppConfig re-seeds cleanly.
+    cfg.onConnectionChange(null);
+    expect(api.setServerUrl).toHaveBeenLastCalledWith('');
   });
 });
