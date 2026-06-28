@@ -8,8 +8,20 @@ vi.mock('@phlix/ui/fonts.css', () => ({}));
 const mountSpy = vi.fn();
 const fakeApp = { mount: mountSpy };
 const createPhlixApp = vi.fn(() => fakeApp);
+// Stub the admin/hub route builders + page components main.ts pulls from @phlix/ui
+// to assemble its menu + extraRoutes. The builders return marker route arrays so
+// tests can assert the right set was wired per app mode.
+const SERVER_ADMIN_ROUTE = { path: '/app/admin/dashboard', name: 'admin-dashboard' };
+const HUB_ADMIN_ROUTE = { path: '/app/admin/dashboard', name: 'hub-admin-dashboard' };
+const PageStub = { template: '<div />' };
 vi.mock('@phlix/ui', () => ({
   createPhlixApp: (...args: unknown[]) => createPhlixApp(...args),
+  buildAdminRoutes: () => [SERVER_ADMIN_ROUTE],
+  buildHubAdminRoutes: () => [HUB_ADMIN_ROUTE],
+  LibraryScanPage: PageStub,
+  MyServersPage: PageStub,
+  FederationPage: PageStub,
+  ManageSharesPage: PageStub,
   // main.ts does not import usePlayerStore, but export a no-op so the mock is
   // safe even if the import surface grows.
   usePlayerStore: vi.fn(() => ({}))
@@ -79,15 +91,19 @@ describe('boot (renderer entry)', () => {
       deviceType: 'windows'
     });
 
-    expect(createPhlixApp).toHaveBeenCalledWith({
-      app: 'hub',
-      apiBase: 'https://hub.example.com',
-      requireConnection: true,
-      onConnectionChange: expect.any(Function),
-      deviceHeaders: FAKE_HEADERS,
-      defaultTheme: 'nocturne',
-      branding: { wordmark: 'Phlix' }
-    });
+    expect(createPhlixApp).toHaveBeenCalledWith(
+      expect.objectContaining({
+        app: 'hub',
+        apiBase: 'https://hub.example.com',
+        requireConnection: true,
+        onConnectionChange: expect.any(Function),
+        home: '/app/servers',
+        features: { resumeSync: false },
+        deviceHeaders: FAKE_HEADERS,
+        defaultTheme: 'nocturne',
+        branding: { wordmark: 'Phlix' }
+      })
+    );
 
     expect(mountSpy).toHaveBeenCalledWith('#phlix-app');
     expect(installElectronBridge).toHaveBeenCalledWith(fakeApp);
@@ -168,5 +184,40 @@ describe('boot (renderer entry)', () => {
     // A clear (null) writes an empty string so resolveAppConfig re-seeds cleanly.
     cfg.onConnectionChange(null);
     expect(api.setServerUrl).toHaveBeenLastCalledWith('');
+  });
+});
+
+describe('buildMenu', () => {
+  it('server mode: Browse (libraryLinks) + Settings + admin-gated Admin', async () => {
+    const { buildMenu } = await import('@/main');
+    const menu = buildMenu('server');
+    expect(menu.map((m) => m.id)).toEqual(['browse', 'settings', 'admin']);
+    expect(menu.find((m) => m.id === 'browse')?.libraryLinks).toBe(true);
+    const admin = menu.find((m) => m.id === 'admin');
+    expect(admin).toMatchObject({ to: '/app/admin/dashboard', requiresAdmin: true });
+  });
+
+  it('hub mode: My Servers + Federation + Shares + admin-gated Admin', async () => {
+    const { buildMenu } = await import('@/main');
+    const menu = buildMenu('hub');
+    expect(menu.map((m) => m.id)).toEqual(['my-servers', 'federation', 'manage-shares', 'admin']);
+    expect(menu.find((m) => m.id === 'admin')?.requiresAdmin).toBe(true);
+  });
+});
+
+describe('buildExtraRoutes', () => {
+  it('server mode: admin section + the library-scan route', async () => {
+    const { buildExtraRoutes } = await import('@/main');
+    const names = buildExtraRoutes('server').map((r) => r.name);
+    expect(names).toContain('admin-dashboard');
+    expect(names).toContain('library-scan');
+  });
+
+  it('hub mode: hub pages + the hub admin section', async () => {
+    const { buildExtraRoutes } = await import('@/main');
+    const names = buildExtraRoutes('hub').map((r) => r.name);
+    expect(names).toEqual(
+      expect.arrayContaining(['my-servers', 'federation', 'manage-shares', 'hub-admin-dashboard'])
+    );
   });
 });
