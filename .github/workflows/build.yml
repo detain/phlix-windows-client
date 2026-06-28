@@ -88,6 +88,62 @@ jobs:
             release/*.nupkg
           if-no-files-found: error
 
+  release-latest:
+    name: Update "latest" prerelease
+    needs: build
+    # On every master push, overwrite a rolling "latest" GitHub Release carrying
+    # the RAW .exe/.appx as directly-downloadable assets. (GitHub Actions
+    # artifacts are always served zipped — a Release is the only way to offer a
+    # bare, clickable installer.) Skipped on PRs and tag pushes (tags cut a
+    # versioned release via the `release` job below).
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Download NSIS artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: phlix-windows-nsis
+          path: artifacts/nsis
+
+      - name: Download APPX artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: phlix-windows-appx
+          path: artifacts/appx
+
+      - name: Reset "latest" release + tag
+        # Delete any existing rolling release and its tag so the recreated one
+        # points at this commit and carries only the freshly-built installers
+        # (no stale assets from a prior master build accumulate).
+        run: gh release delete latest --yes --cleanup-tag || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish "latest" prerelease
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: latest
+          name: Latest (master)
+          body: |
+            Rolling build of the latest `master` commit (${{ github.sha }}).
+            Download the raw installer directly — no zip:
+            - **`.exe`** — NSIS installer (desktop install)
+            - **`.appx`** — Windows Store / sideload package
+          prerelease: true
+          make_latest: false
+          target_commitish: ${{ github.sha }}
+          files: |
+            artifacts/nsis/*.exe
+            artifacts/appx/*.appx
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   release:
     name: Create Release
     needs: build
@@ -95,6 +151,8 @@ jobs:
     # upload installer artifacts (above) without cutting a release.
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
