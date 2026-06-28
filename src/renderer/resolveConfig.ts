@@ -21,15 +21,20 @@ export interface ResolvedAppConfig {
   apiBase: string;
 }
 
-const DEFAULT_SERVER_URL = 'http://localhost:8096';
-
 /**
  * Decide whether to talk to a hub or a direct server, and which base URL to use.
  *
  * - If a hubUrl is configured AND the connection mode is not explicitly 'direct',
  *   run in hub mode against the hub URL.
  * - Otherwise run in server mode against the persisted direct server URL, falling
- *   back to the build-time env URL, then localhost:8096.
+ *   back to the build-time env URL, then an EMPTY base.
+ *
+ * An empty `apiBase` is intentional: the app no longer guesses `localhost:8096`
+ * (which on a real user's machine is nothing). Instead `main.ts` passes
+ * `requireConnection: true`, so an empty base routes the user to the shared
+ * `@phlix/ui` first-run Connect screen to enter their server/hub address — which
+ * is then persisted (and mirrored back via `setServerUrl`) so it re-seeds here on
+ * the next launch.
  */
 export function resolveAppConfig(input: ResolveConfigInput): ResolvedAppConfig {
   const hub = input.hub ?? null;
@@ -38,6 +43,6 @@ export function resolveAppConfig(input: ResolveConfigInput): ResolvedAppConfig {
     return { app: 'hub', apiBase: hub.hubUrl };
   }
 
-  const apiBase = input.serverUrl || input.envUrl || DEFAULT_SERVER_URL;
+  const apiBase = input.serverUrl || input.envUrl || '';
   return { app: 'server', apiBase };
 }
