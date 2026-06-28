@@ -47,9 +47,11 @@ describe('resolveAppConfig', () => {
     expect(result).toEqual({ app: 'server', apiBase: 'http://env-server:8096' });
   });
 
-  it('falls back to localhost:8096 when nothing else is set', () => {
+  it('falls back to an EMPTY base when nothing else is set (→ Connect screen)', () => {
+    // No localhost guess: an empty base signals main.ts/@phlix/ui to show the
+    // first-run Connect screen rather than authenticate against nothing.
     const result = resolveAppConfig({ hub: null, serverUrl: null, envUrl: null });
-    expect(result).toEqual({ app: 'server', apiBase: 'http://localhost:8096' });
+    expect(result).toEqual({ app: 'server', apiBase: '' });
   });
 
   it('falls back to server mode when hub has no hubUrl', () => {
