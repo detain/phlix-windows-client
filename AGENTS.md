@@ -27,7 +27,7 @@ Three Electron processes wired by `contextBridge`. The renderer no longer ships 
 
 - **Main** (`src/main/index.ts`): `BrowserWindow` creation, `Tray`, `Menu` (File/Playback/View/Help), `electron-log` init, `electron-store`. IPC handlers: existing `get-app-path` / `get-version` / `set-always-on-top` / `minimize-to-tray` / `hub:get-config` / `hub:set-config`, **plus** `app:get-server-url` (`store.get('serverUrl', null)`), `app:set-server-url` (`store.set('serverUrl', url)`), `app:get-device-id` (returns persisted `deviceId` or generates+persists `windows-<randomUUID()>`). Sends `media-play-pause` / `media-stop` / `media-rewind` / `media-forward` / `open-settings` / `file-opened` to the renderer. Tray/menu/existing IPC unchanged.
 - **Preload** (`src/preload/index.ts`): exposes `window.electronAPI` via `contextBridge.exposeInMainWorld`. Adds `getServerUrl()` / `setServerUrl(url)` / `getDeviceId()` (all `ipcRenderer.invoke`) alongside the existing app-info / window-control / media-event / hub-config members. Listener helpers return cleanup functions.
-- **Renderer** (`src/renderer/`): a thin `@phlix/ui` consumer — no local pages/components/stores. Pinned to `@phlix/ui` (`github:detain/phlix-ui#v0.51.0`) + `@phlix/contracts` (`github:detain/phlix-contracts#v0.1.1`); Vue 3 / Pinia / vue-router are peer deps. Built with Vite + `@vitejs/plugin-vue`.
+- **Renderer** (`src/renderer/`): a thin `@phlix/ui` consumer — no local pages/components/stores. Pinned to `@phlix/ui` (`github:detain/phlix-ui#v0.74.0`) + `@phlix/contracts` (`github:detain/phlix-contracts#v0.2.0`); Vue 3 / Pinia / vue-router are peer deps. Built with Vite + `@vitejs/plugin-vue`.
 
 ### Renderer layout
 
