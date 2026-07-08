@@ -1,3 +1,9 @@
+/**
+ * Phlix Media Server Client for Windows.
+ *
+ * @copyright 2026 Joe Huss <detain@interserver.net>
+ */
+
 /// <reference types="vitest" />
 
 // Mock localStorage for tests

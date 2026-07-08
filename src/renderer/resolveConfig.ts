@@ -1,3 +1,9 @@
+/**
+ * Phlix Media Server Client for Windows.
+ *
+ * @copyright 2026 Joe Huss <detain@interserver.net>
+ */
+
 // Pure, unit-testable resolution of the phlix-ui app mode + apiBase from the
 // Electron hub config + persisted direct server URL + build-time env fallback.
 

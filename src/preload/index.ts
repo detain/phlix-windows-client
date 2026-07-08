@@ -1,3 +1,9 @@
+/**
+ * Phlix Media Server Client for Windows.
+ *
+ * @copyright 2026 Joe Huss <detain@interserver.net>
+ */
+
 import { contextBridge, ipcRenderer } from 'electron';
 
 // Expose protected methods to renderer

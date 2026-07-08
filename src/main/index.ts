@@ -1,3 +1,9 @@
+/**
+ * Phlix Media Server Client for Windows.
+ *
+ * @copyright 2026 Joe Huss <detain@interserver.net>
+ */
+
 import { app, BrowserWindow, Menu, Tray, ipcMain, shell, nativeImage, dialog } from 'electron';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
