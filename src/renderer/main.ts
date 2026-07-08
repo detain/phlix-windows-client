@@ -1,3 +1,9 @@
+/**
+ * Phlix Media Server Client for Windows.
+ *
+ * @copyright 2026 Joe Huss <detain@interserver.net>
+ */
+
 import type { MenuItem } from '@phlix/ui';
 import type { RouteRecordRaw } from 'vue-router';
 import {
