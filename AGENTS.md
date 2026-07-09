@@ -48,6 +48,7 @@ Three Electron processes wired by `contextBridge`. The renderer no longer ships 
 | `src/renderer/components/RecommendationCard.tsx` | React component rendering a single media recommendation. |
 | `src/renderer/components/RecommendationsPanel.tsx` | React component listing media recommendations. |
 | `src/renderer/components/rating-styles.css` | Styles for the rating-display components. |
+| `src/pages/ParentalControlsPage.vue` | Vue page for parental-controls settings. |
 
 ### Routing
 
