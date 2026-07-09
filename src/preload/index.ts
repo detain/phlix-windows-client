@@ -46,7 +46,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('open-settings', callback);
   },
 
-  // Hub configuration
+  // Hub configuration handlers
   hubGetConfig: () => ipcRenderer.invoke('hub:get-config'),
   hubSetConfig: (config: { hubUrl?: string; activeServerId?: string; connectionMode?: string }) =>
     ipcRenderer.invoke('hub:set-config', config),
@@ -56,5 +56,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setServerUrl: (url: string) => ipcRenderer.invoke('app:set-server-url', url),
 
   // Stable device id
-  getDeviceId: () => ipcRenderer.invoke('app:get-device-id')
+  getDeviceId: () => ipcRenderer.invoke('app:get-device-id'),
+
+  // SyncPlay WebSocket management
+  syncPlayConnect: (roomId: string, serverUrl: string, token: string) =>
+    ipcRenderer.invoke('syncplay:connect', { roomId, serverUrl, token }),
+  syncPlayDisconnect: () => ipcRenderer.invoke('syncplay:disconnect'),
+  syncPlaySend: (message: unknown) => ipcRenderer.invoke('syncplay:send', message),
+  onSyncPlayMessage: (callback: (message: unknown) => void) => {
+    ipcRenderer.on('syncplay:message', (_, message) => callback(message));
+    return () => ipcRenderer.removeListener('syncplay:message', callback);
+  },
+  onSyncPlayConnected: (callback: (roomId: string) => void) => {
+    ipcRenderer.on('syncplay:connected', (_, roomId) => callback(roomId));
+    return () => ipcRenderer.removeListener('syncplay:connected', callback);
+  },
+  onSyncPlayDisconnected: (callback: () => void) => {
+    ipcRenderer.on('syncplay:disconnected', callback);
+    return () => ipcRenderer.removeListener('syncplay:disconnected', callback);
+  }
 });

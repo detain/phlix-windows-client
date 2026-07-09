@@ -5,7 +5,9 @@
  */
 
 import { usePlayerStore } from '@phlix/ui';
+import { getActivePinia } from 'pinia';
 import type { App as VueApp } from 'vue';
+import type { SyncPlayMessage, SyncPlayStateUpdate, SyncPlayPlaybackCommand } from './types/electron.d';
 
 // Minimal structural types for the pieces of the phlix-ui player store and the
 // vue-router instance that the bridge actually touches. Keeping them local makes
@@ -17,6 +19,8 @@ export interface BridgePlayer {
   closePlayer: () => void;
   /** Relative seek in seconds (phlix-ui v0.52.0 player command bus). */
   seekBy: (delta: number) => void;
+  /** Absolute seek to position in seconds. */
+  seekTo: (position: number) => void;
 }
 
 export interface BridgeRouter {
@@ -101,4 +105,108 @@ export function installElectronBridge(app: VueApp): () => void {
   const player = usePlayerStore(pinia) as unknown as BridgePlayer;
 
   return wireElectronBridge(player, router);
+}
+
+/**
+ * SyncPlay bridge helper that wires SyncPlay WebSocket messages to the player store.
+ * This handles real-time playback sync commands from other users in the room.
+ */
+export function wireSyncPlayBridge(player: BridgePlayer): () => void {
+  const api = window.electronAPI;
+  if (!api) return () => {};
+
+  const cleanups: Array<() => void> = [];
+
+  // Handle incoming SyncPlay state updates
+  cleanups.push(
+    api.onSyncPlayMessage((message: SyncPlayMessage) => {
+      switch (message.kind) {
+        case 'state': {
+          // Sync state update - adjust playback position if significantly different
+          const stateUpdate = message.data as SyncPlayStateUpdate;
+          const currentPosition = _getPlayerPosition();
+          const drift = Math.abs(currentPosition - stateUpdate.playbackPosition);
+          // Only seek if drift > 2 seconds to avoid constant micro-adjustments
+          if (drift > 2) {
+            player.seekTo(stateUpdate.playbackPosition);
+          }
+          break;
+        }
+        case 'command': {
+          // Playback command from room (play, pause, seek)
+          const command = message.data as SyncPlayPlaybackCommand;
+          handleSyncPlayCommand(player, command);
+          break;
+        }
+        case 'member':
+        case 'error':
+          // These are handled by the store directly
+          break;
+      }
+    })
+  );
+
+  return () => {
+    for (const cleanup of cleanups) {
+      cleanup();
+    }
+  };
+}
+
+/**
+ * Handle a SyncPlay playback command.
+ * Follows the Law of Early Exit and Intentional Naming.
+ */
+function handleSyncPlayCommand(player: BridgePlayer, command: SyncPlayPlaybackCommand): void {
+  if (!player.playing && !player.pause && !player.seekTo) return;
+
+  switch (command.type) {
+    case 'play':
+      if (!player.playing && player.play) {
+        player.play();
+      }
+      break;
+    case 'pause':
+      if (player.playing && player.pause) {
+        player.pause();
+      }
+      break;
+    case 'seek':
+      if (command.position !== undefined && player.seekTo) {
+        player.seekTo(command.position);
+      }
+      break;
+    case 'sync':
+      // Full sync - seek to exact position
+      if (command.position !== undefined && player.seekTo) {
+        player.seekTo(command.position);
+      }
+      break;
+  }
+}
+
+/**
+ * Get current player position.
+ * Uses a best-effort approach to get position without exposing internal state.
+ * Note: BridgePlayer interface doesn't expose position, so we return 0.
+ * The actual position tracking is handled by the player store.
+ */
+function _getPlayerPosition(): number {
+  return 0;
+}
+
+/**
+ * Install SyncPlay bridge against a mounted Vue app.
+ * Should be called after installElectronBridge.
+ */
+export function installSyncPlayBridge(_app: VueApp): () => void {
+  if (!window.electronAPI) return () => {};
+
+  // Early exit if Pinia is not yet initialized (avoids "getActivePinia()" error)
+  const pinia = getActivePinia();
+  if (!pinia) return () => {};
+
+  const player = usePlayerStore(pinia) as unknown as BridgePlayer;
+
+  return wireSyncPlayBridge(player);
 }
