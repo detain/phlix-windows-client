@@ -18,6 +18,7 @@ import {
 import { buildPhlixHeaders } from '@phlix/contracts';
 import '@phlix/ui/style.css';
 import '@phlix/ui/fonts.css';
+import './components/rating-styles.css';
 import { resolveAppConfig } from './resolveConfig';
 import { installElectronBridge } from './electronBridge';
 
