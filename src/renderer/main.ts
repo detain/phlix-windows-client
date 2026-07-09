@@ -16,6 +16,7 @@ import {
   ManageSharesPage
 } from '@phlix/ui';
 import { buildPhlixHeaders } from '@phlix/contracts';
+import ParentalControlsPage from '../pages/ParentalControlsPage.vue';
 import '@phlix/ui/style.css';
 import '@phlix/ui/fonts.css';
 import './components/rating-styles.css';
@@ -58,12 +59,14 @@ export function buildExtraRoutes(appMode: 'server' | 'hub'): RouteRecordRaw[] {
       { path: '/app/servers', name: 'my-servers', component: MyServersPage },
       { path: '/app/federation', name: 'federation', component: FederationPage },
       { path: '/app/shares', name: 'manage-shares', component: ManageSharesPage },
+      { path: '/app/parental-controls', name: 'parental-controls', component: ParentalControlsPage },
       ...buildHubAdminRoutes()
     ];
   }
   return [
     ...buildAdminRoutes(),
-    { path: '/app/library/scan', name: 'library-scan', component: LibraryScanPage }
+    { path: '/app/library/scan', name: 'library-scan', component: LibraryScanPage },
+    { path: '/app/parental-controls', name: 'parental-controls', component: ParentalControlsPage }
   ];
 }
 
