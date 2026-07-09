@@ -24,6 +24,7 @@ import { resolveAppConfig } from './resolveConfig';
 import { installElectronBridge, installSyncPlayBridge } from './electronBridge';
 import { useSyncPlayStore } from '../stores/useSyncPlayStore';
 
+
 /**
  * Top-bar nav for the current app mode. Mirrors the server and hub web-uis so the
  * desktop client gets the same surfaces — crucially the gated "Admin" entry,
@@ -126,6 +127,10 @@ export async function boot(): Promise<void> {
   const syncPlayStore = useSyncPlayStore();
   syncPlayStore.setServerUrl(apiBase);
   syncPlayStore.setupWebSocketListeners();
+
+  // Mount React overlay for P3-S4 player UX features (skip/sleep/PiP)
+  // Imported dynamically after Vue app mounts so Pinia is active
+  void import('./overlay');
 }
 
 void boot();
