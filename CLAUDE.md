@@ -52,6 +52,7 @@ Three Electron processes wired by `contextBridge`. The renderer no longer ships 
 | `src/renderer/components/RecommendationCard.tsx` | React component rendering a single media recommendation. |
 | `src/renderer/components/RecommendationsPanel.tsx` | React component listing media recommendations. |
 | `src/renderer/components/rating-styles.css` | Styles for the rating-display components. |
+| `src/pages/ParentalControlsPage.vue` | Vue page for parental-controls settings. |
 
 ### Routing
 
@@ -107,7 +108,6 @@ Full architecture diagrams, IPC handler walkthroughs, and packaging notes live i
 - When invoking external CLIs, pass all flags every time (use empty strings instead of omitting flags).
 - For multi-PR/multi-slice work, sequence steps one at a time — do not fan out parallel sub-agents.
 
-<!-- caliber:managed:pre-commit -->
 ## Before Committing
 
 **IMPORTANT:** Before every git commit, you MUST ensure Caliber syncs agent configs with the latest code changes.
@@ -128,28 +128,18 @@ grep -q "caliber" .git/hooks/pre-commit 2>/dev/null && echo "hook-active" || ech
 **`caliber config`** takes no flags — it runs an interactive provider setup. Do not pass `--provider`, `--api-key`, or `--endpoint`.
 
 If `caliber` is not found, tell the user: "This project uses Caliber for agent config sync. Run /setup-caliber to get set up."
-<!-- /caliber:managed:pre-commit -->
-
-<!-- caliber:managed:learnings -->
 ## Session Learnings
 
 Read `CALIBER_LEARNINGS.md` for patterns and anti-patterns learned from previous sessions.
 These are auto-extracted from real tool usage — treat them as project-specific rules.
-<!-- /caliber:managed:learnings -->
-
-<!-- caliber:managed:model-config -->
 ## Model Configuration
 
 Recommended default: `claude-sonnet-4-6` with high effort (stronger reasoning; higher cost and latency than smaller models).
 Smaller/faster models trade quality for speed and cost — pick what fits the task.
 Pin your choice (`/model` in Claude Code, or `CALIBER_MODEL` when using Caliber with an API provider) so upstream default changes do not silently change behavior.
 
-<!-- /caliber:managed:model-config -->
-
-<!-- caliber:managed:sync -->
 ## Context Sync
 
 This project uses [Caliber](https://github.com/caliber-ai-org/ai-setup) to keep AI agent configs in sync across Claude Code, Cursor, Copilot, and Codex.
 Configs update automatically before each commit via `caliber refresh`.
 If the pre-commit hook is not set up, run `/setup-caliber` to configure everything automatically.
-<!-- /caliber:managed:sync -->
