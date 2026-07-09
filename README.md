@@ -148,7 +148,7 @@ npm test -- --coverage
 
 ### Test Structure
 
-- Unit tests located in `tests/unit/` (22 tests): `resolveConfig.test.ts`, `electronBridge.test.ts`, `main.test.ts`
+- Unit tests located in `tests/unit/`: `resolveConfig.test.ts`, `electronBridge.test.ts`, `main.test.ts`, `RatingBadge.test.tsx`, `UserRatingPicker.test.tsx`, `ChapterList.test.tsx`
 - Test files use Vitest (`jsdom`, `@vitejs/plugin-vue`) with TypeScript
 - Coverage via `@vitest/coverage-v8`; the Electron `src/main/**` and `src/preload/**` glue is excluded
 
@@ -182,9 +182,10 @@ phlix-windows/
 │       ├── index.html         # Mounts #phlix-app
 │       ├── test-setup.ts      # jsdom localStorage mock
 │       ├── vite-env.d.ts
-│       └── types/electron.d.ts
+│       ├── types/electron.d.ts
+│       └── components/        # RatingBadge.tsx · UserRatingPicker.tsx · ChapterList.tsx · rating-styles.css
 ├── tests/
-│   └── unit/           # resolveConfig.test.ts · electronBridge.test.ts · main.test.ts (22 tests)
+│   └── unit/           # resolveConfig · electronBridge · main · RatingBadge · UserRatingPicker · ChapterList
 ├── build/              # Build resources (icons)
 ├── release/            # Packaged application output (gitignored)
 ├── package.json
