@@ -93,7 +93,7 @@ jobs:
         run: npm install
 
       - name: Type check renderer
-        run: npx tsc --noEmit
+        run: npx vue-tsc --noEmit
 
       - name: Type check main process
         run: npx tsc -p tsconfig.main.json --noEmit
