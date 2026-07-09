@@ -11,6 +11,8 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
+    "jsx": "preserve",
+    "jsxImportSource": "vue",
     "types": ["vite/client", "node"],
     "strict": true,
     "noUnusedLocals": true,
