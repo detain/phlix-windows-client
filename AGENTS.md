@@ -43,6 +43,10 @@ Three Electron processes wired by `contextBridge`. The renderer no longer ships 
 | `src/renderer/components/RatingBadge.tsx` | React component rendering a media rating badge. |
 | `src/renderer/components/UserRatingPicker.tsx` | React component for setting a user rating. |
 | `src/renderer/components/ChapterList.tsx` | React component listing media chapters. |
+| `src/renderer/components/AudioTrackList.tsx` | React component for selecting an audio track. |
+| `src/renderer/components/SubtitleTrackList.tsx` | React component for selecting a subtitle track. |
+| `src/renderer/components/RecommendationCard.tsx` | React component rendering a single media recommendation. |
+| `src/renderer/components/RecommendationsPanel.tsx` | React component listing media recommendations. |
 | `src/renderer/components/rating-styles.css` | Styles for the rating-display components. |
 
 ### Routing
