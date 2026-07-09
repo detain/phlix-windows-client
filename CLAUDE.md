@@ -46,6 +46,7 @@ Three Electron processes wired by `contextBridge`. The renderer no longer ships 
 | `src/renderer/vite-env.d.ts` | Vite client types; `VITE_PHLIX_SERVER_URL` optional. |
 | `src/renderer/components/RatingBadge.tsx` | React component rendering a media rating badge. |
 | `src/renderer/components/UserRatingPicker.tsx` | React component for setting a user rating. |
+| `src/renderer/components/ChapterList.tsx` | React component listing media chapters. |
 | `src/renderer/components/rating-styles.css` | Styles for the rating-display components. |
 
 ### Routing
@@ -71,7 +72,7 @@ Routes are NOT defined here — they come from `createPhlixApp` (`@phlix/ui`'s r
 - Vitest with `jsdom` env (`vitest.config.mts`, `@vitejs/plugin-vue`), setup file `src/renderer/test-setup.ts` mocks `localStorage`.
 - Includes glob: `tests/**/*.test.ts` and `tests/**/*.test.tsx`.
 - Coverage via `@vitest/coverage-v8` (`v8` provider), reporters `text`/`json`/`html`; `src/main/**` and `src/preload/**` are excluded (Electron-process glue, not jsdom-testable).
-- Test files: `tests/unit/resolveConfig.test.ts` (app-mode/apiBase resolution), `tests/unit/electronBridge.test.ts` (`wireElectronBridge` + `installElectronBridge`), `tests/unit/main.test.ts` (`boot()` entry — hub/direct/browser-fallback/env-fallback), `tests/unit/RatingBadge.test.tsx` + `tests/unit/UserRatingPicker.test.tsx` (rating-display React components).
+- Test files: `tests/unit/resolveConfig.test.ts` (app-mode/apiBase resolution), `tests/unit/electronBridge.test.ts` (`wireElectronBridge` + `installElectronBridge`), `tests/unit/main.test.ts` (`boot()` entry — hub/direct/browser-fallback/env-fallback), `tests/unit/RatingBadge.test.tsx` + `tests/unit/UserRatingPicker.test.tsx` (rating-display React components), `tests/unit/ChapterList.test.tsx` (chapter-list React component).
 - Path alias: `@` → `src/renderer/` (both `vite.config.mts` and `vitest.config.mts`).
 
 ## TypeScript configs
