@@ -54,7 +54,7 @@
     }
   },
   "dependencies": {
-    "@phlix/contracts": "file:../phlix-contracts",
+    "@phlix/contracts": "github:detain/phlix-contracts#v0.3.7",
     "@phlix/ui": "github:detain/phlix-ui#v0.74.0",
     "electron-log": "^5.0.0",
     "electron-store": "^8.1.0",
