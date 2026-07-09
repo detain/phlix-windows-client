@@ -126,7 +126,7 @@ const UserRatingPicker = defineComponent<Props>((props) => {
       {!state.value.loading && !state.value.error && (
         <div
           class="rating-stars-interactive"
-          onMouseLeave={() => handleStarHover(null)}
+          onMouseleave={() => handleStarHover(null)}
         >
           {[1, 2, 3, 4, 5].map((rating) => (
             <button
@@ -134,7 +134,7 @@ const UserRatingPicker = defineComponent<Props>((props) => {
               type="button"
               class={`rating-star-btn rating-star--${getStarFill(rating - 1)}`}
               onClick={() => handleStarClick(rating)}
-              onMouseEnter={() => handleStarHover(rating)}
+              onMouseenter={() => handleStarHover(rating)}
               disabled={state.value.loading}
               aria-label={`Rate ${rating} out of 5 stars`}
             >
