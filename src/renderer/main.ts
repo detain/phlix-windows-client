@@ -21,7 +21,8 @@ import '@phlix/ui/style.css';
 import '@phlix/ui/fonts.css';
 import './components/rating-styles.css';
 import { resolveAppConfig } from './resolveConfig';
-import { installElectronBridge } from './electronBridge';
+import { installElectronBridge, installSyncPlayBridge } from './electronBridge';
+import { useSyncPlayStore } from '../stores/useSyncPlayStore';
 
 /**
  * Top-bar nav for the current app mode. Mirrors the server and hub web-uis so the
@@ -115,7 +116,16 @@ export async function boot(): Promise<void> {
 
   app.mount('#phlix-app');
 
+  // Wire Electron media events to @phlix/ui player store
   installElectronBridge(app);
+
+  // Wire SyncPlay WebSocket bridge for real-time collaborative playback
+  installSyncPlayBridge(app);
+
+  // Initialize SyncPlay store with server URL and set up WebSocket listeners
+  const syncPlayStore = useSyncPlayStore();
+  syncPlayStore.setServerUrl(apiBase);
+  syncPlayStore.setupWebSocketListeners();
 }
 
 void boot();
