@@ -16,51 +16,59 @@ interface Props {
  *
  * Designed for Electron/Windows dark theme (nocturne).
  */
-const RatingBadge = defineComponent<Props>((props) => {
-  /**
-   * Converts a 0-10 score to a 0-5 star rating with half-star precision.
-   * A score of 7.5 => 3.75 stars
-   */
-  const starRating = computed(() => {
-    if (props.score === null) return 0;
-    return props.score / 2;
-  });
-
-  /**
-   * Returns an array of 5 items representing star fill states:
-   * 'full', 'half', 'empty'
-   */
-  const stars = computed(() => {
-    const rating = starRating.value;
-    return Array.from({ length: 5 }, (_, i) => {
-      const starValue = i + 1;
-      if (rating >= starValue) return 'full';
-      if (rating >= starValue - 0.5) return 'half';
-      return 'empty';
+const RatingBadge = defineComponent<Props>({
+  props: {
+    score: {
+      type: [Number, null] as unknown as () => number | null,
+      default: null
+    }
+  },
+  setup(props) {
+    /**
+     * Converts a 0-10 score to a 0-5 star rating with half-star precision.
+     * A score of 7.5 => 3.75 stars
+     */
+    const starRating = computed(() => {
+      if (props.score === null) return 0;
+      return props.score / 2;
     });
-  });
 
-  const scoreLabel = computed(() => {
-    if (props.score === null) return '—';
-    return `${props.score.toFixed(1)}/10`;
-  });
+    /**
+     * Returns an array of 5 items representing star fill states:
+     * 'full', 'half', 'empty'
+     */
+    const stars = computed(() => {
+      const rating = starRating.value;
+      return Array.from({ length: 5 }, (_, i) => {
+        const starValue = i + 1;
+        if (rating >= starValue) return 'full';
+        if (rating >= starValue - 0.5) return 'half';
+        return 'empty';
+      });
+    });
 
-  return () => (
-    <div class="rating-badge" title={`Score: ${props.score ?? 'unrated'}`}>
-      <div class="rating-stars" aria-label={`Rating: ${starRating.value} out of 5 stars`}>
-        {stars.value.map((fill, i) => (
-          <span
-            key={i}
-            class={`rating-star rating-star--${fill}`}
-            aria-hidden="true"
-          >
-            {fill === 'full' ? '★' : fill === 'half' ? '★' : '☆'}
-          </span>
-        ))}
+    const scoreLabel = computed(() => {
+      if (props.score === null) return '—';
+      return `${props.score.toFixed(1)}/10`;
+    });
+
+    return () => (
+      <div class="rating-badge" title={`Score: ${props.score ?? 'unrated'}`}>
+        <div class="rating-stars" aria-label={`Rating: ${starRating.value} out of 5 stars`}>
+          {stars.value.map((fill, i) => (
+            <span
+              key={i}
+              class={`rating-star rating-star--${fill}`}
+              aria-hidden="true"
+            >
+              {fill === 'full' ? '★' : fill === 'half' ? '★' : '☆'}
+            </span>
+          ))}
+        </div>
+        <span class="rating-label">{scoreLabel.value}</span>
       </div>
-      <span class="rating-label">{scoreLabel.value}</span>
-    </div>
-  );
+    );
+  }
 });
 
 export default RatingBadge;
