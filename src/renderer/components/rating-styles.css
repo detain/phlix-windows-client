@@ -1,0 +1,125 @@
+/**
+ * Phlix Media Server Client for Windows.
+ *
+ * @copyright 2026 Joe Huss <detain@interserver.net>
+ *
+ * Rating components styling - Electron/Windows dark theme (nocturne)
+ */
+
+.rating-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+.rating-stars {
+  display: flex;
+  gap: 0.125rem;
+}
+
+.rating-star {
+  font-size: 1rem;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+
+.rating-star--full {
+  color: #fbbf24;
+  text-shadow: 0 0 0.5rem rgba(251, 191, 36, 0.4);
+}
+
+.rating-star--half {
+  color: #fbbf24;
+  background: linear-gradient(90deg, #fbbf24 50%, #6b7280 50%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.rating-star--empty {
+  color: #6b7280;
+}
+
+.rating-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #e5e7eb;
+  letter-spacing: 0.025em;
+}
+
+/* UserRatingPicker specific styles */
+.user-rating-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.75rem;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  max-width: 280px;
+}
+
+.rating-picker-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.rating-picker-loading,
+.rating-picker-error,
+.rating-picker-status {
+  font-size: 0.8125rem;
+}
+
+.rating-picker-loading {
+  color: #6b7280;
+}
+
+.rating-picker-error {
+  color: #f87171;
+}
+
+.rating-picker-status {
+  color: #9ca3af;
+}
+
+.rating-stars-interactive {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.rating-star-btn {
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  cursor: pointer;
+  border-radius: 0.25rem;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.rating-star-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.1);
+}
+
+.rating-star-btn:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.rating-star-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.rating-star-btn .rating-star {
+  font-size: 1.5rem;
+}
