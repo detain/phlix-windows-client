@@ -64,15 +64,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
   syncPlayDisconnect: () => ipcRenderer.invoke('syncplay:disconnect'),
   syncPlaySend: (message: unknown) => ipcRenderer.invoke('syncplay:send', message),
   onSyncPlayMessage: (callback: (message: unknown) => void) => {
-    ipcRenderer.on('syncplay:message', (_, message) => callback(message));
-    return () => ipcRenderer.removeListener('syncplay:message', callback);
+    const listener = (_event: Electron.IpcRendererEvent, message: unknown) => callback(message);
+    ipcRenderer.on('syncplay:message', listener);
+    return () => ipcRenderer.removeListener('syncplay:message', listener);
   },
   onSyncPlayConnected: (callback: (roomId: string) => void) => {
-    ipcRenderer.on('syncplay:connected', (_, roomId) => callback(roomId));
-    return () => ipcRenderer.removeListener('syncplay:connected', callback);
+    const listener = (_event: Electron.IpcRendererEvent, roomId: string) => callback(roomId);
+    ipcRenderer.on('syncplay:connected', listener);
+    return () => ipcRenderer.removeListener('syncplay:connected', listener);
   },
   onSyncPlayDisconnected: (callback: () => void) => {
-    ipcRenderer.on('syncplay:disconnected', callback);
-    return () => ipcRenderer.removeListener('syncplay:disconnected', callback);
+    const listener = () => callback();
+    ipcRenderer.on('syncplay:disconnected', listener);
+    return () => ipcRenderer.removeListener('syncplay:disconnected', listener);
   }
 });
