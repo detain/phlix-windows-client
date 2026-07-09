@@ -175,6 +175,7 @@ phlix-windows/
 │   │   └── index.ts    # Main entry point, window management, IPC, tray
 │   ├── preload/        # Preload script (context bridge)
 │   │   └── index.ts    # Secure IPC exposure to renderer
+│   ├── pages/          # Vue pages (e.g. ParentalControlsPage.vue)
 │   └── renderer/       # Thin @phlix/ui consumer (no local pages/components/stores)
 │       ├── main.ts            # Entry: boot() → createPhlixApp() → mount → installElectronBridge
 │       ├── resolveConfig.ts   # Pure app-mode + apiBase resolution (hub vs direct server)
