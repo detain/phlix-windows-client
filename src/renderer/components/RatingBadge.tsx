@@ -63,11 +63,4 @@ const RatingBadge = defineComponent<Props>((props) => {
   );
 });
 
-RatingBadge.props = {
-  score: {
-    type: [Number, null] as unknown as typeof Number,
-    default: null
-  }
-};
-
 export default RatingBadge;
