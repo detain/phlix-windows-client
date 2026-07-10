@@ -54,7 +54,7 @@
     }
   },
   "dependencies": {
-    "@phlix/contracts": "github:detain/phlix-contracts#v0.3.9",
+    "@phlix/contracts": "github:detain/phlix-contracts#v0.3.11",
     "@phlix/syncplay": "github:detain/phlix-syncplay#v0.1.2",
     "@phlix/ui": "github:detain/phlix-ui#v0.76.2",
     "electron-log": "^5.0.0",
