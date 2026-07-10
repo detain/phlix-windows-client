@@ -108,18 +108,29 @@ function resetForm(): void {
 </script>
 
 <template>
-  <div v-if="visible" class="syncplay-modal-overlay" @click.self="handleClose">
+  <div
+    v-if="visible"
+    class="syncplay-modal-overlay"
+    @click.self="handleClose"
+  >
     <div class="syncplay-modal">
       <header class="syncplay-modal-header">
         <h2>SyncPlay</h2>
-        <button class="close-btn" @click="handleClose" aria-label="Close">
+        <button
+          class="close-btn"
+          aria-label="Close"
+          @click="handleClose"
+        >
           <Icon name="x" />
         </button>
       </header>
 
       <div class="syncplay-modal-body">
         <!-- Error display -->
-        <div v-if="hasError" class="error-banner">
+        <div
+          v-if="hasError"
+          class="error-banner"
+        >
           {{ store.error }}
         </div>
 
@@ -134,7 +145,10 @@ function resetForm(): void {
               @keyup.enter="handleCreateRoom"
             />
             <div class="public-toggle">
-              <Switch v-model="isPublic" :disabled="isProcessing" />
+              <Switch
+                v-model="isPublic"
+                :disabled="isProcessing"
+              />
               <span>Public room</span>
             </div>
             <Button
@@ -151,11 +165,17 @@ function resetForm(): void {
         <!-- Public Rooms Section -->
         <section class="section">
           <h3>Public Rooms</h3>
-          <div v-if="store.publicRooms.length === 0" class="empty-state">
+          <div
+            v-if="store.publicRooms.length === 0"
+            class="empty-state"
+          >
             <p>No public rooms available.</p>
             <p>Create one above!</p>
           </div>
-          <ul v-else class="room-list">
+          <ul
+            v-else
+            class="room-list"
+          >
             <li
               v-for="room in store.publicRooms"
               :key="room.id"
@@ -167,7 +187,10 @@ function resetForm(): void {
                 <span class="room-name">{{ room.name }}</span>
                 <span class="room-members">{{ room.memberCount }} members</span>
               </div>
-              <Icon v-if="selectedRoomId === room.id" name="check" />
+              <Icon
+                v-if="selectedRoomId === room.id"
+                name="check"
+              />
             </li>
           </ul>
           <Button

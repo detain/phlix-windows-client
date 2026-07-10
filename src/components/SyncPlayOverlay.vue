@@ -49,7 +49,10 @@ async function handleLeave(): Promise<void> {
 </script>
 
 <template>
-  <div v-if="isInRoom" class="syncplay-overlay">
+  <div
+    v-if="isInRoom"
+    class="syncplay-overlay"
+  >
     <div class="syncplay-info">
       <div class="syncplay-icon">
         <Icon name="users" />
@@ -57,7 +60,10 @@ async function handleLeave(): Promise<void> {
       <div class="syncplay-details">
         <span class="room-name">{{ roomName }}</span>
         <div class="syncplay-status">
-          <span class="status-indicator" :class="{ connected: isConnected }"></span>
+          <span
+            class="status-indicator"
+            :class="{ connected: isConnected }"
+          />
           <span class="member-count">{{ memberCount }} {{ memberCount === 1 ? 'member' : 'members' }}</span>
         </div>
       </div>
@@ -68,7 +74,11 @@ async function handleLeave(): Promise<void> {
       <span class="state-label">{{ sessionState }}</span>
     </div>
 
-    <Button variant="ghost" size="sm" @click="handleLeave">
+    <Button
+      variant="ghost"
+      size="sm"
+      @click="handleLeave"
+    >
       <Icon name="log-out" />
       Leave
     </Button>
