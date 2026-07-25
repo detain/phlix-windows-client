@@ -1,6 +1,7 @@
 {
   "name": "phlix-windows",
   "version": "1.0.0",
+  "license": "MIT",
   "description": "Phlix Media Server Client for Windows",
   "main": "dist/main/index.js",
   "scripts": {
