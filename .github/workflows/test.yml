@@ -46,11 +46,17 @@ jobs:
 
       - name: Run tests with coverage
         run: npm test -- --coverage
-        if: runner.os == 'ubuntu-latest' && matrix.node-version == '24.x'
+        # NOTE: this MUST be matrix.os, not runner.os. `runner.os` evaluates to
+        # Linux/Windows/macOS and can NEVER equal 'ubuntu-latest', so the previous
+        # condition was always false and these three steps never ran once.
+        if: matrix.os == 'ubuntu-latest' && matrix.node-version == '24.x'
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v6
-        if: runner.os == 'ubuntu-latest' && matrix.node-version == '24.x'
+        # NOTE: this MUST be matrix.os, not runner.os. `runner.os` evaluates to
+        # Linux/Windows/macOS and can NEVER equal 'ubuntu-latest', so the previous
+        # condition was always false and these three steps never ran once.
+        if: matrix.os == 'ubuntu-latest' && matrix.node-version == '24.x'
         with:
           files: ./coverage/lcov.info
           fail_ci_if_error: false
@@ -58,7 +64,10 @@ jobs:
       - name: Upload coverage to Codacy
         uses: codacy/codacy-coverage-reporter-action@v1
         continue-on-error: true
-        if: runner.os == 'ubuntu-latest' && matrix.node-version == '24.x'
+        # NOTE: this MUST be matrix.os, not runner.os. `runner.os` evaluates to
+        # Linux/Windows/macOS and can NEVER equal 'ubuntu-latest', so the previous
+        # condition was always false and these three steps never ran once.
+        if: matrix.os == 'ubuntu-latest' && matrix.node-version == '24.x'
         with:
           api-token: ${{ secrets.CODACY_API_TOKEN }}
           coverage-reports: ./coverage/lcov.info
