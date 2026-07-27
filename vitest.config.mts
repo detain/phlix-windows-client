@@ -9,7 +9,11 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/renderer/test-setup.ts'],
-    include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
+    // .mjs is included for tests/unit/copyright.test.mjs, which exercises the
+    // plain-Node ESM helpers in scripts/lib/copyright.mjs. Those live outside
+    // the TypeScript project (tsconfig.json's `include` is ["src/renderer"]),
+    // so the test is authored as .mjs rather than .ts.
+    include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx', 'tests/**/*.test.mjs'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
