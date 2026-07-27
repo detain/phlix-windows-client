@@ -18,12 +18,24 @@
  * looks like success. With the pure code in its own module the CLI needs no
  * guard at all, so there is no guard left to be wrong.
  *
- * This file carries no @copyright line of its own, matching its sibling
- * scripts/add-copyright.mjs (which has none either). That is deliberate:
- * walk() only covers src/, so scripts/** is outside the injector's own
- * coverage and nothing enforces either state. Do not extend walk() to
- * scripts/ to "fix" this — that would change CLI behaviour by starting to
- * rewrite scripts/*.mjs.
+ * DELIBERATE DIVERGENCE from the phlix-tokens reference named at the bottom of
+ * this block: that copy carries its own ` * @copyright` header line — which
+ * doubles as a self-exclusion, since the marker makes the injector skip any
+ * file that already has it — plus a hand-maintained inventory of the intended
+ * header state under scripts/. This port carries neither, and that is safe HERE
+ * only because the injector's walk roots are src/ alone (`walk('src', ...)` at
+ * scripts/add-copyright.mjs:64-65): scripts/ is outside the injector's own
+ * coverage, so this lib is never self-processed and nothing enforces either
+ * state. If those roots are ever widened to include scripts/, bring the
+ * self-exclusion back in the same commit. Do not widen them just to "fix" the
+ * asymmetry — that would change CLI behaviour by starting to rewrite
+ * scripts/*.mjs.
+ *
+ * The two siblings are NOT in the same state under such a widening, despite
+ * neither carrying a real @copyright header line: this file DOES contain the
+ * marker substring, in the COPYRIGHT/MARKER constants below, so the injector's
+ * whole-content pre-check would skip it — while scripts/add-copyright.mjs, which
+ * has the marker nowhere, would get a header spliced into its opening docblock.
  *
  * Ported from the reviewed implementation in phlix-tokens
  * (scripts/lib/copyright.mjs @ master a80514c, PR #11). Keep the two in sync by

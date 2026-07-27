@@ -1,3 +1,12 @@
+/**
+ * @vitest-environment node
+ *
+ * Overrides vitest.config.mts's global `environment: 'jsdom'` for THIS FILE
+ * ONLY. The module under test is plain Node ESM that touches no DOM, so a jsdom
+ * instance is pure overhead here. The global default is deliberately left as
+ * jsdom — every other test under tests/ mounts components and needs it.
+ */
+
 // Tests for the copyright-header injection helpers in scripts/lib/copyright.mjs.
 //
 // Root cause of the defect these guard (fixed in the accompanying change):
