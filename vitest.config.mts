@@ -16,7 +16,10 @@ export default defineConfig({
     include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx', 'tests/**/*.test.mjs'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      // 'lcov' is required, not cosmetic: CI (.github/workflows/test.yml) uploads
+      // ./coverage/lcov.info to BOTH Codecov and Codacy. Without this reporter the
+      // file is never written and both uploads silently no-op.
+      reporter: ['text', 'json', 'html', 'lcov'],
       exclude: [
         'node_modules/',
         'tests/',

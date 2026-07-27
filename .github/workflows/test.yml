@@ -55,6 +55,14 @@ jobs:
           files: ./coverage/lcov.info
           fail_ci_if_error: false
 
+      - name: Upload coverage to Codacy
+        uses: codacy/codacy-coverage-reporter-action@v1
+        continue-on-error: true
+        if: runner.os == 'ubuntu-latest' && matrix.node-version == '24.x'
+        with:
+          api-token: ${{ secrets.CODACY_API_TOKEN }}
+          coverage-reports: ./coverage/lcov.info
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
