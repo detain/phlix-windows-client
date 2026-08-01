@@ -298,6 +298,31 @@ describe('useSyncPlayStore', () => {
       expect(result).toEqual({ roomId: 'new-room', sessionId: 'session-123' });
       expect(store.isLoading).toBe(false);
     });
+
+    it('throws when response is not ok', async () => {
+      global.fetch = vi.fn(async () => ({
+        ok: false,
+        statusText: 'Bad Request'
+      })) as any;
+
+      const store = useSyncPlayStore();
+      store.setServerUrl('http://localhost:8096');
+
+      await expect(store.createRoom('Test Room', true)).rejects.toThrow('Failed to create room: Bad Request');
+      expect(store.error).toBe('Failed to create room: Bad Request');
+    });
+
+    it('handles network error', async () => {
+      global.fetch = vi.fn(async () => {
+        throw new Error('Connection refused');
+      }) as any;
+
+      const store = useSyncPlayStore();
+      store.setServerUrl('http://localhost:8096');
+
+      await expect(store.createRoom('Test Room', true)).rejects.toThrow('Connection refused');
+      expect(store.error).toBe('Connection refused');
+    });
   });
 
   describe('joinRoom', () => {
@@ -339,6 +364,31 @@ describe('useSyncPlayStore', () => {
         isPublic: false,
         memberCount: 0
       });
+    });
+
+    it('throws when response is not ok', async () => {
+      global.fetch = vi.fn(async () => ({
+        ok: false,
+        statusText: 'Internal Server Error'
+      })) as any;
+
+      const store = useSyncPlayStore();
+      store.setServerUrl('http://localhost:8096');
+
+      await expect(store.joinRoom('room1')).rejects.toThrow('Failed to join room: Internal Server Error');
+      expect(store.error).toBe('Failed to join room: Internal Server Error');
+    });
+
+    it('handles network error', async () => {
+      global.fetch = vi.fn(async () => {
+        throw new Error('Network error');
+      }) as any;
+
+      const store = useSyncPlayStore();
+      store.setServerUrl('http://localhost:8096');
+
+      await expect(store.joinRoom('room1')).rejects.toThrow('Network error');
+      expect(store.error).toBe('Network error');
     });
   });
 
