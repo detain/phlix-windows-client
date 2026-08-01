@@ -326,7 +326,7 @@ async function loadAll(): Promise<void> {
 // ── Navigation ────────────────────────────────────────────────────────────────
 
 function goBack(): void {
-  void router.back();
+  router.back();
 }
 
 function formatTime(time: string): string {
@@ -344,7 +344,7 @@ function formatDays(days: DayOfWeek[]): string {
   const dayLabels: Record<DayOfWeek, string> = {
     mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat', sun: 'Sun'
   };
-  return days.map(d => dayLabels[d]).join(', ');
+  return days.map(d => dayLabels[d as DayOfWeek]).join(', ');
 }
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────

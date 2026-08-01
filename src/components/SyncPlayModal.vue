@@ -22,8 +22,8 @@ interface Props {
 const props = defineProps<Props>();
 
 const emit = defineEmits<{
-  (e: 'close'): void;
-  (e: 'joined', roomId: string): void;
+  close: () => void;
+  joined: (roomId: string) => void;
 }>();
 
 const store = useSyncPlayStore();

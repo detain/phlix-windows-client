@@ -49,6 +49,6 @@ export function resolveAppConfig(input: ResolveConfigInput): ResolvedAppConfig {
     return { app: 'hub', apiBase: hub.hubUrl };
   }
 
-  const apiBase = input.serverUrl || input.envUrl || '';
+  const apiBase = input.serverUrl ?? input.envUrl ?? '';
   return { app: 'server', apiBase };
 }

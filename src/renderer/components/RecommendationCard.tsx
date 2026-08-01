@@ -9,7 +9,7 @@ import type { UserRecommendation } from '@phlix/contracts';
 
 interface Props {
   item: UserRecommendation;
-  onSelect?: (id: string) => void;
+  onSelect?: (_id: string) => void;
 }
 
 const RecommendationCard = defineComponent<Props>({
