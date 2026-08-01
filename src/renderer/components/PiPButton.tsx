@@ -45,6 +45,7 @@ const PiPButton = defineComponent({
   setup() {
     // Cast to any since @phlix/ui store types don't expose currentItem
     // This exists at runtime but isn't typed. Temporary implementation until proper seams.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const player = usePlayerStore() as any;
     const isInPiP = ref(false);
     const pipSupported = ref(false);

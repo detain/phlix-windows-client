@@ -50,7 +50,9 @@ const SkipButton = defineComponent({
   setup() {
     // Cast to any since @phlix/ui store types don't expose currentTime/currentItem/preferences
     // These exist at runtime but aren't typed. Temporary implementation until proper seams.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const player = usePlayerStore() as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const media = useMediaStore() as any;
     const markers = ref<Marker[]>([]);
     const autoSkipped = ref<Set<number>>(new Set());

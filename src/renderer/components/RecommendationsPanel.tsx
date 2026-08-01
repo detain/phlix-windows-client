@@ -35,6 +35,7 @@ const RecommendationsPanel = defineComponent(() => {
 
   function onSelect(id: string): void {
     // Navigate to player - use the router
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const router = (window as any).$router;
     if (router) {
       router.push(`/appplayer/${id}`);
