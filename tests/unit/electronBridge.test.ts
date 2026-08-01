@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   wireElectronBridge,
   installElectronBridge,
+  wireSyncPlayBridge,
+  installSyncPlayBridge,
   type BridgePlayer,
   type BridgeRouter
 } from '@/electronBridge';
@@ -38,6 +40,7 @@ interface FakeElectronAPI {
   onMediaForward: ReturnType<typeof vi.fn>;
   onFileOpened: ReturnType<typeof vi.fn>;
   onOpenSettings: ReturnType<typeof vi.fn>;
+  onSyncPlayMessage: ReturnType<typeof vi.fn>;
 }
 
 function makeFakeApi(): FakeElectronAPI {
@@ -63,7 +66,8 @@ function makeFakeApi(): FakeElectronAPI {
     onMediaRewind: register('media-rewind'),
     onMediaForward: register('media-forward'),
     onFileOpened: register('file-opened'),
-    onOpenSettings: register('open-settings')
+    onOpenSettings: register('open-settings'),
+    onSyncPlayMessage: register('syncplay-message')
   };
 }
 
@@ -243,5 +247,137 @@ describe('installElectronBridge', () => {
     cleanup();
     expect(fakeApi.cleanups['media-play-pause']).toHaveBeenCalledTimes(1);
     expect(fakeApi.cleanups['open-settings']).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('wireSyncPlayBridge', () => {
+  let fakeApi: FakeElectronAPI;
+  let player: BridgePlayer & {
+    play: ReturnType<typeof vi.fn>;
+    pause: ReturnType<typeof vi.fn>;
+    seekTo: ReturnType<typeof vi.fn>;
+  };
+
+  beforeEach(() => {
+    player = {
+      playing: false,
+      play: vi.fn(),
+      pause: vi.fn(),
+      closePlayer: vi.fn(),
+      seekBy: vi.fn(),
+      seekTo: vi.fn()
+    };
+    fakeApi = makeFakeApi();
+    (globalThis as unknown as { window: { electronAPI: unknown } }).window = {
+      electronAPI: fakeApi
+    };
+  });
+
+  afterEach(() => {
+    delete (globalThis as unknown as { window?: unknown }).window;
+  });
+
+  it('returns a no-op when electronAPI is absent', () => {
+    (globalThis as unknown as { window: { electronAPI?: unknown } }).window = {};
+    const cleanup = wireSyncPlayBridge(player);
+    expect(typeof cleanup).toBe('function');
+  });
+
+  it('syncs playback position on state messages when drift > 2 seconds', () => {
+    wireSyncPlayBridge(player);
+    // Simulate a state update with 5 second drift
+    fakeApi.fire('syncplay-message', {
+      kind: 'state',
+      data: { playbackPosition: 100, playbackRate: 1, serverTime: Date.now(), timestamp: Date.now() }
+    });
+    expect(player.seekTo).toHaveBeenCalledWith(100);
+  });
+
+  it('does not seek on small drift (≤2 seconds)', () => {
+    wireSyncPlayBridge(player);
+    // _getPlayerPosition() returns 0, so use position 1.5 → drift = 1.5 which is ≤ 2
+    fakeApi.fire('syncplay-message', {
+      kind: 'state',
+      data: { playbackPosition: 1.5, playbackRate: 1, serverTime: Date.now(), timestamp: Date.now() }
+    });
+    expect(player.seekTo).not.toHaveBeenCalled();
+  });
+
+  it('handles play command', () => {
+    player.playing = false;
+    wireSyncPlayBridge(player);
+    fakeApi.fire('syncplay-message', {
+      kind: 'command',
+      data: { type: 'play' }
+    });
+    expect(player.play).toHaveBeenCalledTimes(1);
+  });
+
+  it('handles pause command when playing', () => {
+    player.playing = true;
+    wireSyncPlayBridge(player);
+    fakeApi.fire('syncplay-message', {
+      kind: 'command',
+      data: { type: 'pause' }
+    });
+    expect(player.pause).toHaveBeenCalledTimes(1);
+  });
+
+  it('handles seek command', () => {
+    wireSyncPlayBridge(player);
+    fakeApi.fire('syncplay-message', {
+      kind: 'command',
+      data: { type: 'seek', position: 42 }
+    });
+    expect(player.seekTo).toHaveBeenCalledWith(42);
+  });
+
+  it('handles sync command', () => {
+    wireSyncPlayBridge(player);
+    fakeApi.fire('syncplay-message', {
+      kind: 'command',
+      data: { type: 'sync', position: 99.5 }
+    });
+    expect(player.seekTo).toHaveBeenCalledWith(99.5);
+  });
+
+  it('ignores member and error message kinds', () => {
+    wireSyncPlayBridge(player);
+    fakeApi.fire('syncplay-message', { kind: 'member', data: {} });
+    fakeApi.fire('syncplay-message', { kind: 'error', data: { message: 'test' } });
+    expect(player.play).not.toHaveBeenCalled();
+    expect(player.pause).not.toHaveBeenCalled();
+    expect(player.seekTo).not.toHaveBeenCalled();
+  });
+
+  it('cleanup unregisters the listener', () => {
+    const cleanup = wireSyncPlayBridge(player);
+    cleanup();
+    expect(fakeApi.cleanups['syncplay-message']).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('installSyncPlayBridge', () => {
+  beforeEach(() => {
+    usePlayerStoreMock.mockClear().mockReturnValue(playerStub);
+    (globalThis as unknown as { window: { electronAPI: unknown } }).window = {
+      electronAPI: makeFakeApi()
+    };
+  });
+
+  afterEach(() => {
+    delete (globalThis as unknown as { window?: unknown }).window;
+  });
+
+  it('returns a no-op when electronAPI is absent', () => {
+    (globalThis as unknown as { window: { electronAPI?: unknown } }).window = {};
+    const cleanup = installSyncPlayBridge(makeFakeApp());
+    expect(typeof cleanup).toBe('function');
+  });
+
+  it('wires SyncPlay message handler via player store', () => {
+    const cleanup = installSyncPlayBridge(makeFakeApp());
+    expect(typeof cleanup).toBe('function');
+    cleanup();
   });
 });
