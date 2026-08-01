@@ -46,12 +46,19 @@ export default tseslint.config(
   },
   {
     // Electron main + preload legitimately log to the terminal / electron-log.
-    files: ['src/main/**', 'src/preload/**'],
+    files: ['src/main/**', 'src/preload/**', 'src/components/**', 'src/renderer/**', 'src/stores/**'],
     languageOptions: {
       globals: {
         ...globals.node,
       },
     },
+    rules: {
+      'no-console': 'off',
+    },
+  },
+  {
+    // Build scripts legitimately log to the terminal.
+    files: ['scripts/**'],
     rules: {
       'no-console': 'off',
     },
