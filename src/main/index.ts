@@ -226,7 +226,13 @@ ipcMain.handle('app:set-server-url', (_, url: string) => {
   store.set('serverUrl', url);
 });
 
-// Stable device id (generated once, persisted)
+/**
+ * Returns a stable, per-installation device identifier.
+ *
+ * On first call a UUID-based ID is generated and persisted to electron-store.
+ * Subsequent calls return the same ID for the lifetime of the installation.
+ * The ID is sent to the server as `X-Phlix-Device-ID` via `buildPhlixHeaders`.
+ */
 ipcMain.handle('app:get-device-id', () => {
   let deviceId = store.get('deviceId') as string | undefined;
   if (!deviceId) {
@@ -236,7 +242,9 @@ ipcMain.handle('app:get-device-id', () => {
   return deviceId;
 });
 
-// SyncPlay WebSocket handlers
+/**
+ * Parameters for establishing a SyncPlay collaborative viewing session.
+ */
 interface SyncPlayConnectParams {
   roomId: string;
   serverUrl: string;

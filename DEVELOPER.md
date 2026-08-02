@@ -134,8 +134,8 @@ src/renderer/
 `boot()` runs at module load (`void boot()`) and is exported for testing:
 
 1. Read Electron config defensively — `hubGetConfig()`, `getDeviceId()`, `getServerUrl()`. When
-   `window.electronAPI` is undefined (plain browser dev), it falls back to `deviceId 'windows-dev'`,
-   no hub, and `VITE_PHLIX_SERVER_URL` for the server URL.
+   `window.electronAPI` is undefined (plain browser dev), it falls back to a per-session
+   `browser-<uuid>` with a console warning, no hub, and `VITE_PHLIX_SERVER_URL` for the server URL.
 2. `resolveAppConfig({ hub, serverUrl, envUrl })` → `{ app, apiBase }`.
 3. `buildPhlixHeaders({ deviceId, deviceName: 'Phlix for Windows', deviceType: 'windows' })`
    (`@phlix/contracts`) — no token/sessionId; `@phlix/ui`'s ApiClient owns auth.

@@ -97,6 +97,7 @@ declare global {
       hubSetConfig: (config: { hubUrl?: string; activeServerId?: string; connectionMode?: string }) => Promise<void>;
       getServerUrl: () => Promise<string | null>;
       setServerUrl: (url: string) => Promise<void>;
+      /** Returns a stable, per-install device identifier. Generated once and persisted to electron-store. */
       getDeviceId: () => Promise<string>;
       /** SyncPlay WebSocket management */
       syncPlayConnect: (roomId: string, serverUrl: string, token: string) => Promise<void>;

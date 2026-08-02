@@ -56,6 +56,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setServerUrl: (url: string) => ipcRenderer.invoke('app:set-server-url', url),
 
   // Stable device id
+  /** Returns a persistent, per-install device identifier. See main process handler for details. */
   getDeviceId: () => ipcRenderer.invoke('app:get-device-id'),
 
   // SyncPlay WebSocket management
