@@ -76,7 +76,7 @@ Routes are NOT defined here — they come from `createPhlixApp` (`@phlix/ui`'s r
 
 - Vitest with `jsdom` env (`vitest.config.mts`, `@vitejs/plugin-vue`), setup file `src/renderer/test-setup.ts` mocks `localStorage`.
 - Includes glob: `tests/**/*.test.ts` and `tests/**/*.test.tsx`.
-- Coverage via `@vitest/coverage-v8` (`v8` provider), reporters `text`/`json`/`html`; `src/main/**` and `src/preload/**` are excluded (Electron-process glue, not jsdom-testable).
+- Coverage via `@vitest/coverage-v8` (`v8` provider), reporters `text`/`json`/`html`; all source including `src/main/**` and `src/preload/**` is covered (58% floor enforced in CI).
 - Test files: `tests/unit/resolveConfig.test.ts` (app-mode/apiBase resolution), `tests/unit/electronBridge.test.ts` (`wireElectronBridge` + `installElectronBridge`), `tests/unit/main.test.ts` (`boot()` entry — hub/direct/browser-fallback/env-fallback), `tests/unit/RatingBadge.test.tsx` + `tests/unit/UserRatingPicker.test.tsx` (rating-display React components), `tests/unit/ChapterList.test.tsx` (chapter-list React component).
 - Path alias: `@` → `src/renderer/` (both `vite.config.mts` and `vitest.config.mts`).
 

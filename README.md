@@ -150,7 +150,7 @@ npm test -- --coverage
 
 - Unit tests located in `tests/unit/`: `resolveConfig.test.ts`, `electronBridge.test.ts`, `main.test.ts`, `RatingBadge.test.tsx`, `UserRatingPicker.test.tsx`, `ChapterList.test.tsx`
 - Test files use Vitest (`jsdom`, `@vitejs/plugin-vue`) with TypeScript
-- Coverage via `@vitest/coverage-v8`; the Electron `src/main/**` and `src/preload/**` glue is excluded
+- Coverage via `@vitest/coverage-v8`; all source including `src/main/**` and `src/preload/**` is covered (58% floor enforced in CI)
 
 ### Linting & Typecheck
 

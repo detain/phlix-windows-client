@@ -52,6 +52,10 @@ returns `deny`. The `will-navigate` handler calls `validateExternalUrl` and
 dangerous schemes. Unsandboxed or non-http/https navigation attempts are logged
 with a `[security]` prefix.
 
+### Changed — coverage now measured for main and preload processes with 58% floor enforced in CI
+
+Coverage reports (`@vitest/coverage-v8`) now include `src/main/**` and `src/preload/**`. The previous exclusion of Electron-process glue has been removed. Codecov upload in `.github/workflows/test.yml` enforces `fail_ci_if_error: true`, and the coverage floor is set to 58% (measured from 59.81% minus a 1-point buffer).
+
 ### Changed — dependency bump for in-player quality selection (G2)
 
 - **`@phlix/ui` bumped to `v0.74.0`, `@phlix/contracts` to `v0.2.0`** (from

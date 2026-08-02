@@ -358,6 +358,8 @@ const RENDERER_DIST_DIR = path.join(__dirname, '../renderer');
  * Provides path traversal protection by resolving the requested path against
  * RENDERER_DIST_DIR and verifying the result is within that directory.
  * Falls back to index.html for SPA routing (HTML5 history fallback).
+ *
+ * @internal
  */
 export function setupAppProtocolHandler(): void {
   protocol.handle('app', (request) => {

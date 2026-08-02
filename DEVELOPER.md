@@ -220,7 +220,7 @@ files:
 - `tests/unit/electronBridge.test.ts` — `wireElectronBridge` + `installElectronBridge`
 - `tests/unit/main.test.ts` — `boot()` entry (hub / direct-server / browser-fallback / env-fallback)
 
-Coverage uses `@vitest/coverage-v8`; the Electron `src/main/**` and `src/preload/**` glue is excluded
+Coverage uses `@vitest/coverage-v8`; all source including `src/main/**` and `src/preload/**` is covered (58% floor enforced in CI)
 (it needs an Electron runtime, not jsdom). Example (`main.test.ts` mocks `@phlix/ui`, `@phlix/contracts`,
 and `./electronBridge`, plus the CSS side-effect imports):
 
