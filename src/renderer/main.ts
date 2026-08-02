@@ -78,7 +78,13 @@ export async function boot(): Promise<void> {
   // Read Electron-persisted config defensively so the renderer still boots in a
   // plain browser dev context where window.electronAPI is undefined.
   const hub = api ? await api.hubGetConfig() : null;
-  const deviceId = api ? await api.getDeviceId() : 'windows-dev';
+  const deviceId = api
+    ? await api.getDeviceId()
+    : (() => {
+        const fallbackId = `browser-${crypto.randomUUID()}`;
+        console.warn('[Phlix] Electron bridge unavailable — using per-session device ID:', fallbackId);
+        return fallbackId;
+      })();
   const serverUrl = api ? await api.getServerUrl() : null;
   const envUrl = import.meta.env.VITE_PHLIX_SERVER_URL ?? null;
 

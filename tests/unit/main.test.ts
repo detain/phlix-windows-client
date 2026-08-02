@@ -147,14 +147,21 @@ describe('boot (renderer entry)', () => {
   it('falls back to browser defaults when window.electronAPI is undefined', async () => {
     clearElectronApi();
     vi.stubEnv('VITE_PHLIX_SERVER_URL', '');
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     const mod = await import('@/main');
     await mod.boot();
 
-    // Browser fallback: no api → app:'server', device 'windows-dev', and an EMPTY
-    // base (no localhost guess) → @phlix/ui shows the first-run Connect screen.
+    // Browser fallback: no api → app:'server', per-session UUID device ID (not a
+    // shared constant), and an EMPTY base → @phlix/ui shows the first-run Connect screen.
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[Phlix] Electron bridge unavailable — using per-session device ID:',
+      expect.stringMatching(/^browser-[0-9a-f-]{36}$/)
+    );
+    const deviceIdArg = buildPhlixHeaders.mock.calls.at(-1)?.[0]?.deviceId as string;
+    expect(deviceIdArg).toMatch(/^browser-[0-9a-f-]{36}$/);
     expect(buildPhlixHeaders).toHaveBeenLastCalledWith({
-      deviceId: 'windows-dev',
+      deviceId: deviceIdArg,
       deviceName: 'Phlix for Windows',
       deviceType: 'windows'
     });
@@ -163,6 +170,8 @@ describe('boot (renderer entry)', () => {
     );
     expect(mountSpy).toHaveBeenCalledWith('#phlix-app');
     expect(installElectronBridge).toHaveBeenLastCalledWith(fakeApp);
+
+    warnSpy.mockRestore();
   });
 
   it('reports a warning when onConnectionChange is called without a bridge', async () => {
