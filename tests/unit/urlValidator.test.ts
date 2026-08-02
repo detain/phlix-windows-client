@@ -7,7 +7,7 @@
 
 import { describe, it, expect } from 'vitest';
 
-import { validateExternalUrl } from '../../dist/main/urlValidator.js';
+import { validateExternalUrl } from '../../src/main/urlValidator';
 
 describe('validateExternalUrl', () => {
   it('allows https: URLs', () => {

@@ -59,7 +59,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest' && matrix.node-version == '24.x'
         with:
           files: ./coverage/lcov.info
-          fail_ci_if_error: false
+          fail_ci_if_error: true
 
       - name: Upload coverage to Codacy
         uses: codacy/codacy-coverage-reporter-action@v1

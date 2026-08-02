@@ -359,20 +359,21 @@ const RENDERER_DIST_DIR = path.join(__dirname, '../renderer');
  * RENDERER_DIST_DIR and verifying the result is within that directory.
  * Falls back to index.html for SPA routing (HTML5 history fallback).
  */
-function setupAppProtocolHandler(): void {
+export function setupAppProtocolHandler(): void {
   protocol.handle('app', (request) => {
     const urlStr = request.url;
     // urlStr is like app://-/app/servers or app://-/app/assets/main.js
     const parsedUrl = new URL(urlStr);
     const urlPath = parsedUrl.pathname;
 
-    // Strip the /- prefix to get the routing path (e.g., /app/servers)
-    if (!urlPath.startsWith('/-')) {
+    // Validate the hostname is '-' (the marker that identifies our app:// scheme)
+    // For app://-/app/servers: hostname='-', pathname='/app/servers'
+    if (parsedUrl.hostname !== '-') {
       log.warn(`[app protocol] Invalid path format: ${urlPath}`);
       return new Response('Forbidden', { status: 403 });
     }
 
-    const routingPath = urlPath.slice(2); // Remove '/-'
+    const routingPath = urlPath; // pathname IS the routing path (e.g., /app/servers)
     let relativePath = routingPath;
 
     // If path doesn't look like a file request (no extension), treat as SPA route
