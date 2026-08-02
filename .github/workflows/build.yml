@@ -66,6 +66,12 @@ jobs:
       - name: Build main process
         run: npm run build:electron
 
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run smoke test
+        run: npm run smoke
+
       - name: Package NSIS installer
         if: matrix.target == 'nsis'
         run: npx electron-builder --win nsis --publish never
