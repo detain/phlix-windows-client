@@ -35,6 +35,23 @@ A build-time assertion (`scripts/assert-preload.mjs`) is now wired into
 `build:electron` so a missing preload fails the build rather than silently breaking
 production launches.
 
+### Fixed — sandbox enabled and external URL validation
+
+The renderer previously ran with `sandbox: false`, `contextIsolation: true`, and
+`nodeIntegration: false`. With `sandbox: false` the renderer could spawn arbitrary
+processes and access Node.js APIs indirectly. Additionally, `shell.openExternal`
+and the `will-navigate` handler accepted any URL scheme without checking, allowing a
+compromised or malicious page to open `file://` URLs (reading local files) or
+`javascript:` URLs (running arbitrary code in the Electron shell context).
+
+The window now boots with `sandbox: true`. A new `validateExternalUrl()` function in
+`src/main/urlValidator.ts` permits only `http:` and `https:` schemes. The
+`setWindowOpenHandler` calls `shell.openExternal` only after validation and always
+returns `deny`. The `will-navigate` handler calls `validateExternalUrl` and
+`preventDefault()` on anything else, blocking renderer-initiated navigation to
+dangerous schemes. Unsandboxed or non-http/https navigation attempts are logged
+with a `[security]` prefix.
+
 ### Changed — dependency bump for in-player quality selection (G2)
 
 - **`@phlix/ui` bumped to `v0.74.0`, `@phlix/contracts` to `v0.2.0`** (from

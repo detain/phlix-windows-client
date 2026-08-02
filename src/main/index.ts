@@ -83,7 +83,14 @@ function createWindow(): void {
     return { action: 'deny' };
   });
 
-  // Guard against renderer-side navigation to untrusted schemes
+  /**
+   * Guards against renderer-initiated navigation to untrusted URL schemes.
+   *
+   * Blocks navigation to anything except http: and https:. Dangerous schemes such as
+   * file:, javascript:, and data: are prevented from triggering renderer navigation,
+   * which stops a malicious page from e.g. exfiltrating local files or launching
+   * internal Electron handlers.
+   */
   mainWindow.webContents.on('will-navigate', (event, url) => {
     if (!validateExternalUrl(url)) {
       event.preventDefault();

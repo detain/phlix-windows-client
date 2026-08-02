@@ -270,14 +270,14 @@ The project uses separate TypeScript configs:
 
 ### Context Isolation
 
-The app enables context isolation and disables node integration:
+The app enables context isolation, disables node integration, and enables the sandbox:
 
 ```typescript
 webPreferences: {
-  preload: path.join(__dirname, 'preload.js'),
+  preload: path.join(__dirname, '../preload/index.js'),
   contextIsolation: true,
   nodeIntegration: false,
-  sandbox: false
+  sandbox: true
 }
 ```
 
@@ -289,8 +289,10 @@ webPreferences: {
 
 ### Content Security
 
-- External links open in default browser via `shell.openExternal()`
-- Renderer loads local content in production
+- External links are validated via `validateExternalUrl()` (allows only `http:` and `https:`)
+  before calling `shell.openExternal()`; the handler always returns `deny`
+- The `will-navigate` handler blocks renderer-initiated navigation to non-http(s) schemes
+- Renderer loads local content in production via the `app://` privileged protocol
 
 ## Adding New Features
 
