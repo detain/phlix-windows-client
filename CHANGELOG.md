@@ -5,6 +5,18 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed — preload script path now resolves to where tsc writes it
+
+The `BrowserWindow` webPreferences `preload` path in `src/main/index.ts:37` was
+`path.join(__dirname, 'preload.js')`, resolving at runtime to `dist/main/preload.js`.
+`tsc -p tsconfig.main.json`, however, writes the compiled preload to `dist/preload/index.js`.
+The mismatch caused Electron to fail with "Unable to load preload script" on every
+production launch and `window.electronAPI` was never defined. The path now reads
+`path.join(__dirname, '../preload/index.js')`, matching tsc's actual output layout.
+A build-time assertion (`scripts/assert-preload.mjs`) is now wired into
+`build:electron` so a missing preload fails the build rather than silently breaking
+production launches.
+
 ### Changed — dependency bump for in-player quality selection (G2)
 
 - **`@phlix/ui` bumped to `v0.74.0`, `@phlix/contracts` to `v0.2.0`** (from
