@@ -17,7 +17,8 @@ test('boot smoke test', async () => {
   // instead of trying to connect to localhost:5173 (vite dev server)
   const electronApp = await _electron.launch({
     args: ['.'],
-    env: { NODE_ENV: 'production' }
+    env: { NODE_ENV: 'production' },
+    chromiumSandbox: false,
   });
 
   // Assert the main window opens within 30 seconds
@@ -39,7 +40,8 @@ test('boot smoke test', async () => {
 
   // --- Console cleanliness: zero CSP violations and zero preload errors ---
   const consoleViolations: string[] = [];
-  window.on('console', (msg) => {
+  const page = await window.page();
+  page.on('console', (msg) => {
     if (msg.type() === 'error') {
       const text = msg.text();
       if (
