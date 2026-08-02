@@ -34,7 +34,7 @@ function createWindow(): void {
     backgroundColor: '#1a1a2e',
     show: false,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false
