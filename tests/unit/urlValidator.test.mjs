@@ -39,6 +39,11 @@ describe('validateExternalUrl', () => {
     expect(validateExternalUrl('javascript:alert(1)')).toBe(false);
   });
 
+  it('blocks data: protocol', () => {
+    expect(validateExternalUrl('data:text/html,<script>alert(1)</script>')).toBe(false);
+    expect(validateExternalUrl('data:,Hello%20World')).toBe(false);
+  });
+
   it('blocks malformed strings', () => {
     expect(validateExternalUrl('not a url')).toBe(false);
     expect(validateExternalUrl('://missing-protocol')).toBe(false);

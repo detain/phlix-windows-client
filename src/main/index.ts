@@ -82,6 +82,13 @@ function createWindow(): void {
     }
     return { action: 'deny' };
   });
+
+  // Guard against renderer-side navigation to untrusted schemes
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (!validateExternalUrl(url)) {
+      event.preventDefault();
+    }
+  });
 }
 
 function createTray(): void {
