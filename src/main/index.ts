@@ -9,8 +9,12 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
 import { isPathSafe } from './pathUtils';
+import { validateExternalUrl } from './urlValidator';
 import log from 'electron-log';
 import Store from 'electron-store';
+
+// Re-export validateExternalUrl for backwards compatibility
+export { validateExternalUrl };
 
 const store = new Store();
 
@@ -39,7 +43,7 @@ function createWindow(): void {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false
+      sandbox: true
     }
   });
 
@@ -73,7 +77,9 @@ function createWindow(): void {
 
   // Handle external links
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    if (validateExternalUrl(url)) {
+      shell.openExternal(url);
+    }
     return { action: 'deny' };
   });
 }
