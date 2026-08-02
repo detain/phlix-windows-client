@@ -4,9 +4,11 @@
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
 
-import { app, BrowserWindow, Menu, Tray, ipcMain, shell, nativeImage, dialog } from 'electron';
+import { app, BrowserWindow, Menu, Tray, ipcMain, shell, nativeImage, dialog, protocol } from 'electron';
+import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
+import { isPathSafe } from './pathUtils';
 import log from 'electron-log';
 import Store from 'electron-store';
 
@@ -46,7 +48,9 @@ function createWindow(): void {
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+    // Production: use app:// protocol for packaged renderer
+    // This avoids webSecurity issues with module fetches from file:// origin
+    mainWindow.loadURL('app://-/app');
   }
 
   // Show when ready
@@ -310,9 +314,129 @@ ipcMain.handle('syncplay:send', (_, message: unknown) => {
   }
 });
 
+// Register custom privileged scheme BEFORE app.whenReady()
+// This must be called synchronously before any ready event
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'app',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: true
+    }
+  }
+]);
+
+// Renderer dist base directory (absolute path)
+const RENDERER_DIST_DIR = path.join(__dirname, '../renderer');
+
+/**
+ * Handles app:// protocol requests in production.
+ *
+ * Maps URLs like app://-/app/servers -> dist/renderer/servers (or index.html if not found).
+ * Provides path traversal protection by resolving the requested path against
+ * RENDERER_DIST_DIR and verifying the result is within that directory.
+ * Falls back to index.html for SPA routing (HTML5 history fallback).
+ */
+function setupAppProtocolHandler(): void {
+  protocol.handle('app', (request) => {
+    const urlStr = request.url;
+    // urlStr is like app://-/app/servers or app://-/app/assets/main.js
+    const parsedUrl = new URL(urlStr);
+    const urlPath = parsedUrl.pathname;
+
+    // Strip the /- prefix to get the routing path (e.g., /app/servers)
+    if (!urlPath.startsWith('/-')) {
+      log.warn(`[app protocol] Invalid path format: ${urlPath}`);
+      return new Response('Forbidden', { status: 403 });
+    }
+
+    const routingPath = urlPath.slice(2); // Remove '/-'
+    let relativePath = routingPath;
+
+    // If path doesn't look like a file request (no extension), treat as SPA route
+    // Serve index.html for any path that doesn't have a file extension
+    const isFileRequest = /\.\w+$/.test(routingPath);
+
+    if (!isFileRequest) {
+      // SPA route - serve index.html
+      const indexPath = path.join(RENDERER_DIST_DIR, 'index.html');
+      try {
+        const indexContent = fs.readFileSync(indexPath);
+        return new Response(indexContent, {
+          headers: { 'Content-Type': 'text/html' }
+        });
+      } catch (err) {
+        log.error(`[app protocol] Failed to serve index.html: ${err}`);
+        return new Response('Not Found', { status: 404 });
+      }
+    }
+
+    // File request - map to dist/renderer/assets/...
+    // routingPath is like /app/assets/main.js
+    // We want assets/main.js
+    relativePath = routingPath.replace(/^\/app\//, '');
+
+    // Path traversal protection: ensure resolved path is within RENDERER_DIST_DIR
+    if (!isPathSafe(RENDERER_DIST_DIR, relativePath)) {
+      log.warn(`[app protocol] Path traversal attempt blocked: ${relativePath}`);
+      return new Response('Forbidden', { status: 403 });
+    }
+
+    const absoluteFilePath = path.resolve(RENDERER_DIST_DIR, relativePath);
+
+    // Check if file exists
+    if (!fs.existsSync(absoluteFilePath)) {
+      log.warn(`[app protocol] File not found: ${absoluteFilePath}, serving index.html`);
+      // SPA fallback for missing files (e.g., missing asset that was namespaced)
+      try {
+        const indexContent = fs.readFileSync(path.join(RENDERER_DIST_DIR, 'index.html'));
+        return new Response(indexContent, {
+          headers: { 'Content-Type': 'text/html' }
+        });
+      } catch (err) {
+        log.error(`[app protocol] Failed to serve index.html: ${err}`);
+        return new Response('Not Found', { status: 404 });
+      }
+    }
+
+    // Serve the file
+    try {
+      const fileContent = fs.readFileSync(absoluteFilePath);
+      const ext = path.extname(absoluteFilePath).toLowerCase();
+      const mimeTypes: Record<string, string> = {
+        '.js': 'application/javascript',
+        '.mjs': 'application/javascript',
+        '.css': 'text/css',
+        '.html': 'text/html',
+        '.json': 'application/json',
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.gif': 'image/gif',
+        '.svg': 'image/svg+xml',
+        '.woff': 'font/woff',
+        '.woff2': 'font/woff2',
+        '.ttf': 'font/ttf',
+        '.ico': 'image/x-icon'
+      };
+      const contentType = mimeTypes[ext] || 'application/octet-stream';
+      return new Response(fileContent, {
+        headers: { 'Content-Type': contentType }
+      });
+    } catch (err) {
+      log.error(`[app protocol] Failed to read file ${absoluteFilePath}: ${err}`);
+      return new Response('Internal Server Error', { status: 500 });
+    }
+  });
+  log.info('[app protocol] Handler registered');
+}
+
 // App lifecycle
 app.whenReady().then(() => {
   log.info('App ready');
+  setupAppProtocolHandler();
   createWindow();
   createMenu();
   createTray();
