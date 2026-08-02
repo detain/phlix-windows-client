@@ -101,7 +101,11 @@ export async function boot(): Promise<void> {
     // URL back into Electron-store so resolveAppConfig re-seeds it next launch.
     requireConnection: true,
     onConnectionChange: (url) => {
-      void api?.setServerUrl(url ?? '');
+      if (api) {
+        void api.setServerUrl(url ?? '');
+      } else {
+        console.warn('[Phlix] Cannot persist server URL: Electron bridge unavailable, URL was:', url);
+      }
     },
     // In hub mode, land on the servers directory (not the media-server Browse page,
     // whose server-only endpoints 404 on the hub) and skip continue-watching.

@@ -82,7 +82,7 @@ export type SyncPlayMessage =
 
 declare global {
   interface Window {
-    electronAPI: {
+    electronAPI?: {
       getAppPath: () => Promise<string>;
       getVersion: () => Promise<string>;
       setAlwaysOnTop: (value: boolean) => void;
