@@ -165,6 +165,29 @@ describe('boot (renderer entry)', () => {
     expect(installElectronBridge).toHaveBeenLastCalledWith(fakeApp);
   });
 
+  it('reports a warning when onConnectionChange is called without a bridge', async () => {
+    clearElectronApi();
+    vi.stubEnv('VITE_PHLIX_SERVER_URL', 'http://env-server:8096');
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const mod = await import('@/main');
+    await mod.boot();
+
+    // Pull the onConnectionChange callback and exercise the missing-bridge path.
+    const cfg = createPhlixApp.mock.calls.at(-1)?.[0] as {
+      onConnectionChange: (url: string | null) => void;
+    };
+    cfg.onConnectionChange('http://chosen:8096');
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[Phlix] Cannot persist server URL: Electron bridge unavailable, URL was:',
+      'http://chosen:8096'
+    );
+
+    warnSpy.mockRestore();
+  });
+
   it('uses the build-time env URL as the browser fallback base', async () => {
     clearElectronApi();
     vi.stubEnv('VITE_PHLIX_SERVER_URL', 'http://env-server:8096');
