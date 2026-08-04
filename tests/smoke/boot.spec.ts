@@ -16,11 +16,11 @@ test('boot smoke test', async () => {
   // Set NODE_ENV=production to force the app to use app:// protocol
   // instead of trying to connect to localhost:5173 (vite dev server)
   const electronApp = await _electron.launch({
-    args: ['.', '--no-sandbox', '--disable-gpu'],
+    args: ['.', '--no-sandbox'],
     env: { NODE_ENV: 'production' },
     chromiumSandbox: false,
-    headless: true,
   });
+  // headless: false is the default when xvfb-run provides a display
 
   // Catch abnormal process exit for diagnostics
   electronApp.on('close', (exitCode) => {

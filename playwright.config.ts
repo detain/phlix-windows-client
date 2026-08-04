@@ -15,7 +15,7 @@ export default defineConfig({
   workers: 1,
   reporter: [['list']],
   use: {
-    headless: true,
+    headless: false,  // was true — use headed mode with xvfb-run's virtual display
     viewport: { width: 1280, height: 870 },
     actionTimeout: 10_000,
     trace: 'on-first-retry',
