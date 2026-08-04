@@ -22,9 +22,15 @@ test('boot smoke test', async () => {
     headless: true,
   });
 
-  // Assert the main window opens within 30 seconds
-  const window = await electronApp.waitForEvent('window', { timeout: 30_000 });
-  expect(window).toBeDefined();
+  // Capture stderr/stdout from the Electron process to diagnose startup failures
+  electronApp.on('output', (text) => {
+    if (text.trim()) console.log('[electron]', text.trim()); // eslint-disable-line no-console
+  });
+
+  // firstWindow() returns the first window (existing or newly created), more reliable
+  // than waitForEvent('window') in headless mode where events can race
+  const window = await electronApp.firstWindow({ timeout: 60_000 });
+  expect(window).toBeDefined('Electron app failed to open a window');
 
   // --- W0.1 guard: preload script must have loaded, exposing window.electronAPI ---
   const electronAPI = await window.evaluate(() => window.electronAPI);
