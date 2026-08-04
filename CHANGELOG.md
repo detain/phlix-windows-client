@@ -13,6 +13,10 @@ A `@playwright/test` smoke test (`tests/smoke/boot.spec.ts`) now launches the pa
 
 > **W0.8 update:** The smoke test launch configuration now uses headless Chromium (`headless: true` + `--ozone-platform=headless` flag) to eliminate the `$DISPLAY` dependency, allowing the test to run in CI environments without an X11 display server.
 
+### Fixed — smoke test reliability and diagnostics improvements
+
+The smoke test (`tests/smoke/boot.spec.ts`) has been improved in three ways: it now uses `firstWindow()` instead of `waitForEvent('window')` because `waitForEvent` can race in headless mode where events fire before the listener is attached; the window-launch timeout has been increased from 30 seconds to 60 seconds to accommodate slower CI runners; and stderr/stdout from the Electron process is now captured and echoed to the test output (`electronApp.on('output', ...)`) so CI diagnostics can include the app's startup logs when a failure occurs.
+
 ### Fixed — test job now builds the app before running unit tests
 
 The `test` job in `.github/workflows/test.yml` previously ran `npm test` directly. Tests that import compiled output (e.g. main-process or preload modules via `dist/`) would fail because `dist/` did not exist. The job now runs `npm run build` before `npm test`, ensuring `dist/` is populated for test imports.
