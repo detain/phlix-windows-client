@@ -5,11 +5,17 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [W0.8] — 2025-07-/
+
 ### Added — smoke test that launches Electron in CI on ubuntu and windows
 
 A `@playwright/test` smoke test (`tests/smoke/boot.spec.ts`) now launches the packaged Electron app against `dist/` and asserts four guards: `window.electronAPI` is defined (preload script loaded, W0.1), device ID is not the hardcoded `'windows-dev'` fallback (W0.3), the renderer navigated to a `/app/*` route (W0.4), and the console is free of CSP violations and preload errors. The test runs in CI on both `ubuntu-latest` (`xvfb-run`) and `windows-latest` (`.github/workflows/test.yml` smoke job) and is also a prerequisite of the packaging job (`.github/workflows/build.yml`). `npm run smoke` is permanently part of the verification block.
 
 > **W0.8 update:** The smoke test launch configuration now uses headless Chromium (`headless: true` + `--ozone-platform=headless` flag) to eliminate the `$DISPLAY` dependency, allowing the test to run in CI environments without an X11 display server.
+
+### Fixed — test job now builds the app before running unit tests
+
+The `test` job in `.github/workflows/test.yml` previously ran `npm test` directly. Tests that import compiled output (e.g. main-process or preload modules via `dist/`) would fail because `dist/` did not exist. The job now runs `npm run build` before `npm test`, ensuring `dist/` is populated for test imports.
 
 ### Fixed — Content-Security-Policy updated to unblock posters, HLS workers, and WebSocket connections
 
