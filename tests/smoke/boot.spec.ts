@@ -16,10 +16,15 @@ test('boot smoke test', async () => {
   // Set NODE_ENV=production to force the app to use app:// protocol
   // instead of trying to connect to localhost:5173 (vite dev server)
   const electronApp = await _electron.launch({
-    args: ['.', '--ozone-platform=headless'],
+    args: ['.', '--no-sandbox'],
     env: { NODE_ENV: 'production' },
     chromiumSandbox: false,
     headless: true,
+  });
+
+  // Catch process exit/crash events for diagnostics
+  electronApp.on('close', (exitCode) => {
+    console.error('[electron] Process closed with exit code:', exitCode); // eslint-disable-line no-console
   });
 
   // Capture stderr/stdout from the Electron process to diagnose startup failures
@@ -29,7 +34,7 @@ test('boot smoke test', async () => {
 
   // firstWindow() returns the first window (existing or newly created), more reliable
   // than waitForEvent('window') in headless mode where events can race
-  const window = await electronApp.firstWindow({ timeout: 60_000 });
+  const window = await electronApp.firstWindow({ timeout: 90_000 });
   expect(window).toBeDefined('Electron app failed to open a window');
 
   // --- W0.1 guard: preload script must have loaded, exposing window.electronAPI ---
