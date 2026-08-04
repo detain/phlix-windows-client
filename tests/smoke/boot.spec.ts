@@ -22,9 +22,8 @@ const ELECTRON_PORT = 9222;
 const ELECTRON_HOST = 'localhost';
 
 test('boot smoke test', async () => {
-  // Resolve the Electron binary path via dynamic import (ESM-compatible)
-  const electronModule = await import('electron');
-  const electronPath = electronModule.path as string;
+  // Resolve the Electron binary path directly (electron.path is undefined in ESM context)
+  const electronPath = path.resolve(__dirname, '../../node_modules/electron/dist/electron');
 
   // Path to the compiled main process entry
   const distMainPath = path.resolve(__dirname, '../../dist/main/index.js');
