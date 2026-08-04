@@ -1,5 +1,10 @@
 /**
- * Boot smoke test — launches Electron against dist/ and verifies the app boots correctly.
+ * Boot smoke test — spawns Electron as a detached child process, then attaches
+ * via Playwright's CDP (Chrome DevTools Protocol) connection.
+ *
+ * This bypasses Playwright's built-in Electron launcher entirely, which avoids
+ * the per-run Electron binary download that was eating into the firstWindow()
+ * timeout budget.
  *
  * Guards against:
  * - W0.1: window.electronAPI not defined (preload script failed to load)
@@ -9,51 +14,91 @@
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
 
-import { test, expect, _electron } from '@playwright/test';
+import { test, expect, chromium } from '@playwright/test';
+import { spawn } from 'child_process';
+import path from 'path';
+
+const ELECTRON_PORT = 9222;
+const ELECTRON_HOST = 'localhost';
 
 test('boot smoke test', async () => {
-  // Launch the packaged Electron app against dist/
-  const electronApp = await _electron.launch({
-    args: ['.', '--no-sandbox', '--disable-gpu', '--disable-software-rasterizer', '--disable-dev-shm-usage', '--disable-accelerated-2d-canvas', '--no-first-run', '--no-zygote', '--single-process', '--disable-ipc-flooding-protection', '--disable-features=NetworkService,VizDisplayCompositor,ChromeUILoadTimes', '--disable-gpu-compositing', '--headless=new'],
-    env: { NODE_ENV: 'production' },
-    chromiumSandbox: false,
-  });
+  // Resolve the Electron binary path via dynamic import (ESM-compatible)
+  const electronModule = await import('electron');
+  const electronPath = electronModule.path as string;
 
-  // Diagnostic: capture ALL Electron output
-  const electronOutput: string[] = [];
-  electronApp.on('output', (text) => {
-    if (text.trim()) electronOutput.push(text.trim());
-  });
+  // Path to the compiled main process entry
+  const distMainPath = path.resolve(__dirname, '../../dist/main/index.js');
 
-  // Catch abnormal exits
-  electronApp.on('close', (exitCode) => {
-    if (exitCode !== 0) {
-      console.error('[electron] Abnormal exit with code:', exitCode, 'Output:', electronOutput.join('\n')); // eslint-disable-line no-console
+  // Spawn Electron as a detached background process with remote debugging
+  const electronProcess = spawn(
+    electronPath as string,
+    [
+      distMainPath,
+      `--disable-gpu`,
+      `--no-sandbox`,
+      `--remote-debugging-port=${ELECTRON_PORT}`,
+    ],
+    {
+      detached: true,
+      stdio: 'ignore',
+      env: {
+        ...process.env,
+        NODE_ENV: 'production',
+        ELECTRON_DISABLE_GPU: '1',
+      },
     }
-  });
+  );
 
-  // Try to get the first window with a reasonable timeout
-  let window;
+  // Prevent the child process from keeping the parent alive
+  electronProcess.unref();
+
+  // Wait for Electron to start and open the CDP debugging port
+  await new Promise<void>((resolve) => setTimeout(resolve, 5_000));
+
+  // Verify the process hasn't already exited (sanity check)
+  if (electronProcess.exitCode !== null) {
+    throw new Error(
+      `Electron process exited early with code ${electronProcess.exitCode}`
+    );
+  }
+
+  // Attach Playwright to the running Electron instance via CDP
+  let browser;
   try {
-    window = await electronApp.firstWindow({ timeout: 90_000 });
-  } catch (e) {
-    // If firstWindow() times out, check if ANY windows exist anyway
-    const windows = electronApp.windows();
-    if (windows.length > 0) {
-      window = windows[0];
-    } else {
-      // Electron output for debugging
-      console.error('[electron] firstWindow() timed out. Electron output:\n', electronOutput.join('\n')); // eslint-disable-line no-console
-      throw e;
-    }
+    browser = await chromium.connectOverCDP(
+      `http://${ELECTRON_HOST}:${ELECTRON_PORT}`,
+      { timeout: 30_000 }
+    );
+  } catch (connectError) {
+    electronProcess.kill();
+    throw new Error(
+      `Failed to connect to Electron via CDP: ${connectError}`
+    );
+  }
+
+  // Get or create the first browser context and its pages
+  let context = browser.contexts()[0];
+  if (!context) {
+    context = await browser.newContext();
+  }
+
+  const pages = context.pages();
+  const window = pages[0];
+
+  if (!window) {
+    await browser.close();
+    electronProcess.kill();
+    throw new Error('No window found in Electron CDP session');
   }
 
   // --- W0.1 guard: preload script must have loaded, exposing window.electronAPI ---
-  const electronAPI = await window.evaluate(() => window.electronAPI);
+  const electronAPI = await window.evaluate(() => (window as Window).electronAPI);
   expect(electronAPI).toBeDefined();
 
   // --- W0.3 guard: device ID must NOT be the dev fallback 'windows-dev' ---
-  const deviceId = await window.evaluate(() => window.electronAPI!.getDeviceId());
+  const deviceId = await window.evaluate(
+    () => (window as Window).electronAPI!.getDeviceId()
+  );
   expect(deviceId).not.toBe('windows-dev');
 
   // --- W0.4 guard: renderer must have navigated to a /app/* route ---
@@ -63,7 +108,7 @@ test('boot smoke test', async () => {
 
   // --- Console cleanliness: zero CSP violations and zero preload errors ---
   const consoleViolations: string[] = [];
-  const page = await window.page();
+  const page = window;
   page.on('console', (msg) => {
     if (msg.type() === 'error') {
       const text = msg.text();
@@ -77,7 +122,13 @@ test('boot smoke test', async () => {
   });
 
   await window.waitForTimeout(2_000);
-  expect(consoleViolations, `Console violations found: ${JSON.stringify(consoleViolations)}`).toHaveLength(0);
+  expect(
+    consoleViolations,
+    `Console violations found: ${JSON.stringify(consoleViolations)}`
+  ).toHaveLength(0);
 
-  await electronApp.close();
+  await browser.close();
+
+  // Clean up the Electron process
+  electronProcess.kill();
 });
