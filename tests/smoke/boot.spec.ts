@@ -22,9 +22,11 @@ test('boot smoke test', async () => {
     headless: true,
   });
 
-  // Catch process exit/crash events for diagnostics
+  // Catch abnormal process exit for diagnostics
   electronApp.on('close', (exitCode) => {
-    console.error('[electron] Process closed with exit code:', exitCode); // eslint-disable-line no-console
+    if (exitCode !== 0) {
+      console.error('[electron] Process closed abnormally with exit code:', exitCode); // eslint-disable-line no-console
+    }
   });
 
   // Capture stderr/stdout from the Electron process to diagnose startup failures
