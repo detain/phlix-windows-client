@@ -16,7 +16,7 @@ test('boot smoke test', async () => {
   // Set NODE_ENV=production to force the app to use app:// protocol
   // instead of trying to connect to localhost:5173 (vite dev server)
   const electronApp = await _electron.launch({
-    args: ['.', '--no-sandbox'],
+    args: ['.', '--no-sandbox', '--disable-gpu'],
     env: { NODE_ENV: 'production' },
     chromiumSandbox: false,
     headless: true,
