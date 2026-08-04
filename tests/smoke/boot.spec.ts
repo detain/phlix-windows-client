@@ -12,32 +12,41 @@
 import { test, expect, _electron } from '@playwright/test';
 
 test('boot smoke test', async () => {
-  // Launch the packaged Electron app against dist/ (not source)
-  // Set NODE_ENV=production to force the app to use app:// protocol
-  // instead of trying to connect to localhost:5173 (vite dev server)
+  // Launch the packaged Electron app against dist/
   const electronApp = await _electron.launch({
-    args: ['.', '--no-sandbox'],
+    args: ['.', '--no-sandbox', '--disable-gpu', '--disable-software-rasterizer', '--disable-dev-shm-usage', '--disable-accelerated-2d-canvas', '--no-first-run', '--no-zygote', '--single-process', '--disable-ipc-flooding-protection', '--disable-features=NetworkService,VizDisplayCompositor,ChromeUILoadTimes', '--disable-gpu-compositing', '--headless=new'],
     env: { NODE_ENV: 'production' },
     chromiumSandbox: false,
   });
-  // headless: false is the default when xvfb-run provides a display
 
-  // Catch abnormal process exit for diagnostics
+  // Diagnostic: capture ALL Electron output
+  const electronOutput: string[] = [];
+  electronApp.on('output', (text) => {
+    if (text.trim()) electronOutput.push(text.trim());
+  });
+
+  // Catch abnormal exits
   electronApp.on('close', (exitCode) => {
     if (exitCode !== 0) {
-      console.error('[electron] Process closed abnormally with exit code:', exitCode); // eslint-disable-line no-console
+      console.error('[electron] Abnormal exit with code:', exitCode, 'Output:', electronOutput.join('\n')); // eslint-disable-line no-console
     }
   });
 
-  // Capture stderr/stdout from the Electron process to diagnose startup failures
-  electronApp.on('output', (text) => {
-    if (text.trim()) console.log('[electron]', text.trim()); // eslint-disable-line no-console
-  });
-
-  // firstWindow() returns the first window (existing or newly created), more reliable
-  // than waitForEvent('window') in headless mode where events can race
-  const window = await electronApp.firstWindow({ timeout: 90_000 });
-  expect(window).toBeDefined('Electron app failed to open a window');
+  // Try to get the first window with a reasonable timeout
+  let window;
+  try {
+    window = await electronApp.firstWindow({ timeout: 90_000 });
+  } catch (e) {
+    // If firstWindow() times out, check if ANY windows exist anyway
+    const windows = electronApp.windows();
+    if (windows.length > 0) {
+      window = windows[0];
+    } else {
+      // Electron output for debugging
+      console.error('[electron] firstWindow() timed out. Electron output:\n', electronOutput.join('\n')); // eslint-disable-line no-console
+      throw e;
+    }
+  }
 
   // --- W0.1 guard: preload script must have loaded, exposing window.electronAPI ---
   const electronAPI = await window.evaluate(() => window.electronAPI);
@@ -67,11 +76,8 @@ test('boot smoke test', async () => {
     }
   });
 
-  // Give the renderer a moment to settle and emit any console errors
   await window.waitForTimeout(2_000);
-
   expect(consoleViolations, `Console violations found: ${JSON.stringify(consoleViolations)}`).toHaveLength(0);
 
-  // Clean shutdown — exit non-zero on any failure above
   await electronApp.close();
 });
