@@ -270,6 +270,16 @@ describe('buildMenu', () => {
     expect(menu.find((m) => m.id === 'syncplay')).toMatchObject({ to: '/app/syncplay' });
     expect(menu.find((m) => m.id === 'admin')?.requiresAdmin).toBe(true);
   });
+
+  it('hub entries appear only in hub mode — server mode must not include them', async () => {
+    const { buildMenu } = await import('@/main');
+    const serverMenuIds = buildMenu('server').map((m) => m.id);
+    // These entries are hub-only and must not leak into server mode
+    const hubOnlyIds = ['my-servers', 'federation', 'manage-shares', 'shared-with-me', 'invite-links'];
+    for (const id of hubOnlyIds) {
+      expect(serverMenuIds).not.toContain(id);
+    }
+  });
 });
 
 describe('buildExtraRoutes', () => {
