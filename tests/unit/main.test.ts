@@ -22,6 +22,11 @@ vi.mock('@phlix/ui', () => ({
   MyServersPage: PageStub,
   FederationPage: PageStub,
   ManageSharesPage: PageStub,
+  SharedWithMePage: PageStub,
+  InviteLinksPage: PageStub,
+  AcceptInvitePage: PageStub,
+  FederationSharesPage: PageStub,
+  ServerDetailPage: PageStub,
   // main.ts does not import usePlayerStore, but export a no-op so the mock is
   // safe even if the import surface grows.
   usePlayerStore: vi.fn(() => ({}))
@@ -258,7 +263,7 @@ describe('buildMenu', () => {
   it('hub mode: My Servers, Federation, Shares, Watch History, Explore, Recommendations, SyncPlay, admin-gated Admin', async () => {
     const { buildMenu } = await import('@/main');
     const menu = buildMenu('hub');
-    expect(menu.map((m) => m.id)).toEqual(['my-servers', 'federation', 'manage-shares', 'history', 'explore', 'recommendations', 'syncplay', 'admin']);
+    expect(menu.map((m) => m.id)).toEqual(['my-servers', 'federation', 'manage-shares', 'shared-with-me', 'invite-links', 'history', 'explore', 'recommendations', 'syncplay', 'admin']);
     expect(menu.find((m) => m.id === 'history')).toMatchObject({ to: '/app/history' });
     expect(menu.find((m) => m.id === 'explore')).toMatchObject({ to: '/app/explore' });
     expect(menu.find((m) => m.id === 'recommendations')).toMatchObject({ to: '/app/recommendations' });
@@ -268,18 +273,19 @@ describe('buildMenu', () => {
 });
 
 describe('buildExtraRoutes', () => {
-  it('server mode: admin section + the library-scan route', async () => {
+  it('server mode: admin section + the library-scan route + parental-controls', async () => {
     const { buildExtraRoutes } = await import('@/main');
     const names = buildExtraRoutes('server').map((r) => r.name);
     expect(names).toContain('admin-dashboard');
     expect(names).toContain('library-scan');
+    expect(names).toContain('parental-controls');
   });
 
-  it('hub mode: hub pages + the hub admin section', async () => {
+  it('hub mode: hub pages + the hub admin section + parental-controls', async () => {
     const { buildExtraRoutes } = await import('@/main');
     const names = buildExtraRoutes('hub').map((r) => r.name);
     expect(names).toEqual(
-      expect.arrayContaining(['my-servers', 'federation', 'manage-shares', 'hub-admin-dashboard'])
+      expect.arrayContaining(['my-servers', 'server-detail', 'federation', 'federation-shares', 'manage-shares', 'shared-with-me', 'invite-links', 'accept-invite', 'hub-admin-dashboard', 'parental-controls'])
     );
   });
 });

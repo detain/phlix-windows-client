@@ -13,7 +13,12 @@ import {
   LibraryScanPage,
   MyServersPage,
   FederationPage,
-  ManageSharesPage
+  ManageSharesPage,
+  SharedWithMePage,
+  InviteLinksPage,
+  AcceptInvitePage,
+  FederationSharesPage,
+  ServerDetailPage
 } from '@phlix/ui';
 import { buildPhlixHeaders } from '@phlix/contracts';
 import ParentalControlsPage from '../pages/ParentalControlsPage.vue';
@@ -38,6 +43,8 @@ export function buildMenu(appMode: 'server' | 'hub'): MenuItem[] {
       { id: 'my-servers', label: 'My Servers', to: '/app/servers' },
       { id: 'federation', label: 'Federation', to: '/app/federation' },
       { id: 'manage-shares', label: 'Shares', to: '/app/shares' },
+      { id: 'shared-with-me', label: 'Shared with Me', to: '/app/shared' },
+      { id: 'invite-links', label: 'Invite Links', to: '/app/invites' },
       { id: 'history', label: 'Watch History', to: '/app/history' },
       { id: 'explore', label: 'Explore', to: '/app/explore' },
       { id: 'recommendations', label: 'Recommendations', to: '/app/recommendations' },
@@ -75,8 +82,13 @@ export function buildExtraRoutes(appMode: 'server' | 'hub'): RouteRecordRaw[] {
   if (appMode === 'hub') {
     return [
       { path: '/app/servers', name: 'my-servers', component: MyServersPage },
+      { path: '/app/server/:id', name: 'server-detail', component: ServerDetailPage },
       { path: '/app/federation', name: 'federation', component: FederationPage },
+      { path: '/app/federation/shares', name: 'federation-shares', component: FederationSharesPage },
       { path: '/app/shares', name: 'manage-shares', component: ManageSharesPage },
+      { path: '/app/shared', name: 'shared-with-me', component: SharedWithMePage },
+      { path: '/app/invites', name: 'invite-links', component: InviteLinksPage },
+      { path: '/app/accept-invite', name: 'accept-invite', component: AcceptInvitePage },
       { path: '/app/parental-controls', name: 'parental-controls', component: ParentalControlsPage },
       ...buildHubAdminRoutes()
     ];
