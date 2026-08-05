@@ -313,8 +313,19 @@ export const useSyncPlayStore = defineStore('phlix-syncplay', () => {
       const room = publicRooms.value.find((r) => r.id === roomId) || {
         id: roomId,
         name: `Room ${roomId.slice(0, 8)}`,
-        isPublic: false,
-        memberCount: 0
+        member_count: 0,
+        has_password: false,
+        current_media: null,
+        is_playing: false,
+        members: [],
+        host_id: '',
+        current_media_id: null,
+        current_media_duration: null,
+        playback_position: 0,
+        playback_state: 'waiting',
+        queue: [],
+        created_at: 0,
+        last_activity_at: 0
       };
 
       currentRoom.value = room;

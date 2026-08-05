@@ -361,8 +361,19 @@ describe('useSyncPlayStore', () => {
       expect(store.currentRoom).toEqual({
         id: 'abc12345',
         name: 'Room abc12345',
-        isPublic: false,
-        memberCount: 0
+        member_count: 0,
+        has_password: false,
+        current_media: null,
+        is_playing: false,
+        members: [],
+        host_id: '',
+        current_media_id: null,
+        current_media_duration: null,
+        playback_position: 0,
+        playback_state: 'waiting',
+        queue: [],
+        created_at: 0,
+        last_activity_at: 0
       });
     });
 
