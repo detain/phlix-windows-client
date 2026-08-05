@@ -5,6 +5,19 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — nav entries and route-reachability guard for W1.4 nav-wiring
+
+- **`buildMenu` now registers WatchHistory, Explore, Recommendations, and SyncPlay** in both
+  server and hub mode nav. These four pages were registered by `createPhlixApp` but had no way
+  in — each navigation request landed on a blank screen.
+- **`buildExtraRoutes` added to the routeReachability test** so the guard now checks both menu
+  coverage and the extraRoutes seam.
+- **`tests/unit/routeReachability.test.ts`** created: aVitest guard that reads routes from
+  `createPhlixApp`'s router and fails if any route is absent from `buildMenu` and absent from a
+  25-entry `DEEP_LINK_ALLOW_LIST`. `extractRoutePaths` correctly resolves relative child paths
+  (e.g. `'dashboard'` → `/app/admin/dashboard`); `/app/parental`, `/app/admin`, and
+  `/app/admin/*` are on the allow-list.
+
 ### Added — `@phlix/ui` v0.98.34 page/route inventory documented
 
 - **`docs/ui-surface.md`** created to track the `@phlix/ui` page surface. Documents 43 root
