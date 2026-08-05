@@ -41,10 +41,18 @@ export function buildMenu(appMode: 'server' | 'hub'): MenuItem[] {
       { id: 'admin', label: 'Admin', to: '/app/admin/dashboard', requiresAdmin: true }
     ];
   }
+  // Server mode: mirrors web-ui/src/main.ts:30-77 entry for entry.
+  // `libraryLinks` expands Browse into one nav link per library (fetched from
+  // /api/v1/libraries), matching the per-library Browse sections.
+  // `requiresLibraryType` hides each media-type entry unless a library of that
+  // type exists — fail-closed while the library list is still loading.
   return [
-    // `libraryLinks` expands Browse into one nav link per library (fetched from
-    // /api/v1/libraries), matching the per-library Browse sections.
     { id: 'browse', label: 'Browse', to: '/app', libraryLinks: true },
+    { id: 'music', label: 'Music', to: '/app/music', requiresLibraryType: 'music' },
+    { id: 'books', label: 'Books', to: '/app/books', requiresLibraryType: 'book' },
+    { id: 'audiobooks', label: 'Audiobooks', to: '/app/audiobooks', requiresLibraryType: 'audiobook' },
+    { id: 'photos', label: 'Photos', to: '/app/photo/albums', requiresLibraryType: 'photo' },
+    { id: 'search', label: 'Search', to: '/app/search' },
     { id: 'settings', label: 'Settings', to: '/app/settings' },
     { id: 'admin', label: 'Admin', to: '/app/admin/dashboard', requiresAdmin: true }
   ];

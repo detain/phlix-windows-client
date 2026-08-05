@@ -26,11 +26,11 @@ in the reference web-ui (`phlix-server/web-ui`), and which are wired in this rep
 | AcceptInvitePage | `/app/accept-invite` | MISSING | MISSING |
 | AudiobookDetailPage | via AudiobooksPage | OK (extraRoutes) | MISSING |
 | AudiobookPlayerPage | via AudiobooksPage | OK (extraRoutes) | MISSING |
-| AudiobooksPage | `/app/audiobooks` | OK (extraRoutes) | MISSING |
+| AudiobooksPage | `/app/audiobooks` | OK (extraRoutes) | OK (buildMenu) |
 | AuditLogsPage | `/app/admin/audit-logs` | OK (buildAdminRoutes) | OK (buildAdminRoutes) |
 | BookDetailPage | via BooksPage | OK (extraRoutes) | MISSING |
 | BookReaderPage | via BooksPage | OK (extraRoutes) | MISSING |
-| BooksPage | `/app/books` | OK (extraRoutes) | MISSING |
+| BooksPage | `/app/books` | OK (extraRoutes) | OK (buildMenu) |
 | BrowsePage | `/app` | OK (menu) | OK (buildMenu) |
 | ConnectPage | `/app/connect` | UNREACHABLE | UNREACHABLE |
 | ExplorePage | `/app/explore` | UNREACHABLE | MISSING |
@@ -45,19 +45,19 @@ in the reference web-ui (`phlix-server/web-ui`), and which are wired in this rep
 | MusicAlbumPage | `/app/music/album/:name` | OK (extraRoutes) | MISSING |
 | MusicArtistPage | `/app/music/artist/:name` | OK (extraRoutes) | MISSING |
 | MusicArtistsPage | `/app/music/artists` | OK (extraRoutes) | MISSING |
-| MusicLibraryPage | `/app/music` | UNREACHABLE | MISSING |
+| MusicLibraryPage | `/app/music` | UNREACHABLE | OK (buildMenu) |
 | MusicPlayerPage | `/app/music/player` | OK (extraRoutes) | MISSING |
 | MusicTracksPage | `/app/music/tracks` | OK (extraRoutes) | MISSING |
 | MyServersPage | `/app/servers` | UNREACHABLE | OK (buildMenu hub) |
 | ParentalControlsPage | `/app/parental` | MISSING | UNREACHABLE (both modes) |
 | PhotoAlbumPage | `/app/photo/album/:id` | OK (extraRoutes) | MISSING |
-| PhotoAlbumsPage | `/app/photo/albums` | OK (extraRoutes) | MISSING |
+| PhotoAlbumsPage | `/app/photo/albums` | OK (extraRoutes) | OK (buildMenu) |
 | PhotoSlideshowPage | `/app/photo/slideshow` | OK (extraRoutes) | MISSING |
 | PhotoViewPage | `/app/photo/photo/:id` | OK (extraRoutes) | MISSING |
 | PlayerPage | `/app/player/:id` | UNREACHABLE | MISSING |
 | RecommendationsPage | `/app/recommendations` | UNREACHABLE | MISSING |
 | RequestsPage | `/app/admin/requests` | OK (buildAdminRoutes) | OK (buildAdminRoutes) |
-| SearchPage | `/app/search` | OK (extraRoutes) | MISSING |
+| SearchPage | `/app/search` | OK (extraRoutes) | OK (buildMenu) |
 | SeasonPage | `/app/media/:id/season/:season` | UNREACHABLE | MISSING |
 | SecuritySettingsPage | `/app/admin/security` | OK (buildAdminRoutes) | OK (buildAdminRoutes) |
 | ServerDetailPage | `/app/server/:id` | MISSING | MISSING |
@@ -138,14 +138,15 @@ No navigation link exists for any of them:
 | Context | Pages | OK | UNREACHABLE | MISSING |
 |---------|-------|----|-------------|---------|
 | web-ui (server mode) | 66 | 21 | 17 | 28 |
-| windows-client (server mode) | 66 | 21 | 3 | 42 |
+| windows-client (server mode) | 66 | 26 | 3 | 37 |
 | windows-client (hub mode) | 66 | 11 | 1 | 54 |
 
 **web-ui wired (menu + extraRoutes):** browse, music, books, audiobooks, photos,
 search, settings, admin + 16 admin pages + library/scan + 15 media pages = 21 OK
 
-**windows-client server mode:** browse, settings, admin + 17 admin pages + library/scan
-+ parental = 21 OK; parental is UNREACHABLE (no menu link)
+**windows-client server mode (W1.3):** browse (libraryLinks), music, books,
+audiobooks, photos, search, settings, admin + 17 admin pages + library/scan
++ parental = 26 OK; parental is UNREACHABLE (no menu link)
 
 **windows-client hub mode:** my-servers, federation, shares, admin + 7 admin pages +
 4 hub extraRoutes = 11 OK; parental is UNREACHABLE (no menu link)
