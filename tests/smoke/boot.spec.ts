@@ -39,6 +39,7 @@ test('boot smoke test', async () => {
     {
       detached: true,
       stdio: 'ignore',
+      shell: process.platform === 'win32',
       env: {
         ...process.env,
         NODE_ENV: 'production',
