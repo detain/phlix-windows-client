@@ -74,9 +74,14 @@ export function buildMenu(appMode: 'server' | 'hub'): MenuItem[] {
 }
 
 /**
- * Routes for the current app mode: the shared Vue admin section (`/app/admin/*`,
- * reachable via the gated "Admin" nav entry) plus each mode's own pages. Mirrors
- * the server/hub web-uis. Routes carry the full `/app` prefix (history base is '/').
+ * Extra routes for the current app mode: the shared admin section (`/app/admin/*`,
+ * reachable via the gated "Admin" nav entry) plus mode-specific pages. In hub mode
+ * this includes MyServersPage (`/app/servers`), ServerDetailPage (`/app/server/:id`),
+ * FederationPage (`/app/federation`), FederationSharesPage (`/app/federation/shares`),
+ * ManageSharesPage (`/app/shares`), SharedWithMePage (`/app/shared`), InviteLinksPage
+ * (`/app/invites`), AcceptInvitePage (`/app/accept-invite` — deep-link only, no nav entry),
+ * and the hub-admin section. Server mode adds LibraryScanPage and ParentalControlsPage.
+ * Mirrors the server/hub web-uis. Routes carry the full `/app` prefix (history base is '/').
  */
 export function buildExtraRoutes(appMode: 'server' | 'hub'): RouteRecordRaw[] {
   if (appMode === 'hub') {

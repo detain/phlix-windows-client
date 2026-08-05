@@ -46,6 +46,25 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Room placeholder updated**: the local room fallback in `joinRoom()` now includes
   all required `SyncPlayGroup` fields so the store compiles against `v0.4.1`.
 
+### Added — hub nav and routes: 8 of 8 pages now wired (W1.5)
+
+- **`buildMenu`** in hub mode now registers `SharedWithMePage` (`/app/shared`) and
+  `InviteLinksPage` (`/app/invites`) nav entries alongside the four hub entries that
+  were already present (MyServers, Federation, Shares, Watch History, Explore,
+  Recommendations, SyncPlay, Admin).
+- **`buildExtraRoutes`** wires the three remaining hub pages: `ServerDetailPage`
+  (`/app/server/:id`), `FederationSharesPage` (`/app/federation/shares`), and
+  `AcceptInvitePage` (`/app/accept-invite`, deep-link only — no nav entry;
+  already allow-listed from W1.4). All eight hub pages are now reachable.
+- **Hub-mode gating**: both functions branch on `if (appMode === 'hub')`, leaving
+  server mode entirely untouched.
+- **Relay proxy HTTP verbs (stale caveat removed)**: `phlix-hub/src/Application.php`
+  registers `GET`, `PUT`, `DELETE`, `PATCH`, and `POST` on the relay proxy
+  (lines 479–495). The "only `GET`/`HEAD`" caveat previously documented on the
+  user-item data write endpoints (`POST .../favorite`, `PUT .../rating`,
+  `DELETE .../favorite`) is stale and has been corrected in the API reference
+  (`phlix-docs/docs/reference/api.md`).
+
 ## [W0.8] — 2025-07-/
 
 ### Added — smoke test that launches Electron in CI on ubuntu and windows
