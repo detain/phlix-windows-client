@@ -4,7 +4,7 @@
 in the reference web-ui (`phlix-server/web-ui`), and which are wired in this repo
 (`phlix-windows-client`).
 
-- **Page count:** 44 root pages + 23 admin pages = **67 total**
+- **Page count:** 43 root pages + 23 admin pages = **66 total**
 - **Reference web-ui:** `phlix-server/web-ui/src/main.ts:30-77` (menu + extraRoutes)
 - **This repo:** `src/renderer/main.ts:35-51` (buildMenu) and `:58-73` (buildExtraRoutes)
 - Shell renders **no default nav** once `menu` is supplied (documented at `src/renderer/main.ts:30-34`)
@@ -138,8 +138,8 @@ No navigation link exists for any of them:
 | Context | Pages | OK | UNREACHABLE | MISSING |
 |---------|-------|----|-------------|---------|
 | web-ui (server mode) | 66 | 21 | 17 | 28 |
-| windows-client (server mode) | 67 | 21 | 3 | 43 |
-| windows-client (hub mode) | 67 | 11 | 1 | 55 |
+| windows-client (server mode) | 66 | 21 | 3 | 42 |
+| windows-client (hub mode) | 66 | 11 | 1 | 54 |
 
 **web-ui wired (menu + extraRoutes):** browse, music, books, audiobooks, photos,
 search, settings, admin + 16 admin pages + library/scan + 15 media pages = 21 OK
