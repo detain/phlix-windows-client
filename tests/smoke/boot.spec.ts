@@ -26,8 +26,10 @@ test('boot smoke test', async () => {
   const distMainPath = path.resolve(__dirname, '../../dist/main/index.js');
 
   // Spawn Electron as a detached background process with remote debugging
+  // Windows npm creates electron.cmd, not electron
+  const electronCmd = process.platform === 'win32' ? 'electron.cmd' : 'electron';
   const electronProcess = spawn(
-    'electron',
+    electronCmd,
     [
       distMainPath,
       `--disable-gpu`,
