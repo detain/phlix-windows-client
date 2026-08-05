@@ -5,6 +5,12 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — `@phlix/ui` v0.98.34 page/route inventory documented
+
+- **`docs/ui-surface.md`** created to track the `@phlix/ui` page surface. Documents 43 root
+  pages, 23 admin pages (66 total), nav entry wiring state (3/22 server-mode, 3/8 hub pages),
+  4 unlinked pages, and 5 missing hub pages. Serves as the baseline for W1.x nav-wiring work.
+
 ### Changed — @phlix/ui re-pinned from v0.81.0 to v0.98.34
 
 - **`@phlix/ui` switched from tarball URL to `github:detain/phlix-ui#v0.98.34`** (matching
