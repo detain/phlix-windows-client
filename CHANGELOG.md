@@ -5,6 +5,19 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — SyncPlay contracts upgraded, local shadow types removed
+
+- **`@phlix/contracts` bumped to `v0.4.1`** (from `v0.3.12`). This pulls in the
+  `SyncPlayGroup` vocabulary fix from the contracts package.
+- **Local SyncPlay shadow types removed** from `src/renderer/types/electron.d.ts`:
+  `SyncPlayRoom`, `SyncPlaySession`, `SyncPlayUser`, `SyncPlayRole`, and
+  `SyncPlayPermission` were local duplicates that shadowed the types now exported by
+  `@phlix/contracts`. `useSyncPlayStore.ts` imports these from `@phlix/contracts` instead.
+- **Orphaned UI components deleted**: `SyncPlayModal.vue` and `SyncPlayOverlay.vue`
+  violated the thin-consumer rule and were never reachable.
+- **Room placeholder updated**: the local room fallback in `joinRoom()` now includes
+  all required `SyncPlayGroup` fields so the store compiles against `v0.4.1`.
+
 ## [W0.8] — 2025-07-/
 
 ### Added — smoke test that launches Electron in CI on ubuntu and windows
