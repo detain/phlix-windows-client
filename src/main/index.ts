@@ -366,13 +366,13 @@ export function setupAppProtocolHandler(): void {
     const parsedUrl = new URL(urlStr);
     const urlPath = parsedUrl.pathname;
 
-    // Use the full pathname as the routing path (e.g., /app/servers)
-    if (!urlPath.startsWith('/app/')) {
+    // Strip the /- prefix to get the routing path
+    if (!urlPath.startsWith('/-')) {
       log.warn(`[app protocol] Invalid path format: ${urlPath}`);
       return new Response('Forbidden', { status: 403 });
     }
 
-    const routingPath = urlPath;
+    const routingPath = urlPath.slice(2);
     let relativePath = routingPath;
 
     // If path doesn't look like a file request (no extension), treat as SPA route
