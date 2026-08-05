@@ -5,6 +5,15 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — @phlix/ui re-pinned from v0.81.0 to v0.98.34
+
+- **`@phlix/ui` switched from tarball URL to `github:detain/phlix-ui#v0.98.34`** (matching
+  the form used by the Tizen client). This closes a 17-minor version gap (v0.81.0 → v0.98.34)
+  and brings 80 upstream commits into the Windows client.
+- **All 80 commits were transparent** — no renamed exports, no changed prop signatures, and
+  no duplicate component conflicts were introduced. The Windows client required no code changes
+  to compile or test after the re-pin.
+
 ### Changed — SyncPlay contracts upgraded, local shadow types removed
 
 - **`@phlix/contracts` bumped to `v0.4.1`** (from `v0.3.12`). This pulls in the
