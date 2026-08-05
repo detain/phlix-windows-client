@@ -349,7 +349,7 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 // Renderer dist base directory (absolute path)
-const RENDERER_DIST_DIR = path.join(__dirname, '../renderer');
+export const RENDERER_DIST_DIR = path.join(__dirname, '../renderer');
 
 /**
  * Handles app:// protocol requests in production.
