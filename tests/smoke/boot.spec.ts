@@ -36,7 +36,6 @@ test('boot smoke test', async () => {
     ],
     {
       detached: true,
-      stdio: 'ignore',
       env: {
         ...process.env,
         NODE_ENV: 'production',
@@ -48,6 +47,9 @@ test('boot smoke test', async () => {
 
   // Prevent the child process from keeping the parent alive
   electronProcess.unref();
+
+  // Give Electron time to start before attempting CDP connection
+  await new Promise((resolve) => setTimeout(resolve, 3_000));
 
   // Attach Playwright to the running Electron instance via CDP
   let browser;

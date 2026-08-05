@@ -359,7 +359,7 @@ export const RENDERER_DIST_DIR = path.join(__dirname, '../renderer');
  * RENDERER_DIST_DIR and verifying the result is within that directory.
  * Falls back to index.html for SPA routing (HTML5 history fallback).
  */
-function setupAppProtocolHandler(): void {
+export function setupAppProtocolHandler(): void {
   protocol.handle('app', (request) => {
     const urlStr = request.url;
     // urlStr is like app://-/app/servers or app://-/app/assets/main.js
