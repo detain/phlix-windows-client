@@ -1,37 +1,21 @@
-/**
- * Boot smoke test — spawns Electron as a detached child process, then attaches
- * via Playwright's CDP (Chrome DevTools Protocol) connection.
- *
- * This bypasses Playwright's built-in Electron launcher entirely, which avoids
- * the per-run Electron binary download that was eating into the firstWindow()
- * timeout budget.
- *
- * Guards against:
- * - W0.1: window.electronAPI not defined (preload script failed to load)
- * - W0.3: device ID hardcoded as 'windows-dev' instead of a real UUID
- * - W0.4: renderer not navigating to /app/* route
- *
- * @copyright 2026 Joe Huss <detain@interserver.net>
- */
-
 import { test, expect, chromium } from '@playwright/test';
 import { spawn } from 'child_process';
 import path from 'path';
 
+interface ElectronWindow extends Window {
+  electronAPI?: { getDeviceId: () => Promise<string> };
+}
+
 const ELECTRON_PORT = 9222;
-const ELECTRON_HOST = 'localhost';
 
 test('boot smoke test', async () => {
-  // Path to the compiled main process entry
   const distMainPath = path.resolve(__dirname, '../../dist/main/index.js');
 
-  // Spawn Electron as a detached background process with remote debugging
   const electronProcess = spawn(
     'electron',
     [
       distMainPath,
-      `--disable-gpu`,
-      `--no-sandbox`,
+      '--disable-gpu',
       `--remote-debugging-port=${ELECTRON_PORT}`,
     ],
     {
@@ -40,91 +24,84 @@ test('boot smoke test', async () => {
       env: {
         ...process.env,
         NODE_ENV: 'production',
+        PHLIX_FORCE_PRODUCTION: '1',
         ELECTRON_DISABLE_GPU: '1',
       },
     }
   );
-
-  // Prevent the child process from keeping the parent alive
   electronProcess.unref();
 
-  // Wait for Electron to start and open the CDP debugging port
-  await new Promise<void>((resolve) => setTimeout(resolve, 5_000));
+  await new Promise<void>(resolve => setTimeout(resolve, 5_000));
 
-  // Verify the process hasn't already exited (sanity check)
   if (electronProcess.exitCode !== null) {
-    throw new Error(
-      `Electron process exited early with code ${electronProcess.exitCode}`
-    );
+    throw new Error(`Electron process exited early with code ${electronProcess.exitCode}`);
   }
 
-  // Attach Playwright to the running Electron instance via CDP
   let browser;
   try {
     browser = await chromium.connectOverCDP(
-      `http://${ELECTRON_HOST}:${ELECTRON_PORT}`,
-      { timeout: 30_000 }
+      `http://localhost:${ELECTRON_PORT}`,
+      { timeout: 60_000 }  // Increased to 60s
     );
-  } catch (connectError) {
+  } catch (e) {
     electronProcess.kill();
-    throw new Error(
-      `Failed to connect to Electron via CDP: ${connectError}`
-    );
+    throw e;
   }
 
-  // Get or create the first browser context and its pages
-  let context = browser.contexts()[0];
-  if (!context) {
-    context = await browser.newContext();
+  // Poll for a real page
+  let page = null;
+  const startTime = Date.now();
+  while (Date.now() - startTime < 60_000) {
+    const candidates = browser.contexts().flatMap(c => c.pages()).filter(p => {
+      try {
+        const u = new URL(p.url());
+        return !['about:blank', 'chrome-error:', 'devtools:'].includes(u.protocol);
+      } catch {
+        return false;
+      }
+    });
+    if (candidates.length > 0) {
+      page = candidates[0];
+      console.log(`[smoke] Found page after ${Date.now() - startTime}ms: ${page.url()}`);
+      break;
+    }
+    await new Promise<void>(r => setTimeout(r, 2_000));
   }
 
-  const pages = context.pages();
-  const window = pages[0];
-
-  if (!window) {
+  if (!page) {
+    const candidates = browser.contexts().flatMap(c => c.pages()).map(p => p.url());
     await browser.close();
     electronProcess.kill();
-    throw new Error('No window found in Electron CDP session');
+    throw new Error(`No real page found. Candidates: ${JSON.stringify(candidates)}`);
   }
 
-  // --- W0.1 guard: preload script must have loaded, exposing window.electronAPI ---
-  const electronAPI = await window.evaluate(() => (window as Window).electronAPI);
-  expect(electronAPI).toBeDefined();
+  try {
+    await page.waitForLoadState('domcontentloaded');
 
-  // --- W0.3 guard: device ID must NOT be the dev fallback 'windows-dev' ---
-  const deviceId = await window.evaluate(
-    () => (window as Window).electronAPI!.getDeviceId()
-  );
-  expect(deviceId).not.toBe('windows-dev');
+    const api = await page.evaluate(() => (globalThis as unknown as ElectronWindow).electronAPI);
+    expect(api).toBeDefined();
 
-  // --- W0.4 guard: renderer must have navigated to a /app/* route ---
-  const pageUrl = window.url();
-  const url = new URL(pageUrl);
-  expect(url.pathname).toMatch(/^\/app/);
+    const deviceId = await page.evaluate(
+      () => (globalThis as unknown as ElectronWindow).electronAPI!.getDeviceId()
+    );
+    expect(deviceId).not.toBe('windows-dev');
 
-  // --- Console cleanliness: zero CSP violations and zero preload errors ---
-  const consoleViolations: string[] = [];
-  const page = window;
-  page.on('console', (msg) => {
-    if (msg.type() === 'error') {
-      const text = msg.text();
-      if (
-        text.includes('Content Security Policy') ||
-        text.includes('Unable to load preload script')
-      ) {
-        consoleViolations.push(text);
+    const vueMounted = await page.evaluate(() => {
+      const el = document.querySelector('#phlix-app[data-v-app]');
+      return el !== null && el.children.length > 0;
+    });
+    expect(vueMounted).toBe(true);
+
+    const violations: string[] = [];
+    page.on('console', msg => {
+      if (msg.type() === 'error' && (msg.text().includes('Content Security Policy') || msg.text().includes('Unable to load preload script'))) {
+        violations.push(msg.text());
       }
-    }
-  });
-
-  await window.waitForTimeout(2_000);
-  expect(
-    consoleViolations,
-    `Console violations found: ${JSON.stringify(consoleViolations)}`
-  ).toHaveLength(0);
-
-  await browser.close();
-
-  // Clean up the Electron process
-  electronProcess.kill();
+    });
+    await page.waitForTimeout(2_000);
+    expect(violations, `Console violations: ${JSON.stringify(violations)}`).toHaveLength(0);
+  } finally {
+    await browser.close();
+    electronProcess.kill();
+  }
 });

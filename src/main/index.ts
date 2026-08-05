@@ -24,7 +24,7 @@ let tray: Tray | null = null;
 // SyncPlay WebSocket state
 let syncPlayWs: WebSocket | null = null;
 
-const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+const isDev = process.env.NODE_ENV === 'development' || (!app.isPackaged && !process.env.PHLIX_FORCE_PRODUCTION);
 
 log.initialize();
 log.info('Phlix Windows starting...');
@@ -52,8 +52,6 @@ function createWindow(): void {
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
   } else {
-    // Production: use app:// protocol for packaged renderer
-    // This avoids webSecurity issues with module fetches from file:// origin
     mainWindow.loadURL('app://-/app');
   }
 
@@ -334,6 +332,8 @@ ipcMain.handle('syncplay:send', (_, message: unknown) => {
   }
 });
 
+// App lifecycle
+
 // Register custom privileged scheme BEFORE app.whenReady()
 // This must be called synchronously before any ready event
 protocol.registerSchemesAsPrivileged([
@@ -358,24 +358,21 @@ const RENDERER_DIST_DIR = path.join(__dirname, '../renderer');
  * Provides path traversal protection by resolving the requested path against
  * RENDERER_DIST_DIR and verifying the result is within that directory.
  * Falls back to index.html for SPA routing (HTML5 history fallback).
- *
- * @internal
  */
-export function setupAppProtocolHandler(): void {
+function setupAppProtocolHandler(): void {
   protocol.handle('app', (request) => {
     const urlStr = request.url;
     // urlStr is like app://-/app/servers or app://-/app/assets/main.js
     const parsedUrl = new URL(urlStr);
     const urlPath = parsedUrl.pathname;
 
-    // Validate the hostname is '-' (the marker that identifies our app:// scheme)
-    // For app://-/app/servers: hostname='-', pathname='/app/servers'
-    if (parsedUrl.hostname !== '-') {
+    // Strip the /- prefix to get the routing path (e.g., /app/servers)
+    if (!urlPath.startsWith('/-')) {
       log.warn(`[app protocol] Invalid path format: ${urlPath}`);
       return new Response('Forbidden', { status: 403 });
     }
 
-    const routingPath = urlPath; // pathname IS the routing path (e.g., /app/servers)
+    const routingPath = urlPath.slice(2); // Remove '/-'
     let relativePath = routingPath;
 
     // If path doesn't look like a file request (no extension), treat as SPA route
@@ -456,7 +453,6 @@ export function setupAppProtocolHandler(): void {
   log.info('[app protocol] Handler registered');
 }
 
-// App lifecycle
 app.whenReady().then(() => {
   log.info('App ready');
   setupAppProtocolHandler();
