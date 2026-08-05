@@ -36,10 +36,12 @@ test('boot smoke test', async () => {
     ],
     {
       detached: true,
+      stdio: 'ignore',
       env: {
         ...process.env,
         NODE_ENV: 'production',
         ELECTRON_DISABLE_GPU: '1',
+        PHLIX_FORCE_PRODUCTION: '1',
         DISPLAY: process.env.DISPLAY,
       },
     }
@@ -49,7 +51,12 @@ test('boot smoke test', async () => {
   electronProcess.unref();
 
   // Give Electron time to start before attempting CDP connection
-  await new Promise((resolve) => setTimeout(resolve, 3_000));
+  await new Promise((resolve) => setTimeout(resolve, 5_000));
+
+  if (electronProcess.exitCode !== null) {
+    electronProcess.kill();
+    throw new Error(`Electron process exited early with code ${electronProcess.exitCode}`);
+  }
 
   // Attach Playwright to the running Electron instance via CDP
   let browser;
