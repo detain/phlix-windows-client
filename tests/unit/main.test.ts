@@ -234,11 +234,11 @@ describe('boot (renderer entry)', () => {
 });
 
 describe('buildMenu', () => {
-  it('server mode: mirrors web-ui menu — Browse, Music, Books, Audiobooks, Photos, Search, Settings, Admin', async () => {
+  it('server mode: Browse, Music, Books, Audiobooks, Photos, Search, Watch History, Explore, Recommendations, SyncPlay, Settings, Admin', async () => {
     const { buildMenu } = await import('@/main');
     const menu = buildMenu('server');
     expect(menu.map((m) => m.id)).toEqual([
-      'browse', 'music', 'books', 'audiobooks', 'photos', 'search', 'settings', 'admin'
+      'browse', 'music', 'books', 'audiobooks', 'photos', 'search', 'history', 'explore', 'recommendations', 'syncplay', 'settings', 'admin'
     ]);
     expect(menu.find((m) => m.id === 'browse')?.libraryLinks).toBe(true);
     expect(menu.find((m) => m.id === 'music')).toMatchObject({ to: '/app/music', requiresLibraryType: 'music' });
@@ -246,15 +246,23 @@ describe('buildMenu', () => {
     expect(menu.find((m) => m.id === 'audiobooks')).toMatchObject({ to: '/app/audiobooks', requiresLibraryType: 'audiobook' });
     expect(menu.find((m) => m.id === 'photos')).toMatchObject({ to: '/app/photo/albums', requiresLibraryType: 'photo' });
     expect(menu.find((m) => m.id === 'search')).toMatchObject({ to: '/app/search' });
+    expect(menu.find((m) => m.id === 'history')).toMatchObject({ to: '/app/history' });
+    expect(menu.find((m) => m.id === 'explore')).toMatchObject({ to: '/app/explore' });
+    expect(menu.find((m) => m.id === 'recommendations')).toMatchObject({ to: '/app/recommendations' });
+    expect(menu.find((m) => m.id === 'syncplay')).toMatchObject({ to: '/app/syncplay' });
     expect(menu.find((m) => m.id === 'settings')).toMatchObject({ to: '/app/settings' });
     const admin = menu.find((m) => m.id === 'admin');
     expect(admin).toMatchObject({ to: '/app/admin/dashboard', requiresAdmin: true });
   });
 
-  it('hub mode: My Servers + Federation + Shares + admin-gated Admin', async () => {
+  it('hub mode: My Servers, Federation, Shares, Watch History, Explore, Recommendations, SyncPlay, admin-gated Admin', async () => {
     const { buildMenu } = await import('@/main');
     const menu = buildMenu('hub');
-    expect(menu.map((m) => m.id)).toEqual(['my-servers', 'federation', 'manage-shares', 'admin']);
+    expect(menu.map((m) => m.id)).toEqual(['my-servers', 'federation', 'manage-shares', 'history', 'explore', 'recommendations', 'syncplay', 'admin']);
+    expect(menu.find((m) => m.id === 'history')).toMatchObject({ to: '/app/history' });
+    expect(menu.find((m) => m.id === 'explore')).toMatchObject({ to: '/app/explore' });
+    expect(menu.find((m) => m.id === 'recommendations')).toMatchObject({ to: '/app/recommendations' });
+    expect(menu.find((m) => m.id === 'syncplay')).toMatchObject({ to: '/app/syncplay' });
     expect(menu.find((m) => m.id === 'admin')?.requiresAdmin).toBe(true);
   });
 });

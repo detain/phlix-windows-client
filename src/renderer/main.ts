@@ -38,6 +38,10 @@ export function buildMenu(appMode: 'server' | 'hub'): MenuItem[] {
       { id: 'my-servers', label: 'My Servers', to: '/app/servers' },
       { id: 'federation', label: 'Federation', to: '/app/federation' },
       { id: 'manage-shares', label: 'Shares', to: '/app/shares' },
+      { id: 'history', label: 'Watch History', to: '/app/history' },
+      { id: 'explore', label: 'Explore', to: '/app/explore' },
+      { id: 'recommendations', label: 'Recommendations', to: '/app/recommendations' },
+      { id: 'syncplay', label: 'SyncPlay', to: '/app/syncplay' },
       { id: 'admin', label: 'Admin', to: '/app/admin/dashboard', requiresAdmin: true }
     ];
   }
@@ -53,6 +57,10 @@ export function buildMenu(appMode: 'server' | 'hub'): MenuItem[] {
     { id: 'audiobooks', label: 'Audiobooks', to: '/app/audiobooks', requiresLibraryType: 'audiobook' },
     { id: 'photos', label: 'Photos', to: '/app/photo/albums', requiresLibraryType: 'photo' },
     { id: 'search', label: 'Search', to: '/app/search' },
+    { id: 'history', label: 'Watch History', to: '/app/history' },
+    { id: 'explore', label: 'Explore', to: '/app/explore' },
+    { id: 'recommendations', label: 'Recommendations', to: '/app/recommendations' },
+    { id: 'syncplay', label: 'SyncPlay', to: '/app/syncplay' },
     { id: 'settings', label: 'Settings', to: '/app/settings' },
     { id: 'admin', label: 'Admin', to: '/app/admin/dashboard', requiresAdmin: true }
   ];
