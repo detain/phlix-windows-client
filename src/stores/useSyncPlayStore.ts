@@ -12,7 +12,9 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type {
   SyncPlayRoom,
-  SyncPlaySession,
+  SyncPlaySession
+} from '@phlix/contracts';
+import type {
   SyncPlayPlaybackCommand,
   SyncPlayMessage,
   SyncPlayStateUpdate,

@@ -12,44 +12,12 @@ interface HubConfig {
   connectionMode: string | null;
 }
 
-/** SyncPlay types from @phlix/contracts */
-export interface SyncPlayRoom {
-  id: string;
-  name: string;
-  description?: string;
-  isPublic: boolean;
-  currentSession?: SyncPlaySession;
-  memberCount: number;
-}
+/** SyncPlay types imported from @phlix/contracts (SyncPlayRoom, SyncPlaySession, SyncPlayUser, SyncPlayRole, SyncPlayPermission) */
 
-export interface SyncPlaySession {
-  id: string;
-  roomId: string;
-  serverId: string;
-  createdBy: string;
-  createdAt: string;
-  state: 'waiting' | 'playing' | 'paused' | 'ended';
-  playbackPosition: number;
-  playbackRate: number;
-  serverTime: number;
-  lastSync: string;
-  activeUsers: SyncPlayUser[];
-  roles: Record<string, SyncPlayRole>;
-  permissions: Record<string, SyncPlayPermission[]>;
-}
-
-export type SyncPlayRole = 'none' | 'contributor' | 'editor' | 'owner';
-export type SyncPlayPermission = 'play' | 'pause' | 'seek' | 'chat' | 'control';
-
-export interface SyncPlayUser {
-  id: string;
-  name: string;
-  profileId: number;
-  role: SyncPlayRole;
-  isOnline: boolean;
-  lastSeen: string;
-}
-
+/**
+ * Bridge-specific SyncPlay types not in @phlix/contracts.
+ * These support the renderer bridge's WebSocket message handling.
+ */
 export interface SyncPlayPlaybackCommand {
   type: 'play' | 'pause' | 'seek' | 'sync';
   position?: number;
@@ -58,7 +26,7 @@ export interface SyncPlayPlaybackCommand {
   issuedAt: string;
 }
 
-/** SyncPlay WebSocket message types */
+/** SyncPlay WebSocket message types for bridge handling */
 export interface SyncPlayStateUpdate {
   sessionId: string;
   playbackPosition: number;
@@ -71,9 +39,13 @@ export interface SyncPlayMemberUpdate {
   userId: string;
   userName: string;
   action: 'join' | 'leave' | 'update';
-  members?: SyncPlayUser[];
+  members?: import('@phlix/contracts').SyncPlayUser[];
 }
 
+/**
+ * SyncPlay WebSocket message union for bridge message handling.
+ * The 'kind' discriminator enables type-safe message routing.
+ */
 export type SyncPlayMessage =
   | { kind: 'state'; data: SyncPlayStateUpdate }
   | { kind: 'member'; data: SyncPlayMemberUpdate }
