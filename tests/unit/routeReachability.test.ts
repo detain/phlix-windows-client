@@ -14,7 +14,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { createPhlixApp } from '@phlix/ui';
-import { buildMenu } from '@/main';
+import { buildMenu, buildExtraRoutes } from '@/main';
 
 // Pages that are intentionally NOT reachable from the menu.
 // Each entry is a route prefix (or full path pattern) + reason.
@@ -62,8 +62,19 @@ const DEEP_LINK_ALLOW_LIST: Array<{ pattern: RegExp; reason: string }> = [
   // Catch-all route for unmatched paths (404 handling)
   { pattern: /^\/app\/:pathMatch\(.*\)\*$/, reason: 'catch-all for unmatched routes, not a nav target' },
 
-  // ParentalControlsPage: registered but not yet wired to menu (tracked separately)
-  { pattern: /^\/app\/parental$/, reason: 'parental controls page not yet in menu - tracked separately' },
+  // ParentalControlsPage: @phlix/ui registers /app/parental (own component); this repo's
+  // buildExtraRoutes adds /app/parental-controls (local ParentalControlsPage.vue).
+  // Both are valid — one via the shared lib, one via the local extra routes seam.
+  { pattern: /^\/app\/parental$/, reason: '@phlix/ui built-in parental controls route' },
+  { pattern: /^\/app\/parental-controls$/, reason: 'local ParentalControlsPage.vue via buildExtraRoutes seam' },
+
+  // Admin section: all sub-routes are gated to admin users, reached via admin dashboard
+  { pattern: /^\/app\/admin$/, reason: 'admin section parent route, content rendered by active child' },
+  { pattern: /^\/app\/admin\//, reason: 'admin sub-routes, gated to admin users, reached via admin dashboard' },
+
+  // The router history base (/app) is a valid route entry — it resolves to the
+  // first matching child; include it so the guard does not flag it as unreachable
+  { pattern: /^\/app$/, reason: 'router history base, renders first matched child' },
 
   // Server-mode pages that appear in hub router but are not in hub menu.
   // These are registered by createPhlixApp but are not hub pages - they're
@@ -80,14 +91,25 @@ const DEEP_LINK_ALLOW_LIST: Array<{ pattern: RegExp; reason: string }> = [
 
 /**
  * Extract all route paths (including nested children) from a route record.
- * Routes with `children` have the parent path as a separate route entry.
+ * Child routes use relative paths that must be resolved against their parent.
+ * The router base path `/app` itself is excluded (it has no component).
  */
-function extractRoutePaths(routes: import('vue-router').RouteRecordRaw[]): string[] {
+function extractRoutePaths(
+  routes: import('vue-router').RouteRecordRaw[],
+  parentPath = ''
+): string[] {
   const paths: string[] = [];
   for (const route of routes) {
-    paths.push(route.path);
+    // Resolve the full path: relative children are挂 under their parent
+    const fullPath = parentPath
+      ? `${parentPath}/${route.path.replace(/^\//, '')}`
+      : route.path;
+    // Skip the bare router base; it has no component and no navigation entry
+    if (fullPath !== '/app') {
+      paths.push(fullPath);
+    }
     if (route.children) {
-      paths.push(...extractRoutePaths(route.children));
+      paths.push(...extractRoutePaths(route.children, fullPath));
     }
   }
   return paths;
@@ -122,6 +144,7 @@ describe('route reachability guard', () => {
       app: 'server',
       apiBase: 'http://localhost:8096',
       menu: [],
+      extraRoutes: buildExtraRoutes('server'),
       requireConnection: true,
     });
 
@@ -143,6 +166,7 @@ describe('route reachability guard', () => {
       app: 'hub',
       apiBase: 'http://localhost:8096',
       menu: [],
+      extraRoutes: buildExtraRoutes('hub'),
       requireConnection: true,
     });
 
