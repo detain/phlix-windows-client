@@ -72,32 +72,44 @@ in the reference web-ui (`phlix-server/web-ui`), and which are wired in this rep
 ## Admin Pages (23)
 
 All admin pages are registered at `/app/admin/{path}` via `buildAdminRoutes()` / `buildHubAdminRoutes()`.
+Server mode serves 22 pages (all except HubDashboardPage); hub mode serves HubDashboardPage + 4 shared pages.
 
-| Page | web-ui | windows-client |
-|------|--------|----------------|
-| BackupPage | OK | OK |
-| CastDevicesPage | OK | OK |
-| CollectionsPage | OK | OK |
-| DashboardPage | OK | OK |
-| DlnaServerPage | OK | OK |
-| DuplicatesPage | OK | OK |
-| HistoryPage | OK | OK |
-| HubDashboardPage | OK (hub) | OK (buildHubAdminRoutes) |
-| IntegrationsPage | OK | OK |
-| LibrariesPage | OK | OK |
-| LiveTvPage | OK | OK |
-| LogsPage | OK | OK |
-| MetricsPage | OK | OK |
-| PluginsPage | OK | OK |
-| RemoteAccessPage | OK | OK |
-| RequestsPage | OK | OK |
-| ServicesPage | OK | OK |
-| SettingsPage | OK | OK |
-| SyncPlayPage | OK | OK |
-| TranscodingSettingsPage | OK | OK |
-| UsersPage | OK | OK |
-| WebhookLogsPage | OK | OK |
-| WebhooksPage | OK | OK |
+**Verified 2026-08-05 (W1.7 — headless analysis of @phlix/ui v0.98.34 dist):**
+- SettingsPage is **schema-driven** (v0.90 behaviour): `SettingsResponse` provides `types`
+  (bool/int/float/string), `meta` (labels, helpText, enum, validation bounds), `overridden`
+  keys. Not a hardcoded form.
+- PluginsPage supports: list, enable/disable, catalog browse, detail view (with manifest
+  `settings_schema`), schema-editor via `updateSettings`, plus
+  install/uninstall/update/checkUpdates/testCredentials.
+- **Plugin update was NOT exercised** — no throwaway server available in this environment.
+- All 23 admin routes confirmed present in @phlix/ui v0.98.34 dist (`phlix-ui.js`).
+
+| Page | Route name | web-ui | windows-client |
+|------|------------|--------|----------------|
+| AuditLogsPage | admin-audit-logs | OK | OK (buildAdminRoutes) |
+| BackupPage | admin-backup | OK | OK |
+| CastDevicesPage | admin-cast | OK | OK |
+| CollectionsPage | admin-collections | OK | OK |
+| DashboardPage | admin-dashboard | OK | OK |
+| DlnaServerPage | admin-dlna | OK | OK |
+| DuplicatesPage | admin-duplicates | OK | OK |
+| HistoryPage | admin-history | OK | OK |
+| HubDashboardPage | admin-hub-dashboard | OK (hub) | OK (buildHubAdminRoutes, hub-only) |
+| IntegrationsPage | admin-integrations | OK | OK |
+| LibrariesPage | admin-libraries | OK | OK |
+| LiveTvPage | admin-livetv | OK | OK |
+| LogsPage | admin-logs | OK | OK |
+| MetricsPage | admin-metrics | OK | OK |
+| PluginsPage | admin-plugins | OK | OK |
+| RemoteAccessPage | admin-remote-access | OK | OK |
+| RequestsPage | admin-requests | OK | OK |
+| ServicesPage | admin-services | OK | OK |
+| SettingsPage | admin-settings | OK | OK |
+| SyncPlayPage | admin-syncplay | OK | OK |
+| TranscodingSettingsPage | admin-transcoding | OK | OK |
+| UsersPage | admin-users | OK | OK |
+| WebhookLogsPage | (tab of WebhooksPage) | OK | OK |
+| WebhooksPage | admin-webhooks | OK | OK |
 
 ---
 
