@@ -101,7 +101,6 @@ describe('injectCssComment (CSS copyright injection)', () => {
       '  display: inline-flex;',
       '}',
       '',
-      '/* UserRatingPicker specific styles */',
       '.rating-star-btn {',
       '  font-size: 1.5rem;',
       '}',
@@ -127,7 +126,6 @@ describe('injectCssComment (CSS copyright injection)', () => {
     expect(lines[lastBannerIdx - 1]).not.toContain('@copyright');
 
     // Nothing swallowed: every rule and banner survives verbatim.
-    expect(result).toContain('/* UserRatingPicker specific styles */');
     expect(result).toContain('/* ChapterList styles */');
     expect(lines).toContain('.chapter-list {');
     expect(lines).toContain('.rating-badge {');

@@ -45,7 +45,6 @@ Three Electron processes wired by `contextBridge`. The renderer no longer ships 
 | `src/renderer/test-setup.ts` | `localStorage` mock for jsdom env. |
 | `src/renderer/vite-env.d.ts` | Vite client types; `VITE_PHLIX_SERVER_URL` optional. |
 | `src/renderer/components/RatingBadge.tsx` | React component rendering a media rating badge. |
-| `src/renderer/components/UserRatingPicker.tsx` | React component for setting a user rating. |
 | `src/renderer/components/ChapterList.tsx` | React component listing media chapters. |
 | `src/renderer/components/AudioTrackList.tsx` | React component for selecting an audio track. |
 | `src/renderer/components/SubtitleTrackList.tsx` | React component for selecting a subtitle track. |
@@ -76,7 +75,7 @@ Routes are NOT defined here — they come from `createPhlixApp` (`@phlix/ui`'s r
 - Vitest with `jsdom` env (`vitest.config.mts`, `@vitejs/plugin-vue`), setup file `src/renderer/test-setup.ts` mocks `localStorage`.
 - Includes glob: `tests/**/*.test.ts` and `tests/**/*.test.tsx`.
 - Coverage via `@vitest/coverage-v8` (`v8` provider), reporters `text`/`json`/`html`; all source including `src/main/**` and `src/preload/**` is covered (58% floor enforced in CI).
-- Test files: `tests/unit/resolveConfig.test.ts` (app-mode/apiBase resolution), `tests/unit/electronBridge.test.ts` (`wireElectronBridge` + `installElectronBridge`), `tests/unit/main.test.ts` (`boot()` entry — hub/direct/browser-fallback/env-fallback), `tests/unit/RatingBadge.test.tsx` + `tests/unit/UserRatingPicker.test.tsx` (rating-display React components), `tests/unit/ChapterList.test.tsx` (chapter-list React component).
+- Test files: `tests/unit/resolveConfig.test.ts` (app-mode/apiBase resolution), `tests/unit/electronBridge.test.ts` (`wireElectronBridge` + `installElectronBridge`), `tests/unit/main.test.ts` (`boot()` entry — hub/direct/browser-fallback/env-fallback), `tests/unit/RatingBadge.test.tsx` (rating-display React component), `tests/unit/ChapterList.test.tsx` (chapter-list React component).
 - Path alias: `@` → `src/renderer/` (both `vite.config.mts` and `vitest.config.mts`).
 
 ## TypeScript configs
