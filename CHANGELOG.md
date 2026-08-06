@@ -5,6 +5,20 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed — overlay entry point is now deterministic (W2.7)
+
+- **`src/renderer/overlay.tsx` rewritten** — the Vue app is now created once at module level
+  rather than being recreated on every retry; bounded retry with max 10 attempts at 1 second
+  intervals; `console.error` logged when the mount target `#player-supplement-root` never appears.
+- **`.use(pinia)` and `.use(router)` called explicitly** before mounting rather than relying on
+  `activePinia` accident.
+- **`src/renderer/overlay.html` deleted** — a standalone HTML entry point that was built by Vite
+  but was never loaded by the Electron shell; the overlay is mounted onto `#player-supplement-root`
+  inside the main `@phlix/ui` app.
+- **4 new tests** in `tests/unit/overlay.test.ts` covering: mount on target appearance, bounded
+  retry exhaustion, single `createApp` call across retries, and explicit `.use(pinia)`/`.use(router)`
+  registration.
+
 ### Deleted — unused React and React DOM dependencies removed (W2.6)
 
 - **`react`**, **`react-dom`**, **`@types/react`**, and **`@types/react-dom`** removed from
