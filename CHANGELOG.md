@@ -5,6 +5,18 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Deleted — 10 unreachable presentational components and 8 test files (W2.5)
+
+- **`src/renderer/components/RatingBadge.tsx`**, **`ChapterList.tsx`**, **`AudioTrackList.tsx`**,
+  **`SubtitleTrackList.tsx`**, **`RecommendationCard.tsx`**, **`RecommendationsPanel.tsx`**,
+  **`MusicAlbumCard.tsx`**, **`MusicArtistCard.tsx`**, **`MusicScreen.tsx`**, and
+  **`MusicAlbumScreen.tsx`** removed — 10 presentational components that were never rendered
+  anywhere in the thin-consumer app; 1,883 lines deleted.
+- **`tests/unit/RatingBadge.test.tsx`**, **`ChapterList.test.tsx`**, **`AudioTrackList.test.tsx`**,
+  **`SubtitleTrackList.test.tsx`**, **`RecommendationCard.test.tsx`**, **`RecommendationsPanel.test.tsx`**,
+  **`MusicAlbumCard.test.tsx`**, and **`MusicArtistCard.test.tsx`** removed — 8 test files deleted
+  along with the components (test count: 183 → 109; coverage: 69.41% → 69.33%).
+
 ### Deleted — local SyncPlay stack removed in favour of @phlix/ui (W2.1)
 
 - **`useSyncPlayStore.ts` removed** from `src/stores/` — the Pinia store that locally duplicated
@@ -21,6 +33,14 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   by `createPhlixApp`) remains reachable; it is on the route-reachability allow-list
   (`/app/parental` exempt from nav-coverage requirement). `src/pages/` is now empty and the
   directory entry has been removed from `README.md`.
+
+### Deleted — local SkipButton removed (W2.4)
+
+- **`src/renderer/components/SkipButton.tsx` removed** — the 147-line local component was
+  permanently broken; it read `item.markers` which the server never sends. Skip-intro is now
+  handled by `@phlix/ui`'s `PlayerPage` directly.
+- **`tests/unit/SkipButton.test.tsx` and 8 sibling test files removed** — 160 lines of tests
+  deleted along with the component (test count: 192 → 183).
 
 ### Deleted — mock UserRatingPicker removed (W2.3)
 
