@@ -50,7 +50,6 @@ interface FakeElectronAPI {
   onMediaStop: ReturnType<typeof vi.fn>;
   onMediaRewind: ReturnType<typeof vi.fn>;
   onMediaForward: ReturnType<typeof vi.fn>;
-  onFileOpened: ReturnType<typeof vi.fn>;
   onOpenSettings: ReturnType<typeof vi.fn>;
   onSyncPlayMessage: ReturnType<typeof vi.fn>;
 }
@@ -77,7 +76,6 @@ function makeFakeApi(): FakeElectronAPI {
     onMediaStop: register('media-stop'),
     onMediaRewind: register('media-rewind'),
     onMediaForward: register('media-forward'),
-    onFileOpened: register('file-opened'),
     onOpenSettings: register('open-settings'),
     onSyncPlayMessage: register('syncplay-message')
   };

@@ -56,7 +56,7 @@ The main process is responsible for:
    - Click to show/hide main window
 
 3. **Application Menu**
-   - File menu (Open File, Settings, Quit)
+   - File menu (Settings, Quit)
    - Playback menu (Play/Pause, Stop, Rewind, Forward, Fullscreen)
    - View menu (Reload, DevTools, Zoom, Fullscreen)
    - Help menu (About)
@@ -94,9 +94,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onMediaStop: (callback: () => void) => { ... },
   onMediaRewind: (callback: () => void) => { ... },
   onMediaForward: (callback: () => void) => { ... },
-
-  // File handling
-  onFileOpened: (callback: (filePath: string) => void) => { ... },
 
   // Settings
   onOpenSettings: (callback: () => void) => { ... },
@@ -164,15 +161,8 @@ by pinia's and vue-router's `.use()` inside `createPhlixApp`, so they exist afte
 | `media-stop` | `player.closePlayer()` |
 | `open-settings` | `router.push('/app/settings')` |
 | `media-rewind` / `media-forward` | `player.seekBy(-10)` / `player.seekBy(10)` — relative seek via the `@phlix/ui` v0.52.0 player command bus |
-| `file-opened` | deferred no-op — local-file playback needs a local-source path in the shared (API-driven) `PlayerPage`; the `playLocalFile(url)` seam exists |
-
 The bridge is a no-op when `window.electronAPI` is absent, and returns a single cleanup function that
 unregisters every listener.
-
-> **Deferred / dropped UIs.** The offline Downloads and realtime SyncPlay screens were removed in the
-> migration and will be re-added later as shared `@phlix/ui` seams. Tray Rewind/Forward now
-> relative-seek via v0.52.0's player command bus; the Open File command stays a no-op until the
-> shared `PlayerPage` supports a local file source.
 
 ## UI & State
 
@@ -330,8 +320,7 @@ If a new screen needs to be driven by an Electron tray/menu event, wire that eve
 1. Emit the event from the main process and expose an `onX(callback)` helper in the preload.
 2. In `wireElectronBridge` (`electronBridge.ts`), register the listener and call the appropriate
    `@phlix/ui` store action (e.g. `usePlayerStore`). Push its cleanup onto the `cleanups` array.
-   Rewind/Forward use `player.seekBy(±10)` (v0.52.0 command bus); the file-opened handler is the
-   remaining placeholder, waiting on local-file support in the shared `PlayerPage`.
+   Rewind/Forward use `player.seekBy(±10)` (v0.52.0 command bus).
 
 ## Troubleshooting
 
