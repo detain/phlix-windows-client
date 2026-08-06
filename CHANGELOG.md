@@ -14,6 +14,14 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   with the store itself.
 - **`@phlix/syncplay` dependency removed** from `package.json` and the lockfile regenerated.
 
+### Deleted — local ParentalControlsPage fork removed (W2.2)
+
+- **`src/pages/ParentalControlsPage.vue` removed** — the 1373-line local fork of the upstream
+  `ParentalControlsPage` from `@phlix/ui` is gone. The upstream `/app/parental` route (registered
+  by `createPhlixApp`) remains reachable; it is on the route-reachability allow-list
+  (`/app/parental` exempt from nav-coverage requirement). `src/pages/` is now empty and the
+  directory entry has been removed from `README.md`.
+
 ### Verified — admin page surface and settings (W1.7)
 
 - **`docs/ui-surface.md`** corrected: the admin page count was revised from "22" (wrong estimate from a stale `admin.d.ts` comment) to **"23"** (verified via live bundle analysis of `@phlix/ui v0.98.34 dist/phlix-ui.js`). `buildAdminRoutes()` yields 20 pages and `buildHubAdminRoutes()` yields HubDashboardPage + 3 hub-only + 3 common = 7 pages total.

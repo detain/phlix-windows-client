@@ -49,7 +49,7 @@ in the reference web-ui (`phlix-server/web-ui`), and which are wired in this rep
 | MusicPlayerPage | `/app/music/player` | OK (extraRoutes) | MISSING |
 | MusicTracksPage | `/app/music/tracks` | OK (extraRoutes) | MISSING |
 | MyServersPage | `/app/servers` | UNREACHABLE | OK (buildMenu hub) |
-| ParentalControlsPage | `/app/parental` | MISSING | UNREACHABLE (both modes) |
+| ParentalControlsPage | `/app/parental` | MISSING | UNREACHABLE |
 | PhotoAlbumPage | `/app/photo/album/:id` | OK (extraRoutes) | MISSING |
 | PhotoAlbumsPage | `/app/photo/albums` | OK (extraRoutes) | OK (buildMenu) |
 | PhotoSlideshowPage | `/app/photo/slideshow` | OK (extraRoutes) | MISSING |
