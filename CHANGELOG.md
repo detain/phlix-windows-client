@@ -22,6 +22,14 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   (`/app/parental` exempt from nav-coverage requirement). `src/pages/` is now empty and the
   directory entry has been removed from `README.md`.
 
+### Deleted — mock UserRatingPicker removed (W2.3)
+
+- **`src/renderer/components/UserRatingPicker.tsx` removed** — the 170-line local component had
+  commented-out real fetch calls and faked success with `setTimeout`; it was never rendered
+  anywhere. Rating actions are now provided by `@phlix/ui`'s media detail page directly.
+- **`tests/unit/UserRatingPicker.test.tsx` removed** — 8 test files (113 lines total) deleted
+  along with the component.
+
 ### Verified — admin page surface and settings (W1.7)
 
 - **`docs/ui-surface.md`** corrected: the admin page count was revised from "22" (wrong estimate from a stale `admin.d.ts` comment) to **"23"** (verified via live bundle analysis of `@phlix/ui v0.98.34 dist/phlix-ui.js`). `buildAdminRoutes()` yields 20 pages and `buildHubAdminRoutes()` yields HubDashboardPage + 3 hub-only + 3 common = 7 pages total.
