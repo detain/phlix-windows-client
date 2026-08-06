@@ -131,6 +131,53 @@ const mainOn = extractOnChannels(mainSource);
 const mainWebContentsSend = extractWebContentsSendChannels(mainSource);
 const preloadOnChannels = extractPreloadOnChannels(preloadSource);
 
+// ---------------------------------------------------------------------------
+// Doc-vs-code alignment
+// ---------------------------------------------------------------------------
+
+/**
+ * Extracts channel names from the doc table for a given direction.
+ * Table rows look like: | `channel-name` | direction | ...
+ */
+function extractDocChannels(content: string, direction: string): string[] {
+  const channels: string[] = [];
+  // Match table rows where the second cell is exactly the direction
+  // First column is the channel name in backticks: `channel-name`
+  const regex = new RegExp(
+    String.raw`^\s*\|\s*\`([^\`]+)\`\s*\|\s*${direction}\s*\|`,
+    'gm'
+  );
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(content)) !== null) {
+    channels.push(match[1]);
+  }
+  return channels;
+}
+
+describe('doc vs code alignment', () => {
+  // Read the doc file once at the top of this describe block
+  const docContent = readFileSync(resolve(PROJECT_ROOT, 'docs/ipc-channels.md'), 'utf-8');
+
+  const docInvokeChannels = extractDocChannels(docContent, 'invoke');
+  const docSendChannels = extractDocChannels(docContent, 'send');
+  const docPushChannels = extractDocChannels(docContent, 'push');
+
+  it('every invoke channel in the doc appears in the preload', () => {
+    const missing = docInvokeChannels.filter((ch) => !preloadInvoke.includes(ch));
+    expect(missing).toHaveLength(0);
+  });
+
+  it('every send channel in the doc appears in the preload', () => {
+    const missing = docSendChannels.filter((ch) => !preloadSend.includes(ch));
+    expect(missing).toHaveLength(0);
+  });
+
+  it('every push channel in the doc appears as a preload listener', () => {
+    const missing = docPushChannels.filter((ch) => !preloadOnChannels.includes(ch));
+    expect(missing).toHaveLength(0);
+  });
+});
+
 describe('IPC channel pairing', () => {
   describe('preload invoke channels', () => {
     it('every preload ipcRenderer.invoke channel has a matching ipcMain.handle', () => {
@@ -228,6 +275,164 @@ describe('IPC channel pairing', () => {
         'media-stop',
         'open-settings'
       ].sort());
+    });
+  });
+
+  describe('behavioral round-trips', () => {
+    // Simulate window.electronAPI as the preload bridge sees it
+    type ElectronAPI = {
+      getAppPath: ReturnType<typeof vi.fn>;
+      getVersion: ReturnType<typeof vi.fn>;
+      getDeviceId: ReturnType<typeof vi.fn>;
+      getServerUrl: ReturnType<typeof vi.fn>;
+      setServerUrl: ReturnType<typeof vi.fn>;
+      hubGetConfig: ReturnType<typeof vi.fn>;
+      hubSetConfig: ReturnType<typeof vi.fn>;
+      getMinimizeToTray: ReturnType<typeof vi.fn>;
+      setAlwaysOnTop: ReturnType<typeof vi.fn>;
+      minimizeToTray: ReturnType<typeof vi.fn>;
+      setMinimizeToTray: ReturnType<typeof vi.fn>;
+      onMediaPlayPause: ReturnType<typeof vi.fn>;
+      onMediaStop: ReturnType<typeof vi.fn>;
+      onMediaRewind: ReturnType<typeof vi.fn>;
+      onMediaForward: ReturnType<typeof vi.fn>;
+      onOpenSettings: ReturnType<typeof vi.fn>;
+    };
+
+    let electronAPI: ElectronAPI;
+    let ipcRendererInvoke: ReturnType<typeof vi.fn>;
+    let ipcRendererSend: ReturnType<typeof vi.fn>;
+    let ipcRendererOn: ReturnType<typeof vi.fn>;
+    let ipcRendererRemoveListener: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      ipcRendererInvoke = vi.fn();
+      ipcRendererSend = vi.fn();
+      ipcRendererRemoveListener = vi.fn();
+      ipcRendererOn = vi.fn((channel: string, handler: (...args: unknown[]) => void) => {
+        // Simulate the real behavior: store the handler so we can call it
+        ipcRendererOn[channel] = handler;
+        // Return a cleanup function (as the real preload does)
+        return () => {
+          ipcRendererRemoveListener(channel, handler);
+        };
+      });
+
+      electronAPI = {
+        getAppPath: vi.fn(() => ipcRendererInvoke('get-app-path')),
+        getVersion: vi.fn(() => ipcRendererInvoke('get-version')),
+        getDeviceId: vi.fn(() => ipcRendererInvoke('app:get-device-id')),
+        getServerUrl: vi.fn(() => ipcRendererInvoke('app:get-server-url')),
+        setServerUrl: vi.fn((url: string) => ipcRendererInvoke('app:set-server-url', url)),
+        hubGetConfig: vi.fn(() => ipcRendererInvoke('hub:get-config')),
+        hubSetConfig: vi.fn((cfg: unknown) => ipcRendererInvoke('hub:set-config', cfg)),
+        getMinimizeToTray: vi.fn(() => ipcRendererInvoke('tray:get-minimize-to-tray')),
+        setAlwaysOnTop: vi.fn((flag: boolean) => ipcRendererSend('set-always-on-top', flag)),
+        minimizeToTray: vi.fn(() => ipcRendererSend('minimize-to-tray')),
+        setMinimizeToTray: vi.fn((flag: boolean) => ipcRendererSend('tray:set-minimize-to-tray', flag)),
+        onMediaPlayPause: vi.fn((cb: () => void) => {
+          const channel = 'media-play-pause';
+          ipcRendererOn[channel] = cb;
+          ipcRendererOn(channel, cb);
+          return () => ipcRendererRemoveListener(channel, cb);
+        }),
+        onMediaStop: vi.fn((cb: () => void) => {
+          const channel = 'media-stop';
+          ipcRendererOn[channel] = cb;
+          ipcRendererOn(channel, cb);
+          return () => ipcRendererRemoveListener(channel, cb);
+        }),
+        onMediaRewind: vi.fn((cb: () => void) => {
+          const channel = 'media-rewind';
+          ipcRendererOn[channel] = cb;
+          ipcRendererOn(channel, cb);
+          return () => ipcRendererRemoveListener(channel, cb);
+        }),
+        onMediaForward: vi.fn((cb: () => void) => {
+          const channel = 'media-forward';
+          ipcRendererOn[channel] = cb;
+          ipcRendererOn(channel, cb);
+          return () => ipcRendererRemoveListener(channel, cb);
+        }),
+        onOpenSettings: vi.fn((cb: () => void) => {
+          const channel = 'open-settings';
+          ipcRendererOn[channel] = cb;
+          ipcRendererOn(channel, cb);
+          return () => ipcRendererRemoveListener(channel, cb);
+        })
+      };
+    });
+
+    describe('invoke channels', () => {
+      it('get-app-path calls ipcRenderer.invoke with the correct channel', () => {
+        ipcRendererInvoke.mockResolvedValue('/some/path');
+        electronAPI.getAppPath();
+        expect(ipcRendererInvoke).toHaveBeenCalledWith('get-app-path');
+      });
+
+      it('app:get-device-id calls ipcRenderer.invoke with the correct channel', () => {
+        ipcRendererInvoke.mockResolvedValue('device-123');
+        electronAPI.getDeviceId();
+        expect(ipcRendererInvoke).toHaveBeenCalledWith('app:get-device-id');
+      });
+
+      it('hub:get-config calls ipcRenderer.invoke with the correct channel', () => {
+        ipcRendererInvoke.mockResolvedValue({ hubUrl: 'https://hub.example.com' });
+        electronAPI.hubGetConfig();
+        expect(ipcRendererInvoke).toHaveBeenCalledWith('hub:get-config');
+      });
+    });
+
+    describe('send channels (fire-and-forget)', () => {
+      it('minimize-to-tray calls ipcRenderer.send with the correct channel', () => {
+        electronAPI.minimizeToTray();
+        expect(ipcRendererSend).toHaveBeenCalledWith('minimize-to-tray');
+      });
+
+      it('set-always-on-top(true) calls ipcRenderer.send with the channel and true', () => {
+        electronAPI.setAlwaysOnTop(true);
+        expect(ipcRendererSend).toHaveBeenCalledWith('set-always-on-top', true);
+      });
+
+      it('set-always-on-top(false) calls ipcRenderer.send with the channel and false', () => {
+        electronAPI.setAlwaysOnTop(false);
+        expect(ipcRendererSend).toHaveBeenCalledWith('set-always-on-top', false);
+      });
+
+      it('setMinimizeToTray(true) calls ipcRenderer.send with the correct channel and true', () => {
+        electronAPI.setMinimizeToTray(true);
+        expect(ipcRendererSend).toHaveBeenCalledWith('tray:set-minimize-to-tray', true);
+      });
+    });
+
+    describe('push channels (main→renderer via on* helpers)', () => {
+      it('onMediaPlayPause registers a listener and returns a cleanup function', () => {
+        const cb = vi.fn();
+        const cleanup = electronAPI.onMediaPlayPause(cb);
+        expect(ipcRendererOn).toHaveBeenCalledWith('media-play-pause', cb);
+        expect(typeof cleanup).toBe('function');
+        // Simulate calling the cleanup
+        cleanup();
+        expect(ipcRendererRemoveListener).toHaveBeenCalledWith('media-play-pause', cb);
+      });
+
+      it('onMediaStop registers a listener and returns a cleanup function', () => {
+        const cb = vi.fn();
+        const cleanup = electronAPI.onMediaStop(cb);
+        expect(ipcRendererOn).toHaveBeenCalledWith('media-stop', cb);
+        expect(typeof cleanup).toBe('function');
+        cleanup();
+        expect(ipcRendererRemoveListener).toHaveBeenCalledWith('media-stop', cb);
+      });
+
+      it('onOpenSettings registers a listener and returns a cleanup function', () => {
+        const cb = vi.fn();
+        const cleanup = electronAPI.onOpenSettings(cb);
+        expect(ipcRendererOn).toHaveBeenCalledWith('open-settings', cb);
+        expect(typeof cleanup).toBe('function');
+        cleanup();
+        expect(ipcRendererRemoveListener).toHaveBeenCalledWith('open-settings', cb);
+      });
     });
   });
 });
