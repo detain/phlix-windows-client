@@ -5,6 +5,23 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed — minimize-to-tray preference is now persisted across quits (W3.2)
+
+- **`isQuitting`** separated from **`minimizeToTray`**: `isQuitting` is a transient in-memory flag
+  (set/cleared per quit sequence); `minimizeToTray` is a persisted electron-store preference.
+- **Two `store.set('minimizeToTray', false)` calls removed** from the quit path in
+  `src/main/index.ts` — these were destroying the persisted preference on every quit, forcing the
+  user to re-enable minimize-to-tray after every app restart.
+- **Tray context menu "Minimize to Tray" checkbox** added (`type: 'checkbox'`, checked state driven
+  off `store.get('minimizeToTray', true)`, click handler calls `store.set('minimizeToTray', menuItem.checked)`),
+  giving direct visual control and persistence without requiring a settings page.
+- **IPC getter/setter added** for `minimizeToTray` over the preload bridge:
+  `ipcMain.handle('tray:get-minimize-to-tray')` and `ipcMain.on('tray:set-minimize-to-tray')` in main,
+  `getMinimizeToTray()` / `setMinimizeToTray()` in preload, typed in `electron.d.ts`.
+- **9 new tests** covering: checkbox reflects store value, checkbox click updates store, quit path
+  does not clobber the preference, `isQuitting` flag is independent of the persisted preference,
+  and IPC getter/setter round-trips correctly.
+
 ### Fixed — menu accelerators no longer hijack text input (W3.1)
 
 - **`registerAccelerator: false`** added to the Space, Left, and Right menu items in the Playback
