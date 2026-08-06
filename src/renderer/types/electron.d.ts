@@ -21,6 +21,8 @@ declare global {
       getVersion: () => Promise<string>;
       setAlwaysOnTop: (value: boolean) => void;
       minimizeToTray: () => void;
+      getMinimizeToTray: () => Promise<boolean>;
+      setMinimizeToTray: (val: boolean) => void;
       onMediaPlayPause: (callback: () => void) => () => void;
       onMediaStop: (callback: () => void) => () => void;
       onMediaRewind: (callback: () => void) => () => void;

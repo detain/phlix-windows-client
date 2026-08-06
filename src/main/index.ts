@@ -16,10 +16,11 @@ import Store from 'electron-store';
 // Re-export validateExternalUrl for backwards compatibility
 export { validateExternalUrl };
 
-const store = new Store();
+const store = new Store<{ minimizeToTray: boolean }>();
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
+let isQuitting = false;
 
 const isDev = process.env.NODE_ENV === 'development' || (!app.isPackaged && !process.env.PHLIX_FORCE_PRODUCTION);
 
@@ -60,7 +61,7 @@ function createWindow(): void {
 
   // Handle close to tray
   mainWindow.on('close', (event) => {
-    if (store.get('minimizeToTray', true)) {
+    if (!isQuitting && store.get('minimizeToTray', true)) {
       event.preventDefault();
       mainWindow?.hide();
     }
@@ -106,8 +107,11 @@ function createTray(): void {
     { label: 'Play/Pause', click: () => mainWindow?.webContents.send('media-play-pause') },
     { label: 'Stop', click: () => mainWindow?.webContents.send('media-stop') },
     { type: 'separator' },
+    { label: 'Minimize to Tray', type: 'checkbox', checked: store.get('minimizeToTray', true),
+      click: (menuItem) => store.set('minimizeToTray', menuItem.checked) },
+    { type: 'separator' },
     { label: 'Quit', click: () => {
-      store.set('minimizeToTray', false);
+      isQuitting = true;
       app.quit();
     }}
   ]);
@@ -227,6 +231,10 @@ ipcMain.on('set-always-on-top', (_, value: boolean) => {
 ipcMain.on('minimize-to-tray', () => {
   mainWindow?.hide();
 });
+
+ipcMain.handle('tray:get-minimize-to-tray', () => store.get('minimizeToTray', true));
+
+ipcMain.on('tray:set-minimize-to-tray', (_, val: boolean) => store.set('minimizeToTray', val));
 
 // Hub configuration handlers
 ipcMain.handle('hub:get-config', () => {
@@ -415,7 +423,7 @@ app.on('activate', () => {
 });
 
 app.on('before-quit', () => {
-  store.set('minimizeToTray', false);
+  isQuitting = true;
 });
 
 // Global exception handler

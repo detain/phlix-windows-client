@@ -15,6 +15,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Window controls
   setAlwaysOnTop: (value: boolean) => ipcRenderer.send('set-always-on-top', value),
   minimizeToTray: () => ipcRenderer.send('minimize-to-tray'),
+  getMinimizeToTray: () => ipcRenderer.invoke('tray:get-minimize-to-tray'),
+  setMinimizeToTray: (val: boolean) => ipcRenderer.send('tray:set-minimize-to-tray', val),
 
   // Media controls from main process
   onMediaPlayPause: (callback: () => void) => {
