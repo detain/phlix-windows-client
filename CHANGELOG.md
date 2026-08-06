@@ -5,6 +5,19 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed — bridge cleanup functions made idempotent (W3.3)
+
+- **`installElectronBridge()` and `installFocusGuard()` made idempotent**: both functions now
+  track their cleanup at module level (`_cleanupBridge` / `_cleanupFocus`) and remove any
+  previous registration before installing a new one, preventing duplicate listeners if either
+  function is called more than once.
+- **`cleanupOverlay()` exported** from `src/renderer/overlay.tsx` — returns a cleanup function that
+  removes the overlay's focus guard listener; idempotent (safe to call when nothing is registered).
+- **`disposeAll()` wired to HMR and page unload** in `src/renderer/main.ts`:
+  `import.meta.hot.dispose()` and `window.addEventListener('beforeunload')` both invoke
+  `disposeAll()`, which runs every registered cleanup (electron bridge + overlay) so listeners
+  are properly removed on hot reloads and navigation away from the page.
+
 ### Fixed — minimize-to-tray preference is now persisted across quits (W3.2)
 
 - **`isQuitting`** separated from **`minimizeToTray`**: `isQuitting` is a transient in-memory flag
