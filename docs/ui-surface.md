@@ -76,11 +76,11 @@ All admin pages are registered at `/app/admin/{path}` via `buildAdminRoutes()` /
 (`Object.fromEntries` of 23 admin page objects). Counts per route builder:
 
 - `buildAdminRoutes()` (server mode, default): **20 pages** — 17 server-only + 3 common (Users, Logs, Settings)
-- `buildHubAdminRoutes()` (hub mode): **7 pages** — hub-dashboard + 4 hub-only + 3 common
+- `buildHubAdminRoutes()` (hub mode): **7 pages** — HubDashboardPage + 3 hub-only (AuditLogsPage, RequestsPage, MetricsPage) + 3 common (Users, Logs, Settings)
 
 > **Note on original estimate:** Step W1.7 stated "22 admin pages" based on a reading of the then-current
 > `admin.d.ts` comment. That comment listed 14 server + 3 common + 2 hub = 19 and omitted 3 pages that
-> were later added to `serverAdminPages` in the bundle (MetricsPage, RequestsPage, and one other).
+> were later added to `serverAdminPages` in the bundle (MetricsPage, RequestsPage, and HubDashboardPage).
 > Live bundle analysis confirms 23 distinct pages and 20 via `buildAdminRoutes()`.
 
 **Verified 2026-08-05 (W1.7 — headless analysis of @phlix/ui v0.98.34 dist):**
@@ -103,7 +103,7 @@ All admin pages are registered at `/app/admin/{path}` via `buildAdminRoutes()` /
 | DlnaServerPage | admin-dlna | OK | OK |
 | DuplicatesPage | admin-duplicates | OK | OK |
 | HistoryPage | admin-history | OK | OK |
-| HubDashboardPage | admin-hub-dashboard | OK (hub) | OK (buildHubAdminRoutes, **hub-only**) |
+| HubDashboardPage | admin-hub-dashboard | OK (hub) | OK (buildHubAdminRoutes) |
 | IntegrationsPage | admin-integrations | OK | OK |
 | LibrariesPage | admin-libraries | OK | OK |
 | LiveTvPage | admin-livetv | OK | OK |
