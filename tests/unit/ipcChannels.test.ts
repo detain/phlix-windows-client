@@ -167,8 +167,7 @@ describe('IPC channel pairing', () => {
     });
 
     it('every ipcRenderer.on listener in preload has a corresponding webContents.send in main', () => {
-      // Some channels like syncplay:message are sent by main AND by SyncPlay server
-      // (relayed through main). We only check that preload listeners have a potential sender.
+      // We only check that preload listeners have a potential sender.
       const orphan = preloadOnChannels.filter((ch) => !mainWebContentsSend.includes(ch));
       expect(orphan).toHaveLength(0);
     });
@@ -184,10 +183,7 @@ describe('IPC channel pairing', () => {
         'get-app-path',
         'get-version',
         'hub:get-config',
-        'hub:set-config',
-        'syncplay:connect',
-        'syncplay:disconnect',
-        'syncplay:send'
+        'hub:set-config'
       ].sort());
     });
 
@@ -199,10 +195,7 @@ describe('IPC channel pairing', () => {
         'get-app-path',
         'get-version',
         'hub:get-config',
-        'hub:set-config',
-        'syncplay:connect',
-        'syncplay:disconnect',
-        'syncplay:send'
+        'hub:set-config'
       ].sort());
     });
 
@@ -214,32 +207,26 @@ describe('IPC channel pairing', () => {
       expect(mainOn.sort()).toEqual(['minimize-to-tray', 'set-always-on-top'].sort());
     });
 
-    it('main process sends exactly nine distinct push channels to renderer', () => {
-      // media-*, open-settings, file-opened, syncplay:* (unique channel names)
+    it('main process sends exactly six distinct push channels to renderer', () => {
+      // media-*, open-settings, file-opened (unique channel names)
       expect([...new Set(mainWebContentsSend)].sort()).toEqual([
         'file-opened',
         'media-forward',
         'media-play-pause',
         'media-rewind',
         'media-stop',
-        'open-settings',
-        'syncplay:connected',
-        'syncplay:disconnected',
-        'syncplay:message'
+        'open-settings'
       ].sort());
     });
 
-    it('preload listens to exactly nine push channels from main', () => {
+    it('preload listens to exactly six push channels from main', () => {
       expect(preloadOnChannels.sort()).toEqual([
         'file-opened',
         'media-forward',
         'media-play-pause',
         'media-rewind',
         'media-stop',
-        'open-settings',
-        'syncplay:connected',
-        'syncplay:disconnected',
-        'syncplay:message'
+        'open-settings'
       ].sort());
     });
   });

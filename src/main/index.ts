@@ -21,9 +21,6 @@ const store = new Store();
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 
-// SyncPlay WebSocket state
-let syncPlayWs: WebSocket | null = null;
-
 const isDev = process.env.NODE_ENV === 'development' || (!app.isPackaged && !process.env.PHLIX_FORCE_PRODUCTION);
 
 log.initialize();
@@ -264,74 +261,6 @@ ipcMain.handle('app:get-device-id', () => {
   return deviceId;
 });
 
-/**
- * Parameters for establishing a SyncPlay collaborative viewing session.
- */
-interface SyncPlayConnectParams {
-  roomId: string;
-  serverUrl: string;
-  token: string;
-}
-
-ipcMain.handle('syncplay:connect', async (_, { roomId, serverUrl, token }: SyncPlayConnectParams) => {
-  log.info(`SyncPlay connecting to room ${roomId} at ${serverUrl}`);
-
-  // Disconnect existing connection if any
-  if (syncPlayWs) {
-    syncPlayWs.close();
-    syncPlayWs = null;
-  }
-
-  const wsUrl = `${serverUrl.replace('http', 'ws')}/api/v1/syncplay/${roomId}?token=${encodeURIComponent(token)}`;
-
-  try {
-    syncPlayWs = new WebSocket(wsUrl);
-
-    syncPlayWs.onopen = () => {
-      log.info('SyncPlay WebSocket connected');
-      mainWindow?.webContents.send('syncplay:connected', roomId);
-    };
-
-    syncPlayWs.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-        mainWindow?.webContents.send('syncplay:message', message);
-      } catch (err) {
-        log.error('SyncPlay message parse error:', err);
-      }
-    };
-
-    syncPlayWs.onerror = (error) => {
-      log.error('SyncPlay WebSocket error:', error);
-    };
-
-    syncPlayWs.onclose = () => {
-      log.info('SyncPlay WebSocket closed');
-      syncPlayWs = null;
-      mainWindow?.webContents.send('syncplay:disconnected');
-    };
-  } catch (err) {
-    log.error('SyncPlay connection error:', err);
-    throw err;
-  }
-});
-
-ipcMain.handle('syncplay:disconnect', () => {
-  log.info('SyncPlay disconnecting');
-  if (syncPlayWs) {
-    syncPlayWs.close();
-    syncPlayWs = null;
-  }
-});
-
-ipcMain.handle('syncplay:send', (_, message: unknown) => {
-  if (syncPlayWs && syncPlayWs.readyState === WebSocket.OPEN) {
-    syncPlayWs.send(JSON.stringify(message));
-  } else {
-    log.warn('SyncPlay WebSocket not connected, cannot send message');
-  }
-});
-
 // App lifecycle
 
 // Register custom privileged scheme BEFORE app.whenReady()
@@ -480,11 +409,6 @@ app.on('activate', () => {
 
 app.on('before-quit', () => {
   store.set('minimizeToTray', false);
-  // Close SyncPlay WebSocket on quit
-  if (syncPlayWs) {
-    syncPlayWs.close();
-    syncPlayWs = null;
-  }
 });
 
 // Global exception handler

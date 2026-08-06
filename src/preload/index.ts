@@ -58,25 +58,4 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Stable device id
   /** Returns a persistent, per-install device identifier. See main process handler for details. */
   getDeviceId: () => ipcRenderer.invoke('app:get-device-id'),
-
-  // SyncPlay WebSocket management
-  syncPlayConnect: (roomId: string, serverUrl: string, token: string) =>
-    ipcRenderer.invoke('syncplay:connect', { roomId, serverUrl, token }),
-  syncPlayDisconnect: () => ipcRenderer.invoke('syncplay:disconnect'),
-  syncPlaySend: (message: unknown) => ipcRenderer.invoke('syncplay:send', message),
-  onSyncPlayMessage: (callback: (message: unknown) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, message: unknown) => callback(message);
-    ipcRenderer.on('syncplay:message', listener);
-    return () => ipcRenderer.removeListener('syncplay:message', listener);
-  },
-  onSyncPlayConnected: (callback: (roomId: string) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, roomId: string) => callback(roomId);
-    ipcRenderer.on('syncplay:connected', listener);
-    return () => ipcRenderer.removeListener('syncplay:connected', listener);
-  },
-  onSyncPlayDisconnected: (callback: () => void) => {
-    const listener = () => callback();
-    ipcRenderer.on('syncplay:disconnected', listener);
-    return () => ipcRenderer.removeListener('syncplay:disconnected', listener);
-  }
 });

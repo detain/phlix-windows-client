@@ -40,19 +40,9 @@ vi.mock('@phlix/contracts', () => ({
 
 // Exportable mocks for electronBridge
 const installElectronBridge = vi.fn(function() { return; });
-const installSyncPlayBridge = vi.fn(function() { return; });
-const useSyncPlayStore = vi.fn(() => ({
-  setServerUrl: vi.fn(),
-  setupWebSocketListeners: vi.fn(function() { return; })
-}));
 
 vi.mock('@/electronBridge', () => ({
-  installElectronBridge: (...args: unknown[]) => installElectronBridge(...args),
-  installSyncPlayBridge: (...args: unknown[]) => installSyncPlayBridge(...args)
-}));
-
-vi.mock('../../src/stores/useSyncPlayStore', () => ({
-  useSyncPlayStore: () => useSyncPlayStore()
+  installElectronBridge: (...args: unknown[]) => installElectronBridge(...args)
 }));
 
 type WindowLike = { electronAPI?: unknown };
@@ -73,8 +63,6 @@ describe('boot (renderer entry)', () => {
     mountSpy.mockClear();
     buildPhlixHeaders.mockClear().mockReturnValue(FAKE_HEADERS);
     installElectronBridge.mockClear().mockReturnValue(() => {});
-    installSyncPlayBridge.mockClear().mockReturnValue(() => {});
-    useSyncPlayStore.mockClear();
     vi.unstubAllEnvs();
   });
 

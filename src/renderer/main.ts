@@ -26,8 +26,7 @@ import '@phlix/ui/style.css';
 import '@phlix/ui/fonts.css';
 import './components/rating-styles.css';
 import { resolveAppConfig } from './resolveConfig';
-import { installElectronBridge, installSyncPlayBridge } from './electronBridge';
-import { useSyncPlayStore } from '../stores/useSyncPlayStore';
+import { installElectronBridge } from './electronBridge';
 
 
 /**
@@ -162,14 +161,6 @@ export async function boot(): Promise<void> {
 
   // Wire Electron media events to @phlix/ui player store
   installElectronBridge(app);
-
-  // Wire SyncPlay WebSocket bridge for real-time collaborative playback
-  installSyncPlayBridge(app);
-
-  // Initialize SyncPlay store with server URL and set up WebSocket listeners
-  const syncPlayStore = useSyncPlayStore();
-  syncPlayStore.setServerUrl(apiBase);
-  syncPlayStore.setupWebSocketListeners();
 
   // Mount React overlay for P3-S4 player UX features (skip/sleep/PiP)
   // Imported dynamically after Vue app mounts so Pinia is active
