@@ -44,13 +44,7 @@ Three Electron processes wired by `contextBridge`. The renderer no longer ships 
 | `src/renderer/types/electron.d.ts` | `window.electronAPI` typings (incl. `HubConfig`, `getServerUrl`/`setServerUrl`/`getDeviceId`). |
 | `src/renderer/test-setup.ts` | `localStorage` mock for jsdom env. |
 | `src/renderer/vite-env.d.ts` | Vite client types; `VITE_PHLIX_SERVER_URL` optional. |
-| `src/renderer/components/RatingBadge.tsx` | React component rendering a media rating badge. |
-| `src/renderer/components/ChapterList.tsx` | React component listing media chapters. |
-| `src/renderer/components/AudioTrackList.tsx` | React component for selecting an audio track. |
-| `src/renderer/components/SubtitleTrackList.tsx` | React component for selecting a subtitle track. |
-| `src/renderer/components/RecommendationCard.tsx` | React component rendering a single media recommendation. |
-| `src/renderer/components/RecommendationsPanel.tsx` | React component listing media recommendations. |
-| `src/renderer/components/rating-styles.css` | Styles for the rating-display components. |
+
 
 ### Routing
 
