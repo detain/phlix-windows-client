@@ -62,11 +62,8 @@ const DEEP_LINK_ALLOW_LIST: Array<{ pattern: RegExp; reason: string }> = [
   // Catch-all route for unmatched paths (404 handling)
   { pattern: /^\/app\/:pathMatch\(.*\)\*$/, reason: 'catch-all for unmatched routes, not a nav target' },
 
-  // ParentalControlsPage: @phlix/ui registers /app/parental (own component); this repo's
-  // buildExtraRoutes adds /app/parental-controls (local ParentalControlsPage.vue).
-  // Both are valid — one via the shared lib, one via the local extra routes seam.
+  // ParentalControlsPage: @phlix/ui registers /app/parental (own component).
   { pattern: /^\/app\/parental$/, reason: '@phlix/ui built-in parental controls route' },
-  { pattern: /^\/app\/parental-controls$/, reason: 'local ParentalControlsPage.vue via buildExtraRoutes seam' },
 
   // Admin section: all sub-routes are gated to admin users, reached via admin dashboard
   { pattern: /^\/app\/admin$/, reason: 'admin section parent route, content rendered by active child' },

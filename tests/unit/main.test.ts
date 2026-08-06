@@ -319,19 +319,18 @@ describe('buildMenu', () => {
 });
 
 describe('buildExtraRoutes', () => {
-  it('server mode: admin section + the library-scan route + parental-controls', async () => {
+  it('server mode: admin section + the library-scan route', async () => {
     const { buildExtraRoutes } = await import('@/main');
     const names = buildExtraRoutes('server').map((r) => r.name);
     expect(names).toContain('admin-dashboard');
     expect(names).toContain('library-scan');
-    expect(names).toContain('parental-controls');
   });
 
-  it('hub mode: hub pages + the hub admin section + parental-controls', async () => {
+  it('hub mode: hub pages + the hub admin section', async () => {
     const { buildExtraRoutes } = await import('@/main');
     const names = buildExtraRoutes('hub').map((r) => r.name);
     expect(names).toEqual(
-      expect.arrayContaining(['my-servers', 'server-detail', 'federation', 'federation-shares', 'manage-shares', 'shared-with-me', 'invite-links', 'accept-invite', 'hub-admin-dashboard', 'parental-controls'])
+      expect.arrayContaining(['my-servers', 'server-detail', 'federation', 'federation-shares', 'manage-shares', 'shared-with-me', 'invite-links', 'accept-invite', 'hub-admin-dashboard'])
     );
   });
 });

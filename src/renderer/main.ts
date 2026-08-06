@@ -21,7 +21,6 @@ import {
   ServerDetailPage
 } from '@phlix/ui';
 import { buildPhlixHeaders } from '@phlix/contracts';
-import ParentalControlsPage from '../pages/ParentalControlsPage.vue';
 import '@phlix/ui/style.css';
 import '@phlix/ui/fonts.css';
 import './components/rating-styles.css';
@@ -79,7 +78,7 @@ export function buildMenu(appMode: 'server' | 'hub'): MenuItem[] {
  * FederationPage (`/app/federation`), FederationSharesPage (`/app/federation/shares`),
  * ManageSharesPage (`/app/shares`), SharedWithMePage (`/app/shared`), InviteLinksPage
  * (`/app/invites`), AcceptInvitePage (`/app/accept-invite` — deep-link only, no nav entry),
- * and the hub-admin section. Server mode adds LibraryScanPage and ParentalControlsPage.
+ * and the hub-admin section. Server mode adds LibraryScanPage.
  * Mirrors the server/hub web-uis. Routes carry the full `/app` prefix (history base is '/').
  */
 export function buildExtraRoutes(appMode: 'server' | 'hub'): RouteRecordRaw[] {
@@ -93,14 +92,12 @@ export function buildExtraRoutes(appMode: 'server' | 'hub'): RouteRecordRaw[] {
       { path: '/app/shared', name: 'shared-with-me', component: SharedWithMePage },
       { path: '/app/invites', name: 'invite-links', component: InviteLinksPage },
       { path: '/app/accept-invite', name: 'accept-invite', component: AcceptInvitePage },
-      { path: '/app/parental-controls', name: 'parental-controls', component: ParentalControlsPage },
       ...buildHubAdminRoutes()
     ];
   }
   return [
     ...buildAdminRoutes(),
-    { path: '/app/library/scan', name: 'library-scan', component: LibraryScanPage },
-    { path: '/app/parental-controls', name: 'parental-controls', component: ParentalControlsPage }
+    { path: '/app/library/scan', name: 'library-scan', component: LibraryScanPage }
   ];
 }
 
