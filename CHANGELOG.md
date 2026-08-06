@@ -5,6 +5,21 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Audited — every IPC channel documented end-to-end (W3.7)
+
+- **`docs/ipc-channels.md`** created — 43 lines, all 16 IPC channels in a 6-column table
+  (channel name, direction, payload, return, main handler, preload method, renderer call sites).
+  This document is load-bearing: `tests/unit/ipcChannels.test.ts` asserts the code matches it.
+- **3 doc-vs-code alignment tests** added to `tests/unit/ipcChannels.test.ts` — parse the markdown
+  table and assert that every entry in the table has a matching handler in the code, so adding an
+  unpaired `ipcMain.handle` makes the pairing test fail.
+- **10 behavioral round-trip tests** added for invoke/send/push channels in
+  `tests/unit/ipcChannels.test.ts` under `describe('behavioral round-trips')`.
+- **`main.test.ts` overlay mock added** — `overlay.tsx`'s `createWebHashHistory()` was running
+  before jsdom was ready, causing vitest to exit 1 on every run; `vi.mock('../src/renderer/overlay')`
+  now prevents the router initialisation during test setup.
+- **Total tests: 130 → 143**.
+
 ### Deleted — dead File → Open File… menu item and no-op handler removed (W3.6)
 
 - **`Open File…`** menu item removed from the File menu — the menu entry and its accelerator
