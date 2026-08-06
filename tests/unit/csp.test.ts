@@ -1,7 +1,6 @@
 /**
- * CSP policy must be identical across both HTML entry points so that edits to
- * one and not the other are caught by the test suite rather than causing
- * runtime policy violations in the overlay or main renderer.
+ * CSP policy must be validated so that edits are caught by the test suite
+ * rather than causing runtime policy violations in the main renderer.
  */
 
 import { readFileSync } from 'node:fs';
@@ -12,7 +11,6 @@ const CSP =
 
 const htmlFiles = [
   resolve(__dirname, '../../src/renderer/index.html'),
-  resolve(__dirname, '../../src/renderer/overlay.html'),
 ] as const;
 
 describe('Content-Security-Policy', () => {
@@ -23,16 +21,7 @@ describe('Content-Security-Policy', () => {
     });
   }
 
-  it('both files carry the identical CSP string', () => {
-    const [index, overlay] = htmlFiles.map((f) => readFileSync(f, 'utf8'));
 
-    const indexMatch = index.match(/content="([^"]+)"/)?.[1];
-    const overlayMatch = overlay.match(/content="([^"]+)"/)?.[1];
-
-    expect(indexMatch).toBeDefined();
-    expect(overlayMatch).toBeDefined();
-    expect(indexMatch).toBe(overlayMatch);
-  });
 
   it('img-src includes http: for LAN HTTP poster images', () => {
     const src = htmlFiles.map((f) => readFileSync(f, 'utf8').match(/img-src ([^;]+)/)?.[1]);

@@ -9,24 +9,53 @@
  */
 
 import { createApp } from 'vue';
+import { createPinia } from 'pinia';
+import { createRouter, createWebHashHistory } from 'vue-router';
 import PlayerSupplement from './components/PlayerSupplement';
 
-// Wait for Pinia to be initialized (the Vue app sets it up on mount).
-// Use a MutationObserver on document.body as a proxy for "Vue app has mounted".
-const tryMount = (): void => {
-  const root = document.getElementById('player-supplement-root');
-  if (!root) return;
+// Create the Vue app ONCE at module level
+const app = createApp(PlayerSupplement);
+const pinia = createPinia();
+const router = createRouter({
+  history: createWebHashHistory(),
+  routes: [] // Overlay doesn't need any routes
+});
+app.use(pinia);
+app.use(router);
 
-  const app = createApp(PlayerSupplement);
+// Bounded retry with setTimeout — max 10 attempts
+const MAX_ATTEMPTS = 10;
+let attempts = 0;
+
+function tryMount(): void {
+  const root = document.getElementById('player-supplement-root');
+  if (!root) {
+    if (attempts >= MAX_ATTEMPTS) {
+      console.error('[Overlay] #player-supplement-root never appeared after 10 attempts. Giving up.');
+      return;
+    }
+    attempts++;
+    console.warn(`[Overlay] #player-supplement-root not found, retrying (${attempts}/${MAX_ATTEMPTS})...`);
+    setTimeout(tryMount, 1000);
+    return;
+  }
 
   try {
     app.mount(root);
   } catch (err) {
-    // If mounting fails (e.g., Pinia not ready), retry after a delay
-    console.warn('[Overlay] Mount failed, retrying:', err);
-    setTimeout(tryMount, 200);
+    if (attempts >= MAX_ATTEMPTS) {
+      console.error('[Overlay] Mount failed after 10 attempts. Giving up:', err);
+      return;
+    }
+    attempts++;
+    console.warn(`[Overlay] Mount failed (${attempts}/${MAX_ATTEMPTS}), retrying...`);
+    setTimeout(tryMount, 1000);
   }
-};
+}
 
-// Small delay to allow the Vue app to finish mounting
-setTimeout(tryMount, 400);
+// Wait for DOM to be ready, then start trying
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', tryMount);
+} else {
+  tryMount();
+}
