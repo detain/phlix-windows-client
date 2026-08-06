@@ -36,12 +36,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('media-forward', callback);
   },
 
-  // File handling
-  onFileOpened: (callback: (filePath: string) => void) => {
-    ipcRenderer.on('file-opened', (_, filePath) => callback(filePath));
-    return () => ipcRenderer.removeAllListeners('file-opened');
-  },
-
   // Settings
   onOpenSettings: (callback: () => void) => {
     ipcRenderer.on('open-settings', callback);

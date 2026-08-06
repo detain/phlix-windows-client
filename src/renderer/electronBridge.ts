@@ -28,6 +28,10 @@ export interface BridgeRouter {
 /** Seconds the tray/menu Rewind & Fast-Forward controls jump. */
 const SEEK_STEP_SECONDS = 10;
 
+/** Module-level cleanup references for idempotency. */
+let _cleanupBridge: (() => void) | null = null;
+let _cleanupFocusGuard: (() => void) | null = null;
+
 /**
  * Returns true when the given element is a text-entry control that should
  * consume keydown events without relaying them to the media-bridge.
@@ -47,9 +51,16 @@ function isTextInput(el: Element | null): boolean {
  * media controls that were removed from the Electron menu (registerAccelerator: false)
  * while ensuring typing a space in a URL field no longer triggers Play/Pause.
  *
+ * Idempotent: calling again before cleaning up removes the previous registration first.
  * Returns a cleanup function that removes the listener.
  */
 export function installFocusGuard(player: BridgePlayer): () => void {
+  // Remove any previous registration before installing a new one
+  if (_cleanupFocusGuard) {
+    _cleanupFocusGuard();
+    _cleanupFocusGuard = null;
+  }
+
   function handleKeyDown(e: KeyboardEvent): void {
     if (isTextInput(document.activeElement)) return;
 
@@ -74,7 +85,8 @@ export function installFocusGuard(player: BridgePlayer): () => void {
   }
 
   document.addEventListener('keydown', handleKeyDown);
-  return () => document.removeEventListener('keydown', handleKeyDown);
+  _cleanupFocusGuard = () => document.removeEventListener('keydown', handleKeyDown);
+  return _cleanupFocusGuard;
 }
 
 /**
@@ -118,15 +130,6 @@ export function wireElectronBridge(player: BridgePlayer, router: BridgeRouter): 
   );
 
   cleanups.push(
-    api.onFileOpened(() => {
-      // Local-file playback is still deferred: phlix-ui's PlayerPage is
-      // API-driven, so a synthetic local item needs a local-source path in the
-      // shared player before `usePlayerStore().playLocalFile(url)` can drive it.
-      // Tracked separately; the seam (playLocalFile) already exists in v0.52.0.
-    })
-  );
-
-  cleanups.push(
     api.onOpenSettings(() => {
       router.push('/app/settings');
     })
@@ -143,8 +146,16 @@ export function wireElectronBridge(player: BridgePlayer, router: BridgeRouter): 
  * Installs the Electron bridge against a mounted phlix-ui Vue app. Pulls the
  * active pinia + router off the app's global properties and resolves the player
  * store, then delegates to the pure wiring helper. No-op outside Electron.
+ *
+ * Idempotent: calling again before cleaning up removes the previous registrations first.
  */
 export function installElectronBridge(app: VueApp): () => void {
+  // Remove existing listeners before adding new ones (idempotency)
+  if (_cleanupBridge) {
+    _cleanupBridge();
+    _cleanupBridge = null;
+  }
+
   if (!window.electronAPI) return () => {};
 
   const pinia = app.config.globalProperties.$pinia;
@@ -154,8 +165,12 @@ export function installElectronBridge(app: VueApp): () => void {
   const cleanupBridge = wireElectronBridge(player, router);
   const cleanupFocusGuard = installFocusGuard(player);
 
-  return () => {
+  _cleanupBridge = () => {
     cleanupBridge();
     cleanupFocusGuard();
+  };
+  return () => {
+    _cleanupBridge?.();
+    _cleanupBridge = null;
   };
 }

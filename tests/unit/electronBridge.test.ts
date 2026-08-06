@@ -169,16 +169,6 @@ describe('wireElectronBridge', () => {
     expect(player.closePlayer).not.toHaveBeenCalled();
   });
 
-  it('file-opened is a safe no-op for now (local-file playback deferred)', () => {
-    const player = makePlayer(true);
-    const router: BridgeRouter = { push: vi.fn() };
-    wireElectronBridge(player, router);
-    fakeApi.fire('file-opened', 'C:/movie.mkv');
-    expect(player.seekBy).not.toHaveBeenCalled();
-    expect(player.play).not.toHaveBeenCalled();
-    expect(player.closePlayer).not.toHaveBeenCalled();
-  });
-
   it('cleanup unregisters every listener', () => {
     const player = makePlayer();
     const router: BridgeRouter = { push: vi.fn() };
@@ -188,7 +178,6 @@ describe('wireElectronBridge', () => {
     expect(fakeApi.cleanups['media-stop']).toHaveBeenCalledTimes(1);
     expect(fakeApi.cleanups['media-rewind']).toHaveBeenCalledTimes(1);
     expect(fakeApi.cleanups['media-forward']).toHaveBeenCalledTimes(1);
-    expect(fakeApi.cleanups['file-opened']).toHaveBeenCalledTimes(1);
     expect(fakeApi.cleanups['open-settings']).toHaveBeenCalledTimes(1);
   });
 });
@@ -374,6 +363,65 @@ describe('installFocusGuard', () => {
     simulateKeyDown('Space', document.getElementById('regular-div'));
     // After cleanup, no handlers should fire
     expect(player.play).not.toHaveBeenCalled();
+  });
+
+  it('is idempotent: double-install removes the previous listener before adding a new one', () => {
+    const player = makePlayer(false);
+    const cleanup1 = installFocusGuard(player);
+    simulateKeyDown('Space', document.getElementById('regular-div'));
+    expect(player.play).toHaveBeenCalledTimes(1);
+
+    // Calling installFocusGuard again without cleanup should remove previous listener first
+    const cleanup2 = installFocusGuard(player);
+    // Reset call count — the second install should have removed the old listener
+    player.play.mockClear();
+
+    simulateKeyDown('Space', document.getElementById('regular-div'));
+    // Only the new listener from the second install should fire
+    expect(player.play).toHaveBeenCalledTimes(1);
+
+    cleanup2();
+    player.play.mockClear();
+    simulateKeyDown('Space', document.getElementById('regular-div'));
+    // After cleanup2, no listeners should fire
+    expect(player.play).not.toHaveBeenCalled();
+
+    cleanup1(); // Must not throw even though first listener was already removed
+  });
+});
+
+describe('installElectronBridge idempotency', () => {
+  let fakeApi: FakeElectronAPI;
+
+  beforeEach(() => {
+    usePlayerStoreMock.mockClear().mockReturnValue(playerStub);
+    playerStub.playing = false;
+    playerStub.play.mockClear();
+    playerStub.pause.mockClear();
+    playerStub.closePlayer.mockClear();
+    fakeApi = makeFakeApi();
+    (globalThis as unknown as { window: { electronAPI: unknown } }).window = {
+      electronAPI: fakeApi
+    };
+  });
+
+  afterEach(() => {
+    delete (globalThis as unknown as { window?: unknown }).window;
+  });
+
+  it('is idempotent: double-install does not produce double handler calls', () => {
+    const app = makeFakeApp();
+
+    // First install
+    installElectronBridge(app);
+
+    // Second install without calling cleanup — should remove old listeners first
+    installElectronBridge(app);
+    playerStub.play.mockClear();
+
+    // Fire event — only one handler should execute despite two installs
+    fakeApi.fire('media-play-pause');
+    expect(playerStub.play).toHaveBeenCalledTimes(1);
   });
 });
 

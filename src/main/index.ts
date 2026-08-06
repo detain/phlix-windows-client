@@ -144,8 +144,6 @@ function createMenu(): void {
     {
       label: 'File',
       submenu: [
-        { label: 'Open File...', accelerator: 'CmdOrCtrl+O', click: () => openFile() },
-        { type: 'separator' },
         { label: 'Settings', accelerator: 'CmdOrCtrl+,', click: () => openSettings() },
         { type: 'separator' },
         { role: 'quit' }
@@ -179,21 +177,6 @@ function createMenu(): void {
 
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
-}
-
-async function openFile(): Promise<void> {
-  const result = await dialog.showOpenDialog(mainWindow!, {
-    properties: ['openFile'],
-    filters: [
-      { name: 'Video Files', extensions: ['mp4', 'mkv', 'avi', 'mov', 'wmv', 'webm'] },
-      { name: 'Audio Files', extensions: ['mp3', 'flac', 'aac', 'ogg', 'wav', 'm4a'] },
-      { name: 'All Files', extensions: ['*'] }
-    ]
-  });
-
-  if (!result.canceled && result.filePaths.length > 0) {
-    mainWindow?.webContents.send('file-opened', result.filePaths[0]);
-  }
 }
 
 function openSettings(): void {
