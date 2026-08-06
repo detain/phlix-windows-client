@@ -5,6 +5,15 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Deleted — local SyncPlay stack removed in favour of @phlix/ui (W2.1)
+
+- **`useSyncPlayStore.ts` removed** from `src/stores/` — the Pinia store that locally duplicated
+  SyncPlay state is gone; the upstream `SyncPlayPage` in `@phlix/ui` is now reachable via the
+  nav wired in W1.4.
+- **`tests/unit/useSyncPlayStore.test.ts` removed** — 279 lines of store unit tests deleted along
+  with the store itself.
+- **`@phlix/syncplay` dependency removed** from `package.json` and the lockfile regenerated.
+
 ### Verified — admin page surface and settings (W1.7)
 
 - **`docs/ui-surface.md`** corrected: the admin page count was revised from "22" (wrong estimate from a stale `admin.d.ts` comment) to **"23"** (verified via live bundle analysis of `@phlix/ui v0.98.34 dist/phlix-ui.js`). `buildAdminRoutes()` yields 20 pages and `buildHubAdminRoutes()` yields HubDashboardPage + 3 hub-only + 3 common = 7 pages total.
