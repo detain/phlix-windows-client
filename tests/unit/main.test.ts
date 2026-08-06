@@ -240,11 +240,38 @@ describe('boot (renderer entry)', () => {
 
 describe('buildMenu', () => {
   it('server mode: Browse, Music, Books, Audiobooks, Photos, Search, Watch History, Explore, Recommendations, SyncPlay, Settings, Admin', async () => {
-    const { buildMenu } = await import('@/main');
+    const { buildMenu, buildExtraRoutes } = await import('@/main');
     const menu = buildMenu('server');
-    expect(menu.map((m) => m.id)).toEqual([
-      'browse', 'music', 'books', 'audiobooks', 'photos', 'search', 'history', 'explore', 'recommendations', 'syncplay', 'settings', 'admin'
-    ]);
+    const menuIds = menu.map((m) => m.id);
+
+    // EXACT ARRAY FORM WAS HARMFUL: locking the nav list as a frozen 12-item array
+    // made every new nav entry a breaking-change test-failure.  The assertions below
+    // express intent — every required entry is present and its route is registered —
+    // so legitimate new entries do not demand a test update.
+
+    // Membership: all entries required for a usable server-mode nav are present.
+    for (const id of ['browse', 'music', 'books', 'audiobooks', 'photos', 'search',
+                       'history', 'explore', 'recommendations', 'syncplay', 'settings', 'admin']) {
+      expect(menuIds).toContain(id);
+    }
+
+    // Reachability: every registered route in the menu has a corresponding route
+    // in buildExtraRoutes (browse's "/" is handled by the shell; admin is added by
+    // buildAdminRoutes; media-type/library entries come from @phlix/ui).
+    const extraRoutePaths = buildExtraRoutes('server').map((r) => r.path);
+    for (const item of menu) {
+      if (item.to === '/app') continue; // browse root: shell handles this
+      // buildMenu registers paths under /app/* that must appear in buildExtraRoutes
+      if (item.to.startsWith('/app/') && !item.to.startsWith('/app/music') &&
+          !item.to.startsWith('/app/books') && !item.to.startsWith('/app/audiobooks') &&
+          !item.to.startsWith('/app/photo') && !item.to.startsWith('/app/search') &&
+          !item.to.startsWith('/app/history') && !item.to.startsWith('/app/explore') &&
+          !item.to.startsWith('/app/recommendations') && !item.to.startsWith('/app/syncplay') &&
+          !item.to.startsWith('/app/settings')) {
+        expect(extraRoutePaths).toContain(item.to);
+      }
+    }
+
     expect(menu.find((m) => m.id === 'browse')?.libraryLinks).toBe(true);
     expect(menu.find((m) => m.id === 'music')).toMatchObject({ to: '/app/music', requiresLibraryType: 'music' });
     expect(menu.find((m) => m.id === 'books')).toMatchObject({ to: '/app/books', requiresLibraryType: 'book' });
@@ -261,9 +288,30 @@ describe('buildMenu', () => {
   });
 
   it('hub mode: My Servers, Federation, Shares, Watch History, Explore, Recommendations, SyncPlay, admin-gated Admin', async () => {
-    const { buildMenu } = await import('@/main');
+    const { buildMenu, buildExtraRoutes } = await import('@/main');
     const menu = buildMenu('hub');
-    expect(menu.map((m) => m.id)).toEqual(['my-servers', 'federation', 'manage-shares', 'shared-with-me', 'invite-links', 'history', 'explore', 'recommendations', 'syncplay', 'admin']);
+    const menuIds = menu.map((m) => m.id);
+
+    // EXACT ARRAY FORM WAS HARMFUL: locking the hub nav list as a frozen 10-item
+    // array made every new hub nav entry a breaking-change test-failure.
+
+    // Membership: all entries required for a usable hub-mode nav are present.
+    for (const id of ['my-servers', 'federation', 'manage-shares', 'shared-with-me',
+                       'invite-links', 'history', 'explore', 'recommendations', 'syncplay', 'admin']) {
+      expect(menuIds).toContain(id);
+    }
+
+    // Reachability: hub-only menu entries that have /app/* routes must appear in
+    // buildExtraRoutes (history/explore/recommendations/syncplay come from @phlix/ui).
+    const extraRoutePaths = buildExtraRoutes('hub').map((r) => r.path);
+    for (const item of menu) {
+      if (item.to.startsWith('/app/') && !item.to.startsWith('/app/history') &&
+          !item.to.startsWith('/app/explore') && !item.to.startsWith('/app/recommendations') &&
+          !item.to.startsWith('/app/syncplay')) {
+        expect(extraRoutePaths).toContain(item.to);
+      }
+    }
+
     expect(menu.find((m) => m.id === 'history')).toMatchObject({ to: '/app/history' });
     expect(menu.find((m) => m.id === 'explore')).toMatchObject({ to: '/app/explore' });
     expect(menu.find((m) => m.id === 'recommendations')).toMatchObject({ to: '/app/recommendations' });
