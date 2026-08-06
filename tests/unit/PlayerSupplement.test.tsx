@@ -10,7 +10,6 @@ import PlayerSupplement from '@/components/PlayerSupplement';
 
 vi.mock('@/components/SleepTimer', () => ({ default: { template: '<div class="sleep-timer-mock" />' } }));
 vi.mock('@/components/PiPButton', () => ({ default: { template: '<div class="pip-button-mock" />' } }));
-vi.mock('@/components/SkipButton', () => ({ default: { template: '<div class="skip-button-mock" />' } }));
 
 describe('PlayerSupplement', () => {
   beforeEach(() => {

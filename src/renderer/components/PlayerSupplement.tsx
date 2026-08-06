@@ -1,9 +1,10 @@
 /**
  * PlayerSupplement — unified overlay panel for player UX features.
  *
- * Renders SkipButton, SleepTimer, and PiPButton as overlays on top of
- * the @phlix/ui player when the player is active. Detects active playback
- * via the player URL route and usePlayerStore state.
+ * Renders SleepTimer and PiPButton as overlays on top of the @phlix/ui
+ * player when the player is active. Detects active playback via the player
+ * URL route and usePlayerStore state. Skip-intro is handled by @phlix/ui's
+ * own PlayerPage SkipButton which sources markers from /media/{id}/markers.
  *
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
@@ -11,7 +12,6 @@
 import { defineComponent, ref, onMounted, onUnmounted } from 'vue';
 import SleepTimer from './SleepTimer';
 import PiPButton from './PiPButton';
-import SkipButton from './SkipButton';
 
 function isPlayerActive(): boolean {
   return typeof window !== 'undefined' && /^\/app\/player\//.test(window.location.pathname);
@@ -44,9 +44,6 @@ const PlayerSupplement = defineComponent({
 
       return (
         <>
-          {/* Skip intro/outro — centered above the control bar */}
-          <SkipButton />
-
           {/* Bottom-right controls: Sleep Timer + PiP */}
           <div
             style={{
