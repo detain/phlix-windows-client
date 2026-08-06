@@ -5,6 +5,14 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Verified — admin page surface and settings (W1.7)
+
+- **`docs/ui-surface.md`** corrected: the admin page count was revised from "22" (wrong estimate from a stale `admin.d.ts` comment) to **"23"** (verified via live bundle analysis of `@phlix/ui v0.98.34 dist/phlix-ui.js`). `buildAdminRoutes()` yields 20 pages and `buildHubAdminRoutes()` yields HubDashboardPage + 3 hub-only + 3 common = 7 pages total.
+- **WebhookLogsPage removed** from the admin page table — it is a tab within LogsPage, not a distinct route.
+- **Settings confirmed schema-driven** (`SettingsResponse` with `types`, `meta`, `overridden` fields), not a hardcoded form.
+- **Plugins admin confirmed complete** in `@phlix/ui v0.98.34`: list, enable/disable, catalog browse, detail view (with `settings_schema`), schema-editor via `updateSettings`, plus install/uninstall/checkUpdates/testCredentials.
+- **Plugin update not exercised** — no throwaway server available in this environment.
+
 ### Added — nav entries and route-reachability guard for W1.4 nav-wiring
 
 - **`buildMenu` now registers WatchHistory, Explore, Recommendations, and SyncPlay** in both
