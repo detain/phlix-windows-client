@@ -18,7 +18,7 @@ Phlix Windows provides a full-featured media server client for Windows, enabling
 - **Video Player** - Full-featured video playback with controls
 - **System Tray Integration** - Minimize to tray with media controls
 - **Native Menus** - Full application menu with keyboard shortcuts
-- **Media Key Support** - Play/Pause, Stop, and Rewind/Fast-Forward (±10s) are bridged from the tray/menu into the player (Open File is temporarily a no-op, pending local-file support in the shared player)
+- **Media Key Support** - Play/Pause, Stop, and Rewind/Fast-Forward (±10s) are bridged from the tray/menu into the player
 - **Authentication** - Secure login with session persistence (handled by `@phlix/ui`)
 - **Shared UI** - Modern Vue 3 interface from `@phlix/ui` with the Nocturne theme
 - **Settings Management** - Configurable preferences including minimize-to-tray behavior

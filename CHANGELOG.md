@@ -5,6 +5,16 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Deleted — dead File → Open File… menu item and no-op handler removed (W3.6)
+
+- **`Open File…`** menu item removed from the File menu — the menu entry and its accelerator
+  (`CmdOrCtrl+O`) are gone; no replacement was wired.
+- **`onFileOpened` handler removed** from the renderer bridge — the `file-opened` IPC message
+  from `openFile()`'s dialog callback was received by a no-op handler in `electronBridge.ts`
+  (the `playLocalFile` seam does not yet exist upstream in `@phlix/ui`'s `PlayerPage`), so the
+  entire path was dead code.
+- No behaviour changed — local file playback was never functional and is not affected.
+
 ### Fixed — bridge cleanup functions made idempotent (W3.3)
 
 - **`installElectronBridge()` and `installFocusGuard()` made idempotent**: both functions now
