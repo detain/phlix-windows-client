@@ -5,6 +5,20 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed — menu accelerators no longer hijack text input (W3.1)
+
+- **`registerAccelerator: false`** added to the Space, Left, and Right menu items in the Playback
+  menu — these accelerators are now handled exclusively by the renderer focus guard rather than by
+  Electron's global menu system.
+- **`installFocusGuard(player)`** added to `src/renderer/electronBridge.ts` — intercepts
+  `keydown` for Space, Left, and Right when the active element is a text input (`INPUT`,
+  `TEXTAREA`) or an element with `contenteditable`, allowing normal text editing to proceed
+  unobstructed.
+- **`playbackMenuTemplate` extracted** into its own exported constant in `src/main/index.ts` for
+  unit-testability.
+- **9 new tests** covering: Space/Left/Right blocked in text inputs, Space/Left/Right passed through
+  when player is focused, and the focus guard not interfering with other keys (Up, Down, Enter).
+
 ### Fixed — overlay entry point is now deterministic (W2.7)
 
 - **`src/renderer/overlay.tsx` rewritten** — the Vue app is now created once at module level
