@@ -2,10 +2,24 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   wireElectronBridge,
   installElectronBridge,
+  installFocusGuard,
   type BridgePlayer,
   type BridgeRouter
 } from '@/electronBridge';
 import type { App as VueApp } from 'vue';
+
+// Mock the @/main module to expose playbackMenuTemplate for accelerator testing
+vi.mock('@/main', () => ({
+  playbackMenuTemplate: [
+    { label: 'Play/Pause', accelerator: 'Space', registerAccelerator: false, click: () => {} },
+    { label: 'Stop', click: () => {} },
+    { type: 'separator' },
+    { label: 'Rewind', accelerator: 'Left', registerAccelerator: false, click: () => {} },
+    { label: 'Fast Forward', accelerator: 'Right', registerAccelerator: false, click: () => {} },
+    { type: 'separator' },
+    { label: 'Fullscreen', accelerator: 'F11', click: () => {} }
+  ]
+}));
 
 // usePlayerStore is resolved off the active pinia inside installElectronBridge;
 // mock it to hand back a controllable fake player so we can assert wiring.
@@ -245,6 +259,135 @@ describe('installElectronBridge', () => {
     cleanup();
     expect(fakeApi.cleanups['media-play-pause']).toHaveBeenCalledTimes(1);
     expect(fakeApi.cleanups['open-settings']).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('installFocusGuard', () => {
+  function makePlayer(playing = false): BridgePlayer & {
+    play: ReturnType<typeof vi.fn>;
+    pause: ReturnType<typeof vi.fn>;
+    seekBy: ReturnType<typeof vi.fn>;
+  } {
+    return {
+      playing,
+      play: vi.fn(),
+      pause: vi.fn(),
+      closePlayer: vi.fn(),
+      seekBy: vi.fn()
+    };
+  }
+
+  function simulateKeyDown(code: string, target: Element | null): void {
+    const event = new KeyboardEvent('keydown', { code, bubbles: true });
+    Object.defineProperty(event, 'target', { value: target, enumerable: true });
+    document.dispatchEvent(event);
+  }
+
+  beforeEach(() => {
+    // Create a minimal DOM structure for focus tests
+    document.body.innerHTML = `
+      <input id="text-input" type="text" />
+      <textarea id="text-area"></textarea>
+      <div id="contenteditable" contenteditable="true"></div>
+      <div id="regular-div"></div>
+    `;
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('Space toggles play when not playing', () => {
+    const player = makePlayer(false);
+    const cleanup = installFocusGuard(player);
+    simulateKeyDown('Space', document.getElementById('regular-div'));
+    expect(player.play).toHaveBeenCalledTimes(1);
+    expect(player.pause).not.toHaveBeenCalled();
+    cleanup();
+  });
+
+  it('Space toggles pause when playing', () => {
+    const player = makePlayer(true);
+    const cleanup = installFocusGuard(player);
+    simulateKeyDown('Space', document.getElementById('regular-div'));
+    expect(player.pause).toHaveBeenCalledTimes(1);
+    expect(player.play).not.toHaveBeenCalled();
+    cleanup();
+  });
+
+  it('ArrowLeft seeks backward by 10 seconds', () => {
+    const player = makePlayer(true);
+    const cleanup = installFocusGuard(player);
+    simulateKeyDown('ArrowLeft', document.getElementById('regular-div'));
+    expect(player.seekBy).toHaveBeenCalledWith(-10);
+    cleanup();
+  });
+
+  it('ArrowRight seeks forward by 10 seconds', () => {
+    const player = makePlayer(true);
+    const cleanup = installFocusGuard(player);
+    simulateKeyDown('ArrowRight', document.getElementById('regular-div'));
+    expect(player.seekBy).toHaveBeenCalledWith(10);
+    cleanup();
+  });
+
+  it('does nothing when an input element has focus', () => {
+    const player = makePlayer(true);
+    const cleanup = installFocusGuard(player);
+    const input = document.getElementById('text-input') as HTMLInputElement;
+    input.focus();
+    simulateKeyDown('Space', input);
+    expect(player.play).not.toHaveBeenCalled();
+    expect(player.pause).not.toHaveBeenCalled();
+    cleanup();
+  });
+
+  it('does nothing when a textarea has focus', () => {
+    const player = makePlayer(true);
+    const cleanup = installFocusGuard(player);
+    const textarea = document.getElementById('text-area') as HTMLTextAreaElement;
+    textarea.focus();
+    simulateKeyDown('Space', textarea);
+    expect(player.play).not.toHaveBeenCalled();
+    expect(player.pause).not.toHaveBeenCalled();
+    cleanup();
+  });
+
+  it('does nothing when a contenteditable element has focus', () => {
+    const player = makePlayer(true);
+    const cleanup = installFocusGuard(player);
+    const contenteditable = document.getElementById('contenteditable') as HTMLElement;
+    // jsdom may not correctly map contenteditable="true" attr to property,
+    // so set it explicitly to ensure the focus-guard check passes.
+    contenteditable.contentEditable = 'true';
+    contenteditable.focus();
+    simulateKeyDown('Space', contenteditable);
+    expect(player.play).not.toHaveBeenCalled();
+    expect(player.pause).not.toHaveBeenCalled();
+    cleanup();
+  });
+
+  it('returns a cleanup function that removes the listener', () => {
+    const player = makePlayer(false);
+    const cleanup = installFocusGuard(player);
+    cleanup();
+    simulateKeyDown('Space', document.getElementById('regular-div'));
+    // After cleanup, no handlers should fire
+    expect(player.play).not.toHaveBeenCalled();
+  });
+});
+
+describe('playbackMenuTemplate accelerators', () => {
+  it('Space, Left, and Right all have registerAccelerator: false', async () => {
+    const { playbackMenuTemplate } = await import('@/main');
+    const labels = playbackMenuTemplate.map((item) => item.label);
+    const spaceItem = playbackMenuTemplate[labels.indexOf('Play/Pause')];
+    const leftItem = playbackMenuTemplate[labels.indexOf('Rewind')];
+    const rightItem = playbackMenuTemplate[labels.indexOf('Fast Forward')];
+
+    expect(spaceItem?.registerAccelerator).toBe(false);
+    expect(leftItem?.registerAccelerator).toBe(false);
+    expect(rightItem?.registerAccelerator).toBe(false);
   });
 });
 

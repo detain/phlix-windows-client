@@ -29,6 +29,55 @@ export interface BridgeRouter {
 const SEEK_STEP_SECONDS = 10;
 
 /**
+ * Returns true when the given element is a text-entry control that should
+ * consume keydown events without relaying them to the media-bridge.
+ */
+function isTextInput(el: Element | null): boolean {
+  if (!el) return false;
+  if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') return true;
+  // contentEditable is 'true' when explicitly set; 'inherit' means the
+  // element inherits from its parent (and is not in edit mode by default).
+  const ce = (el as HTMLElement).contentEditable;
+  return ce === 'true' || ce === 'plaintext-only';
+}
+
+/**
+ * Installs a document-wide keydown listener that bridges Space / Left / Right
+ * to the player only when no text-entry element has focus. This restores the
+ * media controls that were removed from the Electron menu (registerAccelerator: false)
+ * while ensuring typing a space in a URL field no longer triggers Play/Pause.
+ *
+ * Returns a cleanup function that removes the listener.
+ */
+export function installFocusGuard(player: BridgePlayer): () => void {
+  function handleKeyDown(e: KeyboardEvent): void {
+    if (isTextInput(document.activeElement)) return;
+
+    switch (e.code) {
+      case 'Space':
+        e.preventDefault();
+        if (player.playing) {
+          player.pause();
+        } else {
+          player.play();
+        }
+        break;
+      case 'ArrowLeft':
+        e.preventDefault();
+        player.seekBy(-SEEK_STEP_SECONDS);
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        player.seekBy(SEEK_STEP_SECONDS);
+        break;
+    }
+  }
+
+  document.addEventListener('keydown', handleKeyDown);
+  return () => document.removeEventListener('keydown', handleKeyDown);
+}
+
+/**
  * Pure wiring helper: registers the Electron main-process media/window events
  * against a player store + router and returns a single cleanup function that
  * unregisters every listener. Accepts the dependencies as params so it can be
@@ -102,5 +151,11 @@ export function installElectronBridge(app: VueApp): () => void {
   const router = app.config.globalProperties.$router as BridgeRouter;
   const player = usePlayerStore(pinia) as unknown as BridgePlayer;
 
-  return wireElectronBridge(player, router);
+  const cleanupBridge = wireElectronBridge(player, router);
+  const cleanupFocusGuard = installFocusGuard(player);
+
+  return () => {
+    cleanupBridge();
+    cleanupFocusGuard();
+  };
 }

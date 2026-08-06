@@ -120,6 +120,21 @@ function createTray(): void {
   });
 }
 
+/**
+ * Exported for unit-testing of menu accelerator configuration.
+ * Single-character keys (Space, Left, Right) use registerAccelerator: false so
+ * they do not intercept text input in URL fields or other text controls.
+ */
+export const playbackMenuTemplate: Electron.MenuItemConstructorOptions[] = [
+  { label: 'Play/Pause', accelerator: 'Space', registerAccelerator: false, click: () => mainWindow?.webContents.send('media-play-pause') },
+  { label: 'Stop', click: () => mainWindow?.webContents.send('media-stop') },
+  { type: 'separator' },
+  { label: 'Rewind', accelerator: 'Left', registerAccelerator: false, click: () => mainWindow?.webContents.send('media-rewind') },
+  { label: 'Fast Forward', accelerator: 'Right', registerAccelerator: false, click: () => mainWindow?.webContents.send('media-forward') },
+  { type: 'separator' },
+  { label: 'Fullscreen', accelerator: 'F11', click: () => toggleFullscreen() }
+];
+
 function createMenu(): void {
   const template: Electron.MenuItemConstructorOptions[] = [
     {
@@ -134,15 +149,7 @@ function createMenu(): void {
     },
     {
       label: 'Playback',
-      submenu: [
-        { label: 'Play/Pause', accelerator: 'Space', click: () => mainWindow?.webContents.send('media-play-pause') },
-        { label: 'Stop', click: () => mainWindow?.webContents.send('media-stop') },
-        { type: 'separator' },
-        { label: 'Rewind', accelerator: 'Left', click: () => mainWindow?.webContents.send('media-rewind') },
-        { label: 'Fast Forward', accelerator: 'Right', click: () => mainWindow?.webContents.send('media-forward') },
-        { type: 'separator' },
-        { label: 'Fullscreen', accelerator: 'F11', click: () => toggleFullscreen() }
-      ]
+      submenu: playbackMenuTemplate
     },
     {
       label: 'View',
