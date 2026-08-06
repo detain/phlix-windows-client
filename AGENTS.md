@@ -23,7 +23,7 @@ Typecheck: renderer `npx vue-tsc --noEmit`; main/preload `npx tsc -p tsconfig.ma
 
 ## Architecture
 
-Three Electron processes wired by `contextBridge`. The renderer no longer ships its own React UI — it boots `@phlix/ui`'s `createPhlixApp(config)` (Vue 3 + Pinia + vue-router, all peer deps of `@phlix/ui`) and bridges Electron events into it.
+Three Electron processes wired by `contextBridge`. The renderer ships no UI of its own — it boots `@phlix/ui`'s `createPhlixApp(config)` (Vue 3 + Pinia + vue-router, all peer deps of `@phlix/ui`) and bridges Electron events into it.
 
 - **Main** (`src/main/index.ts`): `BrowserWindow` creation, `Tray`, `Menu` (File/Playback/View/Help), `electron-log` init, `electron-store`. IPC handlers: existing `get-app-path` / `get-version` / `set-always-on-top` / `minimize-to-tray` / `hub:get-config` / `hub:set-config`, **plus** `app:get-server-url` (`store.get('serverUrl', null)`), `app:set-server-url` (`store.set('serverUrl', url)`), `app:get-device-id` (returns persisted `deviceId` or generates+persists `windows-<randomUUID()>`). Sends `media-play-pause` / `media-stop` / `media-rewind` / `media-forward` / `open-settings` / `file-opened` to the renderer. Tray/menu/existing IPC unchanged.
 - **Preload** (`src/preload/index.ts`): exposes `window.electronAPI` via `contextBridge.exposeInMainWorld`. Adds `getServerUrl()` / `setServerUrl(url)` / `getDeviceId()` (all `ipcRenderer.invoke`) alongside the existing app-info / window-control / media-event / hub-config members. Listener helpers return cleanup functions.

@@ -5,6 +5,15 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Deleted — unused React and React DOM dependencies removed (W2.6)
+
+- **`react`**, **`react-dom`**, **`@types/react`**, and **`@types/react-dom`** removed from
+  `package.json` — these production dependencies were never imported or used; the renderer
+  has never shipped its own UI (it boots the shared `@phlix/ui` Vue 3 app). The JSX transform
+  plugin `@vitejs/plugin-vue-jsx` is retained: 4 `.tsx` files in the Vite build use Vue JSX,
+  which requires that plugin (not React). Lockfile regenerated.
+- No new exports were introduced; no behaviour changed.
+
 ### Deleted — 10 unreachable presentational components and 8 test files (W2.5)
 
 - **`src/renderer/components/RatingBadge.tsx`**, **`ChapterList.tsx`**, **`AudioTrackList.tsx`**,
