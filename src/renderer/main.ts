@@ -129,6 +129,12 @@ export async function boot(): Promise<void> {
   // plain browser dev context where window.electronAPI is undefined.
   // Parallelize three independent IPC calls to minimize first-paint latency.
   // Running them concurrently vs sequentially shaves ~2/3 of the IPC round-trip time.
+  // Why Promise.all instead of Promise.allSettled: these three IPC calls are all
+  // required for a meaningful boot. hubGetConfig, deviceId, and serverUrl must all
+  // succeed — if any one of them fails there is no point painting the UI (no server to
+  // talk to, no device identity, etc.). This is a deliberate fail-fast design: one
+  // broken dependency aborts the entire boot rather than silently painting a broken
+  // state. The three calls are independent, so Promise.all parallelizes them optimally.
   const bootStart = performance.now();
   const [hubResult, deviceIdResult, serverUrlResult] = api
     ? await Promise.all([

@@ -38,7 +38,7 @@ function getActiveVideo(): HTMLVideoElement | null {
     return pipDoc;
   }
 
-  // Use querySelector to get the first video — no looping, no offsetParent forced layout
+  // Use querySelector to get the first video — single DOM lookup, no traversal loop
   const video = document.querySelector('video') as HTMLVideoElement | null;
 
   // Validate video is ready and not hidden

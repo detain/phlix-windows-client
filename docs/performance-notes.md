@@ -15,7 +15,7 @@
 
 - No `vue-virtual-scroller`, `@tanstack/vue-virtual`, `vue3-virtual-scroller`, or similar third-party lib found in `node_modules/`.
 
-**Measurements:** Source-level analysis performed.
+**Measurements:** Real runtime measurements could not be taken in this review environment. The following analysis is based on source-code examination of `@phlix/ui`'s built artifacts and architecture review.
 
 **Method**: Inspection of `@phlix/ui` built artifacts (`dist/`).
 
