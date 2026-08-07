@@ -33,8 +33,9 @@ export default tseslint.config(
     rules: {
       // vue-tsc/tsc resolve identifiers + types; no-undef misfires on DOM/type globals.
       'no-undef': 'off',
-      // Renderer should not log to the console (Electron main/preload override below).
-      'no-console': 'warn',
+      // Renderer should use electron-log for persistent logging. console.error/warn are
+      // acceptable for critical failures that must surface even without electron-log setup.
+      'no-console': ['error', { allow: ['error', 'warn'] }],
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': [
         'error',
@@ -46,12 +47,7 @@ export default tseslint.config(
   },
   {
     // Electron main + preload legitimately log to the terminal / electron-log.
-    files: ['src/main/**', 'src/preload/**', 'src/components/**', 'src/renderer/**', 'src/stores/**'],
-    languageOptions: {
-      globals: {
-        ...globals.node,
-      },
-    },
+    files: ['src/main/**', 'src/preload/**'],
     rules: {
       'no-console': 'off',
     },
