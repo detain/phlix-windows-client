@@ -5,6 +5,11 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [Unreleased]
+
+### Added
+- (workitem W7.5)
+
 ## [W7.7] — 2026-08-07
 
 ### Added — performance: parallelised boot IPC, deadline-based sleep timer, overlay reactivity, and resolved PIP video element (W5.1–W5.5)

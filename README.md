@@ -3,7 +3,7 @@
 [![Build](https://github.com/detain/phlix-windows-client/actions/workflows/build.yml/badge.svg)](https://github.com/detain/phlix-windows-client/actions/workflows/build.yml)
 [![Test](https://github.com/detain/phlix-windows-client/actions/workflows/test.yml/badge.svg)](https://github.com/detain/phlix-windows-client/actions/workflows/test.yml)
 [![codecov](https://codecov.io/gh/detain/phlix-windows-client/branch/master/graph/badge.svg)](https://codecov.io/gh/detain/phlix-windows-client)
-[![Node](https://img.shields.io/badge/node-%3E%3D22.12-339933?logo=node.js&logoColor=white)](.github/workflows/test.yml)
+[![Node](https://img.shields.io/badge/node-%3E%3D24-339933?logo=node.js&logoColor=white)](.github/workflows/test.yml)
 ![Platform](https://img.shields.io/badge/platform-Windows%20x64-0078D6?logo=windows&logoColor=white)
 
 A native Windows desktop application for the Phlix Media Server, built with Electron, Vue 3, and TypeScript. The user interface is provided by the shared **`@phlix/ui`** Vue app; this repo is a thin Electron shell + consumer.
@@ -32,7 +32,7 @@ Phlix Windows requires Phlix Media Server **1.1.0** or later. Key features inclu
 
 Before setting up the project, ensure you have the following installed:
 
-- **Node.js** 22.12.0 or later
+- **Node.js** 24.x or later
 - **npm** v9.x or later (comes with Node.js)
 - **Git** for version control
 - **Windows 10/11** as the target platform
