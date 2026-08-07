@@ -154,6 +154,13 @@ const coldStartUrl = extractDeepLinkUrl(process.argv);
 if (coldStartUrl) {
   // Store it for handling after app is ready
   log.info(`[deeplink] Cold start URL detected: ${coldStartUrl}`);
+  // Queue for delivery once the window is ready
+  app.once('browser-window-created', () => {
+    // Use setTimeout to ensure window webContents is fully initialized
+    setTimeout(() => {
+      handleDeepLinkUrl(coldStartUrl);
+    }, 1000);
+  });
 }
 
 // Single-instance lock — ensures only one app window exists at a time.
@@ -648,11 +655,11 @@ ipcMain.handle('media:pause', () => {
 });
 
 ipcMain.handle('media:previous', () => {
-  mainWindow?.webContents.send('media-stop');
+  mainWindow?.webContents.send('media-previous');
 });
 
 ipcMain.handle('media:next', () => {
-  mainWindow?.webContents.send('media-stop');
+  mainWindow?.webContents.send('media-next');
 });
 
 ipcMain.handle('media:seek-backward', () => {

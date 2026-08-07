@@ -64,7 +64,6 @@ export function buildMenu(appMode: 'server' | 'hub'): MenuItem[] {
       { id: 'history', label: 'Watch History', to: '/app/history' },
       { id: 'explore', label: 'Explore', to: '/app/explore' },
       { id: 'recommendations', label: 'Recommendations', to: '/app/recommendations' },
-      { id: 'syncplay', label: 'SyncPlay', to: '/app/syncplay' },
       { id: 'admin', label: 'Admin', to: '/app/admin/dashboard', requiresAdmin: true }
     ];
   }
@@ -83,7 +82,6 @@ export function buildMenu(appMode: 'server' | 'hub'): MenuItem[] {
     { id: 'history', label: 'Watch History', to: '/app/history' },
     { id: 'explore', label: 'Explore', to: '/app/explore' },
     { id: 'recommendations', label: 'Recommendations', to: '/app/recommendations' },
-    { id: 'syncplay', label: 'SyncPlay', to: '/app/syncplay' },
     { id: 'settings', label: 'Settings', to: '/app/settings' },
     { id: 'admin', label: 'Admin', to: '/app/admin/dashboard', requiresAdmin: true }
   ];

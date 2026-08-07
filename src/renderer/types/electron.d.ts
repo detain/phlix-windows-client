@@ -12,8 +12,6 @@ interface HubConfig {
   connectionMode: string | null;
 }
 
-/** SyncPlay types imported from @phlix/contracts (SyncPlayRoom, SyncPlaySession, SyncPlayUser, SyncPlayRole, SyncPlayPermission) */
-
 declare global {
   interface Window {
     electronAPI?: {
@@ -29,6 +27,10 @@ declare global {
       onMediaForward: (callback: () => void) => () => void;
       /** W4.5: receives media-seek-to event from main process (SMTC seek-to action) */
       onMediaSeekTo: (callback: (time: number) => void) => () => void;
+      /** W4.5: receives media-previous event from main process (SMTC previous-track action) */
+      onMediaPrevious: (callback: () => void) => () => void;
+      /** W4.5: receives media-next event from main process (SMTC next-track action) */
+      onMediaNext: (callback: () => void) => () => void;
       onOpenSettings: (callback: () => void) => () => void;
       hubGetConfig: () => Promise<HubConfig>;
       hubSetConfig: (config: { hubUrl?: string; activeServerId?: string; connectionMode?: string }) => Promise<void>;

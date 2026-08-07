@@ -7,6 +7,7 @@
 import { usePlayerStore } from '@phlix/ui';
 import type { App as VueApp } from 'vue';
 import { updateMeta } from './mediaSession';
+import log from 'electron-log';
 
 // Minimal structural types for the pieces of the phlix-ui player store and the
 // vue-router instance that the bridge actually touches. Keeping them local makes
@@ -38,6 +39,19 @@ export interface BridgeRouter {
 
 /** Seconds the tray/menu Rewind & Fast-Forward controls jump. */
 const SEEK_STEP_SECONDS = 10;
+
+/**
+ * Returns true when the player has media loaded and is ready to accept
+ * play/pause/seek commands (duration > 0 means a track is loaded).
+ * Guards against sending commands to a closed player.
+ */
+function playerCanControl(player: BridgePlayer): boolean {
+  if (!player || player.duration <= 0) {
+    log.warn('[electronBridge] Player not ready — ignoring media command');
+    return false;
+  }
+  return true;
+}
 
 /** Module-level cleanup references for idempotency. */
 let _cleanupBridge: (() => void) | null = null;
@@ -116,6 +130,7 @@ export function wireElectronBridge(player: BridgePlayer, router: BridgeRouter): 
     api.onMediaPlayPause(() => {
       // W4.5: capture the target state BEFORE async play/pause to avoid stale read
       const willBePlaying = !player.playing;
+      if (!playerCanControl(player)) return;
       if (willBePlaying) {
         player.play();
       } else {
@@ -139,6 +154,7 @@ export function wireElectronBridge(player: BridgePlayer, router: BridgeRouter): 
 
   cleanups.push(
     api.onMediaRewind(() => {
+      if (!playerCanControl(player)) return;
       player.seekBy(-SEEK_STEP_SECONDS);
       // W4.5: position changed — update progress bar
       api.setPlaybackProgress?.(player.position, player.duration);
@@ -147,6 +163,7 @@ export function wireElectronBridge(player: BridgePlayer, router: BridgeRouter): 
 
   cleanups.push(
     api.onMediaForward(() => {
+      if (!playerCanControl(player)) return;
       player.seekBy(SEEK_STEP_SECONDS);
       // W4.5: position changed — update progress bar
       api.setPlaybackProgress?.(player.position, player.duration);
@@ -155,6 +172,7 @@ export function wireElectronBridge(player: BridgePlayer, router: BridgeRouter): 
 
   cleanups.push(
     api.onMediaSeekTo((time: number) => {
+      if (!playerCanControl(player)) return;
       player.seekTo(time);
       // W4.5: position changed — update progress bar
       api.setPlaybackProgress?.(player.position, player.duration);
@@ -164,6 +182,19 @@ export function wireElectronBridge(player: BridgePlayer, router: BridgeRouter): 
   cleanups.push(
     api.onOpenSettings(() => {
       router.push('/app/settings');
+    })
+  );
+
+  // W4.5: SMTC previous/next track handlers (no-op — playlist management is in @phlix/ui)
+  cleanups.push(
+    api.onMediaPrevious(() => {
+      log.info('[electronBridge] media-previous received (no-op: playlist in @phlix/ui)');
+    })
+  );
+
+  cleanups.push(
+    api.onMediaNext(() => {
+      log.info('[electronBridge] media-next received (no-op: playlist in @phlix/ui)');
     })
   );
 

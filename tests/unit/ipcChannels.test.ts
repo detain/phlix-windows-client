@@ -280,12 +280,14 @@ describe('IPC channel pairing', () => {
       expect(mainOn.sort()).toEqual(['minimize-to-tray', 'set-always-on-top', 'tray:set-minimize-to-tray', 'thumbar:update', 'playback:progress', 'power:update'].sort());
     });
 
-    it('main process sends exactly seven distinct push channels to renderer', () => {
+    it('main process sends exactly nine distinct push channels to renderer', () => {
       // media-*, open-settings, deeplink:open (unique channel names)
       expect([...new Set(mainWebContentsSend)].sort()).toEqual([
         'deeplink:open',
         'media-forward',
+        'media-next',
         'media-play-pause',
+        'media-previous',
         'media-rewind',
         'media-seek-to',
         'media-stop',
@@ -293,11 +295,13 @@ describe('IPC channel pairing', () => {
       ].sort());
     });
 
-    it('preload listens to exactly seven push channels from main', () => {
+    it('preload listens to exactly nine push channels from main', () => {
       expect(preloadOnChannels.sort()).toEqual([
         'deeplink:open',
         'media-forward',
+        'media-next',
         'media-play-pause',
+        'media-previous',
         'media-rewind',
         'media-seek-to',
         'media-stop',

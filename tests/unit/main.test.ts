@@ -251,7 +251,7 @@ describe('buildMenu', () => {
 
     // Membership: all entries required for a usable server-mode nav are present.
     for (const id of ['browse', 'music', 'books', 'audiobooks', 'photos', 'search',
-                       'history', 'explore', 'recommendations', 'syncplay', 'settings', 'admin']) {
+                       'history', 'explore', 'recommendations', 'settings', 'admin']) {
       expect(menuIds).toContain(id);
     }
 
@@ -267,7 +267,7 @@ describe('buildMenu', () => {
           !item.to.startsWith('/app/books') && !item.to.startsWith('/app/audiobooks') &&
           !item.to.startsWith('/app/photo') && !item.to.startsWith('/app/search') &&
           !item.to.startsWith('/app/history') && !item.to.startsWith('/app/explore') &&
-          !item.to.startsWith('/app/recommendations') && !item.to.startsWith('/app/syncplay') &&
+          !item.to.startsWith('/app/recommendations') &&
           !item.to.startsWith('/app/settings')) {
         expect(extraRoutePaths).toContain(item.to);
       }
@@ -282,7 +282,6 @@ describe('buildMenu', () => {
     expect(menu.find((m) => m.id === 'history')).toMatchObject({ to: '/app/history' });
     expect(menu.find((m) => m.id === 'explore')).toMatchObject({ to: '/app/explore' });
     expect(menu.find((m) => m.id === 'recommendations')).toMatchObject({ to: '/app/recommendations' });
-    expect(menu.find((m) => m.id === 'syncplay')).toMatchObject({ to: '/app/syncplay' });
     expect(menu.find((m) => m.id === 'settings')).toMatchObject({ to: '/app/settings' });
     const admin = menu.find((m) => m.id === 'admin');
     expect(admin).toMatchObject({ to: '/app/admin/dashboard', requiresAdmin: true });
@@ -298,18 +297,17 @@ describe('buildMenu', () => {
 
     // Membership: all entries required for a usable hub-mode nav are present.
     for (const id of ['my-servers', 'federation', 'manage-shares', 'shared-with-me',
-                       'invite-links', 'history', 'explore', 'recommendations', 'syncplay', 'admin']) {
+                       'invite-links', 'history', 'explore', 'recommendations', 'admin']) {
       expect(menuIds).toContain(id);
     }
 
     // Reachability: hub-only menu entries that have /app/* routes must appear in
-    // buildExtraRoutes (history/explore/recommendations/syncplay come from @phlix/ui).
+    // buildExtraRoutes (history/explore/recommendations come from @phlix/ui).
     const extraRoutePaths = buildExtraRoutes('hub').map((r) => r.path);
     for (const item of menu) {
       if (!item.to) continue;
       if (item.to.startsWith('/app/') && !item.to.startsWith('/app/history') &&
-          !item.to.startsWith('/app/explore') && !item.to.startsWith('/app/recommendations') &&
-          !item.to.startsWith('/app/syncplay')) {
+          !item.to.startsWith('/app/explore') && !item.to.startsWith('/app/recommendations')) {
         expect(extraRoutePaths).toContain(item.to);
       }
     }
@@ -317,7 +315,6 @@ describe('buildMenu', () => {
     expect(menu.find((m) => m.id === 'history')).toMatchObject({ to: '/app/history' });
     expect(menu.find((m) => m.id === 'explore')).toMatchObject({ to: '/app/explore' });
     expect(menu.find((m) => m.id === 'recommendations')).toMatchObject({ to: '/app/recommendations' });
-    expect(menu.find((m) => m.id === 'syncplay')).toMatchObject({ to: '/app/syncplay' });
     expect(menu.find((m) => m.id === 'admin')?.requiresAdmin).toBe(true);
   });
 

@@ -40,6 +40,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('media-seek-to', listener);
     return () => ipcRenderer.removeListener('media-seek-to', listener);
   },
+  onMediaPrevious: (callback: () => void) => {
+    ipcRenderer.on('media-previous', callback);
+    return () => ipcRenderer.removeListener('media-previous', callback);
+  },
+  onMediaNext: (callback: () => void) => {
+    ipcRenderer.on('media-next', callback);
+    return () => ipcRenderer.removeListener('media-next', callback);
+  },
 
   // W4.5: SMTC action handlers (navigator.mediaSession)
   mediaPlay: () => ipcRenderer.invoke('media:play'),
