@@ -51,7 +51,7 @@ describe('W5.5: Unbounded list fetch cleanup', () => {
 
   it('@phlix/ui MusicLibraryPage has limit/offset/paging support', () => {
     const output = execSync(
-      `grep -o 'limit\\|offset\\|paging\\|page' node_modules/@phlix/ui/dist/MusicLibraryPage-BAhHnMVI.js | sort | uniq -c`,
+      `grep -o 'limit\\|offset\\|paging\\|page' node_modules/@phlix/ui/dist/MusicLibraryPage-*.js | sort | uniq -c`,
       { encoding: 'utf-8' }
     );
     expect(output).toContain('limit');

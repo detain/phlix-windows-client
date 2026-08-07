@@ -77,6 +77,7 @@ const DEEP_LINK_ALLOW_LIST: Array<{ pattern: RegExp; reason: string }> = [
   // These are registered by createPhlixApp but are not hub pages - they're
   // either irrelevant in hub context or would redirect to a selected server.
   { pattern: /^\/app\/settings$/, reason: 'server settings page, not a hub navigation target' },
+  { pattern: /^\/app\/mcp-tokens$/, reason: 'hub MCP tokens page, exposed via mcpTokensMenuItem in hub web-ui only' },
   { pattern: /^\/app\/music$/, reason: 'music page is server-mode, hub has no music libraries' },
   { pattern: /^\/app\/books$/, reason: 'books page is server-mode, hub has no book libraries' },
   { pattern: /^\/app\/audiobooks$/, reason: 'audiobooks page is server-mode, hub has no audiobook libraries' },
