@@ -5,6 +5,22 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — sleep inhibition during playback (W4.6)
+
+- **`powerSaveBlocker` module added** (`src/main/powerSaveBlocker.ts`) — wraps Electron's
+  `powerSaveBlocker` API with module-level state (`powerBlockerId`) and an idempotent public API.
+- **`ensurePowerBlocker(start: boolean)`** — when `start` is `true`, starts the blocker only if
+  `powerSaveBlocker.isStarted(id)` returns `false`; when `start` is `false`, stops the blocker and
+  sets `powerBlockerId = null` so a subsequent start creates a fresh blocker.
+- **`power:update` IPC channel** — `ipcMain.on('power:update', (_, { playing }) => ensurePowerBlocker(playing))`
+  wired in `src/main/index.ts`; renderer sends `{ playing: boolean }` on every play/pause transition.
+- **Four teardown paths** ensure the blocker is stopped on window close, app quit, and renderer process
+  crash: `win.on('close')`, `app.on('before-quit')`, and `app.on('render-process-gone')`.
+- **`tests/unit/powerSaveBlocker.test.ts`** added with 20 tests covering: idempotent start/stop,
+  `isStarted` guard prevents duplicate blockers, `powerBlockerId` reset after stop, all four teardown
+  paths, and the IPC channel round-trip.
+- **Total tests: 187 → 207**.
+
 ### Added — Windows SMTC integration: taskbar thumbnail buttons and progress bar (W4.5)
 
 - **`setThumbarButtons`** — three taskbar thumbnail toolbar buttons (rewind 10 s, play/pause, forward 10 s) that update their icons and enabled state when play state changes. Icons are resized from `build/icon.png` with an `isEmpty()` guard so missing assets are handled gracefully.
