@@ -6,6 +6,9 @@
  * the per-run Electron binary download that was eating into the firstWindow()
  * timeout budget.
  *
+ * On Linux, wraps Electron with xvfb-run to provide a virtual display for
+ * headless CI environments.
+ *
  * Guards against:
  * - W0.1: window.electronAPI not defined (preload script failed to load)
  * - W0.3: device ID hardcoded as 'windows-dev' instead of a real UUID
@@ -25,21 +28,44 @@ test('boot smoke test', async () => {
   // Path to the compiled main process entry
   const distMainPath = path.resolve(__dirname, '../../dist/main/index.js');
 
-  // Spawn Electron as a detached background process with remote debugging
-  // Windows npm creates electron.cmd, not electron
-  const electronCmd = process.platform === 'win32' ? 'electron.cmd' : 'electron';
+  // Build the spawn command based on platform
+  // Windows: use electron.cmd directly
+  // Linux: wrap with xvfb-run to provide virtual display in headless CI
+  const isWindows = process.platform === 'win32';
+  const isLinux = process.platform === 'linux';
+
+  const electronArgs = [
+    distMainPath,
+    `--disable-gpu`,
+    `--no-sandbox`,
+    `--remote-debugging-port=${ELECTRON_PORT}`,
+  ];
+
+  let spawnCmd: string;
+  let spawnArgs: string[];
+
+  if (isLinux) {
+    // On Linux, use xvfb-run to provide a virtual X server display
+    spawnCmd = 'xvfb-run';
+    spawnArgs = [
+      '--auto-servernum',
+      '--server-args=-screen 0 1280x720x24',
+      'electron',
+      ...electronArgs,
+    ];
+  } else {
+    // Windows npm creates electron.cmd, not electron
+    spawnCmd = isWindows ? 'electron.cmd' : 'electron';
+    spawnArgs = electronArgs;
+  }
+
   const electronProcess = spawn(
-    electronCmd,
-    [
-      distMainPath,
-      `--disable-gpu`,
-      `--no-sandbox`,
-      `--remote-debugging-port=${ELECTRON_PORT}`,
-    ],
+    spawnCmd,
+    spawnArgs,
     {
       detached: true,
       stdio: 'ignore',
-      shell: process.platform === 'win32',
+      shell: isWindows,
       env: {
         ...process.env,
         NODE_ENV: 'production',
