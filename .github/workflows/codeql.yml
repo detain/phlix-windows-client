@@ -1,0 +1,52 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'src/**'
+      - '.github/workflows/codeql.yml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'src/**'
+      - '.github/workflows/codeql.yml'
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['javascript-typescript']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended
+
+      - name: Build
+        run: |
+          npm ci
+          npm run build:vite
+          npm run build:electron
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:${{ matrix.language }}'
