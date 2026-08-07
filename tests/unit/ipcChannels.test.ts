@@ -248,12 +248,12 @@ describe('IPC channel pairing', () => {
       ].sort());
     });
 
-    it('preload uses exactly five send channels (set-always-on-top, minimize-to-tray, tray:set-minimize-to-tray, thumbar:update, playback:progress) — W4.5', () => {
-      expect(preloadSend.sort()).toEqual(['minimize-to-tray', 'set-always-on-top', 'tray:set-minimize-to-tray', 'thumbar:update', 'playback:progress'].sort());
+    it('preload uses exactly six send channels (set-always-on-top, minimize-to-tray, tray:set-minimize-to-tray, thumbar:update, playback:progress, power:update) — W4.5', () => {
+      expect(preloadSend.sort()).toEqual(['minimize-to-tray', 'set-always-on-top', 'tray:set-minimize-to-tray', 'thumbar:update', 'playback:progress', 'power:update'].sort());
     });
 
-    it('main process has exactly five on channels matching the preload send channels — W4.5', () => {
-      expect(mainOn.sort()).toEqual(['minimize-to-tray', 'set-always-on-top', 'tray:set-minimize-to-tray', 'thumbar:update', 'playback:progress'].sort());
+    it('main process has exactly six on channels matching the preload send channels — W4.5', () => {
+      expect(mainOn.sort()).toEqual(['minimize-to-tray', 'set-always-on-top', 'tray:set-minimize-to-tray', 'thumbar:update', 'playback:progress', 'power:update'].sort());
     });
 
     it('main process sends exactly six distinct push channels to renderer', () => {

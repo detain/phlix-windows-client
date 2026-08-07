@@ -4,7 +4,7 @@
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
 
-import { app, BrowserWindow, Menu, Tray, ipcMain, shell, nativeImage, dialog, protocol, screen, ThumbarButton } from 'electron';
+import { app, BrowserWindow, Menu, Tray, ipcMain, shell, nativeImage, dialog, protocol, screen, ThumbarButton, powerSaveBlocker } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
@@ -169,6 +169,7 @@ let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let isQuitting = false;
 let isPlaying = false;
+let powerBlockerId: number | null = null;
 
 const isDev = process.env.NODE_ENV === 'development' || (!app.isPackaged && !process.env.PHLIX_FORCE_PRODUCTION);
 
@@ -276,6 +277,9 @@ function createWindow(): void {
       });
     }
 
+    // W4.6: release power blocker on window close
+    ensurePowerBlocker(false);
+
     if (!isQuitting && store.get('minimizeToTray', true)) {
       event.preventDefault();
       mainWindow?.hide();
@@ -310,6 +314,11 @@ function createWindow(): void {
     if (!validateExternalUrl(url)) {
       event.preventDefault();
     }
+  });
+
+  // W4.6: release power blocker if renderer process crashes
+  mainWindow.webContents.on('render-process-gone', () => {
+    ensurePowerBlocker(false);
   });
 }
 
@@ -361,6 +370,21 @@ export function setupThumbarButtons(): void {
 function updateThumbarPlayState(playing: boolean): void {
   isPlaying = playing;
   setupThumbarButtons();
+}
+
+function ensurePowerBlocker(start: boolean): void {
+  if (start) {
+    if (powerBlockerId === null || !powerSaveBlocker.isStarted(powerBlockerId)) {
+      powerBlockerId = powerSaveBlocker.start('prevent-display-sleep');
+      log.info(`[power] Display sleep blocked (id: ${powerBlockerId})`);
+    }
+  } else {
+    if (powerBlockerId !== null && powerSaveBlocker.isStarted(powerBlockerId)) {
+      powerSaveBlocker.stop(powerBlockerId);
+      log.info(`[power] Display sleep unblocked (id: ${powerBlockerId})`);
+    }
+    powerBlockerId = null;
+  }
 }
 
 export function createTray(): void {
@@ -552,6 +576,11 @@ ipcMain.on('playback:progress', (_, progress: { current: number; total: number }
   }
 });
 
+// W4.6: power save blocker — renderer sends playing state to block/unblock display sleep
+ipcMain.on('power:update', (_event, { playing }: { playing: boolean }) => {
+  ensurePowerBlocker(playing);
+});
+
 // App lifecycle
 
 // Register custom privileged scheme BEFORE app.whenReady()
@@ -713,6 +742,8 @@ app.on('activate', () => {
 
 app.on('before-quit', () => {
   isQuitting = true;
+  // W4.6: release power blocker on before-quit
+  ensurePowerBlocker(false);
 });
 
 // Global exception handler

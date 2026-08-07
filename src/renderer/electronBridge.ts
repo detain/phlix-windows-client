@@ -115,6 +115,8 @@ export function wireElectronBridge(player: BridgePlayer, router: BridgeRouter): 
       // Update thumbar with the known target state (not the potentially-stale player.playing)
       api.updateThumbar?.({ playing: willBePlaying });
       api.setPlaybackProgress?.(player.position, player.duration);
+      // W4.6: block display sleep when playing
+      api.updatePowerBlocker?.(willBePlaying);
     })
   );
 

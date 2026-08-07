@@ -67,4 +67,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // W4.5: taskbar progress bar
   setPlaybackProgress: (current: number, total: number) => ipcRenderer.send('playback:progress', { current, total }),
+
+  // W4.6: power save blocker — prevent display sleep during playback
+  updatePowerBlocker: (playing: boolean) => ipcRenderer.send('power:update', { playing }),
 });

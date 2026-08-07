@@ -40,6 +40,8 @@ declare global {
       updateThumbar: (state: { playing: boolean }) => void;
       /** W4.5: sets the taskbar progress bar (current/total). Pass total=0 to clear. */
       setPlaybackProgress: (current: number, total: number) => void;
+      /** W4.6: prevents display sleep during playback */
+      updatePowerBlocker: (playing: boolean) => void;
     };
   }
 }
