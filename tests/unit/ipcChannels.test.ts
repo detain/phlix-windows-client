@@ -234,6 +234,13 @@ describe('IPC channel pairing', () => {
         'gpu:set-disable-hardware-acceleration',
         'hub:get-config',
         'hub:set-config',
+        'media:next',
+        'media:pause',
+        'media:play',
+        'media:previous',
+        'media:seek-backward',
+        'media:seek-forward',
+        'media:seek-to',
         'notification:show',
         'tray:get-minimize-to-tray'
       ].sort());
@@ -251,6 +258,13 @@ describe('IPC channel pairing', () => {
         'gpu:set-disable-hardware-acceleration',
         'hub:get-config',
         'hub:set-config',
+        'media:next',
+        'media:pause',
+        'media:play',
+        'media:previous',
+        'media:seek-backward',
+        'media:seek-forward',
+        'media:seek-to',
         'notification:show',
         'tray:get-minimize-to-tray'
       ].sort());
@@ -264,24 +278,26 @@ describe('IPC channel pairing', () => {
       expect(mainOn.sort()).toEqual(['minimize-to-tray', 'set-always-on-top', 'tray:set-minimize-to-tray', 'thumbar:update', 'playback:progress', 'power:update'].sort());
     });
 
-    it('main process sends exactly six distinct push channels to renderer', () => {
+    it('main process sends exactly seven distinct push channels to renderer', () => {
       // media-*, open-settings, deeplink:open (unique channel names)
       expect([...new Set(mainWebContentsSend)].sort()).toEqual([
         'deeplink:open',
         'media-forward',
         'media-play-pause',
         'media-rewind',
+        'media-seek-to',
         'media-stop',
         'open-settings'
       ].sort());
     });
 
-    it('preload listens to exactly six push channels from main', () => {
+    it('preload listens to exactly seven push channels from main', () => {
       expect(preloadOnChannels.sort()).toEqual([
         'deeplink:open',
         'media-forward',
         'media-play-pause',
         'media-rewind',
+        'media-seek-to',
         'media-stop',
         'open-settings'
       ].sort());

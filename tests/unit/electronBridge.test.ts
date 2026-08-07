@@ -45,8 +45,15 @@ interface FakeElectronAPI {
   onMediaStop: ReturnType<typeof vi.fn>;
   onMediaRewind: ReturnType<typeof vi.fn>;
   onMediaForward: ReturnType<typeof vi.fn>;
+  onMediaSeekTo: ReturnType<typeof vi.fn>;
   onOpenSettings: ReturnType<typeof vi.fn>;
   onSyncPlayMessage: ReturnType<typeof vi.fn>;
+  mediaPlay: ReturnType<typeof vi.fn>;
+  mediaPause: ReturnType<typeof vi.fn>;
+  mediaPrevious: ReturnType<typeof vi.fn>;
+  mediaNext: ReturnType<typeof vi.fn>;
+  mediaSeekBackward: ReturnType<typeof vi.fn>;
+  mediaSeekForward: ReturnType<typeof vi.fn>;
 }
 
 function makeFakeApi(): FakeElectronAPI {
@@ -71,8 +78,15 @@ function makeFakeApi(): FakeElectronAPI {
     onMediaStop: register('media-stop'),
     onMediaRewind: register('media-rewind'),
     onMediaForward: register('media-forward'),
+    onMediaSeekTo: register('media-seek-to'),
     onOpenSettings: register('open-settings'),
-    onSyncPlayMessage: register('syncplay-message')
+    onSyncPlayMessage: register('syncplay-message'),
+    mediaPlay: vi.fn(),
+    mediaPause: vi.fn(),
+    mediaPrevious: vi.fn(),
+    mediaNext: vi.fn(),
+    mediaSeekBackward: vi.fn(),
+    mediaSeekForward: vi.fn()
   };
 }
 
