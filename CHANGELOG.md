@@ -5,6 +5,14 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — Windows SMTC integration: taskbar thumbnail buttons and progress bar (W4.5)
+
+- **`setThumbarButtons`** — three taskbar thumbnail toolbar buttons (rewind 10 s, play/pause, forward 10 s) that update their icons and enabled state when play state changes. Icons are resized from `build/icon.png` with an `isEmpty()` guard so missing assets are handled gracefully.
+- **`setProgressBar`** — taskbar progress indicator driven by playback position: indeterminate state (2) when a track is loaded but not yet playing, a `0.0–1.0` fraction during playback, and cleared (`-1`) when playback ends.
+- **Two IPC send channels** — `thumbar:update` (feeds `setThumbarButtons` from renderer state) and `playback:progress` (feeds `setProgressBar` with `{ current, total }`).
+- **Fixes** — indeterminate progress now applies immediately on play start rather than only after a seek; `willBePlaying` used instead of reading `player.playing` after the async `play()` call returns, avoiding a race where the button label could reflect stale state.
+- **Total tests: 171 → 183**.
+
 ### Fixed — deep link listener cleanup and router optional chaining (W4.4)
 
 - **`src/renderer/main.ts:165`** — Added optional chaining on
