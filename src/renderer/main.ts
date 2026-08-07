@@ -161,6 +161,17 @@ export async function boot(): Promise<void> {
   // Wire Electron media events to @phlix/ui player store
   installElectronBridge(app);
 
+  // Expose phlix-ui router so overlay components can subscribe to navigation events
+  // This is consumed by PlayerSupplement to detect player route changes without polling
+  const phlixRouter = app.config?.globalProperties?.$router;
+  if (phlixRouter) {
+    Object.defineProperty(window, '__phlixRouter', {
+      value: phlixRouter,
+      writable: false,
+      configurable: true
+    });
+  }
+
   // Flush deep link queue once router is ready
   const router = app.config?.globalProperties?.$router as { isReady?: () => Promise<void>; push: (to: string) => unknown } | undefined;
   if (router) {

@@ -9,12 +9,23 @@
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
 
-import { defineComponent, ref, onMounted, onUnmounted } from 'vue';
+import { defineComponent, ref, onUnmounted } from 'vue';
+import { useRoute } from 'vue-router';
 import SleepTimer from './SleepTimer';
 import PiPButton from './PiPButton';
 
-function isPlayerActive(): boolean {
-  return typeof window !== 'undefined' && /^\/app\/player\//.test(window.location.pathname);
+/**
+ * Retrieves the phlix-ui router that was exposed on the window object
+ * by the main app during boot. This router carries the actual route definitions
+ * including /app/player/:id, allowing this overlay to subscribe to navigation
+ * events from the shared app.
+ */
+function getPhlixRouter() {
+  return (window as unknown as { __phlixRouter?: { afterEach: (cb: (to: RouteLocationNormalized) => void) => () => void } }).__phlixRouter;
+}
+
+interface RouteLocationNormalized {
+  params: Record<string, string>;
 }
 
 /**
@@ -24,19 +35,18 @@ function isPlayerActive(): boolean {
 const PlayerSupplement = defineComponent({
   name: 'PlayerSupplement',
   setup() {
-    const active = ref(isPlayerActive());
+    const route = useRoute();
+    const active = ref(Boolean(route.params.id));
 
-    onMounted(() => {
-      if (typeof window === 'undefined') return;
+    // Subscribe to router navigation events to detect player route changes
+    // without polling window.location.pathname.
+    const router = getPhlixRouter();
+    const unregisterRouter = router?.afterEach((to) => {
+      active.value = Boolean(to.params.id);
+    }) ?? (() => {});
 
-      // Poll since route changes may not always trigger events
-      const interval = setInterval(() => {
-        active.value = isPlayerActive();
-      }, 1000);
-
-      onUnmounted(() => {
-        clearInterval(interval);
-      });
+    onUnmounted(() => {
+      unregisterRouter();
     });
 
     return () => {
