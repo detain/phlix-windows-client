@@ -54,4 +54,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Stable device id
   /** Returns a persistent, per-install device identifier. See main process handler for details. */
   getDeviceId: () => ipcRenderer.invoke('app:get-device-id'),
+
+  // Deep links (W4.4)
+  onDeeplink: (callback: (path: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, path: string) => callback(path);
+    ipcRenderer.on('deeplink:open', listener);
+    return () => ipcRenderer.removeListener('deeplink:open', listener);
+  },
 });
