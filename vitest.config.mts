@@ -25,10 +25,11 @@ export default defineConfig({
         'tests/',
         'dist/',
         '**/*.d.ts',
-        '**/*.config.{ts,mts,js,mjs,cjs}',
-        'src/main/**',
-        'src/preload/**'
-      ]
+        '**/*.config.{ts,mts,js,mjs,cjs}'
+      ],
+      thresholds: {
+        lines: 54
+      }
     }
   },
   resolve: {
