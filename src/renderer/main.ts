@@ -108,15 +108,24 @@ export async function boot(): Promise<void> {
 
   // Read Electron-persisted config defensively so the renderer still boots in a
   // plain browser dev context where window.electronAPI is undefined.
-  const hub = api ? await api.hubGetConfig() : null;
-  const deviceId = api
-    ? await api.getDeviceId()
-    : (() => {
-        const fallbackId = `browser-${crypto.randomUUID()}`;
-        console.warn('[Phlix] Electron bridge unavailable — using per-session device ID:', fallbackId);
-        return fallbackId;
-      })();
-  const serverUrl = api ? await api.getServerUrl() : null;
+  // All three calls are independent and run concurrently for faster first paint.
+  const [hubResult, deviceIdResult, serverUrlResult] = api
+    ? await Promise.all([
+        api.hubGetConfig(),
+        api.getDeviceId(),
+        api.getServerUrl()
+      ])
+    : [null, null, null];
+
+  const hub = hubResult;
+  const deviceId =
+    deviceIdResult ??
+    (() => {
+      const fallbackId = `browser-${crypto.randomUUID()}`;
+      console.warn('[Phlix] Electron bridge unavailable — using per-session device ID:', fallbackId);
+      return fallbackId;
+    })();
+  const serverUrl = serverUrlResult;
   const envUrl = import.meta.env.VITE_PHLIX_SERVER_URL ?? null;
 
   const { app: appMode, apiBase } = resolveAppConfig({ hub, serverUrl, envUrl });
