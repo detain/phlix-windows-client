@@ -24,6 +24,10 @@ Phlix Windows provides a full-featured media server client for Windows, enabling
 - **Settings Management** - Configurable preferences including minimize-to-tray behavior
 - **Hub Mode** - Connect to a Phlix Hub to manage multiple servers, with support for direct-LAN and relay connection modes
 
+## Minimum Server Version
+
+Phlix Windows requires Phlix Media Server **1.1.0** or later. Key features include skip-intro markers, SyncPlay groups, media facets, and schema-driven settings.
+
 ## Prerequisites
 
 Before setting up the project, ensure you have the following installed:
