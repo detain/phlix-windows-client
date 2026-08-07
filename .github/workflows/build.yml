@@ -70,6 +70,9 @@ jobs:
       - name: Type check main process
         run: npx tsc -p tsconfig.main.json --noEmit
 
+      - name: Type check tests
+        run: npx vue-tsc --noEmit -p tsconfig.test.json
+
   test:
     name: Test
     runs-on: ubuntu-latest
