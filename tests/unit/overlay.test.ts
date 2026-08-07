@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import log from 'electron-log';
 
 // Mock vue before importing overlay
 vi.mock('vue', () => {
@@ -84,7 +85,7 @@ describe('overlay entry point', () => {
   it('gives up after MAX_ATTEMPTS and logs console.error', async () => {
     vi.spyOn(document, 'getElementById').mockReturnValue(null);
 
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleErrorSpy = vi.spyOn(log, 'error').mockImplementation(() => {});
 
     vi.useFakeTimers();
 

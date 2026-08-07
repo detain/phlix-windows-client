@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import log from 'electron-log';
 
 // --- Module mocks -----------------------------------------------------------
 // CSS side-effect imports are meaningless under jsdom — stub them out.
@@ -147,7 +148,7 @@ describe('boot (renderer entry)', () => {
   it('falls back to browser defaults when window.electronAPI is undefined', async () => {
     clearElectronApi();
     vi.stubEnv('VITE_PHLIX_SERVER_URL', '');
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const warnSpy = vi.spyOn(log, 'warn').mockImplementation(() => {});
 
     const mod = await import('@/main');
     await mod.boot();
@@ -178,7 +179,7 @@ describe('boot (renderer entry)', () => {
     clearElectronApi();
     vi.stubEnv('VITE_PHLIX_SERVER_URL', 'http://env-server:8096');
 
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const warnSpy = vi.spyOn(log, 'warn').mockImplementation(() => {});
 
     const mod = await import('@/main');
     await mod.boot();
