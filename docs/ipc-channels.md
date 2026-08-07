@@ -25,6 +25,13 @@ pairing test (§ipcChannels.test.ts) asserts against it.
 | `media-forward` | push | none | — | `mainWindow.webContents.send` (line 137) | `onMediaForward` | `src/renderer/electronBridge.ts:127` — `api.onMediaForward()` |
 | `open-settings` | push | none | — | `mainWindow.webContents.send` (line 183) | `onOpenSettings` | `src/renderer/electronBridge.ts:133` — `api.onOpenSettings()` |
 | `deeplink:open` | push | `string` | — | `mainWindow.webContents.send` (line 121) | `onDeeplink` | `src/renderer/main.ts:179` — `api.onDeeplink()` |
+| `media:play` | invoke | none | `boolean` | `media:play` (line 636-638) | `mediaPlay` | `src/renderer/mediaSession.ts:49` — `window.electronAPI?.mediaPlay()` |
+| `media:pause` | invoke | none | `boolean` | `media:pause` (line 640-642) | `mediaPause` | `src/renderer/mediaSession.ts:53` — `window.electronAPI?.mediaPause()` |
+| `media:previous` | invoke | none | `boolean` | `media:previous` (line 644-646) | `mediaPrevious` | `src/renderer/mediaSession.ts:57` — `window.electronAPI?.mediaPrevious()` |
+| `media:next` | invoke | none | `boolean` | `media:next` (line 648-650) | `mediaNext` | `src/renderer/mediaSession.ts:61` — `window.electronAPI?.mediaNext()` |
+| `media:seek-backward` | invoke | none | `boolean` | `media:seek-backward` (line 652-654) | `mediaSeekBackward` | `src/renderer/mediaSession.ts:65` — `window.electronAPI?.mediaSeekBackward()` |
+| `media:seek-forward` | invoke | none | `boolean` | `media:seek-forward` (line 656-658) | `mediaSeekForward` | `src/renderer/mediaSession.ts:69` — `window.electronAPI?.mediaSeekForward()` |
+| `media:seek-to` | invoke | `number` | `boolean` | `media:seek-to` (line 660-662) | `mediaSeekTo` | `src/renderer/mediaSession.ts:74` — `window.electronAPI?.mediaSeekTo(details.seekTime)` |
 | `gpu:get-disable-hardware-acceleration` | invoke | none | `boolean` | `gpu:get-disable-hardware-acceleration` (line 621) | `getDisableHardwareAcceleration` | Not directly called by renderer; preload-only |
 | `gpu:set-disable-hardware-acceleration` | invoke | `boolean` | `void` | `gpu:set-disable-hardware-acceleration` (line 625) | `setDisableHardwareAcceleration` | Not directly called by renderer; preload-only |
 | `gpu:get-feature-status` | invoke | none | `GPUFeatureStatus` | `gpu:get-feature-status` (line 630) | `getGpuFeatureStatus` | Not directly called by renderer; preload-only |
@@ -36,11 +43,11 @@ pairing test (§ipcChannels.test.ts) asserts against it.
 ## Behavioral Tests
 
 The pairing test (`tests/unit/ipcChannels.test.ts`) enforces bidirectional contract
-correctness for all 23 channels (preload invoke → main handle, preload send → main on,
+correctness for all 31 channels (preload invoke → main handle, preload send → main on,
 main webContents.send → preload on).
 
 The `describe('behavioral round-trips')` block covers actual round-trip IPC behavior for
-the 8 invoke channels (Promise-based `ipcRenderer.invoke` / `ipcMain.handle`), verifying
+the 9 invoke channels (Promise-based `ipcRenderer.invoke` / `ipcMain.handle`), verifying
 correct channel + payload dispatch. The 6 send channels are fire-and-forget
 (`ipcRenderer.send` / `ipcMain.on`) and cannot produce a round-trip response — they are
 verified by the pairing test. The 6 push channels (main→renderer via `webContents.send`)
@@ -54,7 +61,7 @@ are verified by the pairing test; listener registration is tested for 3 of them 
 - Invoke channels return `Promise<T>` via `ipcRenderer.invoke`; send channels are fire-and-forget via `ipcRenderer.send`.
 - Push channels (main→renderer) use `webContents.send` in main and `ipcRenderer.on` in preload.
 - Preload bridge methods return cleanup functions for `on*` listeners (returns `() => void`).
-- All 12 invoke channels have matching main-process `ipcMain.handle` handlers.
+- All 19 invoke channels have matching main-process `ipcMain.handle` handlers.
 - All 6 send channels have matching main-process `ipcMain.on` handlers.
 - All 6 push channels have matching preload `ipcRenderer.on` listeners.
 - No `any` payload types exist in any channel definitions.
