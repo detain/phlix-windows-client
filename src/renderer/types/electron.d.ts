@@ -34,6 +34,12 @@ declare global {
       setServerUrl: (url: string) => Promise<void>;
       /** Returns a stable, per-install device identifier. Generated once and persisted to electron-store. */
       getDeviceId: () => Promise<string>;
+      /** Receives deep link paths from the main process (W4.4). Returns cleanup function. */
+      onDeeplink: (callback: (path: string) => void) => () => void;
+      /** W4.5: refreshes the taskbar thumbnail play/pause button tooltip */
+      updateThumbar: (state: { playing: boolean }) => void;
+      /** W4.5: sets the taskbar progress bar (current/total). Pass total=0 to clear. */
+      setPlaybackProgress: (current: number, total: number) => void;
     };
   }
 }

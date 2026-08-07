@@ -12,6 +12,8 @@ import type { App as VueApp } from 'vue';
 // the wiring helper trivially unit-testable with fakes.
 export interface BridgePlayer {
   playing: boolean;
+  position: number;
+  duration: number;
   play: () => void;
   pause: () => void;
   closePlayer: () => void;
@@ -108,6 +110,9 @@ export function wireElectronBridge(player: BridgePlayer, router: BridgeRouter): 
       } else {
         player.play();
       }
+      // W4.5: update thumbar play/pause tooltip and taskbar progress
+      api.updateThumbar?.({ playing: player.playing });
+      api.setPlaybackProgress?.(player.position, player.duration);
     })
   );
 
@@ -120,12 +125,16 @@ export function wireElectronBridge(player: BridgePlayer, router: BridgeRouter): 
   cleanups.push(
     api.onMediaRewind(() => {
       player.seekBy(-SEEK_STEP_SECONDS);
+      // W4.5: position changed — update progress bar
+      api.setPlaybackProgress?.(player.position, player.duration);
     })
   );
 
   cleanups.push(
     api.onMediaForward(() => {
       player.seekBy(SEEK_STEP_SECONDS);
+      // W4.5: position changed — update progress bar
+      api.setPlaybackProgress?.(player.position, player.duration);
     })
   );
 

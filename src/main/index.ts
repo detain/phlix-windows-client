@@ -4,7 +4,7 @@
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
 
-import { app, BrowserWindow, Menu, Tray, ipcMain, shell, nativeImage, dialog, protocol, screen } from 'electron';
+import { app, BrowserWindow, Menu, Tray, ipcMain, shell, nativeImage, dialog, protocol, screen, ThumbarButton } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
@@ -28,6 +28,119 @@ const DEFAULT_HEIGHT = 870;
 // Re-export validateExternalUrl for backwards compatibility
 export { validateExternalUrl };
 
+const KNOWN_HOSTS = new Set(['media', 'play', 'accept-invite', 'server']);
+
+const ID_PATTERN = /^[a-zA-Z0-9-]+$/;
+const TOKEN_PATTERN = /^[a-zA-Z0-9_-]+$/;
+
+// Re-export for unit-testing
+export { parseDeepLinkUrl, extractDeepLinkUrl };
+
+function parseDeepLinkUrl(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+
+    if (parsed.protocol !== 'phlix:') {
+      log.warn(`[deeplink] Invalid protocol: ${parsed.protocol}`);
+      return null;
+    }
+
+    const host = parsed.hostname;
+    if (!host) {
+      log.warn('[deeplink] Empty host');
+      return null;
+    }
+
+    if (!KNOWN_HOSTS.has(host)) {
+      log.warn(`[deeplink] Unknown host: ${host}`);
+      return null;
+    }
+
+    const rawPath = parsed.pathname;
+    if (!rawPath || rawPath === '/') {
+      log.warn(`[deeplink] Empty path for host: ${host}`);
+      return null;
+    }
+
+    // Remove leading slash to get the id/token
+    const value = rawPath.slice(1);
+
+    if (!value) {
+      log.warn(`[deeplink] Empty value after host: ${host}`);
+      return null;
+    }
+
+    // Check for path traversal attempts
+    if (value.includes('..') || value.includes('/')) {
+      log.warn(`[deeplink] Path traversal or extra slash attempt: ${value}`);
+      return null;
+    }
+
+    // Null byte injection check
+    if (value.includes('\x00')) {
+      log.warn(`[deeplink] Null byte in value: ${value}`);
+      return null;
+    }
+
+    // Validate based on host type
+    if (host === 'accept-invite') {
+      if (!TOKEN_PATTERN.test(value)) {
+        log.warn(`[deeplink] Invalid token format: ${value}`);
+        return null;
+      }
+    } else {
+      if (!ID_PATTERN.test(value)) {
+        log.warn(`[deeplink] Invalid id format: ${value}`);
+        return null;
+      }
+    }
+
+    // Build the internal path
+    const routePath = `/${host}/${value}`;
+    return routePath;
+  } catch (err) {
+    log.warn(`[deeplink] Failed to parse URL: ${url} — ${err}`);
+    return null;
+  }
+}
+
+function extractDeepLinkUrl(argv: string[]): string | null {
+  for (const arg of argv) {
+    if (typeof arg === 'string' && arg.startsWith('phlix://')) {
+      return arg;
+    }
+  }
+  return null;
+}
+
+function handleDeepLinkUrl(url: string): void {
+  const path = parseDeepLinkUrl(url);
+  if (!path) return;
+
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('deeplink:open', path);
+  } else {
+    log.warn('[deeplink] mainWindow not available, cannot send deep link');
+  }
+}
+
+function setAsDefaultProtocolClient(): void {
+  if (process.platform === 'win32') {
+    if (app.isPackaged) {
+      app.setAsDefaultProtocolClient('phlix', process.execPath, [`"${process.execPath}"`]);
+    } else {
+      app.setAsDefaultProtocolClient('phlix', process.execPath, [`"${process.execPath}"`]);
+    }
+  }
+}
+
+// Cold start: check if a deep link URL was passed via command line
+const coldStartUrl = extractDeepLinkUrl(process.argv);
+if (coldStartUrl) {
+  // Store it for handling after app is ready
+  log.info(`[deeplink] Cold start URL detected: ${coldStartUrl}`);
+}
+
 // Single-instance lock — ensures only one app window exists at a time.
 // Deep links (W4.4) also arrive through the second-instance handler.
 const gotLock = app.requestSingleInstanceLock();
@@ -35,7 +148,7 @@ if (!gotLock) {
   app.quit();
 }
 
-app.on('second-instance', (_event, _argv, _workingDirectory) => {
+app.on('second-instance', (_event, argv, _workingDirectory) => {
   // Restore and focus the existing window
   if (mainWindow) {
     if (mainWindow.isMinimized()) {
@@ -43,8 +156,11 @@ app.on('second-instance', (_event, _argv, _workingDirectory) => {
     }
     mainWindow.focus();
   }
-  // TODO (W4.4): Deep link routing — parse argv for phlix:// URL
-  // and route it to the renderer via IPC once W4.4 is implemented.
+  // Handle deep link from second-instance (warm start on Windows)
+  const url = extractDeepLinkUrl(argv);
+  if (url) {
+    handleDeepLinkUrl(url);
+  }
 });
 
 const store = new Store<{ minimizeToTray: boolean; windowBounds?: WindowBounds }>();
@@ -52,6 +168,7 @@ const store = new Store<{ minimizeToTray: boolean; windowBounds?: WindowBounds }
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let isQuitting = false;
+let isPlaying = false;
 
 const isDev = process.env.NODE_ENV === 'development' || (!app.isPackaged && !process.env.PHLIX_FORCE_PRODUCTION);
 
@@ -142,6 +259,8 @@ function createWindow(): void {
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show();
     log.info('Main window ready');
+    // W4.5: set up taskbar thumbnail toolbar buttons
+    setupThumbarButtons();
   });
 
   // Handle close to tray
@@ -192,6 +311,56 @@ function createWindow(): void {
       event.preventDefault();
     }
   });
+}
+
+/**
+ * Creates the taskbar thumbnail toolbar buttons (previous track, play/pause, next track).
+ * Called once after createWindow() and updated via thumbar:update IPC events.
+ */
+export function setupThumbarButtons(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+
+  const iconPath = path.join(__dirname, '../../build/icon.png');
+  const baseIcon = nativeImage.createFromPath(iconPath);
+
+  // Fallback: if icon is missing/empty use an empty 1x1 placeholder so buttons
+  // still get set (Windows will just show nothing on the buttons, not crash).
+  const fallbackIcon = nativeImage.createEmpty();
+  const icon = baseIcon.isEmpty() ? fallbackIcon : baseIcon;
+
+  // Build the three buttons: rewind | play-pause | forward (10s seek)
+  const prevIcon = icon.resize({ width: 16, height: 16 });
+  const playPauseIcon = icon.resize({ width: 16, height: 16 });
+  const nextIcon = icon.resize({ width: 16, height: 16 });
+
+  const buttons: ThumbarButton[] = [
+    {
+      tooltip: 'Previous / Rewind 10s',
+      icon: prevIcon,
+      click: () => mainWindow?.webContents.send('media-rewind')
+    },
+    {
+      tooltip: isPlaying ? 'Pause' : 'Play',
+      icon: playPauseIcon,
+      click: () => mainWindow?.webContents.send('media-play-pause')
+    },
+    {
+      tooltip: 'Next / Forward 10s',
+      icon: nextIcon,
+      click: () => mainWindow?.webContents.send('media-forward')
+    }
+  ];
+
+  mainWindow.setThumbarButtons(buttons);
+}
+
+/**
+ * Updates the play/pause button tooltip in the thumbar without rebuilding the
+ * full button array. Called by the thumbar:update IPC handler.
+ */
+function updateThumbarPlayState(playing: boolean): void {
+  isPlaying = playing;
+  setupThumbarButtons();
 }
 
 export function createTray(): void {
@@ -363,6 +532,23 @@ ipcMain.handle('app:get-device-id', () => {
   return deviceId;
 });
 
+// W4.5: thumbar buttons — renderer sends updated play state to refresh play/pause icon
+ipcMain.on('thumbar:update', (_, state: { playing: boolean }) => {
+  updateThumbarPlayState(state.playing);
+});
+
+// W4.5: taskbar progress bar — renderer sends current/total position
+ipcMain.on('playback:progress', (_, progress: { current: number; total: number }) => {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  const { current, total } = progress;
+  if (total > 0 && current < total) {
+    mainWindow.setProgressBar(current / total);
+  } else {
+    // total === 0 or current >= total: clear the progress bar
+    mainWindow.setProgressBar(-1);
+  }
+});
+
 // App lifecycle
 
 // Register custom privileged scheme BEFORE app.whenReady()
@@ -492,9 +678,22 @@ export function setupAppProtocolHandler(): void {
 app.whenReady().then(() => {
   log.info('App ready');
   setupAppProtocolHandler();
+  setAsDefaultProtocolClient();
   createWindow();
   createMenu();
   createTray();
+
+  // Handle cold start deep link
+  if (coldStartUrl) {
+    handleDeepLinkUrl(coldStartUrl);
+  }
+});
+
+// Handle open-url event on macOS
+app.on('open-url', (event, url) => {
+  event.preventDefault();
+  log.info(`[deeplink] open-url event: ${url}`);
+  handleDeepLinkUrl(url);
 });
 
 app.on('window-all-closed', () => {

@@ -61,4 +61,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('deeplink:open', listener);
     return () => ipcRenderer.removeListener('deeplink:open', listener);
   },
+
+  // W4.5: taskbar thumbnail button state (play/pause icon refresh)
+  updateThumbar: (state: { playing: boolean }) => ipcRenderer.send('thumbar:update', state),
+
+  // W4.5: taskbar progress bar
+  setPlaybackProgress: (current: number, total: number) => ipcRenderer.send('playback:progress', { current, total }),
 });
