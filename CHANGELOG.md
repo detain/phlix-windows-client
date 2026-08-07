@@ -5,6 +5,15 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — NSIS perMachine: false (per-user install, no admin required) (W4.8)
+
+- **`package.json` `build.nsis.perMachine`** switched from `true` to `false` — the NSIS
+  installer now installs per-user under `%LOCALAPPDATA%\Programs\Phlix` (electron-builder
+  per-user default) instead of requiring admin rights to write to Program Files.
+- No admin rights are required to install; auto-update (W4.9) works without elevation.
+- **Note:** Logs (`electron-log`) and config (`electron-store`) still live under
+  `%APPDATA%\phlix-windows` — only the install location changed.
+
 ### Added — native notifications with click-action routing (W4.7)
 
 - **`Notification.isSupported()` check** — all notification APIs are gated behind a platform

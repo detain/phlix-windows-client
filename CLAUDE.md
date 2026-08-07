@@ -79,7 +79,7 @@ Routes are NOT defined here — they come from `createPhlixApp` (`@phlix/ui`'s r
 
 ## Build & packaging
 
-- `electron-builder` config lives in `package.json` under `"build"`: `appId: app.phlix.windows`, NSIS (`oneClick: false`, `perMachine: true`) + APPX (`publisher: CN=Phlix`), icon at `build/icon.ico`.
+- `electron-builder` config lives in `package.json` under `"build"`: `appId: app.phlix.windows`, NSIS (`oneClick: false`, `perMachine: false`) + APPX (`publisher: CN=Phlix`), icon at `build/icon.ico`.
 - Main entry shipped is `dist/main/index.js`; preload referenced as `preload.js` next to it (output by `tsc -p tsconfig.main.json`).
 - Logs go to `%APPDATA%\phlix-windows\logs\` via `electron-log`.
 - `dist/` is gitignored and NOT committed — CI (`build.yml`) builds it. `coverage/`, `release/`, and `*.tsbuildinfo` are gitignored too.
