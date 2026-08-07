@@ -36,7 +36,7 @@ components, or stores. It boots `createPhlixApp(config)` and bridges Electron ev
 └─────────────────────────────────────────────────────────┘
 ```
 
-The renderer pins `@phlix/ui` (`github:detain/phlix-ui#v0.98.34`) and `@phlix/contracts`
+The renderer pins `@phlix/ui` (`github:detain/phlix-ui#v0.98.39`) and `@phlix/contracts`
 (`github:detain/phlix-contracts#v0.4.1`). Vue 3, Pinia, and vue-router are peer deps of `@phlix/ui`.
 All screens, navigation, theming, and state come from `@phlix/ui`; this repo owns only the Electron
 shell and the boot/bridge glue.
