@@ -144,4 +144,28 @@ describe('PlayerSupplement', () => {
     // The unregister function from afterEach should have been called
     expect(unregisterMock).toHaveBeenCalledTimes(1);
   });
+
+  it('does not crash and renders nothing when window.__phlixRouter is absent', async () => {
+    // Simulates running outside the Electron shell — e.g. plain browser dev context
+    // where boot() never runs and __phlixRouter is never defined.
+    // When getPhlixRouter() returns undefined, afterEach is skipped (router?.afterEach
+    // short-circuits) and unregisterRouter falls back to a no-op, so unmount is safe.
+    Object.defineProperty(window, '__phlixRouter', {
+      value: undefined,
+      writable: true,
+      configurable: true
+    });
+
+    const wrapper = mount(PlayerSupplement, {
+      global: {
+        stubs: { teleport: true },
+        plugins: [mockRouter]
+      }
+    });
+
+    // Should render nothing — active is false (route has no :id param on /app/servers)
+    expect(wrapper.html()).toBe('');
+    // Must not have fallen back to setInterval polling
+    expect(setIntervalSpy).not.toHaveBeenCalled();
+  });
 });
