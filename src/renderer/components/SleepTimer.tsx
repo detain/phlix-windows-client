@@ -13,6 +13,7 @@ import { usePlayerStore } from '@phlix/ui';
 const PRESETS_MINUTES = [15, 30, 45, 60, 90, 120];
 
 const STORAGE_KEY = 'phlix-sleep-timer';
+const FADE_DURATION_MS = 3000;
 
 interface TimerState {
   endTime: number | null; // Unix ms when timer expires
@@ -67,22 +68,23 @@ const SleepTimer = defineComponent({
     const state = ref<TimerState>(loadState());
     const showMenu = ref(false);
     const isExpired = ref(false);
-    const intervalRef = ref<ReturnType<typeof setInterval> | null>(null);
-    const fadeRef = ref<number>(0);
+    const timeoutRef = ref<ReturnType<typeof setTimeout> | null>(null);
+    const rafRef = ref<number | null>(null);
+    const displayRemaining = ref(0);
 
     // Persist whenever state changes
     watch(state, (newState) => {
       saveState(newState);
     });
 
-    const clearIntervals = () => {
-      if (intervalRef.value) {
-        clearInterval(intervalRef.value);
-        intervalRef.value = null;
+    const clearTimer = () => {
+      if (timeoutRef.value) {
+        clearTimeout(timeoutRef.value);
+        timeoutRef.value = null;
       }
-      if (fadeRef.value) {
-        clearInterval(fadeRef.value);
-        fadeRef.value = 0;
+      if (rafRef.value !== null) {
+        cancelAnimationFrame(rafRef.value);
+        rafRef.value = null;
       }
     };
 
@@ -94,7 +96,7 @@ const SleepTimer = defineComponent({
     };
 
     const cancelTimer = () => {
-      clearIntervals();
+      clearTimer();
       state.value = { endTime: null, totalMinutes: 0 };
       isExpired.value = false;
     };
@@ -102,60 +104,74 @@ const SleepTimer = defineComponent({
     const handleExpire = () => {
       isExpired.value = true;
       state.value = { endTime: null, totalMinutes: 0 };
-      clearIntervals();
-      // Trigger fade-out then pause
+      clearTimer();
+      // Trigger fade-out via CSS transition, then pause
       const videoEl = document.querySelector('video') as HTMLVideoElement | null;
       if (videoEl) {
-        // Fade from current volume to 0 over 3 seconds
         const startVol = videoEl.volume;
-        let elapsed = 0;
-        const fadeStep = 100; // ms per step
-        const steps = 3000 / fadeStep;
-        const volStep = startVol / steps;
-        fadeRef.value = window.setInterval(() => {
-          elapsed += fadeStep;
-          if (elapsed >= 3000) {
-            clearInterval(fadeRef.value);
-            videoEl.volume = startVol; // restore for next play
-            player.pause();
-          } else {
-            videoEl.volume = Math.max(0, startVol - volStep * (elapsed / fadeStep));
-          }
-        }, fadeStep);
+        // Use CSS transition to fade volume over FADE_DURATION_MS
+        videoEl.style.transition = `volume ${FADE_DURATION_MS}ms ease-out`;
+        videoEl.volume = 0;
+        setTimeout(() => {
+          videoEl.style.transition = '';
+          videoEl.volume = startVol; // restore for next play
+          player.pause();
+        }, FADE_DURATION_MS);
       } else {
         player.pause();
       }
     };
 
-    // Check expiry every second
+    // Schedule a single timeout for when the timer expires (no 1Hz polling)
     watch(
       () => state.value.endTime,
       (endTime) => {
         if (!endTime) {
           isExpired.value = false;
-          clearIntervals();
+          clearTimer();
           return;
         }
 
-        const check = () => {
-          const remaining = endTime - Date.now();
-          if (remaining <= 0) {
-            handleExpire();
-          }
-        };
+        const remaining = endTime - Date.now();
+        if (remaining <= 0) {
+          // Timer already expired while page was closed — fire immediately
+          handleExpire();
+          return;
+        }
 
-        intervalRef.value = setInterval(check, 1000);
+        clearTimer();
+        timeoutRef.value = setTimeout(handleExpire, remaining);
       },
       { immediate: true }
     );
 
-    onUnmounted(() => {
-      clearIntervals();
-    });
+    // Update countdown display via RAF only when the timer panel is visible
+    const updateCountdown = () => {
+      if (!state.value.endTime || (!showMenu.value && !isExpired.value)) {
+        rafRef.value = null;
+        return;
+      }
+      displayRemaining.value = Math.max(0, state.value.endTime - Date.now());
+      rafRef.value = requestAnimationFrame(updateCountdown);
+    };
 
-    const remaining = computed((): number => {
-      if (!state.value.endTime) return 0;
-      return Math.max(0, state.value.endTime - Date.now());
+    // Start/stop RAF loop based on visibility
+    watch(
+      [() => state.value.endTime, showMenu, isExpired],
+      ([endTime, menuVisible, expired]) => {
+        if (endTime && (menuVisible || expired)) {
+          if (rafRef.value === null) {
+            displayRemaining.value = Math.max(0, endTime - Date.now());
+            rafRef.value = requestAnimationFrame(updateCountdown);
+          }
+        } else {
+          clearTimer(); // This also clears rafRef via clearTimer
+        }
+      }
+    );
+
+    onUnmounted(() => {
+      clearTimer();
     });
 
     const isActive = computed((): boolean => {
@@ -193,7 +209,7 @@ const SleepTimer = defineComponent({
             >
               <span style={{ fontSize: '16px' }}>🌙</span>
               <span style={{ fontFamily: 'monospace', letterSpacing: '0.05em' }}>
-                {formatCountdown(remaining.value)}
+                {formatCountdown(displayRemaining.value)}
               </span>
               <button
                 onClick={cancelTimer}
