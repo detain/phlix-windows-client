@@ -35,6 +35,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('media-forward', callback);
     return () => ipcRenderer.removeListener('media-forward', callback);
   },
+  onMediaSeekTo: (callback: (time: number) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, time: number) => callback(time);
+    ipcRenderer.on('media-seek-to', listener);
+    return () => ipcRenderer.removeListener('media-seek-to', listener);
+  },
+
+  // W4.5: SMTC action handlers (navigator.mediaSession)
+  mediaPlay: () => ipcRenderer.invoke('media:play'),
+  mediaPause: () => ipcRenderer.invoke('media:pause'),
+  mediaPrevious: () => ipcRenderer.invoke('media:previous'),
+  mediaNext: () => ipcRenderer.invoke('media:next'),
+  mediaSeekBackward: () => ipcRenderer.invoke('media:seek-backward'),
+  mediaSeekForward: () => ipcRenderer.invoke('media:seek-forward'),
+  mediaSeekTo: (time: number) => ipcRenderer.invoke('media:seek-to', time),
 
   // Settings
   onOpenSettings: (callback: () => void) => {

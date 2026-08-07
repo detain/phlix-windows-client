@@ -26,10 +26,12 @@ import '@phlix/ui/fonts.css';
 import { resolveAppConfig } from './resolveConfig';
 import log from 'electron-log';
 import { installElectronBridge } from './electronBridge';
+import { setupMediaSession } from './mediaSession';
 
 /** Module-level cleanup references — cleared after each run to support re-boot. */
 let _cleanupBridge: (() => void) | null = null;
 let _cleanupDeeplink: (() => void) | null = null;
+let _cleanupMediaSession: (() => void) | null = null;
 
 /**
  * Runs all registered renderer teardown functions (bridge, deeplink listeners).
@@ -40,6 +42,8 @@ function cleanupRenderer(): void {
   _cleanupBridge = null;
   _cleanupDeeplink?.();
   _cleanupDeeplink = null;
+  _cleanupMediaSession?.();
+  _cleanupMediaSession = null;
 }
 
 /**
@@ -184,6 +188,9 @@ export async function boot(): Promise<void> {
 
   // Wire Electron media events to @phlix/ui player store
   _cleanupBridge = installElectronBridge(app);
+
+  // W4.5: Set up navigator.mediaSession for SMTC integration
+  _cleanupMediaSession = setupMediaSession();
 
   // Expose phlix-ui router so overlay components can subscribe to navigation events
   // This is consumed by PlayerSupplement to detect player route changes without polling

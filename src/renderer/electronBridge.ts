@@ -6,6 +6,7 @@
 
 import { usePlayerStore } from '@phlix/ui';
 import type { App as VueApp } from 'vue';
+import { updateMeta } from './mediaSession';
 
 // Minimal structural types for the pieces of the phlix-ui player store and the
 // vue-router instance that the bridge actually touches. Keeping them local makes
@@ -21,6 +22,14 @@ export interface BridgePlayer {
   seekBy: (delta: number) => void;
   /** Absolute seek to position in seconds. */
   seekTo: (position: number) => void;
+  /** Track title for SMTC metadata. */
+  title?: string;
+  /** Track artist for SMTC metadata. */
+  artist?: string;
+  /** Album name for SMTC metadata. */
+  album?: string;
+  /** Album artwork for SMTC metadata. */
+  artwork?: { src: string }[];
 }
 
 export interface BridgeRouter {
@@ -117,6 +126,8 @@ export function wireElectronBridge(player: BridgePlayer, router: BridgeRouter): 
       api.setPlaybackProgress?.(player.position, player.duration);
       // W4.6: block display sleep when playing
       api.updatePowerBlocker?.(willBePlaying);
+      // W4.5: update SMTC metadata
+      updateMeta(player);
     })
   );
 
@@ -137,6 +148,14 @@ export function wireElectronBridge(player: BridgePlayer, router: BridgeRouter): 
   cleanups.push(
     api.onMediaForward(() => {
       player.seekBy(SEEK_STEP_SECONDS);
+      // W4.5: position changed — update progress bar
+      api.setPlaybackProgress?.(player.position, player.duration);
+    })
+  );
+
+  cleanups.push(
+    api.onMediaSeekTo((time: number) => {
+      player.seekTo(time);
       // W4.5: position changed — update progress bar
       api.setPlaybackProgress?.(player.position, player.duration);
     })

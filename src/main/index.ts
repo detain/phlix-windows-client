@@ -631,6 +631,36 @@ ipcMain.handle('gpu:get-feature-status', () => {
   return app.getGPUFeatureStatus();
 });
 
+// W4.5: SMTC action handlers from navigator.mediaSession
+// These dispatch back to the renderer which owns the player state
+ipcMain.handle('media:play', () => {
+  mainWindow?.webContents.send('media-play-pause');
+});
+
+ipcMain.handle('media:pause', () => {
+  mainWindow?.webContents.send('media-play-pause');
+});
+
+ipcMain.handle('media:previous', () => {
+  mainWindow?.webContents.send('media-stop');
+});
+
+ipcMain.handle('media:next', () => {
+  mainWindow?.webContents.send('media-stop');
+});
+
+ipcMain.handle('media:seek-backward', () => {
+  mainWindow?.webContents.send('media-rewind');
+});
+
+ipcMain.handle('media:seek-forward', () => {
+  mainWindow?.webContents.send('media-forward');
+});
+
+ipcMain.handle('media:seek-to', (_, time: number) => {
+  mainWindow?.webContents.send('media-seek-to', time);
+});
+
 // App lifecycle
 
 // Register custom privileged scheme BEFORE app.whenReady()

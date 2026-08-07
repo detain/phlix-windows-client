@@ -27,6 +27,8 @@ declare global {
       onMediaStop: (callback: () => void) => () => void;
       onMediaRewind: (callback: () => void) => () => void;
       onMediaForward: (callback: () => void) => () => void;
+      /** W4.5: receives media-seek-to event from main process (SMTC seek-to action) */
+      onMediaSeekTo: (callback: (time: number) => void) => () => void;
       onOpenSettings: (callback: () => void) => () => void;
       hubGetConfig: () => Promise<HubConfig>;
       hubSetConfig: (config: { hubUrl?: string; activeServerId?: string; connectionMode?: string }) => Promise<void>;
@@ -50,6 +52,20 @@ declare global {
       setDisableHardwareAcceleration: (value: boolean) => Promise<void>;
       /** W4.12: gets GPU feature status for diagnostics */
       getGpuFeatureStatus: () => Promise<Electron.GPUFeatureStatus>;
+      /** W4.5: SMTC action handler - play */
+      mediaPlay: () => Promise<void>;
+      /** W4.5: SMTC action handler - pause */
+      mediaPause: () => Promise<void>;
+      /** W4.5: SMTC action handler - previous track (stop) */
+      mediaPrevious: () => Promise<void>;
+      /** W4.5: SMTC action handler - next track (stop) */
+      mediaNext: () => Promise<void>;
+      /** W4.5: SMTC action handler - seek backward */
+      mediaSeekBackward: () => Promise<void>;
+      /** W4.5: SMTC action handler - seek forward */
+      mediaSeekForward: () => Promise<void>;
+      /** W4.5: SMTC action handler - seek to position */
+      mediaSeekTo: (time: number) => Promise<void>;
     };
   }
 }
