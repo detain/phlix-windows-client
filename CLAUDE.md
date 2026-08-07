@@ -4,6 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Electron + Vue 3 + TypeScript desktop client for Phlix Media Server. The renderer is a **thin consumer** of the shared `@phlix/ui` Vue app (all screens/stores/routing come from `@phlix/ui`; this repo only owns the Electron shell + the boot/bridge glue). Packaged as NSIS + APPX via `electron-builder`. Repo: `git@github.com:detain/phlix-windows-client.git`.
 
+*Note: `.tsx` files in this repo are Vue JSX/TSX compiled by `@vitejs/plugin-vue-jsx`, NOT React. Despite the `.tsx` extension and some JSX syntax, they are Vue components. This has confused every reader so far — now you know.*
+
 ## Commands
 
 ```bash
@@ -53,6 +55,11 @@ Routes are NOT defined here — they come from `createPhlixApp` (`@phlix/ui`'s r
 ## Conventions
 
 - **Thin consumer**: the renderer owns ZERO UI. All screens, stores, theming, and routing live in `@phlix/ui`. Do not re-add local pages/components/stores — extend `@phlix/ui` upstream and bump the pinned version instead.
+
+  This rule was violated: roughly 1,900 lines of local UI accumulated across 14 components, 2 screens, 1 page and 1 store. Phase W2 deleted all of them. A rule with a scar attached is followed; a bare rule is not.
+
+  Before adding any component to `src/renderer/` or `src/components/`, check `node_modules/@phlix/ui/src/` — the component likely already exists upstream.
+
 - **Device identity** via `@phlix/contracts` `buildPhlixHeaders({deviceId, deviceName:'Phlix for Windows', deviceType:'windows'})`. No token/sessionId is passed here — `@phlix/ui`'s ApiClient owns `Authorization`/session.
 - **App-mode + apiBase** are resolved once in `resolveAppConfig` (hub vs direct server). Persisted serverUrl comes from `app:get-server-url`; the stable deviceId from `app:get-device-id`.
 - **Electron → player bridge**: Electron IPC events are bridged to `@phlix/ui`'s `usePlayerStore` + router in `electronBridge.ts`, never directly to UI. Add new media commands there.

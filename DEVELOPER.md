@@ -41,6 +41,8 @@ The renderer pins `@phlix/ui` (`github:detain/phlix-ui#v0.98.34`) and `@phlix/co
 All screens, navigation, theming, and state come from `@phlix/ui`; this repo owns only the Electron
 shell and the boot/bridge glue.
 
+Both are pinned by GitHub tag — upstream master changes are inert until both the tag and the pin move.
+
 ### Main Process (`src/main/index.ts`)
 
 The main process is responsible for:
