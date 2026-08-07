@@ -25,12 +25,27 @@ pairing test (§ipcChannels.test.ts) asserts against it.
 | `media-forward` | push | none | — | `mainWindow.webContents.send` (line 137) | `onMediaForward` | `src/renderer/electronBridge.ts:127` — `api.onMediaForward()` |
 | `open-settings` | push | none | — | `mainWindow.webContents.send` (line 183) | `onOpenSettings` | `src/renderer/electronBridge.ts:133` — `api.onOpenSettings()` |
 | `deeplink:open` | push | `string` | — | `mainWindow.webContents.send` (line 121) | `onDeeplink` | `src/renderer/main.ts:179` — `api.onDeeplink()` |
+| `gpu:get-disable-hardware-acceleration` | invoke | none | `boolean` | `gpu:get-disable-hardware-acceleration` (line 621) | `getDisableHardwareAcceleration` | Not directly called by renderer; preload-only |
+| `gpu:set-disable-hardware-acceleration` | invoke | `boolean` | `void` | `gpu:set-disable-hardware-acceleration` (line 625) | `setDisableHardwareAcceleration` | Not directly called by renderer; preload-only |
+| `gpu:get-feature-status` | invoke | none | `GPUFeatureStatus` | `gpu:get-feature-status` (line 630) | `getGpuFeatureStatus` | Not directly called by renderer; preload-only |
+| `notification:show` | invoke | `{ title: string; body: string; clickAction?: string }` | `boolean` | `notification:show` (line 599) | `showNotification` | Not directly called by renderer; preload-only |
+| `thumbar:update` | send | `{ playing: boolean }` | — | `thumbar:update` (line 574) | `updateThumbar` | `src/renderer/electronBridge.ts:116` — `api.updateThumbar?.({ playing: willBePlaying })` |
+| `playback:progress` | send | `{ current: number; total: number }` | — | `playback:progress` (line 579) | `setPlaybackProgress` | `src/renderer/electronBridge.ts:117,133,141` — `api.setPlaybackProgress?.(player.position, player.duration)` |
+| `power:update` | send | `{ playing: boolean }` | — | `power:update` (line 594) | `updatePowerBlocker` | `src/renderer/electronBridge.ts:119` — `api.updatePowerBlocker?.(willBePlaying)` |
 
 ## Behavioral Tests
 
-All 16 channels have round-trip behavioral tests in `tests/unit/ipcChannels.test.ts`
-under `describe('behavioral round-trips')`.  The 17th channel (`deeplink:open`) is
-verified by the pairing test only.
+The pairing test (`tests/unit/ipcChannels.test.ts`) enforces bidirectional contract
+correctness for all 23 channels (preload invoke → main handle, preload send → main on,
+main webContents.send → preload on).
+
+The `describe('behavioral round-trips')` block covers actual round-trip IPC behavior for
+the 8 invoke channels (Promise-based `ipcRenderer.invoke` / `ipcMain.handle`), verifying
+correct channel + payload dispatch. The 6 send channels are fire-and-forget
+(`ipcRenderer.send` / `ipcMain.on`) and cannot produce a round-trip response — they are
+verified by the pairing test. The 6 push channels (main→renderer via `webContents.send`)
+are verified by the pairing test; listener registration is tested for 3 of them in the
+`push channels` block. The `deeplink:open` channel is verified by the pairing test only.
 
 ## Notes
 
@@ -39,7 +54,7 @@ verified by the pairing test only.
 - Invoke channels return `Promise<T>` via `ipcRenderer.invoke`; send channels are fire-and-forget via `ipcRenderer.send`.
 - Push channels (main→renderer) use `webContents.send` in main and `ipcRenderer.on` in preload.
 - Preload bridge methods return cleanup functions for `on*` listeners (returns `() => void`).
-- All 8 invoke channels have matching main-process `ipcMain.handle` handlers.
-- All 3 send channels have matching main-process `ipcMain.on` handlers.
+- All 12 invoke channels have matching main-process `ipcMain.handle` handlers.
+- All 6 send channels have matching main-process `ipcMain.on` handlers.
 - All 6 push channels have matching preload `ipcRenderer.on` listeners.
 - No `any` payload types exist in any channel definitions.
