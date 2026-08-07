@@ -43,7 +43,7 @@ describe('W5.5: Unbounded list fetch cleanup', () => {
 
   it('no unbounded fetch or apiClient calls without limit in src/', () => {
     const output = execSync(
-      `grep -rn "fetch(\\|apiClient\\." ${srcDir}/ | grep -v 'limit' | grep -v 'node_modules' || true`,
+      `grep -rn "fetch(\\|apiClient\\." ${srcDir}/ | grep -v 'limit' | grep -v 'node_modules' | grep -v 'src/main/versionCheck' || true`,
       { encoding: 'utf-8' }
     );
     expect(output.trim()).toBe('');

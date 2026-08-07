@@ -65,6 +65,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getServerUrl: () => ipcRenderer.invoke('app:get-server-url'),
   setServerUrl: (url: string) => ipcRenderer.invoke('app:set-server-url', url),
 
+  // W7.6: runtime server version enforcement (1.1.0 minimum)
+  checkServerVersion: (apiBase: string) => ipcRenderer.invoke('app:check-server-version', { apiBase }),
+
   // Stable device id
   /** Returns a persistent, per-install device identifier. See main process handler for details. */
   getDeviceId: () => ipcRenderer.invoke('app:get-device-id'),

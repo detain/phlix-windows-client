@@ -159,6 +159,21 @@ export async function boot(): Promise<void> {
 
   const { app: appMode, apiBase } = resolveAppConfig({ hub, serverUrl, envUrl });
 
+  // W7.6: Enforce minimum server version (1.1.0) before mounting the renderer.
+  // Design decision: fail-open for unknown servers. Pre-1.1.0 servers that don't
+  // implement the /api/v1/server/version endpoint may still work for basic features.
+  // Logging a warning and allowing boot to continue is the pragmatic choice — the
+  // alternative (blocking boot on an unknown server) would break existing deployments.
+  if (api) {
+    const versionOk = await api.checkServerVersion(apiBase);
+    if (!versionOk) {
+      // Server version is too low — the main process has already logged a descriptive error.
+      // Abort the boot rather than showing a broken UI to the user.
+      log.error('[Boot] Server version check failed — aborting boot');
+      return;
+    }
+  }
+
   const deviceHeaders = buildPhlixHeaders({
     deviceId,
     deviceName: 'Phlix for Windows',

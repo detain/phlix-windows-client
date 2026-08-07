@@ -41,6 +41,17 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Rotting inventory files removed** — `src/components/`, `src/pages/`, and `src/stores/` directories (all emptied during W2 dead-code deletion) were removed from the project tree and the README directory tree was updated accordingly.
 - **Total tests: 245** (no behavioral change).
 
+### Added — W7.6: Runtime server version enforcement (1.1.0 minimum at boot)
+
+- **`src/main/versionCheck.ts` added** — `parseServerVersion(version)` parses semver strings into `{major, minor, patch}`; `checkMinServerVersion(apiBase)` queries `GET /api/v1/server/version`, compares the returned version semantically against `1.1.0`, and returns `false` only when the server explicitly reports a version below minimum. Fails open for old servers (pre-1.1.0) that don't implement the version endpoint — a warning is logged and boot continues.
+- **`app:check-server-version` IPC channel added** — `src/main/index.ts` now exposes `checkMinServerVersion` over IPC so the renderer can call it during the boot sequence.
+- **`checkServerVersion(apiBase)` added to `window.electronAPI`** — renderer-facing API typed in `src/renderer/types/electron.d.ts`.
+- **Boot-sequence integration** — `src/renderer/main.ts:boot()` now calls `api.checkServerVersion(apiBase)` after `resolveAppConfig` resolves `apiBase` but before `createPhlixApp()` / `app.mount()`. If the check fails the boot aborts with a descriptive error log.
+- **Design decision documented** — a comment in `src/renderer/main.ts` near the version check and in `versionCheck.ts` explains the fail-open rationale: pre-1.1.0 servers may still work for basic features, and blocking boot on an unknown server would break existing deployments unnecessarily.
+- **`tests/unit/versionCheck.test.ts` added** — 18 tests covering: `parseServerVersion` (7 cases including malformed input), `checkMinServerVersion` (11 cases: >= 1.1.0 → true, < 1.1.0 → false, network error → fail-open, HTTP error → fail-open, missing version field → fail-open, malformed JSON → fail-open, trailing slash stripped, nested `data.version` field).
+- **`CHANGELOG.md` line 34 corrected** — "docs: state and enforce" changed to "docs: state" since enforcement is being added here, not previously.
+- **Total tests: 245 → 263**.
+
 ### Added — electron-builder files allow-list, asar packaging, and sourcemap disabled (W4.11)
 
 - **`electron-builder` files allow-list added** — `package.json` `build.files` now lists

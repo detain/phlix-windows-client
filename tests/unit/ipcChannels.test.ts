@@ -224,6 +224,7 @@ describe('IPC channel pairing', () => {
     it('preload exposes the expected number of invoke channels', () => {
       // Update this count when new channels are added
       expect(preloadInvoke.sort()).toEqual([
+        'app:check-server-version',
         'app:get-device-id',
         'app:get-server-url',
         'app:set-server-url',
@@ -248,6 +249,7 @@ describe('IPC channel pairing', () => {
 
     it('main process registers the expected number of handle channels', () => {
       expect(mainHandle.sort()).toEqual([
+        'app:check-server-version',
         'app:get-device-id',
         'app:get-server-url',
         'app:set-server-url',

@@ -11,6 +11,7 @@ import * as path from 'path';
 import { randomUUID } from 'crypto';
 import { isPathSafe } from './pathUtils';
 import { validateExternalUrl } from './urlValidator';
+import { checkMinServerVersion } from './versionCheck';
 import log from 'electron-log';
 import Store from 'electron-store';
 
@@ -552,6 +553,11 @@ ipcMain.handle('app:get-server-url', () => {
 
 ipcMain.handle('app:set-server-url', (_, url: string) => {
   store.set('serverUrl', url);
+});
+
+// W7.6: runtime server version enforcement — verify server meets minimum version before boot completes
+ipcMain.handle('app:check-server-version', async (_, { apiBase }: { apiBase: string }) => {
+  return checkMinServerVersion(apiBase);
 });
 
 /**

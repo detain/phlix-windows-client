@@ -87,7 +87,8 @@ describe('boot (renderer entry)', () => {
         connectionMode: 'hub'
       })),
       getDeviceId: vi.fn(async () => 'device-abc'),
-      getServerUrl: vi.fn(async () => null)
+      getServerUrl: vi.fn(async () => null),
+      checkServerVersion: vi.fn(async () => true)
     };
     setElectronApi(api);
 
@@ -99,6 +100,7 @@ describe('boot (renderer entry)', () => {
     expect(api.hubGetConfig).toHaveBeenCalled();
     expect(api.getDeviceId).toHaveBeenCalled();
     expect(api.getServerUrl).toHaveBeenCalled();
+    expect(api.checkServerVersion).toHaveBeenCalled();
 
     expect(buildPhlixHeaders).toHaveBeenCalledWith({
       deviceId: 'device-abc',
@@ -132,7 +134,8 @@ describe('boot (renderer entry)', () => {
         connectionMode: 'direct'
       })),
       getDeviceId: vi.fn(async () => 'device-xyz'),
-      getServerUrl: vi.fn(async () => 'http://my-server:8096')
+      getServerUrl: vi.fn(async () => 'http://my-server:8096'),
+      checkServerVersion: vi.fn(async () => true)
     };
     setElectronApi(api);
 
@@ -215,7 +218,8 @@ describe('boot (renderer entry)', () => {
       hubGetConfig: vi.fn(async () => ({ hubUrl: null, activeServerId: null, connectionMode: 'direct' })),
       getDeviceId: vi.fn(async () => 'device-1'),
       getServerUrl: vi.fn(async () => null),
-      setServerUrl: vi.fn(async () => {})
+      setServerUrl: vi.fn(async () => {}),
+      checkServerVersion: vi.fn(async () => true)
     };
     setElectronApi(api);
 

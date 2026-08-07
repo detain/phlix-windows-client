@@ -66,6 +66,8 @@ declare global {
       mediaSeekForward: () => Promise<void>;
       /** W4.5: SMTC action handler - seek to position */
       mediaSeekTo: (time: number) => Promise<void>;
+      /** W7.6: runtime server version enforcement — checks server meets minimum 1.1.0 */
+      checkServerVersion: (apiBase: string) => Promise<boolean>;
     };
   }
 }
