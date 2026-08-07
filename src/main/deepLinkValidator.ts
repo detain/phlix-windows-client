@@ -18,10 +18,11 @@ const HOST_ROUTE_MAP: Record<string, string> = {
 };
 
 /**
- * Validates an alphanumeric UUID (8-4-4-4-12 format).
+ * Validates a media ID (alphanumeric + dash, matching plan grammar).
+ * Grammar: [a-zA-Z0-9-]+
  */
-function isValidUuid(id: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+function isValidMediaId(id: string): boolean {
+  return /^[a-zA-Z0-9-]+$/.test(id);
 }
 
 /**
@@ -99,9 +100,9 @@ export function parseDeepLink(url: string): DeepLinkRoute | null {
       return null;
     }
   } else {
-    // ID: UUID format
-    if (!isValidUuid(pathSegment)) {
-      log.warn(`[deeplink] Invalid UUID for ${host}: ${pathSegment}`);
+    // ID: alphanumeric + dash (matching plan grammar)
+    if (!isValidMediaId(pathSegment)) {
+      log.warn(`[deeplink] Invalid ID for ${host}: ${pathSegment}`);
       return null;
     }
   }
