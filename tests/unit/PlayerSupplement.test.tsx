@@ -9,35 +9,40 @@ import { mount, VueWrapper } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import type { ComponentPublicInstance } from 'vue';
 import { createRouter, createMemoryHistory } from 'vue-router';
+import type { RouteLocationNormalized } from 'vue-router';
 import PlayerSupplement from '@/components/PlayerSupplement';
 
 vi.mock('@/components/SleepTimer', () => ({ default: { template: '<div class="sleep-timer-mock" />' } }));
 vi.mock('@/components/PiPButton', () => ({ default: { template: '<div class="pip-button-mock" />' } }));
 
 // Callback storage for afterEach
-const afterEachCallbacks: Array<(to: { params: Record<string, string> }) => void> = [];
-const unregisterMock = vi.fn();
+const afterEachCallbacks: Array<(to: RouteLocationNormalized) => void> = [];
+const unregisterMock = vi.fn(() => {});
 
 const mockRouter = createRouter({
   history: createMemoryHistory(),
   routes: [
-    { path: '/app/player/:id', component: { template: '<div>Player</div>' } }
+    { path: '/app/player/:id', component: { template: '<div>Player</div>' } },
+    // Non-player routes - renders nothing (active will be false since no :id param)
+    { path: '/app/servers', component: { template: '<div>Servers</div>' } },
+    { path: '/', component: { template: '<div>Root</div>' } }
   ]
 });
 
-// Wrap afterEach to capture callbacks while preserving router functionality
-const originalAfterEach = mockRouter.afterEach.bind(mockRouter);
-mockRouter.afterEach = (cb: (to: { params: Record<string, string> }) => void) => {
+// Wrap afterEach to capture callbacks and return unregisterMock for cleanup verification
+mockRouter.afterEach = ((cb: (to: RouteLocationNormalized) => void) => {
   afterEachCallbacks.push(cb);
-  return originalAfterEach(cb);
-};
+  return unregisterMock;
+}) as typeof mockRouter.afterEach;
 
 describe('PlayerSupplement', () => {
   let setIntervalSpy: ReturnType<typeof vi.spyOn>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     afterEachCallbacks.length = 0;
     unregisterMock.mockClear().mockReturnValue(undefined);
+    // Reset router to root to ensure clean state
+    await mockRouter.push('/');
     // Spy on setInterval to verify it's never called
     setIntervalSpy = vi.spyOn(global, 'setInterval').mockImplementation(() => 1);
     // Set up window.__phlixRouter for the component
@@ -92,7 +97,11 @@ describe('PlayerSupplement', () => {
   });
 
   it('reacts to navigation synchronously with no timer', async () => {
-    // Start on non-player route
+    // Reset router to root to ensure clean state before starting
+    await mockRouter.push('/');
+    await mockRouter.isReady();
+
+    // Now start on non-player route
     mockRouter.push('/app/servers');
     await mockRouter.isReady();
 
@@ -104,8 +113,13 @@ describe('PlayerSupplement', () => {
     });
     expect(wrapper.html()).toBe('');
 
-    // Simulate navigation to player route
-    mockRouter.push('/app/player/456');
+    // Simulate navigation to player route - afterEach fires synchronously during push
+    await mockRouter.push('/app/player/456');
+    await mockRouter.isReady();
+
+    // Trigger the stored callback to simulate afterEach invocation
+    const toRoute: RouteLocationNormalized = { params: { id: '456' } } as RouteLocationNormalized;
+    afterEachCallbacks.forEach((cb) => cb(toRoute));
     await nextTick();
 
     // Overlay should appear immediately without any timer delay

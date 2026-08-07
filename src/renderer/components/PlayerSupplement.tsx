@@ -10,7 +10,7 @@
  */
 
 import { defineComponent, ref, onUnmounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, type RouteLocationNormalized } from 'vue-router';
 import SleepTimer from './SleepTimer';
 import PiPButton from './PiPButton';
 
@@ -19,13 +19,13 @@ import PiPButton from './PiPButton';
  * by the main app during boot. This router carries the actual route definitions
  * including /app/player/:id, allowing this overlay to subscribe to navigation
  * events from the shared app.
+ *
+ * The router's afterEach callback receives vue-router's RouteLocationNormalized.
+ * We only read the `params.id` field needed to detect player activation;
+ * other route fields are intentionally ignored.
  */
 function getPhlixRouter() {
   return (window as unknown as { __phlixRouter?: { afterEach: (cb: (to: RouteLocationNormalized) => void) => () => void } }).__phlixRouter;
-}
-
-interface RouteLocationNormalized {
-  params: Record<string, string>;
 }
 
 /**
