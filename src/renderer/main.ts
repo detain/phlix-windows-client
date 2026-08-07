@@ -127,7 +127,9 @@ export async function boot(): Promise<void> {
 
   // Read Electron-persisted config defensively so the renderer still boots in a
   // plain browser dev context where window.electronAPI is undefined.
-  // All three calls are independent and run concurrently for faster first paint.
+  // Parallelize three independent IPC calls to minimize first-paint latency.
+  // Running them concurrently vs sequentially shaves ~2/3 of the IPC round-trip time.
+  const bootStart = performance.now();
   const [hubResult, deviceIdResult, serverUrlResult] = api
     ? await Promise.all([
         api.hubGetConfig(),
@@ -135,6 +137,8 @@ export async function boot(): Promise<void> {
         api.getServerUrl()
       ])
     : [null, null, null];
+  const bootEnd = performance.now();
+  log.info(`[Boot] IPC parallelization: first paint data loaded in ${(bootEnd - bootStart).toFixed(1)}ms`);
 
   const hub = hubResult;
   const deviceId =
