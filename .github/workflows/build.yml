@@ -42,7 +42,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run lint
         run: npm run lint
@@ -62,7 +62,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Type check renderer
         run: npx vue-tsc --noEmit
@@ -84,16 +84,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
-      - name: Cache node_modules
-        uses: actions/cache@v5
-        id: cache-node-modules
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ hashFiles('package.json') }}
-
       - name: Install dependencies
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
-        run: npm install
+        run: npm ci
 
       - name: Build app
         run: npm run build
@@ -120,15 +112,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
-      - name: Cache node_modules
-        uses: actions/cache@v5
-        id: cache-node-modules
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ hashFiles('package.json') }}
-
       - name: Install dependencies
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm ci
 
       - name: Install Playwright Chromium
@@ -168,16 +152,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
-      - name: Cache node_modules
-        uses: actions/cache@v5
-        id: cache-node-modules
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ hashFiles('package.json') }}
-
       - name: Install dependencies
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
-        run: npm install
+        run: npm ci
 
       - name: Build renderer
         run: npm run build:vite
