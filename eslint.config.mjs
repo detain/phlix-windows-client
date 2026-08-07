@@ -46,14 +46,18 @@ export default tseslint.config(
     },
   },
   {
-    // Electron main + preload legitimately log to the terminal / electron-log.
+    // Electron main + preload: no-console is 'error' in the renderer but OFF here because
+    // these processes use electron-log for structured logging (file + console transport).
+    // console.error/warn remain acceptable for fatal startup failures before log is ready.
     files: ['src/main/**', 'src/preload/**'],
     rules: {
       'no-console': 'off',
     },
   },
   {
-    // Build scripts legitimately log to the terminal.
+    // Build scripts (e.g. check-assets, assert-preload): these are CLI tools that run in
+    // the terminal during the build process — console output is their primary feedback
+    // mechanism, not electron-log, so the console restriction does not apply.
     files: ['scripts/**'],
     rules: {
       'no-console': 'off',
