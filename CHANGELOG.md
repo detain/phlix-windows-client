@@ -5,6 +5,32 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — electron-builder files allow-list, asar packaging, and sourcemap disabled (W4.11)
+
+- **`electron-builder` files allow-list added** — `package.json` `build.files` now lists
+  `["dist/**", "build/**", "package.json"]`, explicitly controlling which files are included
+  in the packaged app and excluding everything else from the asar archive.
+- **`asar: true`, `npmRebuild: false`** — asar packaging is enabled and npm native rebuilds
+  are disabled in the electron-builder config.
+- **`sourcemap: false` in `vite.config.mts`** — Vite production build now disables
+  sourcemap generation, reducing bundle size and not leaking source paths into the
+  packaged renderer.
+- **Total tests: 215**.
+
+### Added — GPU and hardware-decode escape hatch (W4.12)
+
+- **`PHLIX_DISABLE_GPU=1` environment variable** checked at module level in `src/main/index.ts`
+  before `app.whenReady()` — when set, `app.disableHardwareAcceleration()` is called before
+  any window is created.
+- **`disableHardwareAcceleration` store preference** — a persisted electron-store preference
+  checked alongside the env var in the `app.whenReady()` callback; `app.disableHardwareAcceleration()`
+  is called if either signal is set.
+- **Three IPC handlers** for the renderer to query and toggle the GPU preference:
+  `gpu:get-disable-hardware-acceleration` (get current value), `gpu:set-disable-hardware-acceleration`
+  (persist a new value), and `gpu:get-feature-status` (returns whether hardware acceleration is
+  currently active).
+- **Total tests: 228**.
+
 ### Changed — NSIS perMachine: false (per-user install, no admin required) (W4.8)
 
 - **`package.json` `build.nsis.perMachine`** switched from `true` to `false` — the NSIS
