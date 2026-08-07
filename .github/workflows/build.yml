@@ -132,10 +132,34 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: npm run smoke
 
+  # ─── audit ────────────────────────────────────────────────────────────────────
+  # Dependabot was evaluated but not used — this repo follows a no-PR-push-to-master
+  # workflow (tags are the release trigger), so Dependabot's PR model doesn't fit.
+  # Dependency updates are handled manually or via the tag workflow.
+  audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: npm audit --audit-level=high
+
   build:
     name: Build for ${{ matrix.target }}
     runs-on: ${{ matrix.runs-on }}
-    needs: [lint, typecheck, test, smoke]
+    needs: [lint, typecheck, test, smoke, audit]
 
     strategy:
       matrix:
@@ -193,6 +217,15 @@ jobs:
             release/*.nupkg
             release/SHA256SUMS.txt
           if-no-files-found: error
+
+  # ─── updater note ─────────────────────────────────────────────────────────────
+  # allowPrerelease is NOT set in this repo. The updater feed (latest.yml) follows
+  # tagged releases only and is generated at release time. If @phlix/ui (the
+  # consuming package) implements its own electron-updater auto-updater consumption,
+  # allowPrerelease: false would be set there — this repo only hosts the installer
+  # artifacts and the feed. For reference, electron-updater's autoUpdater options
+  # (allowPrerelease, autoDownload, etc.) are consumed by the client at runtime,
+  # not defined in the feed itself.
 
   # ─── version-check ────────────────────────────────────────────────────────────
   # Runs before any release job. Fails if package.json version does not match
