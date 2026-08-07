@@ -3,7 +3,38 @@
 All notable changes to **phlix-windows-client** are documented here. The format is
 based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+---
+
+## [W7.7] — 2026-08-07
+
+### Added — performance: parallelised boot IPC, deadline-based sleep timer, overlay reactivity, and resolved PIP video element (W5.1–W5.5)
+
+- **Parallelised IPC calls at boot** — `src/renderer/main.ts` now fires `get-app-path`, `get-version`, `hub:get-config`, `app:get-device-id`, and `app:get-server-url` concurrently via `Promise.all()` instead of awaiting them sequentially, reducing time-to-first-paint on startup.
+- **Deadline-based sleep timer** — the overlay sleep timer now uses `requestAnimationFrame` + a deadline timestamp instead of `setInterval`, stopping the countdown exactly at the target time and using CSS `transition` for smooth progress bar updates rather than polling on each tick.
+- **Reactive overlay routing** — `src/renderer/overlay.tsx` now responds to `router.afterEach()` navigation events instead of polling `window.location.pathname`, updating the overlay only when the route actually changes.
+- **PIP video element resolved once** — the Picture-in-Picture code path now queries the video element once with `querySelector` and reuses the reference, rather than calling `querySelector` repeatedly on every `visibilitychange` event which forced a layout recalculation.
+- **Total tests: 228 → 245**.
+
+### Added — CI pipeline hardened: packaging gated on quality gates, npm ci, test typecheck, no-console rule, electron-log, and audit/CodeQL (W6.1–W6.7)
+
+- **Packaging gated on quality gates** — `build.yml`'s `build` job now declares `needs: [lint, typecheck, test, smoke]`, blocking packaging until all four gates pass; the `lint`, `typecheck`, `test`, and `smoke` jobs all run in parallel as separate workflow steps.
+- **`npm ci` with lockfile-keyed cache** — all CI jobs now use `npm ci` (not `npm install`) with `cache: 'npm'` so the npm store is keyed to the lockfile hash, guaranteeing hermetic builds and eliminating lockfile drift.
+- **TypeScript typecheck extended to test suite** — `tsconfig.test.json` was added so `vue-tsc --noEmit -p tsconfig.test.json` catches type errors in test files (which import compiled main/preload from `dist/`); this was failing silently before W6.3.
+- **`electron-log` replaces `console.log`** — `src/main/index.ts` switched from `console.log`/`console.error` to the `electron-log` library, enabling structured log writing to `%APPDATA%\phlix-windows\logs\` and runtime log inspection.
+- **`no-console` ESLint rule enforced for renderer** — `eslint.config.mjs` now has `'no-console': ['error', { allow: ['error', 'warn'] }]` for the renderer, causing test failures on any `console.log` committed in renderer code (main/preload/scripts are exempt).
+- **`npm audit --audit-level=high` in CI** — the test job now runs `npm audit --audit-level=high` and fails the job if any high or critical vulnerabilities are found, closing the audit gap that existed before W6.5.
+- **CodeQL security analysis added** — `codeql.yml` was added running `security-extended` queries on every push/PR, providing static analysis security coverage complementary to `npm audit`.
+- **Total tests: 215 → 228**.
+
+### Added — docs: CI baseline documented, architecture decisions recorded, README corrected, React/Vue confusion fixed (W7.4–W7.6)
+
+- **`docs/ci-baseline.md` added** — records every CI gate verified in the W6 CI improvement pass, including smoke test, ESLint, vue-tsc, tsc main/preload, vitest, test typecheck, no-console rule, npm audit, packaging quality gate, npm ci, and CodeQL. Documents the one legitimate `continue-on-error: true` (Codacy coverage upload) and the coverage reporter configuration.
+- **`docs/performance-notes.md` added** — records the W5.x performance investigation findings: list virtualisation is handled upstream by `@phlix/ui`'s `MediaGrid` (windowed rendering, no third-party library), and the boot parallelisation and sleep timer changes were measured and verified.
+- **`docs/readme: correct nine false claims`** — corrected the README's stale dependency description, inaccurate feature list, wrong directory tree, and incorrect npm script references to match the as-built state after W0–W6 changes.
+- **React/Vue confusion corrected** — README and comments that referred to "React" or "Vue.js JSX" were updated to correctly state "Vue JSX" throughout, since this project uses Vue 3 with `@vitejs/plugin-vue-jsx` which is a Vue JSX transform, not React.
+- **Stale dependency pins removed** — `@phlix/ui` is pinned to `github:detain/phlix-ui#v0.98.34` and `@phlix/contracts` to `github:detain/phlix-contracts#v0.4.1`; the previous README incorrectly described `@phlix/ui` as coming from npm rather than GitHub.
+- **Rotting inventory files removed** — `src/components/`, `src/pages/`, and `src/stores/` directories (all emptied during W2 dead-code deletion) were removed from the project tree and the README directory tree was updated accordingly.
+- **Total tests: 245** (no behavioral change).
 
 ### Added — electron-builder files allow-list, asar packaging, and sourcemap disabled (W4.11)
 
@@ -354,7 +385,7 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `DELETE .../favorite`) is stale and has been corrected in the API reference
   (`phlix-docs/docs/reference/api.md`).
 
-## [W0.8] — 2025-07-/
+## [W0.8] — 2025-07-31
 
 ### Added — smoke test that launches Electron in CI on ubuntu and windows
 
