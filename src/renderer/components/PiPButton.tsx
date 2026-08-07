@@ -21,19 +21,38 @@ function isPiPSupported(): boolean {
   );
 }
 
+/**
+ * Cached video element reference — only re-resolved when the element itself changes.
+ * Using a module-level cache avoids repeated querySelector calls on every state change.
+ */
+let cachedVideoElement: HTMLVideoElement | null = null;
+let cachedVideoId: number | null = null;
+
 function getActiveVideo(): HTMLVideoElement | null {
   // Try the PiP document first (if we're already in PiP)
   const pipDoc = document.pictureInPictureElement as HTMLVideoElement | null;
-  if (pipDoc?.tagName === 'VIDEO') return pipDoc;
-
-  // Fall back to the first visible <video> element
-  const videos = document.querySelectorAll('video');
-  for (const video of videos) {
-    if (video.readyState > 0 && video.style.display !== 'none' && video.offsetParent !== null) {
-      return video;
-    }
+  if (pipDoc?.tagName === 'VIDEO') {
+    cachedVideoElement = pipDoc;
+    cachedVideoId = pipDoc.dataset.phlixVideoId ? Number(pipDoc.dataset.phlixVideoId) : null;
+    return pipDoc;
   }
-  return null;
+
+  // Use querySelector to get the first video — no looping, no offsetParent forced layout
+  const video = document.querySelector('video') as HTMLVideoElement | null;
+
+  // Validate video is ready and not hidden
+  if (!video || video.readyState === 0 || video.style.display === 'none') {
+    return null;
+  }
+
+  // Track by element identity to avoid re-querying the same video
+  const videoId = video.dataset.phlixVideoId ? Number(video.dataset.phlixVideoId) : null;
+  if (video !== cachedVideoElement || videoId !== cachedVideoId) {
+    cachedVideoElement = video;
+    cachedVideoId = videoId;
+  }
+
+  return video;
 }
 
 /**

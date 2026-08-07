@@ -58,7 +58,7 @@ const PlayerSupplement = defineComponent({
           <div
             style={{
               position: 'fixed',
-              bottom: '80px',
+              bottom: '120px',
               right: '24px',
               display: 'flex',
               alignItems: 'center',
