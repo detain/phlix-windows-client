@@ -5,6 +5,20 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — single-instance lock prevents multiple app windows (W4.2)
+
+- **`app.requestSingleInstanceLock()`** added at module top of `src/main/index.ts` — the app
+  acquires an exclusive lock on startup; if a second instance is launched the existing window is
+  restored and focused instead of opening a second window.
+- **`second-instance` handler** wired to restore and focus the primary window when a subsequent
+  launch is attempted (minimized windows are restored first).
+- **TODO comment** in the handler references W4.4 for deep-link routing — argv will be parsed
+  for `phlix://` URLs once that step is implemented.
+- **`tests/unit/singleInstance.test.ts`** added with 4 tests covering: lock acquisition, failed
+  lock causes quit, window restore on second-instance, and window focus on second-instance.
+- **`tests/unit/protocolHandler.test.ts`** mock updated to include `requestSingleInstanceLock`.
+- **Total tests: 146 → 150**.
+
 ### Added — application icons (W4.1)
 
 - **`build/icon.png`**, **`build/icon.ico`**, and **`build/tray-icon.png`** added — placeholder
