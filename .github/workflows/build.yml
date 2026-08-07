@@ -176,6 +176,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Generate SHA256 checksums
+        # sha256sum is available on windows-latest; output goes to release/
+        # which is already gitignored so no cleanup needed.
+        run: |
+          cd release
+          sha256sum *.exe *.appx *.nupkg > SHA256SUMS.txt 2>/dev/null || echo "No artifacts found" >&2
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
@@ -184,7 +191,37 @@ jobs:
             release/*.exe
             release/*.appx
             release/*.nupkg
+            release/SHA256SUMS.txt
           if-no-files-found: error
+
+  # ─── version-check ────────────────────────────────────────────────────────────
+  # Runs before any release job. Fails if package.json version does not match
+  # the tag being pushed, preventing accidental drift between code and release.
+  version-check:
+    name: Version drift check
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Extract tag version
+        id: tag_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Extract package.json version
+        id: pkg_version
+        run: echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Fail if versions diverge
+        run: |
+          if [[ "${{ steps.tag_version.outputs.VERSION }}" != "${{ steps.pkg_version.outputs.VERSION }}" ]]; then
+            echo "ERROR: tag version '${{ steps.tag_version.outputs.VERSION }}' != package.json version '${{ steps.pkg_version.outputs.VERSION }}'"
+            exit 1
+          fi
+          echo "Version check passed: ${{ steps.tag_version.outputs.VERSION }}"
 
   release-latest:
     name: Update "latest" prerelease
@@ -215,6 +252,12 @@ jobs:
           name: phlix-windows-appx
           path: artifacts/appx
 
+      - name: Generate SHA256 checksums for release artifacts
+        run: |
+          cd artifacts
+          sha256sum nsis/*.exe nsis/*.appx nsis/*.nupkg appx/*.exe appx/*.appx appx/*.nupkg > SHA256SUMS.txt 2>/dev/null || echo "No artifacts found" >&2
+          cat SHA256SUMS.txt
+
       - name: Reset "latest" release + tag
         # Delete any existing rolling release and its tag so the recreated one
         # points at this commit and carries only the freshly-built installers
@@ -233,18 +276,21 @@ jobs:
             Download the raw installer directly — no zip:
             - **`.exe`** — NSIS installer (desktop install)
             - **`.appx`** — Windows Store / sideload package
+
+            **SHA256SUMS.txt** is included for integrity verification.
           prerelease: true
           make_latest: false
           target_commitish: ${{ github.sha }}
           files: |
             artifacts/nsis/*.exe
             artifacts/appx/*.appx
+            artifacts/SHA256SUMS.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   release:
     name: Create Release
-    needs: build
+    needs: [build, version-check]
     # Only publish a GitHub Release on a version tag — master/PR builds just
     # upload installer artifacts (above) without cutting a release.
     if: startsWith(github.ref, 'refs/tags/v')
@@ -268,6 +314,23 @@ jobs:
           name: phlix-windows-appx
           path: artifacts/appx
 
+      # ── Signing (W4.10 blocked on WINDOWS_CERT_BASE64 secret) ─────────────────
+      # When the WINDOWS_CERT_BASE64 secret is provisioned, uncomment and fill in:
+      #
+      #   - name: Decode certificate
+      #     run: echo "$WINDOWS_CERT_BASE64" | base64 -d > certificate.pfx
+      #     env:
+      #       WINDOWS_CERT_BASE64: ${{ secrets.WINDOWS_CERT_BASE64 }}
+      #
+      #   - name: Sign NSIS installer
+      #     run: signtool sign /f certificate.pfx /p "$SIGNTOOL_PASSWORD" /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 "artifacts/nsis/*.exe"
+      #     env:
+      #       SIGNTOOL_PASSWORD: ${{ secrets.SIGNTOOL_PASSWORD }}
+      #
+      #   - name: Verify signature
+      #     run: signtool verify /pa /v "artifacts/nsis/*.exe"
+      # ─────────────────────────────────────────────────────────────────────────
+
       - name: Get version
         id: version
         run: |
@@ -276,6 +339,58 @@ jobs:
           else
             VERSION=${GITHUB_REF#refs/tags/v}
             echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate SHA256 checksums
+        id: sha256
+        run: |
+          cd artifacts
+          sha256sum nsis/*.exe nsis/*.nupkg appx/*.appx appx/*.nupkg > SHA256SUMS.txt
+          # Also write individual {file}.sha256 files for use in latest.yml
+          for f in nsis/*.exe; do
+            sha256sum "$f" | awk '{print $1}' > "${f}.sha256"
+          done
+
+      - name: Generate latest.yml for NSIS (electron-updater)
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          EXE=$(ls artifacts/nsis/*.exe | head -1)
+          EXE_NAME=$(basename "$EXE")
+          EXE_SHA256=$(cat "${EXE}.sha256")
+          RELEASE_DATE=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
+          cat > artifacts/latest.yml << YML
+          version: ${VERSION}
+          releaseDate: "${RELEASE_DATE}"
+          path: https://github.com/detain/phlix-windows-client/releases/download/v${VERSION}/${EXE_NAME}
+          sha256: ${EXE_SHA256}
+          files:
+            - url: https://github.com/detain/phlix-windows-client/releases/download/v${VERSION}/${EXE_NAME}
+              sha256: ${EXE_SHA256}
+              target: nsis
+          YML
+          cat artifacts/latest.yml
+
+      - name: Generate latest-windows.yml for APPX (electron-updater)
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          APPX=$(ls artifacts/appx/*.appx 2>/dev/null | head -1)
+          if [[ -f "$APPX" ]]; then
+            APPX_NAME=$(basename "$APPX")
+            APPX_SHA256=$(sha256sum "$APPX" | awk '{print $1}')
+            RELEASE_DATE=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
+            cat > artifacts/latest-windows.yml << YML
+            version: ${VERSION}
+            releaseDate: "${RELEASE_DATE}"
+            path: https://github.com/detain/phlix-windows-client/releases/download/v${VERSION}/${APPX_NAME}
+            sha256: ${APPX_SHA256}
+            files:
+              - url: https://github.com/detain/phlix-windows-client/releases/download/v${VERSION}/${APPX_NAME}
+                sha256: ${APPX_SHA256}
+                target: appx
+            YML
+            cat artifacts/latest-windows.yml
+          else
+            echo "No APPX artifact found — skipping latest-windows.yml"
           fi
 
       - name: Create Release
@@ -287,7 +402,11 @@ jobs:
           files: |
             artifacts/nsis/*.exe
             artifacts/nsis/*.nupkg
+            artifacts/nsis/SHA256SUMS.txt
             artifacts/appx/*.appx
             artifacts/appx/*.nupkg
+            artifacts/SHA256SUMS.txt
+            artifacts/latest.yml
+            artifacts/latest-windows.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
