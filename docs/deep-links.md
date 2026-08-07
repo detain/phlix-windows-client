@@ -17,6 +17,8 @@ phlix://<host>/<value>
 | `accept-invite` | `/accept-invite/{token}` | `phlix://accept-invite/abc_123` | Accept an invitation token |
 | `server` | `/server/{id}` | `phlix://server/abc123` | Navigate to a server |
 
+> **Note:** The `'internal'` host is also accepted by the parser (for notification click-action routing) but is omitted from this table as it is an implementation detail, not a user-facing link type.
+
 ## Value Formats
 
 | Host | Format | Allowed Characters |

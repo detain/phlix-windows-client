@@ -5,6 +5,28 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — native notifications with click-action routing (W4.7)
+
+- **`Notification.isSupported()` check** — all notification APIs are gated behind a platform
+  support check; on unsupported platforms the feature gracefully no-ops with a warn log.
+- **`notificationsEnabled` preference** — persisted in electron-store (default `true`); can be
+  toggled off to suppress all native notifications without uninstalling the app.
+- **`notification:show` IPC channel** — `ipcMain.handle('notification:show', ...)` takes
+  `{ title, body, clickAction? }` and constructs an Electron `Notification`; the renderer calls
+  it via `window.electronAPI.showNotification(title, body, clickAction?)`.
+- **`clickAction` routing** — when a notification is clicked, `phlix://internal{clickAction}` is
+  parsed and routed through the existing W4.4 deep-link handler, allowing any internal route
+  (e.g., `/media/id`, `/app/settings`) to be opened from a notification click.
+- **`'internal'` host added to `KNOWN_HOSTS`** — `phlix://internal*` URLs are accepted by the
+  deep-link parser and routed to the click action handler; the `'internal'` host is intentionally
+  absent from the public deep-links documentation as it is an implementation detail for
+  notification routing rather than a user-facing link type.
+- **`tests/unit/notification.test.ts`** added with 7 tests covering: `isSupported()` guard,
+  `notificationsEnabled` false skips notification, `title`/`body`/`clickAction` passthrough,
+  click event fires and routes `phlix://internal` URL correctly, and graceful no-op on
+  unsupported platforms.
+- **Total tests: 207 → 215**.
+
 ### Added — sleep inhibition during playback (W4.6)
 
 - **`powerSaveBlocker` module added** (`src/main/powerSaveBlocker.ts`) — wraps Electron's
