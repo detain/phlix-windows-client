@@ -24,11 +24,13 @@ pairing test (§ipcChannels.test.ts) asserts against it.
 | `media-rewind` | push | none | — | `mainWindow.webContents.send` (line 136) | `onMediaRewind` | `src/renderer/electronBridge.ts:121` — `api.onMediaRewind()` |
 | `media-forward` | push | none | — | `mainWindow.webContents.send` (line 137) | `onMediaForward` | `src/renderer/electronBridge.ts:127` — `api.onMediaForward()` |
 | `open-settings` | push | none | — | `mainWindow.webContents.send` (line 183) | `onOpenSettings` | `src/renderer/electronBridge.ts:133` — `api.onOpenSettings()` |
+| `deeplink:open` | push | `string` | — | `mainWindow.webContents.send` (line 121) | `onDeeplink` | `src/renderer/main.ts:179` — `api.onDeeplink()` |
 
 ## Behavioral Tests
 
 All 16 channels have round-trip behavioral tests in `tests/unit/ipcChannels.test.ts`
-under `describe('behavioral round-trips')`.
+under `describe('behavioral round-trips')`.  The 17th channel (`deeplink:open`) is
+verified by the pairing test only.
 
 ## Notes
 
@@ -39,5 +41,5 @@ under `describe('behavioral round-trips')`.
 - Preload bridge methods return cleanup functions for `on*` listeners (returns `() => void`).
 - All 8 invoke channels have matching main-process `ipcMain.handle` handlers.
 - All 3 send channels have matching main-process `ipcMain.on` handlers.
-- All 5 push channels have matching preload `ipcRenderer.on` listeners.
+- All 6 push channels have matching preload `ipcRenderer.on` listeners.
 - No `any` payload types exist in any channel definitions.

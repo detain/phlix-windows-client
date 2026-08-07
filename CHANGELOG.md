@@ -5,6 +5,36 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed — deep link listener cleanup and router optional chaining (W4.4)
+
+- **`src/renderer/main.ts:165`** — Added optional chaining on
+  `app.config?.globalProperties?.$router` so the deep link flush guard does not
+  crash in test environments where the router is not yet initialised.
+- **`src/preload/index.ts:59–62`** — Fixed `onDeeplink` cleanup: the `removeListener`
+  call was passing the user's callback directly instead of the inner `listener`
+  reference created and registered with `ipcRenderer.on`. Cleanup now correctly
+  removes only the IPC listener.
+- **`tests/unit/ipcChannels.test.ts`** updated: `deeplink:open` added to the push
+  channel list (now 6 total), bringing total tests to 171.
+
+### Added — window bounds persisted across sessions (W4.3)
+
+- **`WindowBounds` interface** added (`x`, `y`, `width`, `height`, `isMaximized`) — typed bounds
+  structure used for both storage and `setBounds()` calls.
+- **Startup restore**: `createWindow()` reads saved bounds from `electron-store` and validates them
+  with `isBoundsOnScreen()` before applying; off-screen bounds fall back to defaults (no `x`/`y`
+  set, `defaultWidth`/`defaultHeight` used).
+- **Maximized state** restored after window creation via `win.maximize()` / `win.unmaximize()`
+  so the persisted state is applied after the window is already visible.
+- **Debounced save on resize/move**: a 250 ms `setTimeout` saves bounds; the previous timeout is
+  cleared before scheduling a new one, so rapid resize events coalesce into a single write.
+- **Save on close**: bounds are written to the store in the `before-quit` handler before the
+  minimize-to-tray logic runs, ensuring the final size is captured even when closing from tray.
+- **`tests/unit/windowBounds.test.ts`** added with 21 tests covering: default bounds, fullscreen
+  skip, all-bounds-on-screen restore, off-screen fallbacks, maximized/restore round-trips,
+  debounce coalescing, close-persists-bounds, and `isBoundsOnScreen()` edge cases.
+- **Total tests: 150 → 171**.
+
 ### Added — single-instance lock prevents multiple app windows (W4.2)
 
 - **`app.requestSingleInstanceLock()`** added at module top of `src/main/index.ts` — the app
