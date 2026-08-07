@@ -4,7 +4,7 @@
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
 
-import { app, BrowserWindow, Menu, Tray, ipcMain, shell, nativeImage, dialog, protocol } from 'electron';
+import { app, BrowserWindow, Menu, Tray, ipcMain, shell, nativeImage, dialog, protocol, screen } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
@@ -12,6 +12,18 @@ import { isPathSafe } from './pathUtils';
 import { validateExternalUrl } from './urlValidator';
 import log from 'electron-log';
 import Store from 'electron-store';
+
+// Window bounds persistence schema
+interface WindowBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  isMaximized: boolean;
+}
+
+const DEFAULT_WIDTH = 1280;
+const DEFAULT_HEIGHT = 870;
 
 // Re-export validateExternalUrl for backwards compatibility
 export { validateExternalUrl };
@@ -35,7 +47,7 @@ app.on('second-instance', (_event, _argv, _workingDirectory) => {
   // and route it to the renderer via IPC once W4.4 is implemented.
 });
 
-const store = new Store<{ minimizeToTray: boolean }>();
+const store = new Store<{ minimizeToTray: boolean; windowBounds?: WindowBounds }>();
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
@@ -46,12 +58,59 @@ const isDev = process.env.NODE_ENV === 'development' || (!app.isPackaged && !pro
 log.initialize();
 log.info('Phlix Windows starting...');
 
+/**
+ * Validates that the given bounds overlap with at least one display's work area.
+ */
+function isBoundsOnScreen(bounds: WindowBounds): boolean {
+  const displays = screen.getAllDisplays();
+  return displays.some((display) => {
+    const wa = display.workArea;
+    return (
+      bounds.x < wa.x + wa.width &&
+      bounds.x + bounds.width > wa.x &&
+      bounds.y < wa.y + wa.height &&
+      bounds.y + bounds.height > wa.y
+    );
+  });
+}
+
+let saveBoundsTimer: NodeJS.Timeout | null = null;
+
+/**
+ * Schedules a debounced save of current window bounds to the store (250ms).
+ */
+function scheduleSaveBounds(): void {
+  if (saveBoundsTimer) clearTimeout(saveBoundsTimer);
+  saveBoundsTimer = setTimeout(() => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      store.set('windowBounds', {
+        x: mainWindow.getBounds().x,
+        y: mainWindow.getBounds().y,
+        width: mainWindow.getBounds().width,
+        height: mainWindow.getBounds().height,
+        isMaximized: mainWindow.isMaximized()
+      });
+    }
+  }, 250);
+}
+
 function createWindow(): void {
   log.info('Creating main window');
 
-  mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 870,
+  // Read saved bounds and validate against current displays
+  const savedBounds = store.get('windowBounds') as WindowBounds | undefined;
+  let useBounds = savedBounds;
+
+  if (savedBounds && !isBoundsOnScreen(savedBounds)) {
+    log.warn('Saved window bounds are off-screen, falling back to defaults');
+    useBounds = undefined;
+  }
+
+  const windowOptions: Electron.BrowserWindowConstructorOptions = {
+    width: useBounds?.width ?? DEFAULT_WIDTH,
+    height: useBounds?.height ?? DEFAULT_HEIGHT,
+    x: useBounds?.x,
+    y: useBounds?.y,
     minWidth: 960,
     minHeight: 690,
     backgroundColor: '#1a1a2e',
@@ -62,7 +121,14 @@ function createWindow(): void {
       nodeIntegration: false,
       sandbox: true
     }
-  });
+  };
+
+  mainWindow = new BrowserWindow(windowOptions);
+
+  // Restore maximized state if it was maximized
+  if (savedBounds?.isMaximized) {
+    mainWindow.maximize();
+  }
 
   // Load content
   if (isDev) {
@@ -80,6 +146,17 @@ function createWindow(): void {
 
   // Handle close to tray
   mainWindow.on('close', (event) => {
+    // Save window bounds before anything else
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      store.set('windowBounds', {
+        x: mainWindow.getBounds().x,
+        y: mainWindow.getBounds().y,
+        width: mainWindow.getBounds().width,
+        height: mainWindow.getBounds().height,
+        isMaximized: mainWindow.isMaximized()
+      });
+    }
+
     if (!isQuitting && store.get('minimizeToTray', true)) {
       event.preventDefault();
       mainWindow?.hide();
@@ -89,6 +166,10 @@ function createWindow(): void {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+
+  // Debounced resize/move handlers for live bounds persistence
+  mainWindow.on('resize', scheduleSaveBounds);
+  mainWindow.on('move', scheduleSaveBounds);
 
   // Handle external links
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
