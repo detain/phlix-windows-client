@@ -121,7 +121,7 @@ All admin pages are registered at `/app/admin/{path}` via `buildAdminRoutes()` /
 
 ---
 
-## Hub Pages — 3 of 8 Wired
+## Hub Pages — 8 of 8 Wired
 
 The eight hub pages from `@phlix/ui` (v0.98.34):
 
@@ -130,11 +130,11 @@ The eight hub pages from `@phlix/ui` (v0.98.34):
 | MyServersPage | ✅ `/app/servers` | **OK** |
 | FederationPage | ✅ `/app/federation` | **OK** |
 | ManageSharesPage | ✅ `/app/shares` | **OK** |
-| SharedWithMePage | ❌ | **MISSING** |
-| InviteLinksPage | ❌ | **MISSING** |
-| AcceptInvitePage | ❌ | **MISSING** |
-| FederationSharesPage | ❌ | **MISSING** |
-| ServerDetailPage | ❌ | **MISSING** |
+| SharedWithMePage | ✅ `/app/shared` | **OK** |
+| InviteLinksPage | ✅ `/app/invites` | **OK** |
+| AcceptInvitePage | ✅ `/app/accept-invite` (route, no nav) | **UNREACHABLE** |
+| FederationSharesPage | ✅ `/app/federation/shares` | **OK** |
+| ServerDetailPage | ✅ `/app/server/:id` | **OK** |
 
 ---
 
