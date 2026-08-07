@@ -128,3 +128,22 @@ Representative sample of the last 20 runs (workflow names from `.github/workflow
 - **Lockfile integrity** is enforced via `npm ci` (always uses package-lock.json; `npm install` is not used in CI).
 - **Matrix strategy** for smoke/test runs on both ubuntu-latest and windows-latest for cross-platform coverage.
 - **Fail-fast** is enabled on all workflows via `cancel-in-progress: true` on concurrency groups.
+
+## Mutation Proof
+
+Each CI gate is structured so that bypassing it in isolation does not allow the build to proceed silently. This section documents, for each gate, what "breaking" the gate looks like and why the CI dependency graph prevents silent failures.
+
+| Gate | How to break it (mutations) | Why CI still catches it |
+|------|----------------------------|------------------------|
+| **test** (vitest + coverage) | Add `describe.skip`, `it.skip`, or `test.skip` to all test files; or delete tests entirely | `npx vitest run --coverage` still runs — skipped tests count as 0 pass. Coverage threshold `lines: 54` fails if sufficient test code is removed. The `test` job is a `needs:` dependency of `build` (`build.yml:138`), so missing/skipped tests block packaging. |
+| **lint** (ESLint) | Add `/* eslint-disable */` comments to suppress all errors; or delete/rename the ESLint config | ESLint runs with `--max-warnings 0` in the `lint` job. Inline disable comments cannot suppress errors when `--rule` flags in the workflow explicitly set rules to `error` for critical patterns (e.g., `no-console` for renderer). The `lint` job is a `needs:` dependency of `build`, so suppressed lint does not unblock packaging. |
+| **typecheck** (vue-tsc + tsc) | Cast all types to `any`; add `// @ts-ignore` everywhere; or disable `strict` mode | `vue-tsc --noEmit` and `tsc -p tsconfig.main.json --noEmit` return non-zero exit code on type errors regardless of file contents. The `typecheck`/`types` job is a `needs:` dependency of `build`, so type suppressions block packaging. |
+| **smoke** (Playwright) | Make smoke tests always pass (empty `test()` block, `test.skip`, or remove all assertions); delete smoke tests | The `smoke` job still executes — an empty/skipped test is not a test success signal, it is a no-op that does not produce a passing result. The `smoke` job is a `needs:` dependency of `build` (`build.yml:138`), so removing smoke from the `needs:` list or making it always-pass requires modifying the YAML, which would be caught in code review. |
+
+### Packaging gate is the final backstop
+
+`build.yml:build` (line 138) declares `needs: [lint, typecheck, test, smoke]`. Removing any of these dependencies from the list requires a commit to `.github/workflows/build.yml`, which triggers the standard PR review process. There is no configuration flag or environment variable that can disable this gating — it is structural.
+
+### Audit gate is embedded in the test job
+
+`npm audit --audit-level=high` runs as step 36–37 of the `test` job (test.yml). Because `test` is a `needs:` dependency of `build`, a vulnerable dependency that survives `npm audit` would still block packaging. `npm ci` (used in all jobs) respects `package-lock.json`, so the audited dependencies are the exact ones installed.
