@@ -54,7 +54,14 @@
       "publisher": "CN=Phlix",
       "publisherDisplayName": "Phlix",
       "applicationId": "Phlix"
-    }
+    },
+    "files": [
+      "dist/**",
+      "build/**",
+      "package.json"
+    ],
+    "asar": true,
+    "npmRebuild": false
   },
   "dependencies": {
     "@phlix/contracts": "github:detain/phlix-contracts#v0.4.1",
