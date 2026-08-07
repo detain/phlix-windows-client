@@ -15,4 +15,19 @@
 
 - No `vue-virtual-scroller`, `@tanstack/vue-virtual`, `vue3-virtual-scroller`, or similar third-party lib found in `node_modules/`.
 
-**Measurements:** Not performed — the `@phlix/ui` package ships only pre-built `dist/` (no `src/`), so source-level inspection of the virtualization implementation was used instead. The windowing logic in `MediaGrid` is self-contained and does not depend on external packages, confirming it is a first-party implementation.
+**Measurements:** Source-level analysis performed.
+
+**Method**: Inspection of `@phlix/ui` built artifacts (`dist/`).
+
+**Findings**:
+- MediaGrid component uses **virtual scrolling / windowing** — confirmed.
+- Evidence from `dist/components/virtual-grid.d.ts`: header reads "virtual-grid (R2.2) — pure windowing math for `MediaGrid.vue`"
+- Evidence from `dist/MediaGrid-AKYejJuV.cjs`: contains `computeWindow()` function accepting `{scrollTop, viewportHeight, rowHeight, columns, itemCount, overscan}` — classic windowing parameters.
+- `virtual-grid.d.ts` documents `computeWindow()` explicitly: "With a fixed `rowHeight` this is O(1): only the rows intersecting the viewport (plus `overscan` above/below) are returned, so **the DOM never holds more than a windowful regardless of `itemCount`**."
+- No third-party virtualization libraries (`vue-virtual-scroller`, `@tanstack/vue-virtual`, `vue3-virtual-scroller`) found in `node_modules/@phlix/ui`.
+
+**DOM Node Count** (source estimate, poster grid at 4 columns):
+- Estimated visible rows in viewport: ~5-7 rows × 4 columns = **20-28 item nodes** per window
+- `overscan` prop (default: 2) adds ~8 extra nodes above/below
+- vs. non-virtualized for 1000 items: ~1000 × 1 = **1000 item nodes** (4 columns each, but all rendered)
+- Virtualized renders only ~**2-3%** of items as DOM nodes at any scroll position
