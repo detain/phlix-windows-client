@@ -32,6 +32,11 @@ describe('notification IPC', () => {
     expect(mainSource).toMatch(/handleDeepLinkUrl\(`phlix:\/\/internal\$\{clickAction\}`\)/);
   });
 
+  it('parseDeepLinkUrl accepts phlix://internal paths and returns the path', () => {
+    expect(mainSource).toMatch(/host\s*===\s*'internal'/);
+    expect(mainSource).toMatch(/return\s+path\s*;/);
+  });
+
   it('preload exposes showNotification via ipcRenderer.invoke', () => {
     expect(preloadSource).toMatch(/showNotification.*\n.*ipcRenderer\.invoke/);
   });

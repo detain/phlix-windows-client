@@ -28,7 +28,7 @@ const DEFAULT_HEIGHT = 870;
 // Re-export validateExternalUrl for backwards compatibility
 export { validateExternalUrl };
 
-const KNOWN_HOSTS = new Set(['media', 'play', 'accept-invite', 'server']);
+const KNOWN_HOSTS = new Set(['media', 'play', 'accept-invite', 'server', 'internal']);
 
 const ID_PATTERN = /^[a-zA-Z0-9-]+$/;
 const TOKEN_PATTERN = /^[a-zA-Z0-9_-]+$/;
@@ -54,6 +54,12 @@ function parseDeepLinkUrl(url: string): string | null {
     if (!KNOWN_HOSTS.has(host)) {
       log.warn(`[deeplink] Unknown host: ${host}`);
       return null;
+    }
+
+    // For internal routing (notification clicks), allow any path after the host
+    if (host === 'internal') {
+      const path = parsed.pathname ?? '/';
+      return path; // Return the path directly for internal routing
     }
 
     const rawPath = parsed.pathname;
