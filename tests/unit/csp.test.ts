@@ -1,6 +1,10 @@
 /**
  * CSP policy must be validated so that edits are caught by the test suite
  * rather than causing runtime policy violations in the main renderer.
+ *
+ * Note: The overlay (overlay.tsx) is a Vue JSX component mounted dynamically
+ * via JavaScript after the main page loads - it is NOT a separate HTML entry
+ * point and therefore inherits CSP from this single HTML file.
  */
 
 import { readFileSync } from 'node:fs';
@@ -13,7 +17,7 @@ const htmlFiles = [
   resolve(__dirname, '../../src/renderer/index.html'),
 ] as const;
 
-describe('Content-Security-Policy', () => {
+describe('Content-Security-Policy (single HTML entry point)', () => {
   for (const file of htmlFiles) {
     it(`${file} carries the canonical CSP`, () => {
       const content = readFileSync(file, 'utf8');

@@ -24,6 +24,7 @@ import { buildPhlixHeaders } from '@phlix/contracts';
 import '@phlix/ui/style.css';
 import '@phlix/ui/fonts.css';
 import { resolveAppConfig } from './resolveConfig';
+import log from 'electron-log';
 import { installElectronBridge } from './electronBridge';
 
 /** Module-level cleanup references — cleared after each run to support re-boot. */
@@ -136,7 +137,7 @@ export async function boot(): Promise<void> {
     deviceIdResult ??
     (() => {
       const fallbackId = `browser-${crypto.randomUUID()}`;
-      console.warn('[Phlix] Electron bridge unavailable — using per-session device ID:', fallbackId);
+      log.warn('[Phlix] Electron bridge unavailable — using per-session device ID:', fallbackId);
       return fallbackId;
     })();
   const serverUrl = serverUrlResult;
@@ -164,7 +165,7 @@ export async function boot(): Promise<void> {
       if (api) {
         void api.setServerUrl(url ?? '');
       } else {
-        console.warn('[Phlix] Cannot persist server URL: Electron bridge unavailable, URL was:', url);
+        log.warn('[Phlix] Cannot persist server URL: Electron bridge unavailable, URL was:', url);
       }
     },
     // In hub mode, land on the servers directory (not the media-server Browse page,
@@ -221,7 +222,7 @@ export async function boot(): Promise<void> {
     });
   }
 
-  // Mount React overlay for P3-S4 player UX features (skip/sleep/PiP)
+  // Mount Vue overlay for P3-S4 player UX features (skip/sleep/PiP)
   // Imported dynamically after Vue app mounts so Pinia is active
   void import('./overlay');
 
