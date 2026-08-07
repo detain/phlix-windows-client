@@ -94,10 +94,14 @@ function createWindow(): void {
   });
 }
 
-function createTray(): void {
-  const icon = nativeImage.createFromPath(
-    path.join(__dirname, '../../build/icon.png')
-  );
+export function createTray(): void {
+  const iconPath = path.join(__dirname, '../../build/icon.png');
+  const icon = nativeImage.createFromPath(iconPath);
+
+  if (icon.isEmpty()) {
+    log.error(`[tray] Icon not found at ${iconPath}, skipping tray creation`);
+    return;
+  }
 
   tray = new Tray(icon.resize({ width: 16, height: 16 }));
 
