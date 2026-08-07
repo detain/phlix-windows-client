@@ -16,6 +16,25 @@ import Store from 'electron-store';
 // Re-export validateExternalUrl for backwards compatibility
 export { validateExternalUrl };
 
+// Single-instance lock — ensures only one app window exists at a time.
+// Deep links (W4.4) also arrive through the second-instance handler.
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+  app.quit();
+}
+
+app.on('second-instance', (_event, _argv, _workingDirectory) => {
+  // Restore and focus the existing window
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) {
+      mainWindow.restore();
+    }
+    mainWindow.focus();
+  }
+  // TODO (W4.4): Deep link routing — parse argv for phlix:// URL
+  // and route it to the renderer via IPC once W4.4 is implemented.
+});
+
 const store = new Store<{ minimizeToTray: boolean }>();
 
 let mainWindow: BrowserWindow | null = null;

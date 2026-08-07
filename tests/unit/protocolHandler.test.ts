@@ -55,7 +55,8 @@ vi.mock('electron', () => ({
     isPackaged: true,
     whenReady: vi.fn(() => Promise.resolve()),
     quit: vi.fn(),
-    on: vi.fn()
+    on: vi.fn(),
+    requestSingleInstanceLock: vi.fn(() => true)
   },
   BrowserWindow: vi.fn(() => ({
     loadURL: vi.fn(),
