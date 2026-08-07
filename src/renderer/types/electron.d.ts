@@ -44,6 +44,12 @@ declare global {
       updatePowerBlocker: (playing: boolean) => void;
       /** W4.7: shows a native system notification; returns true if shown, false if not */
       showNotification: (title: string, body: string, clickAction?: string) => Promise<boolean>;
+      /** W4.12: gets the disableHardwareAcceleration preference */
+      getDisableHardwareAcceleration: () => Promise<boolean>;
+      /** W4.12: sets the disableHardwareAcceleration preference */
+      setDisableHardwareAcceleration: (value: boolean) => Promise<void>;
+      /** W4.12: gets GPU feature status for diagnostics */
+      getGpuFeatureStatus: () => Promise<Electron.GPUFeatureStatus>;
     };
   }
 }

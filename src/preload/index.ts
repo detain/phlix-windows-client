@@ -74,4 +74,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // W4.7: native notifications
   showNotification: (title: string, body: string, clickAction?: string) =>
     ipcRenderer.invoke('notification:show', { title, body, clickAction }),
+
+  // W4.12: GPU escape hatch — get/set disableHardwareAcceleration preference
+  getDisableHardwareAcceleration: () => ipcRenderer.invoke('gpu:get-disable-hardware-acceleration'),
+  setDisableHardwareAcceleration: (value: boolean) => ipcRenderer.invoke('gpu:set-disable-hardware-acceleration', value),
+
+  // W4.12: GPU feature status for diagnostics
+  getGpuFeatureStatus: () => ipcRenderer.invoke('gpu:get-feature-status'),
 });

@@ -13,6 +13,13 @@ import { validateExternalUrl } from './urlValidator';
 import log from 'electron-log';
 import Store from 'electron-store';
 
+// W4.12: GPU escape hatch — read before the app readiness callback so it takes effect.
+// Check env var at module level (before store exists) and also check store preference after app is ready.
+if (process.env.PHLIX_DISABLE_GPU === '1') {
+  log.info('[gpu] Hardware acceleration disabled by PHLIX_DISABLE_GPU=1');
+  app.disableHardwareAcceleration();
+}
+
 // Window bounds persistence schema
 interface WindowBounds {
   x: number;
@@ -169,7 +176,7 @@ app.on('second-instance', (_event, argv, _workingDirectory) => {
   }
 });
 
-const store = new Store<{ minimizeToTray: boolean; windowBounds?: WindowBounds }>();
+const store = new Store<{ minimizeToTray: boolean; windowBounds?: WindowBounds; disableHardwareAcceleration: boolean }>();
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
@@ -609,6 +616,20 @@ ipcMain.handle('notification:show', (_event, { title, body, clickAction }: { tit
   return true;
 });
 
+// W4.12: GPU escape hatch — get/set disableHardwareAcceleration preference
+ipcMain.handle('gpu:get-disable-hardware-acceleration', () => {
+  return store.get('disableHardwareAcceleration', false);
+});
+
+ipcMain.handle('gpu:set-disable-hardware-acceleration', (_, value: boolean) => {
+  store.set('disableHardwareAcceleration', value);
+});
+
+// W4.12: GPU feature status for diagnostics
+ipcMain.handle('gpu:get-feature-status', () => {
+  return app.getGPUFeatureStatus();
+});
+
 // App lifecycle
 
 // Register custom privileged scheme BEFORE app.whenReady()
@@ -737,6 +758,13 @@ export function setupAppProtocolHandler(): void {
 
 app.whenReady().then(() => {
   log.info('App ready');
+
+  // W4.12: GPU escape hatch — also check store preference (env var already checked at module level)
+  if (store.get('disableHardwareAcceleration', false)) {
+    log.info('[gpu] Hardware acceleration disabled by preference');
+    app.disableHardwareAcceleration();
+  }
+
   setupAppProtocolHandler();
   setAsDefaultProtocolClient();
   createWindow();
