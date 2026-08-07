@@ -42,6 +42,8 @@ declare global {
       setPlaybackProgress: (current: number, total: number) => void;
       /** W4.6: prevents display sleep during playback */
       updatePowerBlocker: (playing: boolean) => void;
+      /** W4.7: shows a native system notification; returns true if shown, false if not */
+      showNotification: (title: string, body: string, clickAction?: string) => Promise<boolean>;
     };
   }
 }

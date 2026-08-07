@@ -103,6 +103,9 @@ export function buildExtraRoutes(appMode: 'server' | 'hub'): RouteRecordRaw[] {
 export async function boot(): Promise<void> {
   const api = window.electronAPI;
 
+  // Deep link queue: stores URLs that arrived before router was ready
+  const deeplinkQueue: string[] = [];
+
   // Read Electron-persisted config defensively so the renderer still boots in a
   // plain browser dev context where window.electronAPI is undefined.
   const hub = api ? await api.hubGetConfig() : null;
@@ -157,6 +160,32 @@ export async function boot(): Promise<void> {
 
   // Wire Electron media events to @phlix/ui player store
   installElectronBridge(app);
+
+  // Flush deep link queue once router is ready
+  const router = app.config?.globalProperties?.$router as { isReady?: () => Promise<void>; push: (to: string) => unknown } | undefined;
+  if (router) {
+    if (router.isReady) {
+      router.isReady().then(() => {
+        for (const path of deeplinkQueue) {
+          router.push(path);
+        }
+        deeplinkQueue.length = 0;
+      });
+    }
+  }
+
+  // Listen for deep links from main process (W4.4)
+  if (api && api.onDeeplink) {
+    api.onDeeplink((path: string) => {
+      if (router && router.isReady && router.push) {
+        router.isReady().then(() => {
+          router.push(path);
+        });
+      } else {
+        deeplinkQueue.push(path);
+      }
+    });
+  }
 
   // Mount React overlay for P3-S4 player UX features (skip/sleep/PiP)
   // Imported dynamically after Vue app mounts so Pinia is active

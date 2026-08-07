@@ -70,4 +70,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // W4.6: power save blocker — prevent display sleep during playback
   updatePowerBlocker: (playing: boolean) => ipcRenderer.send('power:update', { playing }),
+
+  // W4.7: native notifications
+  showNotification: (title: string, body: string, clickAction?: string) =>
+    ipcRenderer.invoke('notification:show', { title, body, clickAction }),
 });

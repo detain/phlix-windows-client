@@ -4,7 +4,7 @@
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
 
-import { app, BrowserWindow, Menu, Tray, ipcMain, shell, nativeImage, dialog, protocol, screen, ThumbarButton, powerSaveBlocker } from 'electron';
+import { app, BrowserWindow, Menu, Tray, ipcMain, shell, nativeImage, dialog, protocol, screen, ThumbarButton, powerSaveBlocker, Notification } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
@@ -579,6 +579,28 @@ ipcMain.on('playback:progress', (_, progress: { current: number; total: number }
 // W4.6: power save blocker — renderer sends playing state to block/unblock display sleep
 ipcMain.on('power:update', (_event, { playing }: { playing: boolean }) => {
   ensurePowerBlocker(playing);
+});
+
+// W4.7: native notifications — renderer requests native system notification
+ipcMain.handle('notification:show', (_event, { title, body, clickAction }: { title: string; body: string; clickAction?: string }) => {
+  if (!Notification.isSupported()) {
+    log.warn('[notification] Notifications not supported on this platform');
+    return false;
+  }
+  if (!store.get('notificationsEnabled', true)) {
+    log.info('[notification] Notifications disabled by user preference');
+    return false;
+  }
+  const notification = new Notification({ title, body });
+  notification.on('click', () => {
+    mainWindow?.show();
+    mainWindow?.focus();
+    if (clickAction) {
+      handleDeepLinkUrl(`phlix://internal${clickAction}`);
+    }
+  });
+  notification.show();
+  return true;
 });
 
 // App lifecycle

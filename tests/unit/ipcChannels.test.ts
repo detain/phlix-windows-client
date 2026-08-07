@@ -231,6 +231,7 @@ describe('IPC channel pairing', () => {
         'get-version',
         'hub:get-config',
         'hub:set-config',
+        'notification:show',
         'tray:get-minimize-to-tray'
       ].sort());
     });
@@ -244,6 +245,7 @@ describe('IPC channel pairing', () => {
         'get-version',
         'hub:get-config',
         'hub:set-config',
+        'notification:show',
         'tray:get-minimize-to-tray'
       ].sort());
     });
