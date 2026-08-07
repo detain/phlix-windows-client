@@ -18,7 +18,7 @@ Phlix Windows provides a full-featured media server client for Windows, enabling
 - **Video Player** - Full-featured video playback with controls
 - **System Tray Integration** - Minimize to tray with media controls
 - **Native Menus** - Full application menu with keyboard shortcuts
-- **Media Key Support** - Play/Pause, Stop, and Rewind/Fast-Forward (±10s) are bridged from the tray/menu into the player
+- **Media Key Support** - Media key support via thumbar buttons and tray/menu keyboard accelerators (Play/Pause, Stop, Rewind/Fast-Forward ±10s bridged into the player)
 - **Authentication** - Secure login with session persistence (handled by `@phlix/ui`)
 - **Shared UI** - Modern Vue 3 interface from `@phlix/ui` with the Nocturne theme
 - **Settings Management** - Configurable preferences including minimize-to-tray behavior
@@ -43,7 +43,7 @@ For development:
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/phlix/phlix-windows.git
+    git clone https://github.com/detain/phlix-windows-client.git
    cd phlix-windows
    ```
 
@@ -77,7 +77,7 @@ The application stores configuration in the user's app data directory:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `VITE_PHLIX_SERVER_URL` | `http://localhost:8096` | Build-time fallback media server URL (used when no `serverUrl` is persisted and Hub mode is off) |
+| `VITE_PHLIX_SERVER_URL` | (none) | Build-time fallback is empty (user must configure a server or Hub URL at first boot) |
 | `NODE_ENV` | `development` | Runtime environment |
 
 Hub mode is configured at runtime (persisted via `hub:set-config` in electron-store), not via an environment variable — see the Hub Mode section below.
@@ -146,9 +146,7 @@ npm test -- --coverage
 
 ### Test Structure
 
-- Unit tests located in `tests/unit/`: `resolveConfig.test.ts`, `electronBridge.test.ts`, `main.test.ts`
-- Test files use Vitest (`jsdom`, `@vitejs/plugin-vue`) with TypeScript
-- Coverage via `@vitest/coverage-v8`; all source including `src/main/**` and `src/preload/**` is covered (58% floor enforced in CI)
+Tests live in `tests/` — run `npm test` to execute the full suite.
 
 ### Linting & Typecheck
 
@@ -235,7 +233,7 @@ The project uses GitHub Actions for continuous integration:
    git push origin v1.0.0
    ```
 3. GitHub Actions will automatically:
-   - Run tests
+   - Run ESLint, vue-tsc, tsc -p tsconfig.main.json, vitest, npm audit --audit-level=high, and smoke test before packaging
    - Build the application
    - Create GitHub Release
    - Upload artifacts
@@ -293,7 +291,7 @@ otherwise it runs in **server mode** against the persisted direct server URL.
 
 **Vite server port conflict:**
 - Kill processes using port 5173
-- Modify `vite.config.ts` to use a different port
+- Modify `vite.config.mts` to use a different port
 
 **Build fails with native modules:**
 - Run `npm rebuild` to rebuild native dependencies
@@ -313,6 +311,25 @@ log.info('Application started');
 ## License
 
 MIT License - see project repository for details.
+
+## Status
+
+### What Works
+
+- **Electron shell** — Main/preload/renderer architecture with secure `contextBridge` IPC
+- **Thin renderer** — Boots `@phlix/ui` via `createPhlixApp()`; no local UI ownship
+- **System tray** — Minimize-to-tray, tray menu with media controls
+- **Native menus** — Full File/Playback/View/Help menu bar with keyboard accelerators
+- **Media keys** — Thumbar buttons and tray/menu keyboard accelerators (Play/Pause, Stop, Rewind/Forward ±10s)
+- **Hub Mode** — Connect to a Phlix Hub; direct-LAN and relay connection modes
+- **Packaging** — NSIS x64 installer and APPX via `electron-builder`
+- **CI pipeline** — ESLint, vue-tsc, tsc -p tsconfig.main.json, vitest, npm audit, smoke test gate on every PR/push
+- **Coverage** — Reports generated and uploaded to Codecov and Codacy on each CI run
+
+### Known Limitations
+
+- App boots to Connect screen on first launch (no default server URL; user must configure a server or Hub)
+- Offline Downloads and realtime SyncPlay UIs are temporarily dropped (to be re-added as shared `@phlix/ui` seams)
 
 ## Support
 
