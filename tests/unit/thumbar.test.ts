@@ -82,8 +82,8 @@ describe('playback:progress IPC channel (W4.5)', () => {
 describe('integration: bridge wires thumbar and progress calls (W4.5)', () => {
   it('electronBridge calls updateThumbar after play/pause toggle', () => {
     const bridgeSource = readFileSync(resolve(PROJECT_ROOT, 'src/renderer/electronBridge.ts'), 'utf-8');
-    // After the play/pause toggle in onMediaPlayPause, updateThumbar should be called
-    expect(bridgeSource).toMatch(/updateThumbar\s*\?\.\s*\(\s*\{\s*playing:\s*player\.playing\s*\}\s*\)/);
+    // W4.5 fix: updateThumbar receives willBePlaying (known state before async play/pause)
+    expect(bridgeSource).toMatch(/updateThumbar\s*\?\.\s*\(\s*\{\s*playing:\s*willBePlaying\s*\}\s*\)/);
   });
 
   it('electronBridge calls setPlaybackProgress after play/pause toggle', () => {

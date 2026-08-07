@@ -105,13 +105,15 @@ export function wireElectronBridge(player: BridgePlayer, router: BridgeRouter): 
 
   cleanups.push(
     api.onMediaPlayPause(() => {
-      if (player.playing) {
-        player.pause();
-      } else {
+      // W4.5: capture the target state BEFORE async play/pause to avoid stale read
+      const willBePlaying = !player.playing;
+      if (willBePlaying) {
         player.play();
+      } else {
+        player.pause();
       }
-      // W4.5: update thumbar play/pause tooltip and taskbar progress
-      api.updateThumbar?.({ playing: player.playing });
+      // Update thumbar with the known target state (not the potentially-stale player.playing)
+      api.updateThumbar?.({ playing: willBePlaying });
       api.setPlaybackProgress?.(player.position, player.duration);
     })
   );

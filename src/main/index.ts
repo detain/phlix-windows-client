@@ -541,7 +541,10 @@ ipcMain.on('thumbar:update', (_, state: { playing: boolean }) => {
 ipcMain.on('playback:progress', (_, progress: { current: number; total: number }) => {
   if (!mainWindow || mainWindow.isDestroyed()) return;
   const { current, total } = progress;
-  if (total > 0 && current < total) {
+  if (current === 0 && total > 0) {
+    // Playback just started at position 0 — show indeterminate progress (Windows mode 2)
+    mainWindow.setProgressBar(2);
+  } else if (total > 0 && current < total) {
     mainWindow.setProgressBar(current / total);
   } else {
     // total === 0 or current >= total: clear the progress bar
