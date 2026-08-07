@@ -244,7 +244,7 @@ describe('buildMenu', () => {
     const menu = buildMenu('server');
     const menuIds = menu.map((m) => m.id);
 
-    // EXACT ARRAY FORM WAS HARMFUL: locking the nav list as a frozen 12-item array
+    // EXACT ARRAY FORM WAS HARMFUL: locking the nav list as a frozen 3-item array
     // made every new nav entry a breaking-change test-failure.  The assertions below
     // express intent — every required entry is present and its route is registered —
     // so legitimate new entries do not demand a test update.

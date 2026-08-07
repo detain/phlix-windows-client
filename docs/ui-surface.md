@@ -6,7 +6,7 @@ in the reference web-ui (`phlix-server/web-ui`), and which are wired in this rep
 
 - **Page count:** 43 root pages + 23 admin pages = **66 total**
 - **Reference web-ui:** `phlix-server/web-ui/src/main.ts:30-77` (menu + extraRoutes)
-- **This repo:** `src/renderer/main.ts:35-51` (buildMenu) and `:58-73` (buildExtraRoutes)
+- **This repo:** `src/renderer/main.ts:56-90` (buildMenu) and `:102-120` (buildExtraRoutes)
 - Shell renders **no default nav** once `menu` is supplied (documented at `src/renderer/main.ts:30-34`)
 
 ## Status Key
