@@ -12,6 +12,7 @@ import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 import { createRouter, createWebHashHistory } from 'vue-router';
 import PlayerSupplement from './components/PlayerSupplement';
+import log from 'electron-log';
 
 // Create the Vue app ONCE at module level
 const app = createApp(PlayerSupplement);
@@ -31,11 +32,11 @@ function tryMount(): void {
   const root = document.getElementById('player-supplement-root');
   if (!root) {
     if (attempts >= MAX_ATTEMPTS) {
-      console.error('[Overlay] #player-supplement-root never appeared after 10 attempts. Giving up.');
+      log.error('[Overlay] #player-supplement-root never appeared after 10 attempts. Giving up.');
       return;
     }
     attempts++;
-    console.warn(`[Overlay] #player-supplement-root not found, retrying (${attempts}/${MAX_ATTEMPTS})...`);
+    log.warn(`[Overlay] #player-supplement-root not found, retrying (${attempts}/${MAX_ATTEMPTS})...`);
     setTimeout(tryMount, 1000);
     return;
   }
@@ -44,11 +45,11 @@ function tryMount(): void {
     app.mount(root);
   } catch (err) {
     if (attempts >= MAX_ATTEMPTS) {
-      console.error('[Overlay] Mount failed after 10 attempts. Giving up:', err);
+      log.error('[Overlay] Mount failed after 10 attempts. Giving up:', err);
       return;
     }
     attempts++;
-    console.warn(`[Overlay] Mount failed (${attempts}/${MAX_ATTEMPTS}), retrying...`);
+    log.warn(`[Overlay] Mount failed (${attempts}/${MAX_ATTEMPTS}), retrying...`);
     setTimeout(tryMount, 1000);
   }
 }

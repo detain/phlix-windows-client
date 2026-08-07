@@ -10,6 +10,7 @@
 
 import { defineComponent, ref, watch, onMounted, onUnmounted, computed } from 'vue';
 import { usePlayerStore } from '@phlix/ui';
+import log from 'electron-log';
 
 const STORAGE_KEY = 'phlix-pip-enabled';
 
@@ -166,7 +167,7 @@ const PiPButton = defineComponent({
         }
       } catch (err) {
         // PiP may fail if called from non-user-gesture or if video has no src
-        console.warn('[PiPButton] Toggle failed:', err);
+        log.warn('[PiPButton] Toggle failed:', err);
       }
     };
 
