@@ -348,6 +348,7 @@ Wrap tests with jsdom environment or mock localStorage in tests.
 
 ## Resources
 
+- [Architecture Decision Records](./docs/decisions/) — rationale behind key technical choices
 - [Electron Documentation](https://www.electronjs.org/docs)
 - [Vue 3 Documentation](https://vuejs.org)
 - [Pinia Documentation](https://pinia.vuejs.org)
