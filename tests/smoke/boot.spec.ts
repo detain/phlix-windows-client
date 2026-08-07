@@ -91,12 +91,12 @@ test('boot smoke test', async () => {
   }
 
   // --- W0.1 guard: preload script must have loaded, exposing window.electronAPI ---
-  const electronAPI = await window.evaluate(() => (window as Window).electronAPI);
+  const electronAPI = await window.evaluate(() => (globalThis as unknown as Window).electronAPI);
   expect(electronAPI).toBeDefined();
 
   // --- W0.3 guard: device ID must NOT be the dev fallback 'windows-dev' ---
   const deviceId = await window.evaluate(
-    () => (window as Window).electronAPI!.getDeviceId()
+    () => (globalThis as unknown as Window).electronAPI!.getDeviceId()
   );
   expect(deviceId).not.toBe('windows-dev');
 
@@ -120,7 +120,7 @@ test('boot smoke test', async () => {
     }
   });
 
-  await window.waitForTimeout(2_000);
+  await (window as any).waitForTimeout(2_000);
   expect(
     consoleViolations,
     `Console violations found: ${JSON.stringify(consoleViolations)}`

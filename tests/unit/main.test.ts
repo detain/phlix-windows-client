@@ -15,7 +15,7 @@ const SERVER_ADMIN_ROUTE = { path: '/app/admin/dashboard', name: 'admin-dashboar
 const HUB_ADMIN_ROUTE = { path: '/app/admin/dashboard', name: 'hub-admin-dashboard' };
 const PageStub = { template: '<div />' };
 vi.mock('@phlix/ui', () => ({
-  createPhlixApp: (...args: unknown[]) => createPhlixApp(...args),
+  createPhlixApp: createPhlixApp as any,
   buildAdminRoutes: () => [SERVER_ADMIN_ROUTE],
   buildHubAdminRoutes: () => [HUB_ADMIN_ROUTE],
   LibraryScanPage: PageStub,
@@ -35,14 +35,14 @@ vi.mock('@phlix/ui', () => ({
 const FAKE_HEADERS = { 'X-Phlix-Device-ID': 'dev', 'X-Phlix-Device-Type': 'windows' };
 const buildPhlixHeaders = vi.fn(() => FAKE_HEADERS);
 vi.mock('@phlix/contracts', () => ({
-  buildPhlixHeaders: (...args: unknown[]) => buildPhlixHeaders(...args)
+  buildPhlixHeaders: buildPhlixHeaders as any
 }));
 
 // Exportable mocks for electronBridge
 const installElectronBridge = vi.fn(function() { return; });
 
 vi.mock('@/electronBridge', () => ({
-  installElectronBridge: (...args: unknown[]) => installElectronBridge(...args)
+  installElectronBridge: installElectronBridge as any
 }));
 
 // Prevent overlay.tsx from loading during main entry tests.
@@ -69,7 +69,7 @@ describe('boot (renderer entry)', () => {
     createPhlixApp.mockClear().mockReturnValue(fakeApp);
     mountSpy.mockClear();
     buildPhlixHeaders.mockClear().mockReturnValue(FAKE_HEADERS);
-    installElectronBridge.mockClear().mockReturnValue(() => {});
+    installElectronBridge.mockClear().mockReturnValue((() => {}) as any);
     vi.unstubAllEnvs();
   });
 
@@ -158,7 +158,7 @@ describe('boot (renderer entry)', () => {
       '[Phlix] Electron bridge unavailable — using per-session device ID:',
       expect.stringMatching(/^browser-[0-9a-f-]{36}$/)
     );
-    const deviceIdArg = buildPhlixHeaders.mock.calls.at(-1)?.[0]?.deviceId as string;
+    const deviceIdArg = (buildPhlixHeaders.mock.calls as any).at(-1)?.[0]?.deviceId as string;
     expect(deviceIdArg).toMatch(/^browser-[0-9a-f-]{36}$/);
     expect(buildPhlixHeaders).toHaveBeenLastCalledWith({
       deviceId: deviceIdArg,
@@ -184,7 +184,7 @@ describe('boot (renderer entry)', () => {
     await mod.boot();
 
     // Pull the onConnectionChange callback and exercise the missing-bridge path.
-    const cfg = createPhlixApp.mock.calls.at(-1)?.[0] as {
+    const cfg = (createPhlixApp.mock.calls as any).at(-1)?.[0] as {
       onConnectionChange: (url: string | null) => void;
     };
     cfg.onConnectionChange('http://chosen:8096');
@@ -222,7 +222,7 @@ describe('boot (renderer entry)', () => {
     await mod.boot();
 
     // Pull the onConnectionChange callback handed to @phlix/ui and exercise it.
-    const cfg = createPhlixApp.mock.calls.at(-1)?.[0] as {
+    const cfg = (createPhlixApp.mock.calls as any).at(-1)?.[0] as {
       onConnectionChange: (url: string | null) => void;
     };
     cfg.onConnectionChange('http://chosen:8096');
@@ -255,6 +255,7 @@ describe('buildMenu', () => {
     // buildAdminRoutes; media-type/library entries come from @phlix/ui).
     const extraRoutePaths = buildExtraRoutes('server').map((r) => r.path);
     for (const item of menu) {
+      if (!item.to) continue;
       if (item.to === '/app') continue; // browse root: shell handles this
       // buildMenu registers paths under /app/* that must appear in buildExtraRoutes
       if (item.to.startsWith('/app/') && !item.to.startsWith('/app/music') &&
@@ -300,6 +301,7 @@ describe('buildMenu', () => {
     // buildExtraRoutes (history/explore/recommendations/syncplay come from @phlix/ui).
     const extraRoutePaths = buildExtraRoutes('hub').map((r) => r.path);
     for (const item of menu) {
+      if (!item.to) continue;
       if (item.to.startsWith('/app/') && !item.to.startsWith('/app/history') &&
           !item.to.startsWith('/app/explore') && !item.to.startsWith('/app/recommendations') &&
           !item.to.startsWith('/app/syncplay')) {

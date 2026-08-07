@@ -11,7 +11,7 @@ import PiPButton from '@/components/PiPButton';
 // Mock usePlayerStore
 const mockPlayer = {
   playing: false,
-  currentItem: null
+  currentItem: null as any
 };
 
 vi.mock('@phlix/ui', () => ({

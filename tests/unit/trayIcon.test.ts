@@ -94,7 +94,7 @@ describe('createTray() icon guard', () => {
       isEmpty: () => true,
       resize: vi.fn(() => emptyImage)
     };
-    vi.mocked(nativeImage.createFromPath).mockReturnValue(emptyImage);
+    vi.mocked(nativeImage.createFromPath).mockReturnValue(emptyImage as any);
 
     // Verify the mock is set up correctly
     expect(vi.mocked(nativeImage.createFromPath)).toBeDefined();
@@ -121,7 +121,7 @@ describe('createTray() icon guard', () => {
       isEmpty: () => false,
       resize: vi.fn(() => ({ isEmpty: () => false }))
     };
-    vi.mocked(nativeImage.createFromPath).mockReturnValue(validImage);
+    vi.mocked(nativeImage.createFromPath).mockReturnValue(validImage as any);
 
     // The guard in createTray checks icon.isEmpty() - if false, tray creation proceeds
     const icon = nativeImage.createFromPath('/fake/path.png');
@@ -141,7 +141,7 @@ describe('createTray() icon guard', () => {
       isEmpty: () => false,
       resize: vi.fn(() => ({ isEmpty: () => false }))
     };
-    vi.mocked(nativeImage.createFromPath).mockReturnValue(validImage);
+    vi.mocked(nativeImage.createFromPath).mockReturnValue(validImage as any);
 
     // Simulate what createTray does - it calls nativeImage.createFromPath with iconPath
     const pathModule = await import('node:path');

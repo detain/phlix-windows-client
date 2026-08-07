@@ -33,10 +33,10 @@ const mockRouter = createRouter({
 mockRouter.afterEach = ((cb: (to: RouteLocationNormalized) => void) => {
   afterEachCallbacks.push(cb);
   return unregisterMock;
-}) as typeof mockRouter.afterEach;
+}) as any;
 
 describe('PlayerSupplement', () => {
-  let setIntervalSpy: ReturnType<typeof vi.spyOn>;
+  let setIntervalSpy: any;
 
   beforeEach(async () => {
     afterEachCallbacks.length = 0;
@@ -44,7 +44,7 @@ describe('PlayerSupplement', () => {
     // Reset router to root to ensure clean state
     await mockRouter.push('/');
     // Spy on setInterval to verify it's never called
-    setIntervalSpy = vi.spyOn(global, 'setInterval').mockImplementation(() => 1);
+    setIntervalSpy = vi.spyOn(global, 'setInterval').mockImplementation(() => 1 as any);
     // Set up window.__phlixRouter for the component
     Object.defineProperty(window, '__phlixRouter', {
       value: mockRouter,
@@ -118,7 +118,7 @@ describe('PlayerSupplement', () => {
     await mockRouter.isReady();
 
     // Trigger the stored callback to simulate afterEach invocation
-    const toRoute: RouteLocationNormalized = { params: { id: '456' } } as RouteLocationNormalized;
+    const toRoute = { params: { id: '456' } } as any;
     afterEachCallbacks.forEach((cb) => cb(toRoute));
     await nextTick();
 

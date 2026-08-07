@@ -321,7 +321,7 @@ describe('IPC channel pairing', () => {
       ipcRendererRemoveListener = vi.fn();
       ipcRendererOn = vi.fn((channel: string, handler: (...args: unknown[]) => void) => {
         // Simulate the real behavior: store the handler so we can call it
-        ipcRendererOn[channel] = handler;
+        (ipcRendererOn as any)[channel] = handler;
         // Return a cleanup function (as the real preload does)
         return () => {
           ipcRendererRemoveListener(channel, handler);
@@ -342,31 +342,31 @@ describe('IPC channel pairing', () => {
         setMinimizeToTray: vi.fn((flag: boolean) => ipcRendererSend('tray:set-minimize-to-tray', flag)),
         onMediaPlayPause: vi.fn((cb: () => void) => {
           const channel = 'media-play-pause';
-          ipcRendererOn[channel] = cb;
+          (ipcRendererOn as any)[channel] = cb;
           ipcRendererOn(channel, cb);
           return () => ipcRendererRemoveListener(channel, cb);
         }),
         onMediaStop: vi.fn((cb: () => void) => {
           const channel = 'media-stop';
-          ipcRendererOn[channel] = cb;
+          (ipcRendererOn as any)[channel] = cb;
           ipcRendererOn(channel, cb);
           return () => ipcRendererRemoveListener(channel, cb);
         }),
         onMediaRewind: vi.fn((cb: () => void) => {
           const channel = 'media-rewind';
-          ipcRendererOn[channel] = cb;
+          (ipcRendererOn as any)[channel] = cb;
           ipcRendererOn(channel, cb);
           return () => ipcRendererRemoveListener(channel, cb);
         }),
         onMediaForward: vi.fn((cb: () => void) => {
           const channel = 'media-forward';
-          ipcRendererOn[channel] = cb;
+          (ipcRendererOn as any)[channel] = cb;
           ipcRendererOn(channel, cb);
           return () => ipcRendererRemoveListener(channel, cb);
         }),
         onOpenSettings: vi.fn((cb: () => void) => {
           const channel = 'open-settings';
-          ipcRendererOn[channel] = cb;
+          (ipcRendererOn as any)[channel] = cb;
           ipcRendererOn(channel, cb);
           return () => ipcRendererRemoveListener(channel, cb);
         })

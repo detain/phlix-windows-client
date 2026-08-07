@@ -3,7 +3,6 @@ import {
   wireElectronBridge,
   installElectronBridge,
   installFocusGuard,
-  type BridgePlayer,
   type BridgeRouter
 } from '@/electronBridge';
 import type { App as VueApp } from 'vue';
@@ -23,21 +22,17 @@ vi.mock('@/main', () => ({
 
 // usePlayerStore is resolved off the active pinia inside installElectronBridge;
 // mock it to hand back a controllable fake player so we can assert wiring.
-const playerStub: BridgePlayer & {
-  play: ReturnType<typeof vi.fn>;
-  pause: ReturnType<typeof vi.fn>;
-  closePlayer: ReturnType<typeof vi.fn>;
-  seekBy: ReturnType<typeof vi.fn>;
-} = {
-  playing: false,
-  play: vi.fn(),
-  pause: vi.fn(),
-  closePlayer: vi.fn(),
-  seekBy: vi.fn()
-};
-const usePlayerStoreMock = vi.fn(() => playerStub);
+const { usePlayerStoreMock } = vi.hoisted(() => ({
+  usePlayerStoreMock: vi.fn(() => ({
+    playing: false,
+    play: vi.fn(),
+    pause: vi.fn(),
+    closePlayer: vi.fn(),
+    seekBy: vi.fn()
+  }) as any)
+}));
 vi.mock('@phlix/ui', () => ({
-  usePlayerStore: (...args: unknown[]) => usePlayerStoreMock(...args)
+  usePlayerStore: usePlayerStoreMock as any
 }));
 
 type Listener = () => void;
@@ -81,19 +76,14 @@ function makeFakeApi(): FakeElectronAPI {
   };
 }
 
-function makePlayer(playing = false): BridgePlayer & {
-  play: ReturnType<typeof vi.fn>;
-  pause: ReturnType<typeof vi.fn>;
-  closePlayer: ReturnType<typeof vi.fn>;
-  seekBy: ReturnType<typeof vi.fn>;
-} {
+function makePlayer(playing = false) {
   return {
     playing,
     play: vi.fn(),
     pause: vi.fn(),
     closePlayer: vi.fn(),
     seekBy: vi.fn()
-  };
+  } as any;
 }
 
 describe('wireElectronBridge', () => {
@@ -190,8 +180,10 @@ function makeFakeApp(): VueApp {
 
 describe('installElectronBridge', () => {
   let fakeApi: FakeElectronAPI;
+  let playerStub: ReturnType<typeof makePlayer>;
 
   beforeEach(() => {
+    playerStub = makePlayer(false);
     usePlayerStoreMock.mockClear().mockReturnValue(playerStub);
     playerStub.playing = false;
     playerStub.play.mockClear();
@@ -250,18 +242,14 @@ describe('installElectronBridge', () => {
 });
 
 describe('installFocusGuard', () => {
-  function makePlayer(playing = false): BridgePlayer & {
-    play: ReturnType<typeof vi.fn>;
-    pause: ReturnType<typeof vi.fn>;
-    seekBy: ReturnType<typeof vi.fn>;
-  } {
+  function makePlayer(playing = false) {
     return {
       playing,
       play: vi.fn(),
       pause: vi.fn(),
       closePlayer: vi.fn(),
       seekBy: vi.fn()
-    };
+    } as any;
   }
 
   function simulateKeyDown(code: string, target: Element | null): void {
@@ -390,8 +378,10 @@ describe('installFocusGuard', () => {
 
 describe('installElectronBridge idempotency', () => {
   let fakeApi: FakeElectronAPI;
+  let playerStub: ReturnType<typeof makePlayer>;
 
   beforeEach(() => {
+    playerStub = makePlayer(false);
     usePlayerStoreMock.mockClear().mockReturnValue(playerStub);
     playerStub.playing = false;
     playerStub.play.mockClear();
@@ -425,8 +415,8 @@ describe('installElectronBridge idempotency', () => {
 
 describe('playbackMenuTemplate accelerators', () => {
   it('Space, Left, and Right all have registerAccelerator: false', async () => {
-    const { playbackMenuTemplate } = await import('@/main');
-    const labels = playbackMenuTemplate.map((item) => item.label);
+    const { playbackMenuTemplate } = await import('@/main') as any;
+    const labels = playbackMenuTemplate.map((item: any) => item.label);
     const spaceItem = playbackMenuTemplate[labels.indexOf('Play/Pause')];
     const leftItem = playbackMenuTemplate[labels.indexOf('Rewind')];
     const rightItem = playbackMenuTemplate[labels.indexOf('Fast Forward')];

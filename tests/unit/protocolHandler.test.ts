@@ -166,13 +166,13 @@ describe('app:// protocol handler path resolution', () => {
     });
 
     function getAppHandler(): (request: { url: string }) => Response | undefined {
-      return protocolHandlers.get('app');
+      return protocolHandlers.get('app') as (request: { url: string }) => Response | undefined;
     }
 
     it('returns 403 when hostname is not "-" (invalid app:// URL)', async () => {
       const handler = getAppHandler();
       expect(handler).toBeDefined();
-      const response = handler!({ url: 'app://example.com/app/servers' });
+      const response = handler!({ url: 'app://example.com/app/servers' })!;
       expect(response.status).toBe(403);
     });
 
@@ -180,7 +180,7 @@ describe('app:// protocol handler path resolution', () => {
       const handler = getAppHandler();
       expect(handler).toBeDefined();
       // dist/renderer/index.html should exist in the project
-      const response = handler!({ url: 'app://-/app/servers' });
+      const response = handler!({ url: 'app://-/app/servers' })!;
       expect(response.status).toBe(200);
       const text = await response.text();
       expect(text).toContain('<!DOCTYPE html>'); // index.html should be valid HTML
@@ -190,7 +190,7 @@ describe('app:// protocol handler path resolution', () => {
       const handler = getAppHandler();
       expect(handler).toBeDefined();
       // A file that doesn't exist should fall back to index.html
-      const response = handler!({ url: 'app://-/app/assets/nonexistent-file.js' });
+      const response = handler!({ url: 'app://-/app/assets/nonexistent-file.js' })!;
       expect(response.status).toBe(200);
       const text = await response.text();
       expect(text).toContain('<!DOCTYPE html>');
@@ -203,7 +203,7 @@ describe('app:// protocol handler path resolution', () => {
 
       // The test project should have dist/renderer/index.html
       // Request it via the app:// protocol
-      const response = handler!({ url: 'app://-/app/index.html' });
+      const response = handler!({ url: 'app://-/app/index.html' })!;
       expect(response.status).toBe(200);
       const text = await response.text();
       expect(text).toContain('<!DOCTYPE html>');

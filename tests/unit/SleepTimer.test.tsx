@@ -121,7 +121,7 @@ describe('SleepTimer', () => {
     vi.mocked(usePlayerStore).mockReturnValue({
       playing: true,
       pause: pauseMock
-    });
+    } as any);
 
     // Set a timer that expires in 5 seconds
     const endTime = Date.now() + 5000;
@@ -141,7 +141,7 @@ describe('SleepTimer', () => {
     vi.mocked(usePlayerStore).mockReturnValue({
       playing: false,
       pause: pauseMock
-    });
+    } as any);
   });
 
   it('nothing left running after unmount', () => {
