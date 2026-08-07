@@ -26,6 +26,20 @@ import '@phlix/ui/fonts.css';
 import { resolveAppConfig } from './resolveConfig';
 import { installElectronBridge } from './electronBridge';
 
+/** Module-level cleanup references — cleared after each run to support re-boot. */
+let _cleanupBridge: (() => void) | null = null;
+let _cleanupDeeplink: (() => void) | null = null;
+
+/**
+ * Runs all registered renderer teardown functions (bridge, deeplink listeners).
+ * Safe to call multiple times; each cleanup is nullified after running.
+ */
+function cleanupRenderer(): void {
+  _cleanupBridge?.();
+  _cleanupBridge = null;
+  _cleanupDeeplink?.();
+  _cleanupDeeplink = null;
+}
 
 /**
  * Top-bar nav for the current app mode. Mirrors the server and hub web-uis so the
@@ -168,7 +182,7 @@ export async function boot(): Promise<void> {
   app.mount('#phlix-app');
 
   // Wire Electron media events to @phlix/ui player store
-  installElectronBridge(app);
+  _cleanupBridge = installElectronBridge(app);
 
   // Expose phlix-ui router so overlay components can subscribe to navigation events
   // This is consumed by PlayerSupplement to detect player route changes without polling
@@ -196,7 +210,7 @@ export async function boot(): Promise<void> {
 
   // Listen for deep links from main process (W4.4)
   if (api && api.onDeeplink) {
-    api.onDeeplink((path: string) => {
+    _cleanupDeeplink = api.onDeeplink((path: string) => {
       if (router && router.isReady && router.push) {
         router.isReady().then(() => {
           router.push(path);
@@ -210,6 +224,19 @@ export async function boot(): Promise<void> {
   // Mount React overlay for P3-S4 player UX features (skip/sleep/PiP)
   // Imported dynamically after Vue app mounts so Pinia is active
   void import('./overlay');
+
+  // HMR dispose hook: clean up all renderer resources before Vite replaces the module
+  import.meta.hot?.dispose(() => {
+    cleanupRenderer();
+  });
+
+  // beforeunload cleanup: mirrors HMR dispose for non-HMR page refreshes/navigation
+  // Guard with typeof to support test environments (jsdom) that don't provide addEventListener
+  if (typeof window.addEventListener === 'function') {
+    window.addEventListener('beforeunload', () => {
+      cleanupRenderer();
+    });
+  }
 }
 
 void boot();
