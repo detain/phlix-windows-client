@@ -17,12 +17,11 @@ import log from 'electron-log';
 // Create the Vue app ONCE at module level
 const app = createApp(PlayerSupplement);
 const pinia = createPinia();
-const router = createRouter({
-  history: createWebHashHistory(),
-  routes: [] // Overlay doesn't need any routes
-});
 app.use(pinia);
-app.use(router);
+
+// Router is created lazily inside tryMount() to avoid jsdom teardown issues
+// where createWebHashHistory() references location which becomes undefined
+let routerReady = false;
 
 // Bounded retry with setTimeout — max 10 attempts
 const MAX_ATTEMPTS = 10;
@@ -39,6 +38,17 @@ function tryMount(): void {
     log.warn(`[Overlay] #player-supplement-root not found, retrying (${attempts}/${MAX_ATTEMPTS})...`);
     setTimeout(tryMount, 1000);
     return;
+  }
+
+  // Lazily create router only once when root element is confirmed
+  // (deferring createWebHashHistory avoids location error on jsdom teardown)
+  if (!routerReady) {
+    const router = createRouter({
+      history: createWebHashHistory(),
+      routes: [] // Overlay doesn't need any routes
+    });
+    app.use(router);
+    routerReady = true;
   }
 
   try {
