@@ -243,7 +243,9 @@ describe('IPC channel pairing', () => {
         'media:seek-forward',
         'media:seek-to',
         'notification:show',
-        'tray:get-minimize-to-tray'
+        'tray:get-minimize-to-tray',
+        'update:check-for-updates',
+        'update:get-status'
       ].sort());
     });
 
@@ -268,7 +270,9 @@ describe('IPC channel pairing', () => {
         'media:seek-forward',
         'media:seek-to',
         'notification:show',
-        'tray:get-minimize-to-tray'
+        'tray:get-minimize-to-tray',
+        'update:check-for-updates',
+        'update:get-status'
       ].sort());
     });
 
@@ -280,8 +284,8 @@ describe('IPC channel pairing', () => {
       expect(mainOn.sort()).toEqual(['minimize-to-tray', 'set-always-on-top', 'tray:set-minimize-to-tray', 'thumbar:update', 'playback:progress', 'power:update'].sort());
     });
 
-    it('main process sends exactly nine distinct push channels to renderer', () => {
-      // media-*, open-settings, deeplink:open (unique channel names)
+    it('main process sends exactly twelve distinct push channels to renderer', () => {
+      // media-*, open-settings, deeplink:open, update:* (unique channel names)
       expect([...new Set(mainWebContentsSend)].sort()).toEqual([
         'deeplink:open',
         'media-forward',
@@ -291,11 +295,14 @@ describe('IPC channel pairing', () => {
         'media-rewind',
         'media-seek-to',
         'media-stop',
-        'open-settings'
+        'open-settings',
+        'update:available',
+        'update:downloaded',
+        'update:progress'
       ].sort());
     });
 
-    it('preload listens to exactly nine push channels from main', () => {
+    it('preload listens to exactly twelve push channels from main', () => {
       expect(preloadOnChannels.sort()).toEqual([
         'deeplink:open',
         'media-forward',
@@ -305,7 +312,10 @@ describe('IPC channel pairing', () => {
         'media-rewind',
         'media-seek-to',
         'media-stop',
-        'open-settings'
+        'open-settings',
+        'update:available',
+        'update:downloaded',
+        'update:progress'
       ].sort());
     });
   });
