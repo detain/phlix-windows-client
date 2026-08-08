@@ -14,11 +14,12 @@ pairing test (§ipcChannels.test.ts) asserts against it.
 | `minimize-to-tray` | send | none | — | `minimizeToTray` (lines 533-535) | `minimizeToTray` | Not directly called by renderer; preload-only |
 | `tray:get-minimize-to-tray` | invoke | none | `boolean` | `getMinimizeToTray` (line 537) | `getMinimizeToTray` | Not directly called by renderer; preload-only |
 | `tray:set-minimize-to-tray` | send | `boolean` | — | `setMinimizeToTray` (line 539) | `setMinimizeToTray` | Not directly called by renderer; preload-only |
-| `hub:get-config` | invoke | none | `HubConfig` | `hubGetConfig` (lines 542-548) | `hubGetConfig` | `src/renderer/main.ts:108` — `api.hubGetConfig()` |
+| `hub:get-config` | invoke | none | `HubConfig` | `hubGetConfig` (lines 662-668) | `hubGetConfig` | `src/renderer/main.ts:139` — `api.hubGetConfig()` |
 | `hub:set-config` | invoke | `HubConfigPartial` | `void` | `hubSetConfig` (lines 550-554) | `hubSetConfig` | Not directly called by renderer; preload-only |
-| `app:get-server-url` | invoke | none | `string \| null` | `getServerUrl` (lines 557-559) | `getServerUrl` | `src/renderer/main.ts:116` — `api.getServerUrl()` |
-| `app:set-server-url` | invoke | `string` | `void` | `setServerUrl` (lines 561-563) | `setServerUrl` | `src/renderer/main.ts:139` — `api.setServerUrl(url)` |
-| `app:get-device-id` | invoke | none | `string` | `getDeviceId` (lines 577-584) | `getDeviceId` | `src/renderer/main.ts:110` — `api.getDeviceId()` |
+| `app:get-server-url` | invoke | none | `string \| null` | `getServerUrl` (lines 677-679) | `getServerUrl` | `src/renderer/main.ts:141` — `api.getServerUrl()` |
+| `app:set-server-url` | invoke | `string` | `void` | `setServerUrl` (lines 681-683) | `setServerUrl` | `src/renderer/main.ts:139` — `api.setServerUrl(url)` |
+| `app:check-server-version` | invoke | `{ apiBase: string }` | `boolean` | `app:check-server-version` (lines 686-688) | `checkServerVersion` | `src/renderer/main.ts:166` — `api.checkServerVersion(apiBase)` |
+| `app:get-device-id` | invoke | none | `string` | `getDeviceId` (lines 697-704) | `getDeviceId` | `src/renderer/main.ts:140` — `api.getDeviceId()` |
 | `media-play-pause` | push | none | — | `mainWindow.webContents.send` (line 107,133) | `onMediaPlayPause` | `src/renderer/electronBridge.ts:105` — `api.onMediaPlayPause()` |
 | `media-stop` | push | none | — | `mainWindow.webContents.send` (line 108,134) | `onMediaStop` | `src/renderer/electronBridge.ts:115` — `api.onMediaStop()` |
 | `media-rewind` | push | none | — | `mainWindow.webContents.send` (line 136) | `onMediaRewind` | `src/renderer/electronBridge.ts:121` — `api.onMediaRewind()` |
