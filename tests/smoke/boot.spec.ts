@@ -69,9 +69,6 @@ test('boot smoke test', async () => {
       env: {
         ...process.env,
         NODE_ENV: 'production',
-        ELECTRON_DISABLE_GPU: '1',
-        PHLIX_FORCE_PRODUCTION: '1',
-        DISPLAY: process.env.DISPLAY,
       },
     }
   );
@@ -146,7 +143,7 @@ test('boot smoke test', async () => {
     }
   });
 
-  await (window as any).waitForTimeout(2_000);
+  await page.waitForTimeout(2000);
   expect(
     consoleViolations,
     `Console violations found: ${JSON.stringify(consoleViolations)}`
