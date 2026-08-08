@@ -37,7 +37,7 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **`docs/performance-notes.md` added** — records the W5.x performance investigation findings: list virtualisation is handled upstream by `@phlix/ui`'s `MediaGrid` (windowed rendering, no third-party library), and the boot parallelisation and sleep timer changes were measured and verified.
 - **`docs/readme: correct nine false claims`** — corrected the README's stale dependency description, inaccurate feature list, wrong directory tree, and incorrect npm script references to match the as-built state after W0–W6 changes.
 - **React/Vue confusion corrected** — README and comments that referred to "React" or "Vue.js JSX" were updated to correctly state "Vue JSX" throughout, since this project uses Vue 3 with `@vitejs/plugin-vue-jsx` which is a Vue JSX transform, not React.
-- **Stale dependency pins removed** — `@phlix/ui` is pinned to `github:detain/phlix-ui#v0.98.34` and `@phlix/contracts` to `github:detain/phlix-contracts#v0.4.1`; the previous README incorrectly described `@phlix/ui` as coming from npm rather than GitHub.
+- **Stale dependency pins removed** — `@phlix/ui` is pinned to `github:detain/phlix-ui#v0.98.39` and `@phlix/contracts` to `github:detain/phlix-contracts#v0.4.3`; the previous README incorrectly described `@phlix/ui` as coming from npm rather than GitHub.
 - **Rotting inventory files removed** — `src/components/`, `src/pages/`, and `src/stores/` directories (all emptied during W2 dead-code deletion) were removed from the project tree and the README directory tree was updated accordingly.
 - **Total tests: 245** (no behavioral change).
 
