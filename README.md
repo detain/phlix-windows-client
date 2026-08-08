@@ -32,7 +32,7 @@ Phlix Windows requires Phlix Media Server **1.1.0** or later. Key features inclu
 
 Before setting up the project, ensure you have the following installed:
 
-- **Node.js** 24.x or later
+- **Node.js** >=24.0.0
 - **npm** v9.x or later (comes with Node.js)
 - **Git** for version control
 - **Windows 10/11** as the target platform
