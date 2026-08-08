@@ -1,6 +1,6 @@
-# @phlix/ui v0.98.34 — Page and Route Surface Inventory
+# @phlix/ui v0.98.39 — Page and Route Surface Inventory
 
-**Purpose:** Track every page available in `@phlix/ui` v0.98.34, which ones are wired
+**Purpose:** Track every page available in `@phlix/ui` v0.98.39, which ones are wired
 in the reference web-ui (`phlix-server/web-ui`), and which are wired in this repo
 (`phlix-windows-client`).
 
@@ -72,7 +72,7 @@ in the reference web-ui (`phlix-server/web-ui`), and which are wired in this rep
 ## Admin Pages (23 total)
 
 All admin pages are registered at `/app/admin/{path}` via `buildAdminRoutes()` / `buildHubAdminRoutes()`.
-**Source of truth:** the 23 distinct admin pages are confirmed directly from `@phlix/ui v0.98.34 dist/phlix-ui.js`
+**Source of truth:** the 23 distinct admin pages are confirmed directly from `@phlix/ui v0.98.39 dist/phlix-ui.js`
 (`Object.fromEntries` of 23 admin page objects). Counts per route builder:
 
 - `buildAdminRoutes()` (server mode, default): **20 pages** — 17 server-only + 3 common (Users, Logs, Settings)
@@ -83,7 +83,7 @@ All admin pages are registered at `/app/admin/{path}` via `buildAdminRoutes()` /
 > were later added to `serverAdminPages` in the bundle (MetricsPage, RequestsPage, and HubDashboardPage).
 > Live bundle analysis confirms 23 distinct pages and 20 via `buildAdminRoutes()`.
 
-**Verified 2026-08-05 (W1.7 — headless analysis of @phlix/ui v0.98.34 dist):**
+**Verified 2026-08-05 (W1.7 — headless analysis of @phlix/ui v0.98.39 dist):**
 - SettingsPage is **schema-driven** (v0.90 behaviour): `SettingsResponse` provides `types`
   (bool/int/float/string), `meta` (labels, helpText, enum, validation bounds), `overridden`
   keys. Not a hardcoded form.
@@ -91,7 +91,7 @@ All admin pages are registered at `/app/admin/{path}` via `buildAdminRoutes()` /
   `settings_schema`), schema-editor via `updateSettings`, plus
   install/uninstall/update/checkUpdates/testCredentials.
 - **Plugin update was NOT exercised** — no throwaway server available in this environment.
-- All 23 admin routes confirmed present in @phlix/ui v0.98.34 dist (`phlix-ui.js`).
+- All 23 admin routes confirmed present in @phlix/ui v0.98.39 dist (`phlix-ui.js`).
 
 | Page | Route name | web-ui | windows-client |
 |------|------------|--------|----------------|
@@ -123,7 +123,7 @@ All admin pages are registered at `/app/admin/{path}` via `buildAdminRoutes()` /
 
 ## Hub Pages — 8 of 8 Wired
 
-The eight hub pages from `@phlix/ui` (v0.98.34):
+The eight hub pages from `@phlix/ui` (v0.98.39):
 
 | Hub Page | windows-client buildMenu | Status |
 |----------|-------------------------|--------|
