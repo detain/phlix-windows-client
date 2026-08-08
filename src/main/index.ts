@@ -14,6 +14,7 @@ import { validateExternalUrl } from './urlValidator';
 import { checkMinServerVersion } from './versionCheck';
 import log from 'electron-log';
 import Store from 'electron-store';
+import { autoUpdater } from 'electron-updater';
 
 // W4.12: GPU escape hatch — read before the app readiness callback so it takes effect.
 // Check env var at module level (before store exists) and also check store preference after app is ready.
@@ -192,6 +193,17 @@ let tray: Tray | null = null;
 let isQuitting = false;
 let isPlaying = false;
 let powerBlockerId: number | null = null;
+
+// W4.9: Auto-updater state
+interface UpdateState {
+  status: 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'error';
+  version?: string;
+  progress?: number;
+  error?: string;
+}
+
+const updateState: UpdateState = { status: 'idle' };
+let _updateCheckTimer: NodeJS.Timeout | null = null;
 
 const isDev = process.env.NODE_ENV === 'development' || (!app.isPackaged && !process.env.PHLIX_FORCE_PRODUCTION);
 
@@ -409,6 +421,105 @@ function ensurePowerBlocker(start: boolean): void {
   }
 }
 
+// W4.9: Auto-updater — user-controlled update with notification on ready
+function setupAutoUpdater(): void {
+  autoUpdater.logger = log;
+  autoUpdater.autoDownload = false;
+  autoUpdater.allowPrerelease = false;
+
+  autoUpdater.on('checking-for-update', () => {
+    updateState.status = 'checking';
+    updateState.error = undefined;
+    log.info('[updater] Checking for updates...');
+  });
+
+  autoUpdater.on('update-available', (info) => {
+    updateState.status = 'available';
+    updateState.version = info.version;
+    log.info(`[updater] Update available: ${info.version}`);
+
+    // Notify renderer so it can show UI if needed
+    mainWindow?.webContents.send('update:available', { version: info.version });
+
+    // Offer to download via notification
+    if (Notification.isSupported()) {
+      const notification = new Notification({
+        title: 'Update Available',
+        body: `Phlix ${info.version} is available. Click to download.`
+      });
+      notification.on('click', () => {
+        autoUpdater.downloadUpdate();
+        updateState.status = 'downloading';
+      });
+      notification.show();
+    }
+  });
+
+  autoUpdater.on('download-progress', (progress) => {
+    updateState.status = 'downloading';
+    updateState.progress = progress.percent;
+    mainWindow?.webContents.send('update:progress', { percent: progress.percent });
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    updateState.status = 'downloaded';
+    updateState.version = info.version;
+    log.info(`[updater] Update downloaded: ${info.version}`);
+
+    // W4.9: Notify renderer — do NOT auto-restart silently
+    mainWindow?.webContents.send('update:downloaded', { version: info.version });
+
+    // W4.7: Wire to notification system — user chooses when to restart
+    if (Notification.isSupported()) {
+      const notification = new Notification({
+        title: 'Update Ready',
+        body: `Phlix ${info.version} has been downloaded. Restart to apply.`
+      });
+      notification.on('click', () => {
+        isQuitting = true;
+        autoUpdater.quitAndInstall(false, false);
+      });
+      notification.show();
+    }
+  });
+
+  autoUpdater.on('error', (err) => {
+    // W4.9: Handle offline and rate-limited cases quietly — no user-facing noise
+    const message = err.message ?? String(err);
+    if (
+      message.includes('net::ERR_') ||
+      message.includes('rate limit') ||
+      message.includes('404') ||
+      message.includes('ENOTFOUND') ||
+      message.includes('ECONNREFUSED')
+    ) {
+      log.warn(`[updater] Update check failed (likely offline): ${message}`);
+      updateState.status = 'idle';
+      updateState.error = undefined;
+    } else {
+      log.error(`[updater] Error: ${message}`);
+      updateState.status = 'error';
+      updateState.error = message;
+    }
+  });
+
+  // W4.9: Check after a short delay — do not block first paint
+  setTimeout(() => {
+    autoUpdater.checkForUpdates().catch((err) => {
+      log.warn(`[updater] Initial check error: ${err.message}`);
+    });
+  }, 5000);
+
+  // W4.9: Periodic check every 6 hours
+  _updateCheckTimer = setInterval(() => {
+    if (updateState.status === 'idle' || updateState.status === 'error') {
+      autoUpdater.checkForUpdates().catch((err) => {
+        log.warn(`[updater] Periodic check error: ${err.message}`);
+      });
+    }
+  }, 6 * 60 * 60 * 1000);
+}
+
 export function createTray(): void {
   const iconPath = path.join(__dirname, '../../build/icon.png');
   const icon = nativeImage.createFromPath(iconPath);
@@ -489,7 +600,16 @@ function createMenu(): void {
     {
       label: 'Help',
       submenu: [
-        { label: 'About Phlix', click: () => showAbout() }
+        { label: 'About Phlix', click: () => showAbout() },
+        { type: 'separator' },
+        { label: 'Check for updates', click: () => {
+          if (updateState.status === 'downloading' || updateState.status === 'checking') return;
+          updateState.status = 'checking';
+          autoUpdater.checkForUpdates().catch((err) => {
+            log.warn(`[updater] Menu check error: ${err.message}`);
+            updateState.status = 'idle';
+          });
+        }}
       ]
     }
   ];
@@ -674,6 +794,28 @@ ipcMain.handle('media:seek-to', (_, time: number) => {
   mainWindow?.webContents.send('media-seek-to', time);
 });
 
+// W4.9: Manual update check — triggered by "Check for updates" menu or renderer
+ipcMain.handle('update:check-for-updates', async () => {
+  if (updateState.status === 'downloading' || updateState.status === 'checking') {
+    return { status: updateState.status, version: updateState.version };
+  }
+  try {
+    updateState.status = 'checking';
+    await autoUpdater.checkForUpdates();
+    return { status: updateState.status, version: updateState.version };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.warn(`[updater] Manual check error: ${message}`);
+    updateState.status = 'idle';
+    return { status: 'idle', error: undefined };
+  }
+});
+
+// W4.9: Renderer queries current update state
+ipcMain.handle('update:get-status', () => {
+  return { ...updateState };
+});
+
 // App lifecycle
 
 // Register custom privileged scheme BEFORE app.whenReady()
@@ -814,6 +956,7 @@ app.whenReady().then(() => {
   createWindow();
   createMenu();
   createTray();
+  setupAutoUpdater();
 
   // Handle cold start deep link
   if (coldStartUrl) {

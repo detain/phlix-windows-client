@@ -50,6 +50,11 @@
       "allowToChangeInstallationDirectory": true,
       "installerIcon": "build/icon.ico"
     },
+    "publish": {
+      "provider": "github",
+      "owner": "detain",
+      "repo": "phlix-windows-client"
+    },
     "appx": {
       "identityName": "Phlix",
       "publisher": "CN=Phlix",
@@ -69,6 +74,7 @@
     "@phlix/ui": "github:detain/phlix-ui#v0.98.39",
     "electron-log": "^5.0.0",
     "electron-store": "^8.1.0",
+    "electron-updater": "^6.3.9",
     "pinia": "^3.0.0",
     "vue": "^3.5.0",
     "vue-router": "^5.0.0"

@@ -106,4 +106,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // W4.12: GPU feature status for diagnostics
   getGpuFeatureStatus: () => ipcRenderer.invoke('gpu:get-feature-status'),
+
+  // W4.9: Auto-updater
+  checkForUpdates: () => ipcRenderer.invoke('update:check-for-updates'),
+  getUpdateStatus: () => ipcRenderer.invoke('update:get-status'),
+  onUpdateAvailable: (callback: (data: { version: string }) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, data: { version: string }) => callback(data);
+    ipcRenderer.on('update:available', listener);
+    return () => ipcRenderer.removeListener('update:available', listener);
+  },
+  onUpdateProgress: (callback: (data: { percent: number }) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, data: { percent: number }) => callback(data);
+    ipcRenderer.on('update:progress', listener);
+    return () => ipcRenderer.removeListener('update:progress', listener);
+  },
+  onUpdateDownloaded: (callback: (data: { version: string }) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, data: { version: string }) => callback(data);
+    ipcRenderer.on('update:downloaded', listener);
+    return () => ipcRenderer.removeListener('update:downloaded', listener);
+  },
 });
