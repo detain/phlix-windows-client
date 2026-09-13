@@ -17,18 +17,19 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 // Self-identifying lane marker (survives tokenisation as a plain string const).
 const LANE_TOKEN = 'S442WINDOWSPINX5V2';
 
-// The state S442 pins the repo to. v0.4.6 is the newest contracts tag; its
-// annotated tag peels to this commit, which must be what the lockfile resolves.
-const EXPECTED_CONTRACTS_RANGE = 'github:detain/phlix-contracts#v0.4.6';
+// The state the W85 dual-repin pins the repo to. v0.4.7 is the newest contracts
+// tag; its annotated tag peels to this commit (live ls-remote, 2026-09-13),
+// which must be what the lockfile resolves.
+const EXPECTED_CONTRACTS_RANGE = 'github:detain/phlix-contracts#v0.4.7';
 const EXPECTED_CONTRACTS_RESOLVED =
-  'git+ssh://git@github.com/detain/phlix-contracts.git#97bcda069efa2bba3591f1143a000aec8fefae15';
-const EXPECTED_CONTRACTS_VERSION = '0.4.6';
+  'git+ssh://git@github.com/detain/phlix-contracts.git#625a5625fd19a3e887a50548b2cdaca1b0a2bd55';
+const EXPECTED_CONTRACTS_VERSION = '0.4.7';
 
 const root = new URL('../../', import.meta.url);
 const readJson = (rel) => JSON.parse(readFileSync(fileURLToPath(new URL(rel, root)), 'utf8'));
@@ -41,7 +42,7 @@ describe('S442 — @phlix/contracts direct pin is current', () => {
     expect(LANE_TOKEN).toMatch(/^S442/);
   });
 
-  it('declares the v0.4.6 tag in package.json', () => {
+  it('declares the v0.4.7 tag in package.json', () => {
     expect(pkg.dependencies['@phlix/contracts']).toBe(EXPECTED_CONTRACTS_RANGE);
   });
 
@@ -49,23 +50,48 @@ describe('S442 — @phlix/contracts direct pin is current', () => {
     expect(lock.packages[''].dependencies['@phlix/contracts']).toBe(EXPECTED_CONTRACTS_RANGE);
   });
 
-  it('resolves the hoisted @phlix/contracts to the v0.4.6 target, not a drifted commit', () => {
+  it('resolves the hoisted @phlix/contracts to the v0.4.7 target, not a drifted commit', () => {
     const entry = lock.packages['node_modules/@phlix/contracts'];
     expect(entry.version).toBe(EXPECTED_CONTRACTS_VERSION);
     expect(entry.resolved).toBe(EXPECTED_CONTRACTS_RESOLVED);
   });
 });
 
-describe('W82 — nested ui → contracts declaration stays pinned', () => {
-  // @phlix/ui's own package.json used to request contracts #v0.4.5 while this
-  // repo's direct pin rode v0.4.6 — an upstream divergence S442 documented and
-  // the lockwalk ratified as a hoist. The W82 re-pin to @phlix/ui v0.99.2
-  // resolved it upstream: ui's manifest now requests #v0.4.6 itself. The guard
-  // keeps pinning the exact nested declaration so any future rewrite upstream
-  // fails loud here instead of silently re-creating the old drift class.
-  it('leaves the nested @phlix/ui → contracts declaration at the #v0.4.6 ui now ships', () => {
+describe('W85 — ui → contracts declarations converge: one pin, zero nested copies', () => {
+  // History of this guard: ui's manifest once requested contracts #v0.4.5 while
+  // this repo's direct pin rode higher — the divergence S442 documented and the
+  // lockwalk ratified as a hoist until W82 retired that exception. The W85
+  // dual-repin lands ui v0.99.3 (manifest requests #v0.4.7) against a direct pin
+  // of #v0.4.7: the two declarations are IDENTICAL, so npm can no longer
+  // materialise the nested copy that made sequential bumps un-greenable
+  // (lockwalk rule 3, nested-copy-forbidden). Fail-loud on all three faces:
+  // ui's lock declaration must equal the direct pin byte-for-byte, the lock must
+  // carry no nested @phlix/contracts node under ui, and node_modules must not
+  // grow one on disk either.
+  it("keeps ui's lock-declared contracts request equal to the direct pin", () => {
     const ui = lock.packages['node_modules/@phlix/ui'];
-    expect(ui.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.4.6');
+    expect(ui.dependencies['@phlix/contracts']).toBe(pkg.dependencies['@phlix/contracts']);
+    expect(ui.dependencies['@phlix/contracts']).toBe(EXPECTED_CONTRACTS_RANGE);
+  });
+
+  it('ships no nested @phlix/ui → contracts copy in the lock', () => {
+    const nestedKeys = Object.keys(lock.packages).filter((k) =>
+      /^node_modules\/@phlix\/ui\/node_modules\//.test(k),
+    );
+    expect(nestedKeys).toEqual([]);
+  });
+
+  it('ships no nested @phlix/ui → contracts copy on disk after npm install', () => {
+    expect(
+      existsSync(fileURLToPath(new URL('node_modules/@phlix/ui/node_modules/@phlix/contracts', root))),
+    ).toBe(false);
+  });
+
+  it('hoists a single @phlix/contracts resolution at the pinned version', () => {
+    const entry = lock.packages['node_modules/@phlix/contracts'];
+    expect(entry.version).toBe(EXPECTED_CONTRACTS_VERSION);
+    const installed = readJson('node_modules/@phlix/contracts/package.json');
+    expect(installed.version).toBe(EXPECTED_CONTRACTS_VERSION);
   });
 });
 

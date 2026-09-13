@@ -7,6 +7,42 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — W85 (winrepin): dual re-pin `@phlix/ui` v0.99.2 → v0.99.3 + `@phlix/contracts` v0.4.6 → v0.4.7 — 2026-09-13
+
+- **Both pins advanced in one PR — the manual-lane move the structural trap demanded.**
+  `phlix-windows-client` has no automatic consumer edge (see the release README's
+  Windows manual-ride policy): while this repo's direct contracts pin and the
+  contracts tag declared by the newest ui manifest disagree, npm must materialise a
+  nested copy under the ui tree and lockwalk rule 3 (nested-copy-forbidden) fails the
+  suite red whatever else the leg does. The ordering fact is *contracts tag → ui tag
+  whose manifest declares it → windows dual-repin*, and both upstream tags are now
+  released: ui v0.99.3's manifest declares contracts v0.4.7 outright, so a single
+  dual re-pin lands green. `package.json` re-pins `@phlix/ui` to the v0.99.3 tag and
+  `@phlix/contracts` to the v0.4.7 tag; `NPM_CONFIG_USERCONFIG=/dev/null npm install`
+  regenerated the committed lock. Post-install proof of the dissolved trap: no nested
+  contracts copy exists under the ui tree on disk or in the lock, and the single
+  hoisted contracts resolution is v0.4.7.
+- **All three functional guards re-pinned from live-derived values** (never from the
+  brief): each tag's peel re-verified against the live remotes via `git ls-remote`,
+  and each tagged manifest's `version` field re-read with `git show` at the peeled
+  commit. `scripts/lockwalk.mjs` `EXPECTED` advances contracts and ui (tag + peeled
+  commit sha, both double-checked by `lockwalk --live` after the change). Notable
+  truth: ui v0.99.3 normalized its manifest `version` field — the v0.99.2-era stale-field
+  override in `EXPECTED` is retired by that override's own written rule, and the
+  matching mutation-proof in the lockwalk test now asserts the version line drifting
+  off the tag-derived value still goes red. `tests/unit/contractsPin.test.mjs` advances
+  its literals to the v0.4.7 tag/resolution and restructures the old nested-declaration
+  expectation into a convergence guard: ui's lock-declared contracts request must equal
+  the direct pin byte-for-byte, no nested copy may exist in lock or on disk, and the
+  hoisted single resolution must sit at the pinned version — fail-loud on every face.
+- **Verification:** 29 test files / 314 tests green (three assertions added by the
+  restructured convergence guard; none removed or suppressed), typecheck, lint,
+  `lockwalk` exit 0 with all live peels OK, and `npm audit` reports zero
+  vulnerabilities across all levels. A planted-red control flipped the new disk-level
+  nested-copy assertion alone: exactly that named test went red, restore verified by
+  checksum, suite green again. `src/` untouched; the renderer consumes the newer ui
+  through the same boot seam as before.
+
 ### Changed — W84 (s490win): vitest 3 → 5 test-runner migration — 2026-09-13
 
 - **Test runner advanced to major 5.** `package.json` re-pins `vitest` and
