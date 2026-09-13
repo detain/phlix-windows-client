@@ -16,10 +16,12 @@
  *     the root package or from any @phlix/* lock entry, must resolve to a lock
  *     node whose `version` equals the tag — or, where the tagged upstream
  *     manifest ships a stale `version` field, equals that field pinned
- *     explicitly as `manifestVersion` in EXPECTED below (@phlix/ui v0.99.2's
- *     manifest still reads 0.99.1 — tagged without a field bump; the identity
- *     byte-check is the `resolved` peel sha) — and whose `resolved` sha equals
- *     the pinned peel sha. An override is exact-match, never a wildcard waiver.
+ *     explicitly as `manifestVersion` in EXPECTED below (the historical case:
+ *     @phlix/ui v0.99.2 was tagged with its manifest `version` still reading
+ *     0.99.1; v0.99.3 normalized the field, so no `manifestVersion` override
+ *     is carried any more — the identity byte-check remains the `resolved`
+ *     peel sha) — and whose `resolved` sha equals the pinned peel sha.
+ *     An override is exact-match, never a wildcard waiver.
  *  2. RATIFIED_HOISTS carried one ratified exception: @phlix/ui v0.99.1's
  *     manifest requested contracts `#v0.4.5` while this repo deduped it onto
  *     the single hoisted `0.4.6` copy (the S442 decision, recorded verbatim in
@@ -54,15 +56,15 @@ const NESTED_NODE_RE = /\/node_modules\/@phlix\/[\w-]+$/;
 
 // Single resolutions: package -> the tag this repo standardizes on and
 // the commit that tag peels to (re-verified against the live remotes via
-// `git ls-remote ... refs/tags/<tag>^{}` on 2026-09-13):
-//   phlix-contracts v0.4.6  -> 97bcda06
-//   phlix-syncplay  v0.1.4  -> 673e3d41  (the S279-era lib that shipped W24)
-//   phlix-ui        v0.99.2 -> a7530e8b  (lightweight tag == ui master; its manifest
-//                                         `version` field still reads 0.99.1 — see below)
+// `git ls-remote ... refs/tags/<tag>^{}` on 2026-09-13, W85 dual-repin lane):
+//   phlix-contracts v0.4.7  -> 625a5625
+//   phlix-syncplay  v0.1.4  -> 673e3d41  (the S279-era lib that shipped W24; ui v0.99.3 still requests it)
+//   phlix-ui        v0.99.3 -> cafe978c  (annotated tag; its manifest `version` field now reads 0.99.3 — normalized,
+//                                         so the v0.99.2-era stale-field override is gone)
 export const EXPECTED = {
   '@phlix/contracts': {
-    tag: 'v0.4.6',
-    sha: '97bcda069efa2bba3591f1143a000aec8fefae15',
+    tag: 'v0.4.7',
+    sha: '625a5625fd19a3e887a50548b2cdaca1b0a2bd55',
     repo: 'git+ssh://git@github.com/detain/phlix-contracts.git',
   },
   '@phlix/syncplay': {
@@ -71,14 +73,13 @@ export const EXPECTED = {
     repo: 'git+ssh://git@github.com/detain/phlix-syncplay.git',
   },
   '@phlix/ui': {
-    tag: 'v0.99.2',
-    sha: 'a7530e8b8505e2632d5ef01c32926bdc8d1f6862',
-    // Upstream tagged v0.99.2 WITHOUT bumping its own manifest `version` field
-    // (still reads 0.99.1 at a7530e8b, measured via git show). npm copies that
-    // field verbatim into the lock, so rule 1 checks the resolved sha as the
-    // identity and this exact stale-field pin for the version line. If ui ever
-    // fixes the field, this pin turns RED on purpose — re-ratify explicitly.
-    manifestVersion: '0.99.1',
+    tag: 'v0.99.3',
+    sha: 'cafe978c26db0bb51c2511429daf566e77b3a35e',
+    // W85: ui v0.99.3's manifest `version` field was bumped in step with the tag
+    // (measured via git show at cafe978c — reads 0.99.3), so rule 1 checks the
+    // tag-derived version outright. The v0.99.2-era `manifestVersion: '0.99.1'`
+    // stale-field override is retired by that override's own written rule: if ui
+    // ever ships the field stale again, re-adding an exact-match pin is the fix.
     repo: 'git+ssh://git@github.com/detain/phlix-ui.git',
   },
 };

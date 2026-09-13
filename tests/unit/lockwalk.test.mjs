@@ -80,17 +80,19 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
     };
     const { findings } = walk(broken);
     const rv = findings.filter((f) => f.startsWith('request-vs-resolved:'));
-    expect(rv.some((f) => f.includes('(root) requests @phlix/contracts#v0.4.6'))).toBe(true);
-    expect(rv.some((f) => f.includes('node_modules/@phlix/ui requests @phlix/contracts#v0.4.6'))).toBe(true);
+    expect(rv.some((f) => f.includes('(root) requests @phlix/contracts#v0.4.7'))).toBe(true);
+    expect(rv.some((f) => f.includes('node_modules/@phlix/ui requests @phlix/contracts#v0.4.7'))).toBe(true);
     // No ratified exception exists to absorb it any more:
     expect(findings.some((f) => f.startsWith('ratified-hoist-drift:'))).toBe(false);
   });
 
-  it('REGRESSION: flags the pinned ui manifest version field moving (exact-match, not a waiver)', () => {
+  it('REGRESSION: flags the ui lock version line moving off the tag-derived truth', () => {
     const broken = structuredClone(lock);
-    // A hand-edit claiming the ui version line caught up with the tag must go RED:
-    // EXPECTED['@phlix/ui'].manifestVersion pins the field the upstream manifest
-    // actually ships at a7530e8b (0.99.1), so this drift is a finding, not silence.
+    // W85 truth: ui v0.99.3 normalized its manifest `version` field (measured via
+    // git show at cafe978c — reads 0.99.3), so the v0.99.2-era stale-field
+    // `manifestVersion` override was retired and rule 1 checks the tag-derived
+    // version outright. A hand-edit claiming the field fell back behind the tag
+    // must still go RED — mutation-proof, exact-match, not a waiver.
     broken.packages['node_modules/@phlix/ui'] = {
       ...broken.packages['node_modules/@phlix/ui'],
       version: '0.99.2',
@@ -100,9 +102,9 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
       findings.some(
         (f) =>
           f.startsWith('request-vs-resolved:') &&
-          f.includes('@phlix/ui#v0.99.2') &&
+          f.includes('@phlix/ui#v0.99.3') &&
           f.includes('version 0.99.2') &&
-          f.includes('pinned version line reads 0.99.1'),
+          f.includes('pinned version line reads 0.99.3'),
       ),
     ).toBe(true);
   });
@@ -126,18 +128,18 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
   });
 });
 
-describe('W82 — the ratified exception has retired to exactly zero edges', () => {
-  it('RATIFIED_HOISTS is empty by its own written rule (ui v0.99.2 requests #v0.4.6)', () => {
+describe('W82/W85 — the ratified exception stays retired to exactly zero edges', () => {
+  it('RATIFIED_HOISTS is empty by its own written rule (ui v0.99.2 requested #v0.4.6; v0.99.3 requests #v0.4.7)', () => {
     expect(Object.keys(RATIFIED_HOISTS)).toEqual([]);
   });
 
   it('the historical exception key stays dead and the edge itself is rule-1-clean', () => {
     // Mutation-proof: a silently re-added waiver for the old divergence goes RED,
-    // and the now-honest edge stays byte-pinned (ui's own manifest asks #v0.4.6,
-    // the hoisted 0.4.6@97bcda06 satisfies it — walk() sees zero findings there).
+    // and the now-honest edge stays byte-pinned (ui v0.99.3's own manifest asks
+    // #v0.4.7, the hoisted 0.4.7@625a5625 satisfies it — walk() sees zero findings there).
     expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.4.5']).toBeUndefined();
     const ui = lock.packages['node_modules/@phlix/ui'];
-    expect(ui.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.4.6');
+    expect(ui.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.4.7');
     const { findings } = walk(lock);
     expect(findings.filter((f) => f.includes('@phlix/contracts'))).toEqual([]);
   });
