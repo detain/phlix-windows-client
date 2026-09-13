@@ -65,6 +65,13 @@ const DEEP_LINK_ALLOW_LIST: Array<{ pattern: RegExp; reason: string }> = [
   // ParentalControlsPage: @phlix/ui registers /app/parental (own component).
   { pattern: /^\/app\/parental$/, reason: '@phlix/ui built-in parental controls route' },
 
+  // ProfilesPage: @phlix/ui v0.99.2 (S82) registers /app/profiles with its own
+  // component. Entry point ships inside @phlix/ui's shell chrome — the UserMenu
+  // "Manage Profiles" item (data-testid=usermenu-manage-profiles, verified in
+  // the installed dist/phlix-ui.js) and the who's-watching gate — so it can
+  // never appear in this repo's buildMenu, which only seeds nav items.
+  { pattern: /^\/app\/profiles$/, reason: '@phlix/ui built-in profiles route; entered from the ui UserMenu (usermenu-manage-profiles), not a nav-menu target' },
+
   // Admin section: all sub-routes are gated to admin users, reached via admin dashboard
   { pattern: /^\/app\/admin$/, reason: 'admin section parent route, content rendered by active child' },
   { pattern: /^\/app\/admin\//, reason: 'admin sub-routes, gated to admin users, reached via admin dashboard' },
