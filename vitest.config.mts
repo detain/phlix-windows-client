@@ -9,6 +9,11 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/renderer/test-setup.ts'],
+    // vitest@5 flipped this default from false to true: spies are now cleared
+    // before every test. autoUpdater.test.ts captures module-load-time handlers
+    // and asserts on their registration calls; test-setup.ts and other suites
+    // likewise rely on v3's persist-by-default semantics. Pin the v3 behavior.
+    clearMocks: false,
     // .mjs is included for tests/unit/copyright.test.mjs, which exercises the
     // plain-Node ESM helpers in scripts/lib/copyright.mjs. Those live outside
     // the TypeScript project (tsconfig.json's `include` is ["src/renderer"]),

@@ -13,7 +13,7 @@
  * between preload channels and main-process handlers.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, type Mock } from 'vitest';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
@@ -323,29 +323,29 @@ describe('IPC channel pairing', () => {
   describe('behavioral round-trips', () => {
     // Simulate window.electronAPI as the preload bridge sees it
     type ElectronAPI = {
-      getAppPath: ReturnType<typeof vi.fn>;
-      getVersion: ReturnType<typeof vi.fn>;
-      getDeviceId: ReturnType<typeof vi.fn>;
-      getServerUrl: ReturnType<typeof vi.fn>;
-      setServerUrl: ReturnType<typeof vi.fn>;
-      hubGetConfig: ReturnType<typeof vi.fn>;
-      hubSetConfig: ReturnType<typeof vi.fn>;
-      getMinimizeToTray: ReturnType<typeof vi.fn>;
-      setAlwaysOnTop: ReturnType<typeof vi.fn>;
-      minimizeToTray: ReturnType<typeof vi.fn>;
-      setMinimizeToTray: ReturnType<typeof vi.fn>;
-      onMediaPlayPause: ReturnType<typeof vi.fn>;
-      onMediaStop: ReturnType<typeof vi.fn>;
-      onMediaRewind: ReturnType<typeof vi.fn>;
-      onMediaForward: ReturnType<typeof vi.fn>;
-      onOpenSettings: ReturnType<typeof vi.fn>;
+      getAppPath: Mock;
+      getVersion: Mock;
+      getDeviceId: Mock;
+      getServerUrl: Mock;
+      setServerUrl: Mock;
+      hubGetConfig: Mock;
+      hubSetConfig: Mock;
+      getMinimizeToTray: Mock;
+      setAlwaysOnTop: Mock;
+      minimizeToTray: Mock;
+      setMinimizeToTray: Mock;
+      onMediaPlayPause: Mock;
+      onMediaStop: Mock;
+      onMediaRewind: Mock;
+      onMediaForward: Mock;
+      onOpenSettings: Mock;
     };
 
     let electronAPI: ElectronAPI;
-    let ipcRendererInvoke: ReturnType<typeof vi.fn>;
-    let ipcRendererSend: ReturnType<typeof vi.fn>;
-    let ipcRendererOn: ReturnType<typeof vi.fn>;
-    let ipcRendererRemoveListener: ReturnType<typeof vi.fn>;
+    let ipcRendererInvoke: Mock;
+    let ipcRendererSend: Mock;
+    let ipcRendererOn: Mock;
+    let ipcRendererRemoveListener: Mock;
 
     beforeEach(() => {
       ipcRendererInvoke = vi.fn();

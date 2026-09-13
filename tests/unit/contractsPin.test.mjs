@@ -68,3 +68,31 @@ describe('W82 — nested ui → contracts declaration stays pinned', () => {
     expect(ui.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.4.6');
   });
 });
+
+// ---------------------------------------------------------------------------
+// S490 — the test runner itself is migrated: declared ^5 = resolved 5.x = installed 5.x.
+// Same drift class this file exists for, one layer deeper: a package.json that
+// claims vitest 5 while the lockfile or node_modules still ships 3 (the
+// GHSA-82fw-gwwq-j7x9 advisory family) must fail loud here.
+// ---------------------------------------------------------------------------
+const S490_VITEST5_TOKEN = 'S490VITEST5X9R5';
+
+describe('S490 — vitest test-runner is migrated to major 5 end to end', () => {
+  it('is the S490 lane guard', () => {
+    // Runtime use of the token const: a comment-only token cannot pass this line.
+    expect(S490_VITEST5_TOKEN).toHaveLength('S490VITEST'.length + '5X9R5'.length);
+  });
+
+  it('declares a ^5 range for vitest in package.json', () => {
+    expect(pkg.devDependencies.vitest).toMatch(/^\^5\./);
+  });
+
+  it('resolves vitest to a 5.x version in the committed lockfile', () => {
+    expect(Number(lock.packages['node_modules/vitest'].version.split('.')[0])).toBe(5);
+  });
+
+  it('has the 5.x vitest actually installed — the declared runner is the running one', () => {
+    const installed = readJson('node_modules/vitest/package.json');
+    expect(installed.version.split('.')[0]).toBe('5');
+  });
+});

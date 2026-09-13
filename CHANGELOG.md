@@ -7,6 +7,29 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — W84 (s490win): vitest 3 → 5 test-runner migration — 2026-09-13
+
+- **Test runner advanced to major 5.** `package.json` re-pins `vitest` and
+  `@vitest/coverage-v8` `^3.2.6` → `^5.0.0` (the two declared lines of the
+  dependabot npm_and_yarn group; the advisory carrier `@vitest/mocker` follows
+  transitively); `NPM_CONFIG_USERCONFIG=/dev/null npm install` regenerated the
+  committed lock — installed family `vitest`/`@vitest/mocker`/`@vitest/coverage-v8`/
+  `@vitest/spy` all 5.0.0, satisfying `vite ^7.3.2` peers untouched. This clears
+  the last three GHSA-82fw-gwwq-j7x9-family MODERATE advisories: `npm audit`
+  (all levels) now reports zero vulnerabilities.
+- **Two vitest@5 breaking changes repaired truthfully.** (1) Spies created with an
+  arrow implementation or `mockReturnValue` are no longer callable with `new`: the
+  `Store`/`BrowserWindow`/`Tray` constructor mocks in `autoUpdater`,
+  `protocolHandler` and `singleInstance` tests were converted to `function`
+  implementations returning the identical stub objects — no assertion changed.
+  (2) The config default `clearMocks` flipped `false` → `true`, wiping the
+  module-load-time handler-registration records `autoUpdater.test.ts` asserts on;
+  `vitest.config.mts` now pins `clearMocks: false` to preserve the previous
+  semantics suite-wide.
+- **Verification:** 29 test files / 307 tests green (identical counts to the
+  vitest@3 baseline), typecheck, lint, production build and the lockwalk edge/pin
+  guards all pass; coverage lines 59.8% against the unchanged 54% threshold.
+
 ### Changed — W82 (winsump): `@phlix/ui` re-pin v0.99.1 → v0.99.2 — 2026-09-13
 
 - **Direct ui pin advanced to the v0.99.2 wave tag.** `package.json` re-pins
