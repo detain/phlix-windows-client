@@ -61,37 +61,44 @@ vi.mock('electron', () => ({
     on: vi.fn(),
     quit: vi.fn()
   },
-  BrowserWindow: vi.fn().mockReturnValue({
-    loadURL: vi.fn(),
-    loadFile: vi.fn(),
-    show: vi.fn(),
-    hide: vi.fn(),
-    close: vi.fn(),
-    isDestroyed: vi.fn().mockReturnValue(false),
-    setAlwaysOnTop: vi.fn(),
-    setFullScreen: vi.fn(),
-    isFullScreen: vi.fn().mockReturnValue(false),
-    maximize: vi.fn(),
-    isMaximized: vi.fn().mockReturnValue(false),
-    setProgressBar: vi.fn(),
-    setThumbarButtons: vi.fn(),
-    webContents: {
-      send: vi.fn(),
-      setWindowOpenHandler: vi.fn(),
+  // vitest@5: `mockReturnValue` is rejected when the mock is called with `new`
+  // ("Use mockImplementation with a function/class instead"). Same stub shape.
+  BrowserWindow: vi.fn().mockImplementation(function () {
+    return {
+      loadURL: vi.fn(),
+      loadFile: vi.fn(),
+      show: vi.fn(),
+      hide: vi.fn(),
+      close: vi.fn(),
+      isDestroyed: vi.fn().mockReturnValue(false),
+      setAlwaysOnTop: vi.fn(),
+      setFullScreen: vi.fn(),
+      isFullScreen: vi.fn().mockReturnValue(false),
+      maximize: vi.fn(),
+      isMaximized: vi.fn().mockReturnValue(false),
+      setProgressBar: vi.fn(),
+      setThumbarButtons: vi.fn(),
+      webContents: {
+        send: vi.fn(),
+        setWindowOpenHandler: vi.fn(),
+        on: vi.fn(),
+        openDevTools: vi.fn()
+      },
       on: vi.fn(),
-      openDevTools: vi.fn()
-    },
-    on: vi.fn(),
-    once: vi.fn()
+      once: vi.fn()
+    };
   }),
   Menu: {
     buildFromTemplate: vi.fn().mockReturnValue({}),
     setApplicationMenu: vi.fn()
   },
-  Tray: vi.fn().mockReturnValue({
-    setToolTip: vi.fn(),
-    setContextMenu: vi.fn(),
-    on: vi.fn()
+  // vitest@5: `new Tray()` cannot come from mockReturnValue — function impl, same stub.
+  Tray: vi.fn().mockImplementation(function () {
+    return {
+      setToolTip: vi.fn(),
+      setContextMenu: vi.fn(),
+      on: vi.fn()
+    };
   }),
   ipcMain: {
     handle: vi.fn(),

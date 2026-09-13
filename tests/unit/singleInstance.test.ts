@@ -32,10 +32,14 @@ vi.mock('electron-log', () => ({
 // Mock electron-store
 // ---------------------------------------------------------------------------
 vi.mock('electron-store', () => ({
-  default: vi.fn(() => ({
-    get: vi.fn(() => null),
-    set: vi.fn()
-  }))
+  // vitest@5: constructor mocks must be function/class (arrow impls are no longer
+  // newable). Same behavior: fresh {get,set} stub per `new Store()`.
+  default: vi.fn(function () {
+    return {
+      get: vi.fn(() => null),
+      set: vi.fn()
+    };
+  })
 }));
 
 // ---------------------------------------------------------------------------
@@ -82,25 +86,28 @@ vi.mock('electron', () => ({
       return false; // Simulate lock failure → triggers app.quit()
     })
   },
-  BrowserWindow: vi.fn(() => ({
-    loadURL: vi.fn(),
-    show: vi.fn(),
-    hide: vi.fn(),
-    close: vi.fn(),
-    setAlwaysOnTop: vi.fn(),
-    isFullScreen: vi.fn(() => false),
-    setFullScreen: vi.fn(),
-    on: vi.fn(),
-    once: vi.fn(),
-    webContents: {
-      send: vi.fn(),
-      setWindowOpenHandler: vi.fn(() => ({ action: 'deny' })),
-      on: vi.fn()
-    },
-    isMinimized: vi.fn(() => false),
-    restore: vi.fn(),
-    focus: vi.fn()
-  })),
+  // vitest@5: `new BrowserWindow()` requires a function impl (arrow impls are not newable).
+  BrowserWindow: vi.fn(function () {
+    return {
+      loadURL: vi.fn(),
+      show: vi.fn(),
+      hide: vi.fn(),
+      close: vi.fn(),
+      setAlwaysOnTop: vi.fn(),
+      isFullScreen: vi.fn(() => false),
+      setFullScreen: vi.fn(),
+      on: vi.fn(),
+      once: vi.fn(),
+      webContents: {
+        send: vi.fn(),
+        setWindowOpenHandler: vi.fn(() => ({ action: 'deny' })),
+        on: vi.fn()
+      },
+      isMinimized: vi.fn(() => false),
+      restore: vi.fn(),
+      focus: vi.fn()
+    };
+  }),
   ipcMain: { handle: vi.fn(), on: vi.fn() },
   protocol: { handle: vi.fn(), registerSchemesAsPrivileged: vi.fn() },
   shell: { openExternal: vi.fn() },
@@ -111,12 +118,15 @@ vi.mock('electron', () => ({
     }))
   },
   Menu: { buildFromTemplate: vi.fn(() => ({})), setApplicationMenu: vi.fn() },
-  Tray: vi.fn(() => ({
-    setToolTip: vi.fn(),
-    setContextMenu: vi.fn(),
-    on: vi.fn(),
-    click: vi.fn()
-  })),
+  // vitest@5: `new Tray()` requires a function impl (arrow impls are not newable).
+  Tray: vi.fn(function () {
+    return {
+      setToolTip: vi.fn(),
+      setContextMenu: vi.fn(),
+      on: vi.fn(),
+      click: vi.fn()
+    };
+  }),
   dialog: {
     showOpenDialog: vi.fn(() => Promise.resolve({ canceled: true, filePaths: [] })),
     showMessageBox: vi.fn(() => Promise.resolve({ response: 0 }))
