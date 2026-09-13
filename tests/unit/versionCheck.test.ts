@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 // Using relative path because @ alias points to src/renderer/, not src/main/
 import { parseServerVersion, checkMinServerVersion, MIN_SERVER_VERSION } from '../../src/main/versionCheck';
 import log from 'electron-log';
@@ -55,7 +55,7 @@ describe('parseServerVersion', () => {
 
 describe('checkMinServerVersion', () => {
   const { fetch } = window;
-  let fetchSpy: ReturnType<typeof vi.fn>;
+  let fetchSpy: Mock;
 
   beforeEach(() => {
     fetchSpy = vi.fn();
