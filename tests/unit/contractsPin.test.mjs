@@ -56,13 +56,15 @@ describe('S442 — @phlix/contracts direct pin is current', () => {
   });
 });
 
-describe('S442 — out-of-scope nested pin is accepted, not rewritten', () => {
-  // @phlix/ui's own package.json still requests contracts #v0.4.5. That is ui
-  // debt owned upstream (S442 scope is the windows DIRECT pin only); the flat
-  // install dedupes ui onto the single hoisted 0.4.6 copy. Documented here so a
-  // future re-read of this repo knows the divergence is intentional.
-  it('leaves the nested @phlix/ui → contracts declaration untouched', () => {
+describe('W82 — nested ui → contracts declaration stays pinned', () => {
+  // @phlix/ui's own package.json used to request contracts #v0.4.5 while this
+  // repo's direct pin rode v0.4.6 — an upstream divergence S442 documented and
+  // the lockwalk ratified as a hoist. The W82 re-pin to @phlix/ui v0.99.2
+  // resolved it upstream: ui's manifest now requests #v0.4.6 itself. The guard
+  // keeps pinning the exact nested declaration so any future rewrite upstream
+  // fails loud here instead of silently re-creating the old drift class.
+  it('leaves the nested @phlix/ui → contracts declaration at the #v0.4.6 ui now ships', () => {
     const ui = lock.packages['node_modules/@phlix/ui'];
-    expect(ui.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.4.5');
+    expect(ui.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.4.6');
   });
 });

@@ -7,6 +7,44 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — W82 (winsump): `@phlix/ui` re-pin v0.99.1 → v0.99.2 — 2026-09-13
+
+- **Direct ui pin advanced to the v0.99.2 wave tag.** `package.json` re-pins
+  `@phlix/ui` `github:detain/phlix-ui` v0.99.1 → v0.99.2 (tag peels to
+  `a7530e8b`, == ui master, re-verified live via `git ls-remote`);
+  `NPM_CONFIG_USERCONFIG=/dev/null npm install` regenerated the committed lock
+  surgically — three hunks, zero unrelated churn: the root echo follows the pin,
+  the `node_modules/@phlix/ui` `resolved` moves `11428111` → `a7530e8b`, and the
+  nested `ui → contracts` declaration advances v0.4.5 → v0.4.6. ⚠ Upstream trap
+  disclosed: `phlix-ui/package.json`'s own `version` field at `a7530e8b` still
+  reads `0.99.1` (the tag is authoritative, the field is stale), so the lock's ui
+  node keeps `version: "0.99.1"` — the identity byte-check is the `resolved` sha,
+  never the version string. Hoisted `contracts` (0.4.6 at `97bcda06`) and
+  `syncplay` (0.1.4 at `673e3d41`) nodes are byte-unchanged; `npm ci` proves the
+  lock.
+- **Guard re-pinned and the ratified hoist retired in the same commit.**
+  `scripts/lockwalk.mjs` `EXPECTED['@phlix/ui']` moves to v0.99.2 at `a7530e8b`,
+  adding an exact-match `manifestVersion: "0.99.1"` pin for the stale field
+  (drift on version OR sha stays RED; when upstream fixes the field the pin turns
+  RED on purpose — re-ratify). `RATIFIED_HOISTS` retires to empty by its own
+  written rule: ui v0.99.2's manifest carries contracts v0.4.6 outright, so the
+  old hoist exception fired its retirement condition and the edge is plain
+  rule-1 territory again. `tests/unit/lockwalk.test.mjs` denominators updated to
+  the zero-edge reality, with a new mutation proof pinning the manifest override
+  as exact-match, not a waiver.
+- **Truthful test fallout repaired, derived from the shipped artifacts.**
+  `tests/unit/contractsPin.test.mjs` now pins the nested `ui → contracts`
+  declaration at v0.4.6 (divergence resolved upstream by ui itself).
+  `tests/unit/routeReachability.test.ts` allow-lists `/app/profiles`: ui v0.99.2
+  (S82) registers it with its own component and its entry point ships inside the
+  ui shell chrome — UserMenu "Manage Profiles" (`usermenu-manage-profiles`,
+  verified in the installed `dist/phlix-ui.js`) and the who's-watching gate —
+  which this repo's `buildMenu` can never see; `src/` stays byte-untouched.
+  Suite movement is exactly +2 (the new lockwalk proofs): 305 → 307 tests,
+  29 → 29 files, green on typecheck/lint/vitest/build; `lockwalk --live`
+  prints peel OK for all three tags. `smoke` (playwright) is CI-authoritative —
+  no chromium on this box.
+
 ### Changed — W43 (S450): lockfile self-consistency — `@phlix/syncplay` resolution 0.1.2 → 0.1.4 — 2026-09-08
 
 - **Repaired the nested-request-vs-resolution divergence.** `@phlix/ui` v0.99.1's manifest

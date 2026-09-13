@@ -14,16 +14,20 @@
  * Rules enforced (structural, network-free — safe for CI):
  *  1. Every `github:detain/<repo>#<tag>` request for an @phlix/* package, from
  *     the root package or from any @phlix/* lock entry, must resolve to a lock
- *     node whose `version` equals the tag and whose `resolved` sha equals the
- *     pinned peel sha (EXPECTED below).
- *  2. One ratified exception, carried in RATIFIED_HOISTS: @phlix/ui v0.99.1's
- *     manifest still requests contracts `#v0.4.5`, but this repo intentionally
- *     dedupes it onto the single hoisted `0.4.6` copy — the S442 decision
- *     recorded verbatim in CHANGELOG ("the flat tree dedupes ui onto the
- *     single hoisted 0.4.6 copy") and pinned by tests/unit/contractsPin.test.mjs.
- *     The exception is exact-match pinned (version AND sha), so any NEW drift
- *     on that edge turns RED; it is not a wildcard waiver. It retires when
- *     @phlix/ui tags a release whose manifest carries `#v0.4.6` (post-S447).
+ *     node whose `version` equals the tag — or, where the tagged upstream
+ *     manifest ships a stale `version` field, equals that field pinned
+ *     explicitly as `manifestVersion` in EXPECTED below (@phlix/ui v0.99.2's
+ *     manifest still reads 0.99.1 — tagged without a field bump; the identity
+ *     byte-check is the `resolved` peel sha) — and whose `resolved` sha equals
+ *     the pinned peel sha. An override is exact-match, never a wildcard waiver.
+ *  2. RATIFIED_HOISTS carried one ratified exception: @phlix/ui v0.99.1's
+ *     manifest requested contracts `#v0.4.5` while this repo deduped it onto
+ *     the single hoisted `0.4.6` copy (the S442 decision, recorded verbatim in
+ *     CHANGELOG and pinned by tests/unit/contractsPin.test.mjs). It retired on
+ *     this W82 re-pin by its own written rule: @phlix/ui v0.99.2's manifest
+ *     requests `#v0.4.6` outright, so that edge is plain rule-1 territory
+ *     again. The export stays present-but-empty — walk()'s contract survives,
+ *     and any future re-add must again be exact-match pinned (version AND sha).
  *  3. No nested @phlix copies (no `node_modules/@phlix/<dep>/node_modules/@phlix/<dep>`)
  *     — single-resolution invariant, mirrors S447's "no consumer may read the
  *     stale nested copy" ruling.
@@ -48,12 +52,13 @@ const PHLIX_PKG_RE = /^@phlix\/[\w-]+$/;
 const DIRECT_NODE_RE = /^node_modules\/(@phlix\/[\w-]+)$/;
 const NESTED_NODE_RE = /\/node_modules\/@phlix\/[\w-]+$/;
 
-// S450-era single resolutions: package -> the tag this repo standardizes on and
-// the commit that tag peels to (verified against the live remotes via
-// `git ls-remote ... refs/tags/<tag>^{}` on 2026-09-08):
+// Single resolutions: package -> the tag this repo standardizes on and
+// the commit that tag peels to (re-verified against the live remotes via
+// `git ls-remote ... refs/tags/<tag>^{}` on 2026-09-13):
 //   phlix-contracts v0.4.6  -> 97bcda06
 //   phlix-syncplay  v0.1.4  -> 673e3d41  (the S279-era lib that shipped W24)
-//   phlix-ui        v0.99.1 -> 11428111
+//   phlix-ui        v0.99.2 -> a7530e8b  (lightweight tag == ui master; its manifest
+//                                         `version` field still reads 0.99.1 — see below)
 export const EXPECTED = {
   '@phlix/contracts': {
     tag: 'v0.4.6',
@@ -66,20 +71,23 @@ export const EXPECTED = {
     repo: 'git+ssh://git@github.com/detain/phlix-syncplay.git',
   },
   '@phlix/ui': {
-    tag: 'v0.99.1',
-    sha: '11428111b6eacfb7f344d32049af72fe14413a13',
+    tag: 'v0.99.2',
+    sha: 'a7530e8b8505e2632d5ef01c32926bdc8d1f6862',
+    // Upstream tagged v0.99.2 WITHOUT bumping its own manifest `version` field
+    // (still reads 0.99.1 at a7530e8b, measured via git show). npm copies that
+    // field verbatim into the lock, so rule 1 checks the resolved sha as the
+    // identity and this exact stale-field pin for the version line. If ui ever
+    // fixes the field, this pin turns RED on purpose — re-ratify explicitly.
+    manifestVersion: '0.99.1',
     repo: 'git+ssh://git@github.com/detain/phlix-ui.git',
   },
 };
 
 // "dependentKey>package@requested-tag" -> the exact hoist accepted upstream of rule 1.
-export const RATIFIED_HOISTS = {
-  'node_modules/@phlix/ui>@phlix/contracts@v0.4.5': {
-    version: '0.4.6',
-    sha: '97bcda069efa2bba3591f1143a000aec8fefae15',
-    reason: 'S442 ratified supersede-higher dedupe; retires on a ui tag whose manifest requests #v0.4.6',
-  },
-};
+// RETIRED 2026-09-13 (W82 winsump): @phlix/ui v0.99.2's manifest requests contracts
+// #v0.4.6 outright, firing the written retirement condition. Zero exceptions remain;
+// the map stays present-but-empty so walk()'s contract and the test denominator pin it.
+export const RATIFIED_HOISTS = {};
 
 export function readRepoJson(name) {
   return JSON.parse(readFileSync(fileURLToPath(new URL(`../${name}`, import.meta.url)), 'utf8'));
@@ -140,13 +148,15 @@ export function walk(lock) {
       }
 
       const expected = EXPECTED[dep];
-      const versionMatches = entry.version === tag.replace(/^v/, '');
+      const wantedVersion = expected?.manifestVersion ?? tag.replace(/^v/, '');
+      const versionMatches = entry.version === wantedVersion;
       const shaMatches = Boolean(expected) && resolvedSha(entry) === expected.sha;
       if (!versionMatches || !shaMatches) {
         findings.push(
           `request-vs-resolved: ${key || '(root)'} requests ${dep}#${tag} but lock resolves ` +
             `version ${entry.version} at ${resolvedSha(entry) || '(no git resolution)'}` +
-            (expected && !shaMatches ? ` (not the pinned ${expected.tag} peel ${expected.sha})` : ''),
+            (expected && !shaMatches ? ` (not the pinned ${expected.tag} peel ${expected.sha})` : '') +
+            (!versionMatches ? ` (pinned version line reads ${wantedVersion})` : ''),
         );
       }
     }

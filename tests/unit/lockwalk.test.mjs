@@ -3,10 +3,12 @@
  *
  * Lane S450 lockwalk guard — the committed package-lock.json must be
  * self-consistent with every @phlix/* github-tag request it (or the root
- * package.json) declares. See scripts/lockwalk.mjs for the rule set and the
- * one ratified exception; in short: the lock once shipped with the hoisted
- * @phlix/syncplay resolution at 0.1.2 while @phlix/ui v0.99.1's manifest
- * requests `#v0.1.4`, and npm 11 never self-heals that divergence.
+ * package.json) declares. See scripts/lockwalk.mjs for the rule set; in short:
+ * the lock once shipped with the hoisted @phlix/syncplay resolution at 0.1.2
+ * while @phlix/ui v0.99.1's manifest requested `#v0.1.4`, and npm 11 never
+ * self-heals that divergence. The S442 ratified contracts hoist exception
+ * retired at the W82 re-pin (ui v0.99.2 requests `#v0.4.6` outright) — the
+ * denominator tests below pin that zero-edge reality.
  *
  * Like tests/unit/contractsPin.test.mjs (its S442 sibling) this is plain Node
  * ESM outside the TypeScript project, so `npm run typecheck` never sees it
@@ -70,15 +72,39 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
     expect(findings.some((f) => f.startsWith('request-vs-resolved:') && f.includes('@phlix/syncplay#v0.1.4'))).toBe(true);
   });
 
-  it('REGRESSION: flags a ratified-hoist edge moving off its pinned version+sha', () => {
+  it('REGRESSION: flags contracts resolution drift on BOTH edges now the hoist exception is retired', () => {
     const broken = structuredClone(lock);
     broken.packages['node_modules/@phlix/contracts'] = {
       version: '0.5.0',
       resolved: 'git+ssh://git@github.com/detain/phlix-contracts.git#0000000000000000000000000000000000000000',
     };
     const { findings } = walk(broken);
-    expect(findings.some((f) => f.startsWith('ratified-hoist-drift:'))).toBe(true);
-    expect(findings.some((f) => f.startsWith('request-vs-resolved:'))).toBe(true);
+    const rv = findings.filter((f) => f.startsWith('request-vs-resolved:'));
+    expect(rv.some((f) => f.includes('(root) requests @phlix/contracts#v0.4.6'))).toBe(true);
+    expect(rv.some((f) => f.includes('node_modules/@phlix/ui requests @phlix/contracts#v0.4.6'))).toBe(true);
+    // No ratified exception exists to absorb it any more:
+    expect(findings.some((f) => f.startsWith('ratified-hoist-drift:'))).toBe(false);
+  });
+
+  it('REGRESSION: flags the pinned ui manifest version field moving (exact-match, not a waiver)', () => {
+    const broken = structuredClone(lock);
+    // A hand-edit claiming the ui version line caught up with the tag must go RED:
+    // EXPECTED['@phlix/ui'].manifestVersion pins the field the upstream manifest
+    // actually ships at a7530e8b (0.99.1), so this drift is a finding, not silence.
+    broken.packages['node_modules/@phlix/ui'] = {
+      ...broken.packages['node_modules/@phlix/ui'],
+      version: '0.99.2',
+    };
+    const { findings } = walk(broken);
+    expect(
+      findings.some(
+        (f) =>
+          f.startsWith('request-vs-resolved:') &&
+          f.includes('@phlix/ui#v0.99.2') &&
+          f.includes('version 0.99.2') &&
+          f.includes('pinned version line reads 0.99.1'),
+      ),
+    ).toBe(true);
   });
 
   it('REGRESSION: flags a hand-forced nested @phlix copy', () => {
@@ -100,14 +126,19 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
   });
 });
 
-describe('S450 — the ratified exception is exactly one edge', () => {
-  it('covers only ui -> contracts #v0.4.5 hoisted to the 0.4.6 peel', () => {
-    expect(Object.keys(RATIFIED_HOISTS)).toEqual([
-      'node_modules/@phlix/ui>@phlix/contracts@v0.4.5',
-    ]);
-    expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.4.5']).toMatchObject({
-      version: '0.4.6',
-      sha: EXPECTED['@phlix/contracts'].sha,
-    });
+describe('W82 — the ratified exception has retired to exactly zero edges', () => {
+  it('RATIFIED_HOISTS is empty by its own written rule (ui v0.99.2 requests #v0.4.6)', () => {
+    expect(Object.keys(RATIFIED_HOISTS)).toEqual([]);
+  });
+
+  it('the historical exception key stays dead and the edge itself is rule-1-clean', () => {
+    // Mutation-proof: a silently re-added waiver for the old divergence goes RED,
+    // and the now-honest edge stays byte-pinned (ui's own manifest asks #v0.4.6,
+    // the hoisted 0.4.6@97bcda06 satisfies it — walk() sees zero findings there).
+    expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.4.5']).toBeUndefined();
+    const ui = lock.packages['node_modules/@phlix/ui'];
+    expect(ui.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.4.6');
+    const { findings } = walk(lock);
+    expect(findings.filter((f) => f.includes('@phlix/contracts'))).toEqual([]);
   });
 });
