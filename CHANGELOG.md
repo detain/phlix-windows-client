@@ -7,6 +7,43 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — W87 (w87winui): re-pin `@phlix/ui` v0.99.3 → v0.99.4 — 2026-09-14
+
+- **Single UI pin advanced on the manual windows lane (rule-3: windows is never an
+  auto edge).** `package.json` re-pins `@phlix/ui` to the v0.99.4 tag; the direct
+  `@phlix/contracts` pin stays v0.4.7 and *agrees* with the contracts tag that ui
+  v0.99.4's own manifest declares, so convergence holds and npm materialises one
+  hoisted contracts copy with no nested tree — no rule-3 conflict, no dual move
+  required this time. `NPM_CONFIG_USERCONFIG=/dev/null npm install` regenerated the
+  committed lock surgically (root echo + the ui node only).
+- **Hidden transitive delta surfaced and healed honestly.** ui v0.99.4 advanced its
+  declared `@phlix/syncplay` edge v0.1.4 → v0.1.5, but npm 11 does not self-heal a
+  git-tag divergence once the hoisted tree entry exists — after the install the lock
+  still resolved the old syncplay commit under a v0.1.5 request, the exact
+  unsatisfied-edge class this repo's `lockwalk` was built to catch (structural walk
+  went red). A surgical `npm update @phlix/syncplay` re-resolved the single hoisted
+  node to the v0.1.5 tag commit (verified by `lockwalk --live`), with no direct syncplay
+  pin added and no unrelated resolution churned. Disk and lock both prove zero nested
+  `@phlix` copies.
+- **Guard trio re-pinned from live peels only.** `scripts/lockwalk.mjs` `EXPECTED`
+  advances both the ui entry (tag v0.99.4 + its annotated-tag peel, re-verified via
+  `git ls-remote` and its `version` field re-read with `git show`) and the syncplay
+  entry (tag v0.1.5 + peel). ui v0.99.4 keeps its manifest `version` normalized to the
+  tag, so the tag-derived rule-1 check stands with no `manifestVersion` override.
+  `tests/unit/lockwalk.test.mjs` literals track the same live values (the syncplay
+  resolution assertion, the syncplay-back-to-0.1.2 regression cite, and the ui
+  version-drift mutation now flipping to the immediately-preceding tag). The
+  `tests/unit/contractsPin.test.mjs` convergence guard needs **no** change — its four
+  assertions still hold because ui v0.99.4 declares the identical contracts pin;
+  leaving it byte-stable is the proof convergence is intact. Every change is a literal
+  re-pin; no gate loosened.
+- **Verification:** 29 test files / 314 tests green (unchanged baseline — no assertion
+  added, removed, skipped or suppressed; the syncplay re-pin is load-bearing, proven by
+  a planted-red that flips only the pinned sha and turns the zero-findings walk test red,
+  then restores byte-identical), typecheck and lint exit 0, `lockwalk` exit 0 structural
+  and with all three live peels OK, and `npm audit --audit-level=high` reports zero
+  vulnerabilities.
+
 ### Changed — W85 (winrepin): dual re-pin `@phlix/ui` v0.99.2 → v0.99.3 + `@phlix/contracts` v0.4.6 → v0.4.7 — 2026-09-13
 
 - **Both pins advanced in one PR — the manual-lane move the structural trap demanded.**
