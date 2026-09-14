@@ -37,11 +37,11 @@ describe('S450 — lockwalk: resolutions match requested github-tag pins', () =>
     expect(edges.length).toBeGreaterThanOrEqual(4);
   });
 
-  it('resolves @phlix/syncplay at the requested #v0.1.4 (the repaired state)', () => {
+  it('resolves @phlix/syncplay at the requested #v0.1.5 (the W87-repaired state)', () => {
     const entry = lock.packages['node_modules/@phlix/syncplay'];
-    expect(entry.version).toBe('0.1.4');
+    expect(entry.version).toBe('0.1.5');
     expect(entry.resolved).toBe(
-      'git+ssh://git@github.com/detain/phlix-syncplay.git#673e3d41aff7e7f1c6554915d22f7ad7bb4bf346',
+      'git+ssh://git@github.com/detain/phlix-syncplay.git#b82d4f361e9b1e3097f37ee2d1dfedf337fd4107',
     );
   });
 
@@ -69,7 +69,7 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
       resolved: 'git+ssh://git@github.com/detain/phlix-syncplay.git#2fdf70bfc90b4b736e7781b6685921d190a2f467',
     };
     const { findings } = walk(broken);
-    expect(findings.some((f) => f.startsWith('request-vs-resolved:') && f.includes('@phlix/syncplay#v0.1.4'))).toBe(true);
+    expect(findings.some((f) => f.startsWith('request-vs-resolved:') && f.includes('@phlix/syncplay#v0.1.5'))).toBe(true);
   });
 
   it('REGRESSION: flags contracts resolution drift on BOTH edges now the hoist exception is retired', () => {
@@ -88,23 +88,23 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
 
   it('REGRESSION: flags the ui lock version line moving off the tag-derived truth', () => {
     const broken = structuredClone(lock);
-    // W85 truth: ui v0.99.3 normalized its manifest `version` field (measured via
-    // git show at cafe978c — reads 0.99.3), so the v0.99.2-era stale-field
-    // `manifestVersion` override was retired and rule 1 checks the tag-derived
-    // version outright. A hand-edit claiming the field fell back behind the tag
-    // must still go RED — mutation-proof, exact-match, not a waiver.
+    // W87 truth: ui v0.99.4 keeps its manifest `version` field normalized in step
+    // with the tag (measured via git show at fee8b2bb — reads 0.99.4), so the
+    // v0.99.2-era stale-field `manifestVersion` override stays retired and rule 1
+    // checks the tag-derived version outright. A hand-edit claiming the field fell
+    // back behind the tag must still go RED — mutation-proof, exact-match, not a waiver.
     broken.packages['node_modules/@phlix/ui'] = {
       ...broken.packages['node_modules/@phlix/ui'],
-      version: '0.99.2',
+      version: '0.99.3',
     };
     const { findings } = walk(broken);
     expect(
       findings.some(
         (f) =>
           f.startsWith('request-vs-resolved:') &&
-          f.includes('@phlix/ui#v0.99.3') &&
-          f.includes('version 0.99.2') &&
-          f.includes('pinned version line reads 0.99.3'),
+          f.includes('@phlix/ui#v0.99.4') &&
+          f.includes('version 0.99.3') &&
+          f.includes('pinned version line reads 0.99.4'),
       ),
     ).toBe(true);
   });
@@ -129,13 +129,13 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
 });
 
 describe('W82/W85 — the ratified exception stays retired to exactly zero edges', () => {
-  it('RATIFIED_HOISTS is empty by its own written rule (ui v0.99.2 requested #v0.4.6; v0.99.3 requests #v0.4.7)', () => {
+  it('RATIFIED_HOISTS is empty by its own written rule (ui v0.99.2 requested #v0.4.6; v0.99.3 & v0.99.4 request #v0.4.7)', () => {
     expect(Object.keys(RATIFIED_HOISTS)).toEqual([]);
   });
 
   it('the historical exception key stays dead and the edge itself is rule-1-clean', () => {
     // Mutation-proof: a silently re-added waiver for the old divergence goes RED,
-    // and the now-honest edge stays byte-pinned (ui v0.99.3's own manifest asks
+    // and the now-honest edge stays byte-pinned (ui v0.99.4's own manifest asks
     // #v0.4.7, the hoisted 0.4.7@625a5625 satisfies it — walk() sees zero findings there).
     expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.4.5']).toBeUndefined();
     const ui = lock.packages['node_modules/@phlix/ui'];

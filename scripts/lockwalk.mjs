@@ -56,11 +56,11 @@ const NESTED_NODE_RE = /\/node_modules\/@phlix\/[\w-]+$/;
 
 // Single resolutions: package -> the tag this repo standardizes on and
 // the commit that tag peels to (re-verified against the live remotes via
-// `git ls-remote ... refs/tags/<tag>^{}` on 2026-09-13, W85 dual-repin lane):
-//   phlix-contracts v0.4.7  -> 625a5625
-//   phlix-syncplay  v0.1.4  -> 673e3d41  (the S279-era lib that shipped W24; ui v0.99.3 still requests it)
-//   phlix-ui        v0.99.3 -> cafe978c  (annotated tag; its manifest `version` field now reads 0.99.3 — normalized,
-//                                         so the v0.99.2-era stale-field override is gone)
+// `git ls-remote ... refs/tags/<tag>^{}` on 2026-09-14, W87 ui-repin lane):
+//   phlix-contracts v0.4.7  -> 625a5625  (unchanged; ui v0.99.4 still requests #v0.4.7 — convergence holds)
+//   phlix-syncplay  v0.1.5  -> b82d4f36  (transitive-only: ui v0.99.4 bumped its declared syncplay edge v0.1.4→v0.1.5)
+//   phlix-ui        v0.99.4 -> fee8b2bb  (annotated tag; its manifest `version` field reads 0.99.4 — still normalized,
+//                                         so the v0.99.2-era stale-field override stays gone)
 export const EXPECTED = {
   '@phlix/contracts': {
     tag: 'v0.4.7',
@@ -68,17 +68,17 @@ export const EXPECTED = {
     repo: 'git+ssh://git@github.com/detain/phlix-contracts.git',
   },
   '@phlix/syncplay': {
-    tag: 'v0.1.4',
-    sha: '673e3d41aff7e7f1c6554915d22f7ad7bb4bf346',
+    tag: 'v0.1.5',
+    sha: 'b82d4f361e9b1e3097f37ee2d1dfedf337fd4107',
     repo: 'git+ssh://git@github.com/detain/phlix-syncplay.git',
   },
   '@phlix/ui': {
-    tag: 'v0.99.3',
-    sha: 'cafe978c26db0bb51c2511429daf566e77b3a35e',
-    // W85: ui v0.99.3's manifest `version` field was bumped in step with the tag
-    // (measured via git show at cafe978c — reads 0.99.3), so rule 1 checks the
+    tag: 'v0.99.4',
+    sha: 'fee8b2bbf593be10d47d2fd2fd859d42d455bbb7',
+    // W87: ui v0.99.4's manifest `version` field is bumped in step with the tag
+    // (measured via git show at fee8b2bb — reads 0.99.4), so rule 1 checks the
     // tag-derived version outright. The v0.99.2-era `manifestVersion: '0.99.1'`
-    // stale-field override is retired by that override's own written rule: if ui
+    // stale-field override stays retired by that override's own written rule: if ui
     // ever ships the field stale again, re-adding an exact-match pin is the fix.
     repo: 'git+ssh://git@github.com/detain/phlix-ui.git',
   },
