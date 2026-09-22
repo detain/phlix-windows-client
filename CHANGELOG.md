@@ -7,6 +7,26 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — i18n wiring (feat/i18n-wiring): @phlix/ui message seam + main-process catalog — 2026-09-22
+
+- **Renderer:** `createPhlixApp` now receives the config-time i18n seam resolved by the new
+  `src/renderer/i18n/` module — `VITE_PHLIX_LOCALE` → `navigator.language` → `'en'`, then a
+  locale→`PhlixMessagesConfig` registry lookup. The `messages` key is OMITTED when a locale has
+  no overrides (the shipped `en` map is empty), so today's build renders byte-for-byte identical
+  English. Adding a locale = one overrides file + one `registerLocaleOverrides` call.
+- **Main process:** every user-facing shell string (tray menu + tooltip, app menu incl. the
+  Playback submenu, thumbar tooltips, updater notifications, About dialog) moved from literals in
+  `src/main/index.ts` into `src/main/i18n/en.ts`, resolved via a pure `t(key, params?)` with
+  `{name}` interpolation. Locale pinned once post-ready (`app.getLocale()` requires ready;
+  `playbackMenuTemplate` became `buildPlaybackMenuTemplate()` so labels evaluate after pinning).
+  Role-based menu items stay unlabeled — Electron localizes roles natively. Values are
+  byte-identical; `tests/unit/mainI18n.test.ts` pins every extracted string against its
+  pre-extraction literal. Adding a locale = a `MainCatalog`-typed file (missing keys are compile
+  errors) + one registry entry.
+- **Docs:** `docs/i18n.md` describes both halves and the add-a-locale recipes; new tests
+  `mainI18n` / `rendererI18n` / `i18nSeamWiring` (boot passes the resolved map; omits the key when
+  empty). `tests/unit/minimizeToTray.test.ts` regex pins updated to the `t('tray.*')` form.
+
 ### Changed — W87 (w87winui): re-pin `@phlix/ui` v0.99.3 → v0.99.4 — 2026-09-14
 
 - **Single UI pin advanced on the manual windows lane (rule-3: windows is never an

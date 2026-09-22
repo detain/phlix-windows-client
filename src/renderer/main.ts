@@ -24,6 +24,7 @@ import { buildPhlixHeaders } from '@phlix/contracts';
 import '@phlix/ui/style.css';
 import '@phlix/ui/fonts.css';
 import { resolveAppConfig } from './resolveConfig';
+import { messagesForLocale, resolveLocale } from './i18n';
 import log from 'electron-log';
 import { installElectronBridge } from './electronBridge';
 import { setupMediaSession } from './mediaSession';
@@ -180,6 +181,14 @@ export async function boot(): Promise<void> {
 
   const isHub = appMode === 'hub';
 
+  // i18n: resolve the locale (VITE_PHLIX_LOCALE → navigator.language → 'en') and
+  // hand @phlix/ui only the client's override map for it. Undefined means
+  // "nothing to override" — the key is omitted so ui renders its English
+  // defaults untouched (byte-identical to every pre-seam build).
+  const locale = resolveLocale();
+  const messages = messagesForLocale(locale);
+  log.info(`[Boot] UI locale: ${locale}${messages ? ' (client message overrides applied)' : ''}`);
+
   const app = createPhlixApp({
     app: appMode,
     apiBase,
@@ -204,7 +213,8 @@ export async function boot(): Promise<void> {
     extraRoutes: buildExtraRoutes(appMode),
     deviceHeaders,
     defaultTheme: 'nocturne',
-    branding: { wordmark: 'Phlix' }
+    branding: { wordmark: 'Phlix' },
+    ...(messages ? { messages } : {})
   });
 
   app.mount('#phlix-app');
