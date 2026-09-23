@@ -1,0 +1,27 @@
+# ---------------------------------------------------------------------------
+# EOL policy: LF in the index, LF on disk, on every platform.
+#
+# Why this file exists (the PIN-hash integrity story):
+# src/renderer/i18n/ui-locale-bundles/ holds bundles vendored byte-for-byte
+# from phlix-ui, SHA-256-pinned in the PIN manifest. tests/unit/
+# i18nLocales.test.ts hashes the WORKING-TREE bytes of each vendored file
+# against that pin. Git-for-Windows defaults to core.autocrlf=true, so on a
+# windows-latest CI checkout the LF blobs were silently rewritten to CRLF on
+# disk before hashing — the pin test failed on Windows while ubuntu passed.
+# The committed blobs were always LF; the checkout conversion was the bug.
+#
+# .gitattributes settings take precedence over core.autocrlf, so pinning the
+# policy here makes the vendored bytes (and every other text file) identical
+# on disk in every clone, dev machine, and CI shard — and keeps the PIN test
+# strict (byte-exact) instead of forcing it to tolerate CRLF.
+# ---------------------------------------------------------------------------
+
+# Treat files as text by content: normalize to LF on commit, check out as LF.
+# Covers src/** (vendored bundles, catalogs, tests), docs/**, *.md, JSON,
+# lockfiles, YAML, scripts — the whole estate-standard text surface.
+* text=auto eol=lf
+
+# Binary assets: never EOL-normalized on add or checkout (a converted icon is
+# a corrupted icon; `binary` also keeps them out of `git add --renormalize`).
+*.png binary
+*.ico binary
