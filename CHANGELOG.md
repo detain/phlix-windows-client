@@ -7,6 +7,10 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed — i18n fr apostrophe typography (R1 follow-up F-A) — 2026-09-23
+
+- `windows-own/fr.ts` `nav.inviteLinks` now renders the typographic `’` (`Liens d’invitation`) matching the vendored fr SSOT policy — the straight `'` collided glyph-wise with bundle text in the same top bar; a new fr typography law in `i18nLocales.test.ts` pins no `letter'letter` in any windows-own/main fr value (detector control + anti-vacuous `’` presence guard).
+
 ### Added — i18n locales (feat/i18n-locales): six-locale build-out es/fr/de/it/pt_BR/ja — 2026-09-23
 
 - **Vendored ui SSOT bundles:** `src/renderer/i18n/ui-locale-bundles/` now carries the six

@@ -10,6 +10,9 @@
  *  B. WINDOWS-OWN RENDERER catalog (nav labels buildMenu hands to ui): 16-key
  *     identity, the byte-identical English baseline keys, EN-leak allow-lists
  *     verified BOTH directions.
+ *  B+. FR TYPOGRAPHIC APOSTROPHE law over windows-own + main fr VALUES: no
+ *      letter'letter survives (SSOT declares ’); elision-bearing catalogs must
+ *      render at least one ’ so the absence law can never pass vacuously.
  *  C. MAIN-PROCESS catalog: 29-key identity per locale, placeholder parity,
  *     ja CJK sanity, EN-leak allow-lists both directions, t() switching.
  *  D. RESOLUTION MATRIX: raw tag → picked bundle for all three catalogs
@@ -423,6 +426,46 @@ describe('windows-own nav catalog — key-set, baseline, leaks', () => {
       expect(tWin(key as WindowOwnMessageKey)).toBe(value);
     }
     expect(() => tWin('nav.nope' as WindowOwnMessageKey)).toThrow(/Unknown windows-own message key "nav\.nope"/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// B+. FR TYPOGRAPHIC APOSTROPHE LAW — windows-own + main catalogs (R1 F-A)
+// The vendored fr SSOT bundle declares a typographic-’ policy (its header
+// law + every value); a straight ' surviving in a client-authored fr value
+// renders as a mismatched glyph side-by-side with bundle text in the same
+// top bar (e.g. nav 'Liens d'invitation' next to 'l’écran'). The law binds
+// VALUES — what actually renders; source comments stay ASCII by convention.
+// ---------------------------------------------------------------------------
+
+const STRAIGHT_APOSTROPHE_IN_WORD = /\p{L}'\p{L}/u;
+const CURLY_APOSTROPHE = '\u2019';
+
+describe('fr typographic apostrophe law (windows-own + main catalogs)', () => {
+  it("detector control — letter'letter trips, the curly form does not", () => {
+    expect(STRAIGHT_APOSTROPHE_IN_WORD.test("d'x")).toBe(true);
+    expect(STRAIGHT_APOSTROPHE_IN_WORD.test('d\u2019x')).toBe(false);
+  });
+
+  it('no fr value in windows-own or main carries a straight apostrophe mid-word', () => {
+    const catalogs: [string, Table][] = [['windows-own', WIN_TABLES.fr], ['main', MAIN_TABLES.fr]];
+    for (const [label, table] of catalogs) {
+      for (const [key, value] of flat(table)) {
+        expect(value, `fr ${label}.${key}: use the typographic ’ (U+2019), not '`).not.toMatch(STRAIGHT_APOSTROPHE_IN_WORD);
+      }
+    }
+  });
+
+  it('elision-bearing fr catalogs render the curly glyph (anti-vacuous presence)', () => {
+    // windows-own ships 'Liens d’invitation'; the vendored SSOT carries the
+    // policy itself. main/fr legitimately avoids every elision ('Retour
+    // arrière', 'Avance rapide', 'mises à jour', …), so a ≥1-’ floor there
+    // would force inventing French contractions to satisfy a quota — the
+    // absence law above binds it and the detector control keeps that law
+    // honest against silent regex/walk breakage.
+    const hasCurly = (table: Table) => [...flat(table).values()].some((v) => v.includes(CURLY_APOSTROPHE));
+    expect(hasCurly(WIN_TABLES.fr), 'windows-own fr must render at least one ’').toBe(true);
+    expect(hasCurly(UI_TABLES.fr), 'vendored fr SSOT must render at least one ’').toBe(true);
   });
 });
 

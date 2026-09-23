@@ -8,6 +8,9 @@
  * search root follows common.searchPlaceholder 'Rechercher…' → 'Rechercher'.
  * 'Photos' is the standard French word too — its equality with English is
  * pinned in the no-English-leak allow-list.
+ * Typography: elisions use the typographic apostrophe ’ (U+2019), matching
+ * the vendored fr SSOT policy — pinned by the fr typography law in
+ * tests/unit/i18nLocales.test.ts.
  *
  * @copyright 2026 Joe Huss <detain@interserver.net>
  * @license   MIT
@@ -20,7 +23,7 @@ export const WIN_FR = {
     federation: 'Fédération',
     shares: 'Partages',
     sharedWithMe: 'Partagé avec moi',
-    inviteLinks: "Liens d'invitation",
+    inviteLinks: 'Liens d’invitation',
     history: 'Historique de lecture',
     explore: 'Explorer',
     recommendations: 'Pour vous',
