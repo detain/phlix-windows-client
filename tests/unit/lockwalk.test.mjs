@@ -7,8 +7,11 @@
  * the lock once shipped with the hoisted @phlix/syncplay resolution at 0.1.2
  * while @phlix/ui v0.99.1's manifest requested `#v0.1.4`, and npm 11 never
  * self-heals that divergence. The S442 ratified contracts hoist exception
- * retired at the W82 re-pin (ui v0.99.2 requests `#v0.4.6` outright) — the
- * denominator tests below pin that zero-edge reality.
+ * retired at the W82 re-pin (ui v0.99.2 requests `#v0.4.6` outright), then the
+ * exact same divergence class returned on the contracts v0.5.0 re-pin (2026-09-23):
+ * ui v0.99.5's manifest still requests `#v0.4.7` while the direct pin advanced to
+ * `#v0.5.0` — re-ratified exact-match per the written rule. The denominator tests
+ * below pin that single-edge reality.
  *
  * Like tests/unit/contractsPin.test.mjs (its S442 sibling) this is plain Node
  * ESM outside the TypeScript project, so `npm run typecheck` never sees it
@@ -72,18 +75,41 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
     expect(findings.some((f) => f.startsWith('request-vs-resolved:') && f.includes('@phlix/syncplay#v0.1.5'))).toBe(true);
   });
 
-  it('REGRESSION: flags contracts resolution drift on BOTH edges now the hoist exception is retired', () => {
-    const broken = structuredClone(lock);
-    broken.packages['node_modules/@phlix/contracts'] = {
-      version: '0.5.0',
-      resolved: 'git+ssh://git@github.com/detain/phlix-contracts.git#0000000000000000000000000000000000000000',
-    };
-    const { findings } = walk(broken);
-    const rv = findings.filter((f) => f.startsWith('request-vs-resolved:'));
-    expect(rv.some((f) => f.includes('(root) requests @phlix/contracts#v0.4.7'))).toBe(true);
-    expect(rv.some((f) => f.includes('node_modules/@phlix/ui requests @phlix/contracts#v0.4.7'))).toBe(true);
-    // No ratified exception exists to absorb it any more:
-    expect(findings.some((f) => f.startsWith('ratified-hoist-drift:'))).toBe(false);
+  it('REGRESSION: flags contracts resolution drift on BOTH divergent edges (root via rule 1, ui via the ratified hoist), in every direction', () => {
+    // Three hand-edits of the hoisted contracts node, all must go RED:
+    //  a) rolled to a foreign commit with a falsely-normalized 0.5.0 field — the
+    //     root edge fails rule 1 (version AND sha) and the ui edge fails the
+    //     exact-match ratified pin;
+    //  b) the lock line falling further behind the stale-manifest truth (0.4.6 at
+    //     the real peel) and c) falsely claiming the field re-normalized with the
+    //     tag (0.5.0 at the real peel) — both directions of the manifestVersion
+    //     skew, mirroring the ui-row proof below. The v0.5.0 tag manifest's
+    //     `version` field is STALE — it reads 0.4.7 at 8ef65d30 (measured via git
+    //     show), so rule 1 checks the lock against the MANIFEST field, not the
+    //     tag, and the ratified waiver is exact-match, never a wildcard.
+    const mutated = [
+      { version: '0.5.0', resolved: 'git+ssh://git@github.com/detain/phlix-contracts.git#0000000000000000000000000000000000000000' },
+      { ...lock.packages['node_modules/@phlix/contracts'], version: '0.4.6' },
+      { ...lock.packages['node_modules/@phlix/contracts'], version: '0.5.0' },
+    ];
+    for (const edit of mutated) {
+      const broken = structuredClone(lock);
+      broken.packages['node_modules/@phlix/contracts'] = edit;
+      const { findings } = walk(broken);
+      // Root requests #v0.5.0: plain rule 1.
+      const rv = findings.filter((f) => f.startsWith('request-vs-resolved:'));
+      expect(rv.some((f) => f.includes('(root) requests @phlix/contracts#v0.5.0'))).toBe(true);
+      expect(rv.some((f) => f.includes('pinned version line reads 0.4.7'))).toBe(true);
+      // ui requests #v0.4.7: the ratified waiver is exact-match on version AND sha,
+      // so any drift trips its own loud re-ratify demand.
+      expect(
+        findings.some(
+          (f) =>
+            f.startsWith('ratified-hoist-drift:') &&
+            f.includes('node_modules/@phlix/ui requests @phlix/contracts#v0.4.7'),
+        ),
+      ).toBe(true);
+    }
   });
 
   it('REGRESSION: flags the ui lock version line moving off the stale-manifest truth', () => {
@@ -146,15 +172,25 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
   });
 });
 
-describe('W82/W85 — the ratified exception stays retired to exactly zero edges', () => {
-  it('RATIFIED_HOISTS is empty by its own written rule (ui v0.99.2 requested #v0.4.6; v0.99.3–v0.99.5 request #v0.4.7)', () => {
-    expect(Object.keys(RATIFIED_HOISTS)).toEqual([]);
+describe('contracts v0.5.0 re-pin — the ratified hoist is exactly one exact-match edge', () => {
+  it('RATIFIED_HOISTS carries only the ui→contracts@v0.4.7 waiver, pinned version AND sha', () => {
+    // The W82-era zero-edge reality ended at the contracts v0.5.0 re-pin (2026-09-23):
+    // ui v0.99.5's manifest still requests #v0.4.7 while the direct pin advanced, so the
+    // divergence is re-ratified under the written rule — exact-match, never a wildcard.
+    expect(Object.keys(RATIFIED_HOISTS)).toEqual([
+      'node_modules/@phlix/ui>@phlix/contracts@v0.4.7',
+    ]);
+    expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.4.7']).toEqual({
+      version: '0.4.7',
+      sha: '8ef65d30be42623765c29ced34fc86d8ab3c51b5',
+    });
   });
 
-  it('the historical exception key stays dead and the edge itself is rule-1-clean', () => {
-    // Mutation-proof: a silently re-added waiver for the old divergence goes RED,
-    // and the now-honest edge stays byte-pinned (ui v0.99.5's own manifest asks
-    // #v0.4.7, the hoisted 0.4.7@625a5625 satisfies it — walk() sees zero findings there).
+  it('the historical v0.4.5-era exception key stays dead and the current contracts edges are walk-clean', () => {
+    // Mutation-proof: the OLD divergence's waiver must never silently return (denominator
+    // above), ui's manifest-declared request stays byte-pinned verbatim (#v0.4.7 — the
+    // stale tag's own words), and the hoisted 0.4.7@8ef65d30 copy satisfies every
+    // contracts edge with zero findings.
     expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.4.5']).toBeUndefined();
     const ui = lock.packages['node_modules/@phlix/ui'];
     expect(ui.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.4.7');

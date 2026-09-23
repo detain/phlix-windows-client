@@ -7,6 +7,41 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — re-pin `@phlix/contracts` v0.4.7 → v0.5.0 (estate error-registry cascade) — 2026-09-23
+
+- **Single contracts pin advanced.** `package.json` re-pins `@phlix/contracts` to the
+  `v0.5.0` tag (annotated object `60446662`, peel `8ef65d30`, the error-code-registry
+  merge PR #77 head); `NPM_CONFIG_USERCONFIG=/dev/null npm install --allow-git=all`
+  regenerated the committed lock surgically — root echo + the hoisted node's `resolved`
+  only, zero nested copies in lock or on disk. `v0.5.0` is purely additive (the
+  `errors` registry domain + `dist/error-codes.json` mirror + generated route-manifest
+  data refresh): no consumer code churn — renderer/main/preload typechecks and the full
+  401-test suite ran against the new tree untouched.
+- **The manifest-version skew bites contracts — third case in the override lineage.** The
+  estate cut `v0.5.0` deliberately without bumping the tag manifest's `version` field:
+  it still reads `0.4.7` at `8ef65d30` (measured via `git show`), so npm writes the lock
+  entry's `version` as `0.4.7` under a `#v0.5.0` request. `scripts/lockwalk.mjs`
+  `EXPECTED` advances the contracts tag/sha and adds the exact-match
+  `manifestVersion: '0.4.7'` override — the same machinery the ui `v0.99.5` row revived —
+  with `tests/unit/lockwalk.test.mjs` mutating BOTH directions (a lock line falling
+  further behind to `0.4.6`, and a hand-edit falsely claiming the field re-normalized to
+  `0.5.0`). Identity stays byte-proven by the `resolved` peel sha; `contractsPin.test.mjs`
+  adds the installed-tree content marker (`dist/error-codes.json` — shipped first at
+  `v0.5.0`) so a rollback to the old peel with an honest `0.4.7` field cannot pass.
+- **The ui→contracts edge diverges honestly: one exact-match ratified hoist.** ui
+  `v0.99.5`'s own manifest still requests contracts `#v0.4.7` while the direct pin
+  advances to `#v0.5.0` (purely additive, so the hoisted copy satisfies it), and npm
+  dedupes the edge onto the single `0.4.7@8ef65d30` resolution — verified nested-free in
+  both lock and `node_modules`. This re-opens the `RATIFIED_HOISTS` map per its written
+  rule (S442 precedent: exact-match on version AND sha, never a wildcard); the W85
+  byte-equality law in `contractsPin.test.mjs` converts to byte-pinning ui's verbatim
+  `#v0.4.7` declaration plus the single-waiver denominator, and the waiver carries its own
+  retirement condition — a ui tag requesting `#v0.5.0`-or-newer outright restores equality
+  and deletes the entry.
+- **Vendored i18n hashes untouched by design.** The 14 vendor-PIN entries pin
+  `phlix-ui` refs, not contracts — re-pin cascade never touches `src/i18n/locales/`;
+  `i18nLocales`/`i18nSeamWiring`/`rendererI18n` laws stayed green unchanged.
+
 ### Changed — re-pin `@phlix/ui` v0.99.4 → v0.99.5 + vendor PIN advance (estate i18n cascade) — 2026-09-23
 
 - **Single UI pin advanced.** `package.json` re-pins `@phlix/ui` to the `v0.99.5`

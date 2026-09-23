@@ -16,21 +16,27 @@
  *     the root package or from any @phlix/* lock entry, must resolve to a lock
  *     node whose `version` equals the tag — or, where the tagged upstream
  *     manifest ships a stale `version` field, equals that field pinned
- *     explicitly as `manifestVersion` in EXPECTED below (lived twice so far:
- *     @phlix/ui v0.99.2 was tagged with its manifest `version` still reading
- *     0.99.1 — override retired when v0.99.3–v0.99.4 normalized the field,
- *     revived at v0.99.5 which again ships `version: 0.99.4` under the tag;
+ *     explicitly as `manifestVersion` in EXPECTED below (lived three times so
+ *     far: @phlix/ui v0.99.2 was tagged with its manifest `version` still
+ *     reading 0.99.1 — override retired when v0.99.3–v0.99.4 normalized the
+ *     field, revived at v0.99.5 which again ships `version: 0.99.4` under the
+ *     tag; @phlix/contracts v0.5.0 is the third case — the estate cut the
+ *     error-registry tag with the field deliberately left at 0.4.7, per the
+ *     v0.99.2 precedent;
  *     the identity byte-check remains the `resolved` peel sha) — and whose
  *     `resolved` sha equals the pinned peel sha.
  *     An override is exact-match, never a wildcard waiver.
- *  2. RATIFIED_HOISTS carried one ratified exception: @phlix/ui v0.99.1's
- *     manifest requested contracts `#v0.4.5` while this repo deduped it onto
- *     the single hoisted `0.4.6` copy (the S442 decision, recorded verbatim in
- *     CHANGELOG and pinned by tests/unit/contractsPin.test.mjs). It retired on
- *     this W82 re-pin by its own written rule: @phlix/ui v0.99.2's manifest
- *     requests `#v0.4.6` outright, so that edge is plain rule-1 territory
- *     again. The export stays present-but-empty — walk()'s contract survives,
- *     and any future re-add must again be exact-match pinned (version AND sha).
+ *  2. RATIFIED_HOISTS carries the exact-match waivers for edges whose requested
+ *     tag differs from the single hoisted resolution this repo standardizes on.
+ *     History: the S442-era exception (ui v0.99.1 requesting contracts `#v0.4.5`
+ *     over a hoisted `0.4.6`) retired at the W82 re-pin when ui v0.99.2 requested
+ *     `#v0.4.6` outright, and the map sat present-but-empty until the contracts
+ *     v0.5.0 re-pin (2026-09-23) re-added one under its own written rule: ui
+ *     v0.99.5's manifest still requests contracts `#v0.4.7` while the direct pin
+ *     advanced to `#v0.5.0` (error-registry cascade), so npm dedupes ui's edge
+ *     onto the hoisted v0.5.0 copy. The waiver pins version AND sha exactly; it
+ *     dies the moment a ui tag requests `#v0.5.0`-or-newer outright (key miss →
+ *     the edge re-enters plain rule-1 territory), mirroring the v0.4.5 retirement.
  *  3. No nested @phlix copies (no `node_modules/@phlix/<dep>/node_modules/@phlix/<dep>`)
  *     — single-resolution invariant, mirrors S447's "no consumer may read the
  *     stale nested copy" ruling.
@@ -57,17 +63,30 @@ const NESTED_NODE_RE = /\/node_modules\/@phlix\/[\w-]+$/;
 
 // Single resolutions: package -> the tag this repo standardizes on and
 // the commit that tag peels to (re-verified against the live remotes via
-// `git ls-remote ... refs/tags/<tag>^{}` on 2026-09-23, v0.99.5 re-pin cascade):
-//   phlix-contracts v0.4.7  -> 625a5625  (unchanged; ui v0.99.5 still requests #v0.4.7 — convergence holds)
-//   phlix-syncplay  v0.1.5  -> b82d4f36  (unchanged; ui v0.99.5 still requests #v0.1.5)
+// `git ls-remote ... refs/tags/<tag>^{}` on 2026-09-23, contracts v0.5.0 re-pin):
+//   phlix-contracts v0.5.0 -> 8ef65d30  (annotated tag object 60446662; its manifest `version` field is
+//                                         STALE at the tag — reads 0.4.7, the deliberate v0.99.2-style skew
+//                                         the estate cut the error-registry tag with — hence the exact-match
+//                                         `manifestVersion` override below. ui v0.99.5's manifest still
+//                                         requests #v0.4.7; that edge dedupes onto this copy via
+//                                         RATIFIED_HOISTS)
+//   phlix-syncplay  v0.1.5 -> b82d4f36  (unchanged; ui v0.99.5 still requests #v0.1.5)
 //   phlix-ui        v0.99.5 -> 3017f443  (annotated tag object 5b67c2a9; its manifest `version` field is STALE again —
 //                                         reads 0.99.4 at the tag, exactly the case rule 1's `manifestVersion` override
 //                                         was written for; the estate cut v0.99.5 without bumping the field, per the
 //                                         v0.99.2 precedent where the tag/grader never reads package.json `version`)
 export const EXPECTED = {
   '@phlix/contracts': {
-    tag: 'v0.4.7',
-    sha: '625a5625fd19a3e887a50548b2cdaca1b0a2bd55',
+    tag: 'v0.5.0',
+    sha: '8ef65d30be42623765c29ced34fc86d8ab3c51b5',
+    // contracts v0.5.0 re-pin (error-registry cascade, 2026-09-23): the tag manifest's
+    // `version` field is stale — it still reads 0.4.7 (measured via git show at 8ef65d30;
+    // npm therefore writes the lock entry's version from the manifest, not the tag; the
+    // estate cut v0.5.0 deliberately without bumping the field, per the v0.99.2/ui-v0.99.5
+    // precedent where the tag/grader never reads package.json `version`). Exact-match
+    // override, same machinery as the ui row; a contracts release that re-normalizes the
+    // field to 0.5.0+ must retire it again.
+    manifestVersion: '0.4.7',
     repo: 'git+ssh://git@github.com/detain/phlix-contracts.git',
   },
   '@phlix/syncplay': {
@@ -91,10 +110,21 @@ export const EXPECTED = {
 };
 
 // "dependentKey>package@requested-tag" -> the exact hoist accepted upstream of rule 1.
-// RETIRED 2026-09-13 (W82 winsump): @phlix/ui v0.99.2's manifest requests contracts
-// #v0.4.6 outright, firing the written retirement condition. Zero exceptions remain;
-// the map stays present-but-empty so walk()'s contract and the test denominator pin it.
-export const RATIFIED_HOISTS = {};
+// History: the S442-era waiver (ui `#v0.4.5` over hoisted 0.4.6) retired 2026-09-13 (W82
+// winsump) when ui v0.99.2 requested `#v0.4.6` outright; the map sat empty through the
+// W85/W87 re-pins. RE-ADDED for the contracts v0.5.0 re-pin (2026-09-23): ui v0.99.5's own
+// manifest still requests contracts `#v0.4.7` while the direct pin advanced to `#v0.5.0`
+// (error-registry cascade, purely additive) and npm dedupes ui's edge onto the single
+// hoisted v0.5.0 copy — proven nested-free both in the lock and on disk by
+// tests/unit/contractsPin.test.mjs. Exact-match like its predecessor: version AND sha.
+// Retirement condition: a ui tag whose manifest requests `#v0.5.0`-or-newer outright makes
+// this key miss on the next re-pin — delete the entry then and restore byte-equality.
+export const RATIFIED_HOISTS = {
+  'node_modules/@phlix/ui>@phlix/contracts@v0.4.7': {
+    version: '0.4.7',
+    sha: '8ef65d30be42623765c29ced34fc86d8ab3c51b5',
+  },
+};
 
 export function readRepoJson(name) {
   return JSON.parse(readFileSync(fileURLToPath(new URL(`../${name}`, import.meta.url)), 'utf8'));
