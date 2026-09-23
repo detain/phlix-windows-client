@@ -7,6 +7,42 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — re-pin `@phlix/contracts` v0.5.0 → v0.5.1 (estate error-registry expansion) — 2026-09-23
+
+- **Single contracts pin advanced.** `package.json` re-pins `@phlix/contracts` to the
+  `v0.5.1` tag (annotated object `cf0163ee`, peel `e3c14f07`, the registry-expansion
+  merge PR #78 head); `NPM_CONFIG_USERCONFIG=/dev/null npm install --allow-git=all`
+  (node 24 / npm 12, CI-faithful) regenerated the committed lock surgically — root
+  echo + the hoisted node's `resolved` only, zero nested copies in lock or on disk.
+  `v0.5.1` is purely additive (measured: `dist/error-codes.json` grew 147 → 202 codes,
+  55 added, ZERO removed): no consumer code churn — the full suite and typechecks ran
+  green against the new tree with zero source edits.
+- **The manifest-version skew persists — the override carries unchanged.** `v0.5.1`'s
+  tag manifest still ships the stale `version` field: it reads `0.4.7` at `e3c14f07`
+  (measured via `git show`), so npm keeps writing the lock entry's `version` as `0.4.7`
+  under a `#v0.5.1` request. `scripts/lockwalk.mjs` `EXPECTED` advances the contracts
+  tag/sha while the exact-match `manifestVersion: '0.4.7'` override carries forward
+  unchanged; `tests/unit/lockwalk.test.mjs` re-proves BOTH directions (a lock line
+  falling further behind to `0.4.6`, a hand-edit falsely claiming the field
+  re-normalized to `0.5.1`), and `contractsPin.test.mjs` upgrades the installed-tree
+  marker — existence stopped discriminating once both peels ship the file, so the
+  marker now asserts the 202-code census: a rollback to the `v0.5.0` peel (or an
+  installed tree left behind by the lock) with the honest `0.4.7` field goes RED here.
+  All three mutation directions (behind / falsely-normalized / installed-tree-behind)
+  were executed and verified RED before restoring.
+- **The ui→contracts edge stays honestly divergent: one exact-match ratified hoist,
+  retirement checked and NOT fired.** ui `v0.99.5`'s manifest still requests contracts
+  `#v0.4.7` (measured via `git show` at `3017f443`), so the waiver's written retirement
+  condition — a ui tag requesting the direct pin-or-newer outright — did not fire and
+  the entry carries, its sha re-ratified exactly to the hoist's new peel `e3c14f07` per
+  its own `ratified-hoist-drift` finding. Version AND sha remain exact-match, never a
+  wildcard; the single-waiver denominator and nested-free invariant (lock and disk)
+  stand unchanged.
+- **Vendored i18n hashes untouched by design.** The vendor PIN pins `phlix-ui` refs,
+  not contracts — this re-pin never touches `src/renderer/i18n/ui-locale-bundles/`;
+  the PIN manifest is byte-identical before/after (`sha256 0612a510…` on disk, zero
+  git diff) and `i18nLocales`/`i18nSeamWiring`/`rendererI18n` stayed green unchanged.
+
 ### Changed — re-pin `@phlix/contracts` v0.4.7 → v0.5.0 (estate error-registry cascade) — 2026-09-23
 
 - **Single contracts pin advanced.** `package.json` re-pins `@phlix/contracts` to the
