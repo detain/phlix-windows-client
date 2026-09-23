@@ -3,8 +3,10 @@
  * feat/i18n-locales lane ships (es, fr, de, it, pt_BR, ja):
  *
  *  A. UI SEAM (vendored from phlix-ui, SSOT): key-set identity across the six
- *     bundles, coverage of the INSTALLED DEFAULT_MESSAGES, pinned ahead-of-pin
- *     extras, placeholder parity, CLDR segment law (incl. the documented
+ *     bundles, coverage of the INSTALLED DEFAULT_MESSAGES, bundle-vs-installed
+ *     SET EQUALITY (since the v0.99.5 re-pin closed the 7-key ahead-of-pin
+ *     gap; the formerly-ahead keys keep focused cross-bundle laws),
+ *     placeholder parity, CLDR segment law (incl. the documented
  *     additive exception), diacritics/CJK sanity, and PIN/hash drift guards
  *     against the vendored files (CI-skipped source leg, see below).
  *  B. WINDOWS-OWN RENDERER catalog (nav labels buildMenu hands to ui): 16-key
@@ -115,6 +117,21 @@ function segments(value: string): number {
 // form in latin bundles where the English default hardcodes the plural.
 const UI_ADDITIVE_PIPES: readonly string[] = ['player.subtitleDownloads'];
 
+// The seven keys the dc1df7d5 vendor ran AHEAD of the then-installed v0.99.4
+// catalog. The v0.99.5 re-pin shipped them into DEFAULT_MESSAGES, so the
+// bundle-vs-installed relation is now exact SET EQUALITY (law below); this
+// list survives to keep the two focused cross-bundle laws (placeholders,
+// segment counts) aimed at the keys that historically drifted first.
+const FORMER_AHEAD_KEYS: readonly string[] = [
+  'connect.scan',
+  'connect.scanning',
+  'connect.scanFailed',
+  'connect.scanEmpty',
+  'connect.scanListLabel',
+  'player.seekBackward',
+  'player.seekForward',
+].sort();
+
 // Keys whose value legitimately EQUALS English (brand tokens, loanwords,
 // international media words) IN THE CLIENT-AUTHORED catalogs — verified BOTH
 // directions. The vendored ui bundles are exempt here: their exhaustive
@@ -148,7 +165,7 @@ const CJK = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/;
 function assertLeakLaw(label: string, table: Map<string, string>, baseline: Map<string, string>, allow: readonly string[]): void {
   for (const [key, value] of table) {
     const en = baseline.get(key);
-    if (en === undefined) continue; // ahead-of-pin keys have no baseline
+    if (en === undefined) continue; // vendor-ahead guard: dead under v0.99.5 equality, live if a re-vendor ever outruns the npm pin
     if (allow.includes(key)) {
       expect(value, `${label}: allow-listed ${key} must actually EQUAL English`).toBe(en);
     } else {
@@ -177,21 +194,20 @@ describe('ui bundles — key-set identity and installed coverage', () => {
     }
   });
 
-  it('bundles run exactly 7 keys AHEAD of the installed pin (the documented extras)', () => {
-    // Vendored @ dc1df7d5 vs @phlix/ui 0.99.4 — the ahead-of-pin set is pinned
-    // HERE so a client dependency bump that ships these keys flips this pin
-    // and forces a conscious re-vendor/re-pin instead of silent drift.
-    const AHEAD_OF_PIN = [
-      'connect.scan',
-      'connect.scanning',
-      'connect.scanFailed',
-      'connect.scanEmpty',
-      'connect.scanListLabel',
-      'player.seekBackward',
-      'player.seekForward',
-    ].sort();
-    const bundleKeys = [...flat(UI_TABLES.es).keys()];
-    expect(bundleKeys.filter((key) => !EN_UI.has(key)).sort()).toEqual(AHEAD_OF_PIN);
+  it('bundle key set EQUALS the installed pin (v0.99.5 shipped the 7 formerly-ahead keys)', () => {
+    // Vendor @ 3017f443 (tag v0.99.5) vs installed @phlix/ui v0.99.5 — the
+    // dc1df7d5-era 7-key ahead-of-pin gap closed at this re-pin, so the
+    // relation is exact set equality in BOTH directions (installed ⊆ bundle
+    // is separately pinned above; this pins bundle ⊆ installed and, with it,
+    // the empty extras set). The seven keys are additionally pinned present
+    // in the installed catalog so a future upstream rename cannot dissolve
+    // the cross-bundle laws below into a vacuous walk over missing keys.
+    const bundleKeys = new Set(flat(UI_TABLES.es).keys());
+    expect([...bundleKeys].filter((key) => !EN_UI.has(key)).sort()).toEqual([]);
+    for (const key of FORMER_AHEAD_KEYS) {
+      expect(EN_UI.has(key), `installed catalog lost ${key} since the v0.99.5 re-pin`).toBe(true);
+      expect(bundleKeys.has(key), `bundle lost formerly-ahead key ${key}`).toBe(true);
+    }
   });
 
   it("every bundle value keeps its key's {placeholder} set (vs English)", () => {
@@ -208,7 +224,10 @@ describe('ui bundles — key-set identity and installed coverage', () => {
     }
   });
 
-  it('cross-bundle placeholder sets agree for the ahead-of-pin keys', () => {
+  it('cross-bundle placeholder sets agree for sample formerly-ahead keys (direct bundle↔bundle check)', () => {
+    // Rides alongside the vs-English placeholder law (which now covers these
+    // keys through their installed baseline); kept as the direct cross-bundle
+    // assertion the dc1df7d5-era laws used.
     for (const key of ['connect.scan', 'player.seekBackward', 'player.seekForward']) {
       const base = placeholders(flat(UI_TABLES.es).get(key) ?? '');
       for (const locale of LOCALES) {
@@ -222,7 +241,7 @@ describe('ui bundles — key-set identity and installed coverage', () => {
       const table = flat(UI_TABLES[locale]);
       for (const [key, value] of table) {
         const en = EN_UI.get(key);
-        if (en === undefined) continue; // ahead-of-pin: cross-bundle counts pinned below
+        if (en === undefined) continue; // vendor-ahead guard (see assertLeakLaw): cross-bundle counts pinned below
         if (locale === 'ja') {
           expect(segments(value), `ja ${key} must be pipe-free`).toBe(1);
           continue;
@@ -236,9 +255,12 @@ describe('ui bundles — key-set identity and installed coverage', () => {
     }
   });
 
-  it('ahead-of-pin keys carry identical segment counts across bundles', () => {
-    const keys = ['connect.scan', 'connect.scanning', 'connect.scanFailed', 'connect.scanEmpty', 'connect.scanListLabel', 'player.seekBackward', 'player.seekForward'];
-    for (const key of keys) {
+  it('all seven formerly-ahead keys carry identical segment counts across bundles', () => {
+    // The dc1df7d5-era law survives the v0.99.5 equality re-pin: the CLDR law
+    // now reaches these keys through their installed English baseline, but
+    // this direct bundle↔bundle count agreement over the FULL FORMER_AHEAD_KEYS
+    // set stays as the vendor's own invariant.
+    for (const key of FORMER_AHEAD_KEYS) {
       const counts = new Set(LOCALES.map((locale) => segments(flat(UI_TABLES[locale]).get(key) ?? '')));
       expect([...counts], `${key} segment counts differ across bundles`).toHaveLength(1);
     }

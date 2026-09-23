@@ -17,24 +17,32 @@
  * ADVANCING THE PIN: when the ui branch merges/re-tags and the estate re-pin
  * cascade names a new windows SHA, update SOURCE_BRANCH/SOURCE_REF here (two
  * lines), re-run `node scripts/sync-ui-locale-bundles.mjs`, then re-run
- * `npm test` — the bundles suite enumerates the ahead-of-pin key set, so a
- * bundle whose extra keys changed goes red until the pin table in
- * tests/unit/i18nLocales.test.ts is consciously revised.
+ * `npm test` — the bundles suite pins the vendored key set against the
+ * INSTALLED catalog (exact set equality since the v0.99.5 re-pin), so a
+ * bundle whose key set diverges from the installed pin goes red until
+ * tests/unit/i18nLocales.test.ts is consciously revised. SOURCE_REF must be
+ * the 40-hex commit the tag peels to (not the tag name): the suite cross-guard
+ * requires the hex form, and `git show` against a sibling clone resolves it
+ * identically while staying immune to tag re-pointing.
  *
  * TRANSFORMS — the complete list; any other diff is drift:
  *  1. `../messages` has no client-side counterpart: the line
  *     `import type { PhlixMessages } from '../messages';` is DROPPED in every
  *     file (the symbol is unused after transforms 2 and 3).
  *  2. Locale bundles (6 files): `} satisfies PhlixMessages;` becomes
- *     `} satisfies Record<string, Record<string, string>>;`. The bundles
- *     carry 7 keys AHEAD of the installed v0.99.4 catalog (connect.scan,
- *     connect.scanning, connect.scanFailed, connect.scanEmpty,
- *     connect.scanListLabel, player.seekBackward, player.seekForward);
- *     `PhlixMessages = typeof DEFAULT_MESSAGES` of the INSTALLED package is
- *     literal-keyed, so satisfies-ing against it would fail on exactly those
- *     ahead-of-pin keys. Value-shape stays compile-checked; the key-set law
- *     moves to the runtime suite (6-way identity + installed coverage +
- *     pinned ahead-of-pin set).
+ *     `} satisfies Record<string, Record<string, string>>;`. Historical
+ *     reason: at the dc1df7d5 vendor the bundles carried 7 keys AHEAD of the
+ *     then-installed v0.99.4 catalog (connect.scan, connect.scanning,
+ *     connect.scanFailed, connect.scanEmpty, connect.scanListLabel,
+ *     player.seekBackward, player.seekForward), and `PhlixMessages = typeof
+ *     DEFAULT_MESSAGES` of the INSTALLED package is literal-keyed, so
+ *     satisfies-ing against it would have failed on exactly those keys. The
+ *     v0.99.5 re-pin closed that gap (set equality holds — pinned by the
+ *     suite), but the relaxation STAYS: it decouples the vendor's compile
+ *     surface from whichever catalog literal the npm pin happens to carry, so
+ *     future pin moves never require re-deriving the type seam. Value-shape
+ *     stays compile-checked; the key-set law lives in the runtime suite
+ *     (6-way identity + installed ⊆ bundle + exact bundle-vs-installed set).
  *  3. index.ts registry: `Record<PhlixLocaleCode, PhlixMessages>` becomes
  *     `Record<PhlixLocaleCode, Record<string, Record<string, string>>>` for
  *     the same reason (its values are the relaxed bundles).
@@ -51,8 +59,8 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 /** Pin the vendor came from — the re-pin cascade updates these two lines only. */
-const SOURCE_BRANCH = 'feat/i18n-locale-bundles';
-const SOURCE_REF = 'dc1df7d553ef1501df294b797334cb400ae8a8d1';
+const SOURCE_BRANCH = 'master';
+const SOURCE_REF = '3017f443f33a4368cb7b94c67f47814fe0db0bff'; // v0.99.5 peel (annotated tag 5b67c2a9 -> commit)
 const SOURCE_DIR = 'src/i18n/locales';
 const TARGET_DIR = 'src/renderer/i18n/ui-locale-bundles';
 const FILES = ['es.ts', 'fr.ts', 'de.ts', 'it.ts', 'pt_BR.ts', 'ja.ts', 'index.ts'];

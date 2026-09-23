@@ -86,24 +86,42 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
     expect(findings.some((f) => f.startsWith('ratified-hoist-drift:'))).toBe(false);
   });
 
-  it('REGRESSION: flags the ui lock version line moving off the tag-derived truth', () => {
+  it('REGRESSION: flags the ui lock version line moving off the stale-manifest truth', () => {
     const broken = structuredClone(lock);
-    // W87 truth: ui v0.99.4 keeps its manifest `version` field normalized in step
-    // with the tag (measured via git show at fee8b2bb — reads 0.99.4), so the
-    // v0.99.2-era stale-field `manifestVersion` override stays retired and rule 1
-    // checks the tag-derived version outright. A hand-edit claiming the field fell
-    // back behind the tag must still go RED — mutation-proof, exact-match, not a waiver.
+    // v0.99.5 re-pin truth: the tag manifest's `version` field is STALE — it
+    // reads 0.99.4 at 3017f443 (measured via git show), so the exact-match
+    // `manifestVersion: '0.99.4'` override is back and rule 1 checks the lock
+    // against the MANIFEST field, not the tag. Two hand-edits must go RED:
+    // one falling further behind (0.99.3), one falsely claiming the field
+    // re-normalized with the tag (0.99.5). Mutation-proof, exact-match, not a
+    // wildcard waiver.
     broken.packages['node_modules/@phlix/ui'] = {
       ...broken.packages['node_modules/@phlix/ui'],
       version: '0.99.3',
     };
-    const { findings } = walk(broken);
+    const behind = walk(broken).findings;
     expect(
-      findings.some(
+      behind.some(
         (f) =>
           f.startsWith('request-vs-resolved:') &&
-          f.includes('@phlix/ui#v0.99.4') &&
+          f.includes('@phlix/ui#v0.99.5') &&
           f.includes('version 0.99.3') &&
+          f.includes('pinned version line reads 0.99.4'),
+      ),
+    ).toBe(true);
+
+    const falselyNormalized = structuredClone(lock);
+    falselyNormalized.packages['node_modules/@phlix/ui'] = {
+      ...falselyNormalized.packages['node_modules/@phlix/ui'],
+      version: '0.99.5',
+    };
+    const ahead = walk(falselyNormalized).findings;
+    expect(
+      ahead.some(
+        (f) =>
+          f.startsWith('request-vs-resolved:') &&
+          f.includes('@phlix/ui#v0.99.5') &&
+          f.includes('version 0.99.5') &&
           f.includes('pinned version line reads 0.99.4'),
       ),
     ).toBe(true);
@@ -129,13 +147,13 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
 });
 
 describe('W82/W85 — the ratified exception stays retired to exactly zero edges', () => {
-  it('RATIFIED_HOISTS is empty by its own written rule (ui v0.99.2 requested #v0.4.6; v0.99.3 & v0.99.4 request #v0.4.7)', () => {
+  it('RATIFIED_HOISTS is empty by its own written rule (ui v0.99.2 requested #v0.4.6; v0.99.3–v0.99.5 request #v0.4.7)', () => {
     expect(Object.keys(RATIFIED_HOISTS)).toEqual([]);
   });
 
   it('the historical exception key stays dead and the edge itself is rule-1-clean', () => {
     // Mutation-proof: a silently re-added waiver for the old divergence goes RED,
-    // and the now-honest edge stays byte-pinned (ui v0.99.4's own manifest asks
+    // and the now-honest edge stays byte-pinned (ui v0.99.5's own manifest asks
     // #v0.4.7, the hoisted 0.4.7@625a5625 satisfies it — walk() sees zero findings there).
     expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.4.5']).toBeUndefined();
     const ui = lock.packages['node_modules/@phlix/ui'];
