@@ -7,6 +7,39 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — i18n locales (feat/i18n-locales): six-locale build-out es/fr/de/it/pt_BR/ja — 2026-09-23
+
+- **Vendored ui SSOT bundles:** `src/renderer/i18n/ui-locale-bundles/` now carries the six
+  complete phlix-ui locale bundles as a SHA-pinned copy pinned at `dc1df7d5`
+  (`feat/i18n-locale-bundles`), refreshed via the new `scripts/sync-ui-locale-bundles.mjs`
+  (git-show at the pinned ref + the three documented type-relaxation transforms + a `PIN`
+  manifest of pristine/vendored sha256 per file) — the proven tizen-client mechanism. The
+  renderer registry feeds them to the ui seam: `messagesForLocale('es')` … `('ja')` now
+  return real bundles; `en` keeps the untouched byte-identical omit path.
+- **Region-aware tag law:** one shared normalization (`normalizeLocaleTag`) canonicalizes
+  every tag — lowercase primary subtag with `pt* → pt_BR` — for registration and lookup
+  across the seam and both client catalogs. `VITE_PHLIX_LOCALE` accepts all seven tags.
+- **Windows-own renderer catalog (R-review fix F2):** the 16 `buildMenu()` nav labels
+  (`MenuItem.label` raw strings the ui seam cannot reach) moved into
+  `src/renderer/i18n/windows-own/` — `WIN_EN` byte-identical to the pre-i18n literals
+  (pinned through `buildMenu()` itself in `i18nSeamWiring.test.ts`), six locale catalogs
+  `satisfies WindowOwnCatalog`, `setWindowLocale()`/`tWin()` accessors wired at boot.
+- **Main-process locales:** six catalogs (`src/main/i18n/locales/*.ts`, `satisfies
+  MainCatalog`) covering all 29 chrome strings; placeholders, About `\n\n` structure and
+  the untouched `ORIGINAL_MAIN_PROCESS_STRINGS` EN pins verified per locale; registry now
+  `{en,es,fr,de,it,pt_BR,ja}` with the pt region rule.
+- **Tests:** new `tests/unit/i18nLocales.test.ts` law-gate (bundle key-set identity +
+  installed coverage + 7-key ahead-of-pin pin, placeholder/CLDR-segment/diacritics/CJK
+  laws, both-direction EN-leak allow-lists for the two client catalogs, PIN↔disk hashes
+  everywhere + pristine-source parity that hard-fails locally and SKIPS loudly in CI, and
+  a three-catalog resolution matrix). Suite 341 → **398 tests / 32 → 33 files**; coverage
+  lines 63.5% (floor 54).
+- **Docs:** `docs/i18n.md` rewritten around the three catalogs — locale matrix, vendoring
+  and re-pin procedure with drift policy until the re-pin cascade lands, add-a-7th-locale
+  recipe covering all three halves, and the F1 correction (deep-link failures are silently
+  rejected by `handleDeepLinkUrl` — the previously-referenced `showErrorDialog` never
+  existed).
+
 ### Added — i18n wiring (feat/i18n-wiring): @phlix/ui message seam + main-process catalog — 2026-09-22
 
 - **Renderer:** `createPhlixApp` now receives the config-time i18n seam resolved by the new
