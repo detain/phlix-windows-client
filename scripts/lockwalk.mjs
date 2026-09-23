@@ -16,11 +16,12 @@
  *     the root package or from any @phlix/* lock entry, must resolve to a lock
  *     node whose `version` equals the tag — or, where the tagged upstream
  *     manifest ships a stale `version` field, equals that field pinned
- *     explicitly as `manifestVersion` in EXPECTED below (the historical case:
+ *     explicitly as `manifestVersion` in EXPECTED below (lived twice so far:
  *     @phlix/ui v0.99.2 was tagged with its manifest `version` still reading
- *     0.99.1; v0.99.3 normalized the field, so no `manifestVersion` override
- *     is carried any more — the identity byte-check remains the `resolved`
- *     peel sha) — and whose `resolved` sha equals the pinned peel sha.
+ *     0.99.1 — override retired when v0.99.3–v0.99.4 normalized the field,
+ *     revived at v0.99.5 which again ships `version: 0.99.4` under the tag;
+ *     the identity byte-check remains the `resolved` peel sha) — and whose
+ *     `resolved` sha equals the pinned peel sha.
  *     An override is exact-match, never a wildcard waiver.
  *  2. RATIFIED_HOISTS carried one ratified exception: @phlix/ui v0.99.1's
  *     manifest requested contracts `#v0.4.5` while this repo deduped it onto
@@ -56,11 +57,13 @@ const NESTED_NODE_RE = /\/node_modules\/@phlix\/[\w-]+$/;
 
 // Single resolutions: package -> the tag this repo standardizes on and
 // the commit that tag peels to (re-verified against the live remotes via
-// `git ls-remote ... refs/tags/<tag>^{}` on 2026-09-14, W87 ui-repin lane):
-//   phlix-contracts v0.4.7  -> 625a5625  (unchanged; ui v0.99.4 still requests #v0.4.7 — convergence holds)
-//   phlix-syncplay  v0.1.5  -> b82d4f36  (transitive-only: ui v0.99.4 bumped its declared syncplay edge v0.1.4→v0.1.5)
-//   phlix-ui        v0.99.4 -> fee8b2bb  (annotated tag; its manifest `version` field reads 0.99.4 — still normalized,
-//                                         so the v0.99.2-era stale-field override stays gone)
+// `git ls-remote ... refs/tags/<tag>^{}` on 2026-09-23, v0.99.5 re-pin cascade):
+//   phlix-contracts v0.4.7  -> 625a5625  (unchanged; ui v0.99.5 still requests #v0.4.7 — convergence holds)
+//   phlix-syncplay  v0.1.5  -> b82d4f36  (unchanged; ui v0.99.5 still requests #v0.1.5)
+//   phlix-ui        v0.99.5 -> 3017f443  (annotated tag object 5b67c2a9; its manifest `version` field is STALE again —
+//                                         reads 0.99.4 at the tag, exactly the case rule 1's `manifestVersion` override
+//                                         was written for; the estate cut v0.99.5 without bumping the field, per the
+//                                         v0.99.2 precedent where the tag/grader never reads package.json `version`)
 export const EXPECTED = {
   '@phlix/contracts': {
     tag: 'v0.4.7',
@@ -73,13 +76,16 @@ export const EXPECTED = {
     repo: 'git+ssh://git@github.com/detain/phlix-syncplay.git',
   },
   '@phlix/ui': {
-    tag: 'v0.99.4',
-    sha: 'fee8b2bbf593be10d47d2fd2fd859d42d455bbb7',
-    // W87: ui v0.99.4's manifest `version` field is bumped in step with the tag
-    // (measured via git show at fee8b2bb — reads 0.99.4), so rule 1 checks the
-    // tag-derived version outright. The v0.99.2-era `manifestVersion: '0.99.1'`
-    // stale-field override stays retired by that override's own written rule: if ui
-    // ever ships the field stale again, re-adding an exact-match pin is the fix.
+    tag: 'v0.99.5',
+    sha: '3017f443f33a4368cb7b94c67f47814fe0db0bff',
+    // v0.99.5 re-pin cascade: the tag manifest's `version` field is stale — it
+    // still reads 0.99.4 (measured via git show at 3017f443; npm therefore
+    // writes the lock entry's version from the manifest, not the tag). That is
+    // precisely the trigger written into the v0.99.2-era override's retirement
+    // note ("if ui ever ships the field stale again, re-adding an exact-match
+    // pin is the fix"), so the exact-match `manifestVersion` override returns.
+    // A ui release that re-normalizes the field to 0.99.5+ must retire it again.
+    manifestVersion: '0.99.4',
     repo: 'git+ssh://git@github.com/detain/phlix-ui.git',
   },
 };

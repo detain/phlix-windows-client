@@ -78,7 +78,7 @@ export function registerLocaleOverrides(locale: string, overrides: PhlixMessages
 // The six SSOT bundles enter the registry through the same seam tests use.
 // The cast is the documented vendor boundary: the bundles are complete
 // `PhlixMessages`-shaped maps typed loosely by the `satisfies` relaxation in
-// scripts/sync-ui-locale-bundles.mjs (7 keys ahead of the installed v0.99.4).
+// scripts/sync-ui-locale-bundles.mjs (key-set equal to the installed v0.99.5).
 for (const code of Object.keys(LOCALE_MESSAGES) as PhlixLocaleCode[]) {
   registerLocaleOverrides(code, LOCALE_MESSAGES[code] as unknown as PhlixMessagesConfig);
 }

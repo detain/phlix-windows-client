@@ -7,6 +7,42 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — re-pin `@phlix/ui` v0.99.4 → v0.99.5 + vendor PIN advance (estate i18n cascade) — 2026-09-23
+
+- **Single UI pin advanced.** `package.json` re-pins `@phlix/ui` to the `v0.99.5`
+  tag (peel `3017f443`, the i18n locale-bundles merge PR #420 head); `NPM_CONFIG_USERCONFIG=/dev/null
+  npm install` regenerated the committed lock surgically — root echo + the ui node's
+  `resolved` only. The ui lock entry's `version` stays `0.99.4` because the tag
+  manifest's field is stale (the estate cut `v0.99.5` without bumping it — the
+  v0.99.2 precedent), which is exactly the case rule 1's `manifestVersion` override
+  was written for: `scripts/lockwalk.mjs` `EXPECTED` advances the ui tag/sha and
+  revives the exact-match `manifestVersion: '0.99.4'` pin; `tests/unit/lockwalk.test.mjs`
+  mutates BOTH directions now (version falling further behind, and a hand-edit
+  falsely claiming the field re-normalized with the tag). contracts `#v0.4.7` and
+  syncplay `#v0.1.5` edges are unchanged in ui v0.99.5's manifest — convergence holds,
+  `contractsPin.test.mjs` stays byte-stable by design.
+- **Installed-tree faithfulness proven.** All 857 `dist/` blobs of the installed
+  `@phlix/ui` hash-identical to the `v0.99.5` tagged tree; the seven keys that ran
+  AHEAD of the previous pin (`connect.scan|scanning|scanFailed|scanEmpty|scanListLabel`,
+  `player.seekBackward|seekForward`) are present in `DEFAULT_MESSAGES`' typed literal,
+  and `LOCALE_MESSAGES` / `ES…JA_MESSAGES` / `PhlixLocaleCode` export from the main entry.
+- **Vendor PIN advanced dc1df7d5 → 3017f443 (v0.99.5) with ZERO content drift.**
+  `git diff dc1df7d5 3017f443 -- src/i18n/locales` is empty upstream (only `dist/`
+  moved in `76bcf985`), so re-running `scripts/sync-ui-locale-bundles.mjs` rewrote the
+  seven bundles byte-identically — the commit touched only `PIN`'s branch/ref lines;
+  all 14 per-file sha256 entries unchanged. `SOURCE_BRANCH` moves to `master` (the
+  feature branch merged as PR #420).
+- **Laws converted to equality.** The dc1df7d5-era "bundles run exactly 7 keys AHEAD
+  of the installed pin" block in `tests/unit/i18nLocales.test.ts` becomes a
+  **bidirectional bundle↔installed set-equality** pin (extras must be empty, and the
+  seven formerly-ahead keys are pinned present in both catalogs so upstream renames
+  cannot silently dissolve the laws); the two cross-bundle laws over those keys stay
+  as direct vendor↔vendor invariants, and the vendor-ahead guards in the placeholder/
+  CLDR/leak walks stay as defense for a future re-vendor that outruns the npm pin.
+- **Verification:** 33 files / **401 tests** green (exact baseline match — zero delta),
+  renderer + tests `vue-tsc` and main `tsc` exit 0, lint exit 0, build exit 0; the
+  windows-latest shard rides CI.
+
 ### Fixed — i18n fr apostrophe typography (R1 follow-up F-A) — 2026-09-23
 
 - `windows-own/fr.ts` `nav.inviteLinks` now renders the typographic `’` (`Liens d’invitation`) matching the vendored fr SSOT policy — the straight `'` collided glyph-wise with bundle text in the same top bar; a new fr typography law in `i18nLocales.test.ts` pins no `letter'letter` in any windows-own/main fr value (detector control + anti-vacuous `’` presence guard).

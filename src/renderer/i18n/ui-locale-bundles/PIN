@@ -1,7 +1,7 @@
 {
   "source": "phlix-ui",
-  "branch": "feat/i18n-locale-bundles",
-  "ref": "dc1df7d553ef1501df294b797334cb400ae8a8d1",
+  "branch": "master",
+  "ref": "3017f443f33a4368cb7b94c67f47814fe0db0bff",
   "directory": "src/i18n/locales",
   "transforms": [
     "drop `import type { PhlixMessages } from '../messages';`",
