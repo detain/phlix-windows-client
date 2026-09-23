@@ -25,6 +25,7 @@ import '@phlix/ui/style.css';
 import '@phlix/ui/fonts.css';
 import { resolveAppConfig } from './resolveConfig';
 import { messagesForLocale, resolveLocale } from './i18n';
+import { setWindowLocale, tWin } from './i18n/windows-own';
 import log from 'electron-log';
 import { installElectronBridge } from './electronBridge';
 import { setupMediaSession } from './mediaSession';
@@ -53,19 +54,24 @@ function cleanupRenderer(): void {
  * which the shell shows only for an authenticated admin (`useAuthStore().isAdmin`).
  * Without a supplied `menu` the shell renders NO nav at all (no Browse/Admin), so
  * this is what makes the admin section reachable in the Windows client.
+ *
+ * Labels come from the windows-own catalog (`tWin`) — raw `MenuItem.label`
+ * strings the ui message seam cannot reach — in the locale `setWindowLocale()`
+ * activated at boot (default English, byte-identical to the pre-i18n labels;
+ * tests/unit/i18nLocales.test.ts pins that).
  */
 export function buildMenu(appMode: 'server' | 'hub'): MenuItem[] {
   if (appMode === 'hub') {
     return [
-      { id: 'my-servers', label: 'My Servers', to: '/app/servers' },
-      { id: 'federation', label: 'Federation', to: '/app/federation' },
-      { id: 'manage-shares', label: 'Shares', to: '/app/shares' },
-      { id: 'shared-with-me', label: 'Shared with Me', to: '/app/shared' },
-      { id: 'invite-links', label: 'Invite Links', to: '/app/invites' },
-      { id: 'history', label: 'Watch History', to: '/app/history' },
-      { id: 'explore', label: 'Explore', to: '/app/explore' },
-      { id: 'recommendations', label: 'Recommendations', to: '/app/recommendations' },
-      { id: 'admin', label: 'Admin', to: '/app/admin/dashboard', requiresAdmin: true }
+      { id: 'my-servers', label: tWin('nav.myServers'), to: '/app/servers' },
+      { id: 'federation', label: tWin('nav.federation'), to: '/app/federation' },
+      { id: 'manage-shares', label: tWin('nav.shares'), to: '/app/shares' },
+      { id: 'shared-with-me', label: tWin('nav.sharedWithMe'), to: '/app/shared' },
+      { id: 'invite-links', label: tWin('nav.inviteLinks'), to: '/app/invites' },
+      { id: 'history', label: tWin('nav.history'), to: '/app/history' },
+      { id: 'explore', label: tWin('nav.explore'), to: '/app/explore' },
+      { id: 'recommendations', label: tWin('nav.recommendations'), to: '/app/recommendations' },
+      { id: 'admin', label: tWin('nav.admin'), to: '/app/admin/dashboard', requiresAdmin: true }
     ];
   }
   // Server mode: mirrors web-ui/src/main.ts:30-77 entry for entry.
@@ -74,17 +80,17 @@ export function buildMenu(appMode: 'server' | 'hub'): MenuItem[] {
   // `requiresLibraryType` hides each media-type entry unless a library of that
   // type exists — fail-closed while the library list is still loading.
   return [
-    { id: 'browse', label: 'Browse', to: '/app', libraryLinks: true },
-    { id: 'music', label: 'Music', to: '/app/music', requiresLibraryType: 'music' },
-    { id: 'books', label: 'Books', to: '/app/books', requiresLibraryType: 'book' },
-    { id: 'audiobooks', label: 'Audiobooks', to: '/app/audiobooks', requiresLibraryType: 'audiobook' },
-    { id: 'photos', label: 'Photos', to: '/app/photo/albums', requiresLibraryType: 'photo' },
-    { id: 'search', label: 'Search', to: '/app/search' },
-    { id: 'history', label: 'Watch History', to: '/app/history' },
-    { id: 'explore', label: 'Explore', to: '/app/explore' },
-    { id: 'recommendations', label: 'Recommendations', to: '/app/recommendations' },
-    { id: 'settings', label: 'Settings', to: '/app/settings' },
-    { id: 'admin', label: 'Admin', to: '/app/admin/dashboard', requiresAdmin: true }
+    { id: 'browse', label: tWin('nav.browse'), to: '/app', libraryLinks: true },
+    { id: 'music', label: tWin('nav.music'), to: '/app/music', requiresLibraryType: 'music' },
+    { id: 'books', label: tWin('nav.books'), to: '/app/books', requiresLibraryType: 'book' },
+    { id: 'audiobooks', label: tWin('nav.audiobooks'), to: '/app/audiobooks', requiresLibraryType: 'audiobook' },
+    { id: 'photos', label: tWin('nav.photos'), to: '/app/photo/albums', requiresLibraryType: 'photo' },
+    { id: 'search', label: tWin('nav.search'), to: '/app/search' },
+    { id: 'history', label: tWin('nav.history'), to: '/app/history' },
+    { id: 'explore', label: tWin('nav.explore'), to: '/app/explore' },
+    { id: 'recommendations', label: tWin('nav.recommendations'), to: '/app/recommendations' },
+    { id: 'settings', label: tWin('nav.settings'), to: '/app/settings' },
+    { id: 'admin', label: tWin('nav.admin'), to: '/app/admin/dashboard', requiresAdmin: true }
   ];
 }
 
@@ -187,7 +193,13 @@ export async function boot(): Promise<void> {
   // defaults untouched (byte-identical to every pre-seam build).
   const locale = resolveLocale();
   const messages = messagesForLocale(locale);
+  // Same tag drives the windows-own nav catalog (buildMenu labels the ui seam
+  // cannot reach) BEFORE the menu is assembled below.
+  const windowLocale = setWindowLocale(locale);
   log.info(`[Boot] UI locale: ${locale}${messages ? ' (client message overrides applied)' : ''}`);
+  if (windowLocale !== 'en') {
+    log.info(`[Boot] Windows-own nav catalog: ${windowLocale}`);
+  }
 
   const app = createPhlixApp({
     app: appMode,

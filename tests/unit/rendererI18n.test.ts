@@ -16,6 +16,7 @@ import {
   registerLocaleOverrides,
   resolveLocale
 } from '@/i18n';
+import { LOCALE_MESSAGES } from '@/i18n/ui-locale-bundles';
 
 describe('pickLocale priority', () => {
   it('explicit config/env override wins over the system language', () => {
@@ -83,6 +84,33 @@ describe('messagesForLocale registry', () => {
 
   it('rejects an empty locale tag', () => {
     expect(() => registerLocaleOverrides('  ', {})).toThrow(/non-empty locale/);
+  });
+});
+
+describe('vendored locale bundles are registered (feat/i18n-locales)', () => {
+  const BUNDLE_TABLE = LOCALE_MESSAGES as unknown as Record<string, Record<string, Record<string, string>>>;
+
+  it('es/fr/de/it/ja resolve to their registered bundle object (identity, not a copy)', () => {
+    for (const code of ['es', 'fr', 'de', 'it', 'ja'] as const) {
+      expect(messagesForLocale(code) as unknown).toBe(BUNDLE_TABLE[code]);
+    }
+  });
+
+  it('every pt spelling lands on the pt_BR bundle', () => {
+    for (const tag of ['pt', 'pt-BR', 'pt_BR', 'pt-PT', 'PT_br']) {
+      expect(messagesForLocale(tag) as unknown, tag).toBe(BUNDLE_TABLE.pt_BR);
+    }
+  });
+
+  it('en still returns undefined — the byte-identical-English path is untouched', () => {
+    expect(messagesForLocale('en')).toBeUndefined();
+    expect(messagesForLocale('en-US')).toBeUndefined();
+  });
+
+  it('a registered bundle renders through the real seam translator', () => {
+    const tr = createTranslator(messagesForLocale('ja'));
+    expect(tr('common.retry')).toBe(BUNDLE_TABLE.ja.common.retry);
+    expect(tr('common.retry')).not.toBe(DEFAULT_MESSAGES.common.retry);
   });
 });
 

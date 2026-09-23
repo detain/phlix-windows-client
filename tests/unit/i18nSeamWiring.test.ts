@@ -112,4 +112,74 @@ describe('createPhlixApp messages wiring', () => {
 
     expect('messages' in lastCreatePhlixAppConfig()).toBe(false);
   });
+
+  it('passes the vendored es bundle through as config.messages (registry-driven)', async () => {
+    // No test-side registration: the REAL six-bundle registry installed at
+    // module load must be what boot hands the seam.
+    const { LOCALE_MESSAGES } = await import('@/i18n/ui-locale-bundles');
+    vi.stubEnv('VITE_PHLIX_LOCALE', 'es');
+
+    const mod = await import('@/main');
+    await mod.boot();
+
+    expect(lastCreatePhlixAppConfig().messages as unknown).toBe(LOCALE_MESSAGES.es);
+  });
+});
+
+/**
+ * R-review fix F2: buildMenu's labels are client-supplied MenuItem.label raw
+ * strings the ui seam cannot reach — they now come from the windows-own
+ * catalog. The English table below is copied VERBATIM from the literals that
+ * buildMenu hardcoded before feat/i18n-locales: any drift goes red.
+ */
+const ORIGINAL_RENDERER_NAV_LABELS: Record<string, string> = {
+  'my-servers': 'My Servers',
+  federation: 'Federation',
+  'manage-shares': 'Shares',
+  'shared-with-me': 'Shared with Me',
+  'invite-links': 'Invite Links',
+  history: 'Watch History',
+  explore: 'Explore',
+  recommendations: 'Recommendations',
+  admin: 'Admin',
+  browse: 'Browse',
+  music: 'Music',
+  books: 'Books',
+  audiobooks: 'Audiobooks',
+  photos: 'Photos',
+  search: 'Search',
+  settings: 'Settings'
+};
+
+describe('buildMenu windows-own nav labels', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('renders the 16 English labels byte-identically by default', async () => {
+    const { setWindowLocale } = await import('@/i18n/windows-own');
+    setWindowLocale('en');
+    const { buildMenu } = await import('@/main');
+
+    for (const item of [...buildMenu('server'), ...buildMenu('hub')]) {
+      expect(item.label, `label drift at nav id '${item.id}'`).toBe(ORIGINAL_RENDERER_NAV_LABELS[item.id]);
+    }
+  });
+
+  it('switches every label when the windows-own locale changes (es proof)', async () => {
+    const { setWindowLocale } = await import('@/i18n/windows-own');
+    const { WIN_ES } = await import('@/i18n/windows-own/es');
+    setWindowLocale('es');
+    const { buildMenu } = await import('@/main');
+
+    const server = Object.fromEntries(buildMenu('server').map((m) => [m.id, m.label]));
+    const hub = Object.fromEntries(buildMenu('hub').map((m) => [m.id, m.label]));
+    expect(server.browse).toBe(WIN_ES.nav.browse);
+    expect(server.settings).toBe(WIN_ES.nav.settings);
+    expect(server.history).toBe(WIN_ES.nav.history);
+    expect(hub['my-servers']).toBe(WIN_ES.nav.myServers);
+    expect(hub['shared-with-me']).toBe(WIN_ES.nav.sharedWithMe);
+
+    setWindowLocale('en'); // leave the default state for any later test in-file
+  });
 });

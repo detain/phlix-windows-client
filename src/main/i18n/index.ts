@@ -3,10 +3,11 @@
  * thumbar, updater notifications, About dialog).
  *
  * Design: a locale → catalog registry with English as the structural fallback.
- * Adding a locale is two steps — author `es.ts` (typed against `MainCatalog`, so
- * a missing key is a compile error) and add one entry to `catalogs`. Only `en`
- * ships today; the active locale is resolved once at app-ready because
- * `app.getLocale()` requires the ready event (see `src/main/index.ts`).
+ * Adding a locale is two steps — author `locales/es.ts` (typed against
+ * `MainCatalog`, so a missing key is a compile error) and add one entry to
+ * `catalogs`. The six estate locales (es, fr, de, it, pt_BR, ja) ship today;
+ * the active locale is resolved once at app-ready because `app.getLocale()`
+ * requires the ready event (see `src/main/index.ts`).
  *
  * `t()` throws on an unknown key instead of echoing it: keys are statically
  * typed (`MainMessageKey`), so an unknown key at runtime means the catalog and
@@ -19,6 +20,12 @@
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
 import { en } from './en';
+import { es } from './locales/es';
+import { fr } from './locales/fr';
+import { de } from './locales/de';
+import { it } from './locales/it';
+import { pt_BR } from './locales/pt_BR';
+import { ja } from './locales/ja';
 
 /** Two-level dotted key into the catalog, e.g. `'tray.quit'`. */
 export type MainMessageKey = {
@@ -37,21 +44,35 @@ export type MainCatalog = {
 export type MainTranslateParams = Record<string, string | number>;
 
 // Registry: adding a locale = new catalog file + one entry here.
-const catalogs: Record<string, MainCatalog> = { en };
+const catalogs: Record<string, MainCatalog> = { en, es, fr, de, it, pt_BR, ja };
+
+/** Registry tags — exported so tests pin the registry against the catalog files. */
+export const MAIN_CATALOG_TAGS: readonly string[] = Object.keys(catalogs);
+
+/**
+ * Canonical catalog key for a raw BCP-47-ish tag: lowercase primary subtag
+ * (`-`/`_` split) with the estate region rule `pt* → 'pt_BR'` (the single
+ * Portuguese catalog), mirroring the renderer's normalizeLocaleTag. Unknown
+ * primaries are returned unchanged so the registry simply misses and the
+ * caller falls back to English.
+ */
+function canonicalCatalogKey(locale: string): string | null {
+  const trimmed = locale.trim().toLowerCase();
+  if (!trimmed) return null;
+
+  const primary = trimmed.split(/[-_]/)[0];
+  if (!primary) return null;
+  if (primary === 'pt') return 'pt_BR';
+  return primary;
+}
 
 let activeCatalog: MainCatalog = en;
 let activeLocale = 'en';
 
 function findCatalog(locale: string): MainCatalog | undefined {
-  const normalized = locale.trim().toLowerCase();
-  if (!normalized) return undefined;
-
-  const exact = catalogs[normalized];
-  if (exact) return exact;
-
-  // 'en-GB' → 'en' region fallback, matching @phlix/ui's base-language matching.
-  const base = normalized.split('-')[0];
-  return catalogs[base];
+  const key = canonicalCatalogKey(locale);
+  if (!key) return undefined;
+  return catalogs[key];
 }
 
 /**
