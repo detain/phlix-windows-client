@@ -12,6 +12,7 @@ import { randomUUID } from 'crypto';
 import { isPathSafe } from './pathUtils';
 import { validateExternalUrl } from './urlValidator';
 import { checkMinServerVersion } from './versionCheck';
+import { getMainLocale, setMainLocale, t } from './i18n';
 import log from 'electron-log';
 import Store from 'electron-store';
 import { autoUpdater } from 'electron-updater';
@@ -378,17 +379,17 @@ export function setupThumbarButtons(): void {
 
   const buttons: ThumbarButton[] = [
     {
-      tooltip: 'Previous / Rewind 10s',
+      tooltip: t('thumbar.previous'),
       icon: prevIcon,
       click: () => mainWindow?.webContents.send('media-rewind')
     },
     {
-      tooltip: isPlaying ? 'Pause' : 'Play',
+      tooltip: isPlaying ? t('thumbar.pause') : t('thumbar.play'),
       icon: playPauseIcon,
       click: () => mainWindow?.webContents.send('media-play-pause')
     },
     {
-      tooltip: 'Next / Forward 10s',
+      tooltip: t('thumbar.next'),
       icon: nextIcon,
       click: () => mainWindow?.webContents.send('media-forward')
     }
@@ -444,8 +445,8 @@ function setupAutoUpdater(): void {
     // Offer to download via notification
     if (Notification.isSupported()) {
       const notification = new Notification({
-        title: 'Update Available',
-        body: `Phlix ${info.version} is available. Click to download.`
+        title: t('updater.availableTitle'),
+        body: t('updater.availableBody', { version: info.version })
       });
       notification.on('click', () => {
         autoUpdater.downloadUpdate();
@@ -472,8 +473,8 @@ function setupAutoUpdater(): void {
     // W4.7: Wire to notification system — user chooses when to restart
     if (Notification.isSupported()) {
       const notification = new Notification({
-        title: 'Update Ready',
-        body: `Phlix ${info.version} has been downloaded. Restart to apply.`
+        title: t('updater.readyTitle'),
+        body: t('updater.readyBody', { version: info.version })
       });
       notification.on('click', () => {
         isQuitting = true;
@@ -532,21 +533,21 @@ export function createTray(): void {
   tray = new Tray(icon.resize({ width: 16, height: 16 }));
 
   const contextMenu = Menu.buildFromTemplate([
-    { label: 'Show Phlix', click: () => mainWindow?.show() },
+    { label: t('tray.show'), click: () => mainWindow?.show() },
     { type: 'separator' },
-    { label: 'Play/Pause', click: () => mainWindow?.webContents.send('media-play-pause') },
-    { label: 'Stop', click: () => mainWindow?.webContents.send('media-stop') },
+    { label: t('tray.playPause'), click: () => mainWindow?.webContents.send('media-play-pause') },
+    { label: t('tray.stop'), click: () => mainWindow?.webContents.send('media-stop') },
     { type: 'separator' },
-    { label: 'Minimize to Tray', type: 'checkbox', checked: store.get('minimizeToTray', true),
+    { label: t('tray.minimizeToTray'), type: 'checkbox', checked: store.get('minimizeToTray', true),
       click: (menuItem) => store.set('minimizeToTray', menuItem.checked) },
     { type: 'separator' },
-    { label: 'Quit', click: () => {
+    { label: t('tray.quit'), click: () => {
       isQuitting = true;
       app.quit();
     }}
   ]);
 
-  tray.setToolTip('Phlix Media Server');
+  tray.setToolTip(t('tray.tooltip'));
   tray.setContextMenu(contextMenu);
 
   tray.on('click', () => {
@@ -555,36 +556,43 @@ export function createTray(): void {
 }
 
 /**
- * Exported for unit-testing of menu accelerator configuration.
+ * Built lazily (at createMenu time, after app-ready) so the labels resolve
+ * through the i18n locale captured on ready. Exported for unit-testing of menu
+ * accelerator configuration.
  * Single-character keys (Space, Left, Right) use registerAccelerator: false so
  * they do not intercept text input in URL fields or other text controls.
  */
-export const playbackMenuTemplate: Electron.MenuItemConstructorOptions[] = [
-  { label: 'Play/Pause', accelerator: 'Space', registerAccelerator: false, click: () => mainWindow?.webContents.send('media-play-pause') },
-  { label: 'Stop', click: () => mainWindow?.webContents.send('media-stop') },
-  { type: 'separator' },
-  { label: 'Rewind', accelerator: 'Left', registerAccelerator: false, click: () => mainWindow?.webContents.send('media-rewind') },
-  { label: 'Fast Forward', accelerator: 'Right', registerAccelerator: false, click: () => mainWindow?.webContents.send('media-forward') },
-  { type: 'separator' },
-  { label: 'Fullscreen', accelerator: 'F11', click: () => toggleFullscreen() }
-];
+export function buildPlaybackMenuTemplate(): Electron.MenuItemConstructorOptions[] {
+  return [
+    { label: t('menu.playPause'), accelerator: 'Space', registerAccelerator: false, click: () => mainWindow?.webContents.send('media-play-pause') },
+    { label: t('menu.stop'), click: () => mainWindow?.webContents.send('media-stop') },
+    { type: 'separator' },
+    { label: t('menu.rewind'), accelerator: 'Left', registerAccelerator: false, click: () => mainWindow?.webContents.send('media-rewind') },
+    { label: t('menu.fastForward'), accelerator: 'Right', registerAccelerator: false, click: () => mainWindow?.webContents.send('media-forward') },
+    { type: 'separator' },
+    { label: t('menu.fullscreen'), accelerator: 'F11', click: () => toggleFullscreen() }
+  ];
+}
 
 function createMenu(): void {
+  // Role items below (quit/reload/forceReload/toggleDevTools/zoom/fullscreen)
+  // intentionally keep no explicit label — Electron renders roles with native,
+  // already-localized strings, which beats anything this catalog could ship.
   const template: Electron.MenuItemConstructorOptions[] = [
     {
-      label: 'File',
+      label: t('menu.file'),
       submenu: [
-        { label: 'Settings', accelerator: 'CmdOrCtrl+,', click: () => openSettings() },
+        { label: t('menu.settings'), accelerator: 'CmdOrCtrl+,', click: () => openSettings() },
         { type: 'separator' },
         { role: 'quit' }
       ]
     },
     {
-      label: 'Playback',
-      submenu: playbackMenuTemplate
+      label: t('menu.playback'),
+      submenu: buildPlaybackMenuTemplate()
     },
     {
-      label: 'View',
+      label: t('menu.view'),
       submenu: [
         { role: 'reload' },
         { role: 'forceReload' },
@@ -598,11 +606,11 @@ function createMenu(): void {
       ]
     },
     {
-      label: 'Help',
+      label: t('menu.help'),
       submenu: [
-        { label: 'About Phlix', click: () => showAbout() },
+        { label: t('menu.about'), click: () => showAbout() },
         { type: 'separator' },
-        { label: 'Check for updates', click: () => {
+        { label: t('menu.checkForUpdates'), click: () => {
           if (updateState.status === 'downloading' || updateState.status === 'checking') return;
           updateState.status = 'checking';
           autoUpdater.checkForUpdates().catch((err) => {
@@ -635,9 +643,9 @@ function toggleFullscreen(): void {
 function showAbout(): void {
   dialog.showMessageBox(mainWindow!, {
     type: 'info',
-    title: 'About Phlix',
-    message: 'Phlix Media Server',
-    detail: `Version ${app.getVersion()}\n\nA free media server for your home.`
+    title: t('about.title'),
+    message: t('about.message'),
+    detail: t('about.detail', { version: app.getVersion() })
   });
 }
 
@@ -944,6 +952,16 @@ export function setupAppProtocolHandler(): void {
 
 app.whenReady().then(() => {
   log.info('App ready');
+
+  // i18n: pin the main-process UI locale now that the app is ready —
+  // app.getLocale() is only guaranteed to work after the ready event. Every
+  // user-facing string below (window chrome, menu, tray, updater notifications)
+  // resolves through src/main/i18n against this locale. The typeof guard keeps
+  // the module importable under trimmed-down electron test mocks that predate
+  // the API; real Electron always has it.
+  const mainLocale = typeof app.getLocale === 'function' ? app.getLocale() : 'en';
+  setMainLocale(mainLocale);
+  log.info(`[i18n] Main-process UI locale: ${mainLocale} (active: ${getMainLocale()})`);
 
   // W4.12: GPU escape hatch — also check store preference (env var already checked at module level)
   if (store.get('disableHardwareAcceleration', false)) {

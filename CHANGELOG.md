@@ -7,6 +7,63 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed — i18n fr apostrophe typography (R1 follow-up F-A) — 2026-09-23
+
+- `windows-own/fr.ts` `nav.inviteLinks` now renders the typographic `’` (`Liens d’invitation`) matching the vendored fr SSOT policy — the straight `'` collided glyph-wise with bundle text in the same top bar; a new fr typography law in `i18nLocales.test.ts` pins no `letter'letter` in any windows-own/main fr value (detector control + anti-vacuous `’` presence guard).
+
+### Added — i18n locales (feat/i18n-locales): six-locale build-out es/fr/de/it/pt_BR/ja — 2026-09-23
+
+- **Vendored ui SSOT bundles:** `src/renderer/i18n/ui-locale-bundles/` now carries the six
+  complete phlix-ui locale bundles as a SHA-pinned copy pinned at `dc1df7d5`
+  (`feat/i18n-locale-bundles`), refreshed via the new `scripts/sync-ui-locale-bundles.mjs`
+  (git-show at the pinned ref + the three documented type-relaxation transforms + a `PIN`
+  manifest of pristine/vendored sha256 per file) — the proven tizen-client mechanism. The
+  renderer registry feeds them to the ui seam: `messagesForLocale('es')` … `('ja')` now
+  return real bundles; `en` keeps the untouched byte-identical omit path.
+- **Region-aware tag law:** one shared normalization (`normalizeLocaleTag`) canonicalizes
+  every tag — lowercase primary subtag with `pt* → pt_BR` — for registration and lookup
+  across the seam and both client catalogs. `VITE_PHLIX_LOCALE` accepts all seven tags.
+- **Windows-own renderer catalog (R-review fix F2):** the 16 `buildMenu()` nav labels
+  (`MenuItem.label` raw strings the ui seam cannot reach) moved into
+  `src/renderer/i18n/windows-own/` — `WIN_EN` byte-identical to the pre-i18n literals
+  (pinned through `buildMenu()` itself in `i18nSeamWiring.test.ts`), six locale catalogs
+  `satisfies WindowOwnCatalog`, `setWindowLocale()`/`tWin()` accessors wired at boot.
+- **Main-process locales:** six catalogs (`src/main/i18n/locales/*.ts`, `satisfies
+  MainCatalog`) covering all 29 chrome strings; placeholders, About `\n\n` structure and
+  the untouched `ORIGINAL_MAIN_PROCESS_STRINGS` EN pins verified per locale; registry now
+  `{en,es,fr,de,it,pt_BR,ja}` with the pt region rule.
+- **Tests:** new `tests/unit/i18nLocales.test.ts` law-gate (bundle key-set identity +
+  installed coverage + 7-key ahead-of-pin pin, placeholder/CLDR-segment/diacritics/CJK
+  laws, both-direction EN-leak allow-lists for the two client catalogs, PIN↔disk hashes
+  everywhere + pristine-source parity that hard-fails locally and SKIPS loudly in CI, and
+  a three-catalog resolution matrix). Suite 341 → **398 tests / 32 → 33 files**; coverage
+  lines 63.5% (floor 54).
+- **Docs:** `docs/i18n.md` rewritten around the three catalogs — locale matrix, vendoring
+  and re-pin procedure with drift policy until the re-pin cascade lands, add-a-7th-locale
+  recipe covering all three halves, and the F1 correction (deep-link failures are silently
+  rejected by `handleDeepLinkUrl` — the previously-referenced `showErrorDialog` never
+  existed).
+
+### Added — i18n wiring (feat/i18n-wiring): @phlix/ui message seam + main-process catalog — 2026-09-22
+
+- **Renderer:** `createPhlixApp` now receives the config-time i18n seam resolved by the new
+  `src/renderer/i18n/` module — `VITE_PHLIX_LOCALE` → `navigator.language` → `'en'`, then a
+  locale→`PhlixMessagesConfig` registry lookup. The `messages` key is OMITTED when a locale has
+  no overrides (the shipped `en` map is empty), so today's build renders byte-for-byte identical
+  English. Adding a locale = one overrides file + one `registerLocaleOverrides` call.
+- **Main process:** every user-facing shell string (tray menu + tooltip, app menu incl. the
+  Playback submenu, thumbar tooltips, updater notifications, About dialog) moved from literals in
+  `src/main/index.ts` into `src/main/i18n/en.ts`, resolved via a pure `t(key, params?)` with
+  `{name}` interpolation. Locale pinned once post-ready (`app.getLocale()` requires ready;
+  `playbackMenuTemplate` became `buildPlaybackMenuTemplate()` so labels evaluate after pinning).
+  Role-based menu items stay unlabeled — Electron localizes roles natively. Values are
+  byte-identical; `tests/unit/mainI18n.test.ts` pins every extracted string against its
+  pre-extraction literal. Adding a locale = a `MainCatalog`-typed file (missing keys are compile
+  errors) + one registry entry.
+- **Docs:** `docs/i18n.md` describes both halves and the add-a-locale recipes; new tests
+  `mainI18n` / `rendererI18n` / `i18nSeamWiring` (boot passes the resolved map; omits the key when
+  empty). `tests/unit/minimizeToTray.test.ts` regex pins updated to the `t('tray.*')` form.
+
 ### Changed — W87 (w87winui): re-pin `@phlix/ui` v0.99.3 → v0.99.4 — 2026-09-14
 
 - **Single UI pin advanced on the manual windows lane (rule-3: windows is never an

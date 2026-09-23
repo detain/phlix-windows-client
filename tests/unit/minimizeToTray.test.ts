@@ -44,8 +44,9 @@ describe('minimizeToTray persistence', () => {
     });
 
     it('isQuitting is set to true only in tray Quit click and before-quit handler', () => {
-      // isQuitting = true in tray Quit click
-      expect(mainSource).toMatch(/label:\s*['"]Quit['"],\s*click:\s*\(\)\s*=>\s*\{[^}]*isQuitting\s*=\s*true/s);
+      // isQuitting = true in tray Quit click (label now resolves via src/main/i18n —
+      // exact English value pinned by tests/unit/mainI18n.test.ts)
+      expect(mainSource).toMatch(/label:\s*t\(\s*['"]tray\.quit['"]\s*\)\s*,\s*click:\s*\(\)\s*=>\s*\{[^}]*isQuitting\s*=\s*true/s);
 
       // isQuitting = true in before-quit
       expect(mainSource).toMatch(/app\.on\s*\(\s*['"]before-quit['"]\s*,\s*\(\)\s*=>\s*\{[^}]*isQuitting\s*=\s*true/s);
@@ -96,7 +97,8 @@ describe('minimizeToTray persistence', () => {
   describe('tray context menu checkbox', () => {
     it('tray menu includes a Minimize to Tray checkbox bound to store', () => {
       // The tray context menu should have a checkbox item for minimizeToTray
-      expect(mainSource).toMatch(/label:\s*['"]Minimize to Tray['"]\s*,\s*type:\s*['"]checkbox['"]/);
+      // (label now resolves via src/main/i18n — exact English value pinned by tests/unit/mainI18n.test.ts)
+      expect(mainSource).toMatch(/label:\s*t\(\s*['"]tray\.minimizeToTray['"]\s*\)\s*,\s*type:\s*['"]checkbox['"]/);
     });
 
     it('checkbox click handler writes the new value back to store', () => {

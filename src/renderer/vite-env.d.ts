@@ -8,6 +8,8 @@
 
 interface ImportMetaEnv {
   readonly VITE_PHLIX_SERVER_URL?: string;
+  /** Build-time locale override for the @phlix/ui message seam (e.g. 'es', 'es-MX'). */
+  readonly VITE_PHLIX_LOCALE?: string;
 }
 
 interface ImportMeta {
