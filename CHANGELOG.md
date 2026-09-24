@@ -7,6 +7,47 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — re-pin `@phlix/ui` v0.99.5 → v0.99.6 (estate error-catalog cascade) — 2026-09-24
+
+- **Single ui pin advanced.** `package.json` re-pins `@phlix/ui` to the `v0.99.6` tag
+  (annotated object `7d0b71d1`, peel `98a5bf38`, the signup-error-catalog merge PR #425
+  head); `NPM_CONFIG_USERCONFIG=/dev/null npm install --allow-git=all` (node 24 / npm 12,
+  CI-faithful) regenerated the committed lock surgically — root echo, the ui node's
+  `resolved`, and ui's own `@phlix/contracts` request line only; the installed
+  `dist/phlix-ui.js` is blob-identical to `git show v0.99.6:dist/phlix-ui.js` and the
+  hoisted contracts/syncplay nodes never moved. No consumer code churn: `v0.99.6` adds
+  the ui-internal `src/i18n/errors.ts` catalog and auth/player error wiring — none of it
+  touches the windows catalogs — and the full 401-test suite ran with zero source edits.
+- **The ui manifest-version skew persists — the override carries unchanged.** `v0.99.6`'s
+  tag manifest still ships the stale `version` field: it reads `0.99.4` at `98a5bf38`
+  (measured via `git show`), so npm keeps writing the lock entry's `version` as `0.99.4`
+  under a `#v0.99.6` request. `scripts/lockwalk.mjs` `EXPECTED` advances the ui tag/sha
+  while the exact-match `manifestVersion: '0.99.4'` override carries forward unchanged;
+  `tests/unit/lockwalk.test.mjs` re-proves BOTH directions at the new tag (a lock line
+  falling further behind to `0.99.3`, a hand-edit falsely claiming the field
+  re-normalized to `0.99.6`).
+- **The RATIFIED_HOISTS retirement condition FIRED — waiver retired per its own written
+  law.** ui `v0.99.6`'s manifest requests the direct pin `#v0.5.1` outright (measured via
+  `git show` at `98a5bf38`), so the exact-match key misses, the entry is deleted, and
+  byte-equality is restored — root, ui's lock line, and the INSTALLED ui manifest all
+  speak the identical spec (three-way witness now pinned in `contractsPin.test.mjs`,
+  inverting the divergence-era `.not.toBe` law). The map sits present-but-empty again,
+  exactly as it did from W82 to the v0.5.0 re-pin; the ui→contracts edge walks plain
+  rule 1, whose drift mutations now light up BOTH edges, and the retired waiver family
+  (`ratified-hoist-drift`) is proven silent on every mutation.
+- **Vendored i18n untouched by content, advanced by ref.** `SOURCE_REF` and the vendor
+  PIN moved `3017f443 → 98a5bf38` per the sync script's documented two-line mechanism;
+  upstream `src/i18n/locales` is byte-identical across the two peels (tree `f8b090a6` at
+  both), so the re-sync is ZERO content drift — all 14 PIN content hashes unchanged and
+  `git diff` on the vendor dir is the single ref line. The bundle↔installed set-equality
+  law carries (messages.ts never moved between the tags); the local hard-fail
+  source-parity leg ran green against the new ref, and the cross-const guard
+  (PIN.ref ↔ script SOURCE_REF) stays green.
+- **Gates:** `npm test` 401/33 baseline-EXACT (registry expansion and the new errors
+  module touch nothing here), vue-tsc renderer + tsc main + vue-tsc tests all 0,
+  lint 0, build 0, `lockwalk --live` 4 edges / 0 mismatches / all peels OK,
+  `git ls-files --eol` clean (every touched file `eol=lf` per the windows-latest PIN law).
+
 ### Changed — re-pin `@phlix/contracts` v0.5.0 → v0.5.1 (estate error-registry expansion) — 2026-09-23
 
 - **Single contracts pin advanced.** `package.json` re-pins `@phlix/contracts` to the
