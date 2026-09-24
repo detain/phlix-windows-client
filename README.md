@@ -212,7 +212,7 @@ phlix-windows/
 3. **Renderer Process** (`src/renderer/`)
    - A thin consumer of the shared `@phlix/ui` Vue app, booted via `createPhlixApp(config)`
    - Vue 3 + Pinia + vue-router (peer deps of `@phlix/ui`)
-    - Pinned to `@phlix/ui` `github:detain/phlix-ui#v0.99.5` and `@phlix/contracts` `github:detain/phlix-contracts#v0.5.1`
+    - Pinned to `@phlix/ui` `github:detain/phlix-ui#v0.99.6` and `@phlix/contracts` `github:detain/phlix-contracts#v0.5.1`
    - Vite (`@vitejs/plugin-vue`) for development and bundling
 
 ### UI & State
