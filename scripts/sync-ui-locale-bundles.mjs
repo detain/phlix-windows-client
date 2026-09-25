@@ -60,7 +60,7 @@ import { join } from 'node:path';
 
 /** Pin the vendor came from — the re-pin cascade updates these two lines only. */
 const SOURCE_BRANCH = 'master';
-const SOURCE_REF = '98a5bf389ad29701a4991986dea4cb264fb1f3ee'; // v0.99.6 peel (annotated tag 7d0b71d1 -> commit)
+const SOURCE_REF = 'bc1d29bf98cb0e847aca05e44733d41ef2381b10'; // v0.99.7 peel (annotated tag da9f1625 -> commit)
 const SOURCE_DIR = 'src/i18n/locales';
 const TARGET_DIR = 'src/renderer/i18n/ui-locale-bundles';
 const FILES = ['es.ts', 'fr.ts', 'de.ts', 'it.ts', 'pt_BR.ts', 'ja.ts', 'index.ts'];
