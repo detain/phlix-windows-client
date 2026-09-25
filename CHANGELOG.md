@@ -7,6 +7,54 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — re-pin `@phlix/ui` v0.99.6 → v0.99.7 (cascade head; BOTH stale-manifest skews end) — 2026-09-25
+
+- **Single ui pin advanced.** `package.json` re-pins `@phlix/ui` to the `v0.99.7` tag
+  (annotated object `da9f1625`, peel `bc1d29bf`, the route-gate/coordinate-currency
+  release head); `NPM_CONFIG_USERCONFIG=/dev/null npm install --allow-git=all`
+  (node 24 / npm 12.0.2, CI-faithful) regenerated the
+  committed lock surgically: exactly four lines moved — root echo → `v0.99.7`, the ui
+  node's `resolved` → `bc1d29bf`, the ui node's `version` field `0.99.4` → `0.99.7`
+  (honest field — see below), and ui's `@phlix/contracts` request line `#v0.5.1` →
+  `#v0.5.2`. The installed `dist/phlix-ui.js` is blob-identical to
+  `git show v0.99.7:dist/phlix-ui.js` (sha256 `22f315ef…c7517e4` both sides) and the
+  hoisted contracts/syncplay nodes never moved. No consumer code churn: `v0.99.7`
+  touches ui-internal route-gate server surface and ui's own tests — none of it the
+  windows catalogs — and the full 401-test suite ran with zero source edits.
+- **The ui manifest-version skew ENDED — second override RETIRED per its own written
+  law.** The `manifestVersion: '0.99.4'` override carried through v0.99.5/v0.99.6
+  stated its retirement condition: a ui release that re-normalizes the field must
+  retire it. `git show v0.99.7:package.json` (READ-ONLY at the tag) measures the field
+  honest at `0.99.7` — condition FIRED. The lock entry now reads `0.99.7` on its own,
+  `scripts/lockwalk.mjs` drops the field from the ui row, and rule 1 checks the lock
+  version against the plain tag-derived truth again — mirroring the contracts row's
+  retirement at `v0.5.2` (the #51 lane). With both skews ended, the override MECHANISM
+  stays armed but NO override is active.
+- **RATIFIED_HOISTS retired a THIRD time — measurement overrode the lane premise.**
+  The dispatch premise expected ui `v0.99.7` to still request `#v0.5.1`; the tag
+  manifest verbatim requests `#v0.5.2` outright (independently confirmed by the
+  regenerated lock line and the installed manifest), which is exactly the waiver's
+  written retirement condition — so the waiver retired per its own law and the
+  byte-equality era is restored on the ui→contracts edge (root and ui declare the
+  IDENTICAL spec `#v0.5.2`; a single hoisted `0.5.2@7afb6a91` resolution satisfies both
+  edges under plain rule 1; zero nested nodes in the lock, zero nested dirs on disk).
+  `contractsPin.test.mjs` flipped its divergence describe back to the #50-era
+  three-way equality witness — the path IT recorded at ratification time — and the
+  lockwalk mutation proofs were re-cut for the equality era (behind-words `#v0.5.1`
+  and false-field mutations all go RED on both edges). Retirement lineage under this
+  one law: v0.4.5 era (#49), v0.5.1 era (#50), v0.5.2 era (#51) — this is the third fire.
+- **Locale vendor PIN moved with the pin.** `scripts/sync-ui-locale-bundles.mjs`
+  `SOURCE_REF` advances `98a5bf38` → `bc1d29bf` (the re-sync is drift-free by
+  measurement: `src/i18n/locales` is byte-identical across all three peels — tree
+  `f8b090a6` at each — and `messages.ts` never moved, so all 14 `PIN` content hashes
+  ride through untouched; the re-run diff is the ref line alone). The set-equality law
+  carries; lineage comments in `i18nLocales.test.ts`/`docs/i18n.md` updated honestly.
+- **Gates.** `npm test` 401/33 exact · `vue-tsc --noEmit` + `vue-tsc --noEmit -p
+  tsconfig.test.json` + `tsc -p tsconfig.main.json --noEmit` PASS · `npm run lint` PASS ·
+  `npm run build` PASS · `node scripts/lockwalk.mjs --live` — 4 edges, 0 mismatches,
+  all three peel proofs OK against the live remotes (`v0.99.7` tag object `da9f1625` →
+  commit `bc1d29bf` verified).
+
 ### Changed — re-pin `@phlix/contracts` v0.5.1 → v0.5.2 (gitattributes/coordinate-currency release) — 2026-09-25
 
 - **Single contracts pin advanced.** `package.json` re-pins `@phlix/contracts` to the

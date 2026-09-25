@@ -4,8 +4,9 @@
  *
  *  A. UI SEAM (vendored from phlix-ui, SSOT): key-set identity across the six
  *     bundles, coverage of the INSTALLED DEFAULT_MESSAGES, bundle-vs-installed
- *     SET EQUALITY (closed at the v0.99.5 re-pin, CARRIED at v0.99.6 — locale
- *     tree byte-identical across the two peels and messages.ts unmoved; the
+ *     SET EQUALITY (closed at the v0.99.5 re-pin, CARRIED at v0.99.6 and again at
+ *     v0.99.7 — locale tree byte-identical across all three peels, messages.ts
+ *     unmoved; the
  *     formerly-ahead keys keep focused cross-bundle laws),
  *     placeholder parity, CLDR segment law (incl. the documented
  *     additive exception), diacritics/CJK sanity, and PIN/hash drift guards
@@ -195,12 +196,13 @@ describe('ui bundles — key-set identity and installed coverage', () => {
     }
   });
 
-  it('bundle key set EQUALS the installed pin (gap closed at v0.99.5, carried at v0.99.6)', () => {
-    // Vendor @ 98a5bf38 (tag v0.99.6) vs installed @phlix/ui v0.99.6 — the
+  it('bundle key set EQUALS the installed pin (gap closed at v0.99.5, carried at v0.99.6, carried again at v0.99.7)', () => {
+    // Vendor @ bc1d29bf (tag v0.99.7) vs installed @phlix/ui v0.99.7 — the
     // dc1df7d5-era 7-key ahead-of-pin gap closed at the v0.99.5 re-pin and the
-    // equality CARRIES at v0.99.6: src/i18n/locales is byte-identical across the
-    // two peels (tree f8b090a6 at both) and src/i18n/messages.ts never moved
-    // between them, so the bundle-vs-installed relation is unchanged and all 14
+    // equality CARRIES at v0.99.6 and again at v0.99.7: src/i18n/locales is
+    // byte-identical across all three peels (tree f8b090a6 at each) and
+    // src/i18n/messages.ts never moved between them, so the bundle-vs-installed
+    // relation is unchanged and all 14
     // PIN content hashes ride through untouched. So the
     // relation is exact set equality in BOTH directions (installed ⊆ bundle
     // is separately pinned above; this pins bundle ⊆ installed and, with it,
