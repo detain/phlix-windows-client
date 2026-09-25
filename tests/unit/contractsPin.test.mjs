@@ -5,8 +5,8 @@
  *
  * This is a plain Node .mjs test (not .ts): it reads package.json and
  * package-lock.json off disk and asserts the direct `@phlix/contracts` pin has
- * been advanced to the current error-registry-era tag (v0.5.1, re-pinned
- * 2026-09-23 atop the v0.5.0 error-registry introduction). Like
+ * been advanced to the current tag (v0.5.2, re-pinned 2026-09-25 atop the
+ * field-re-normalizing release ac669ca + .gitattributes/coordinate-currency era). Like
  * tests/unit/copyright.test.mjs it lives outside the
  * TypeScript project (tsconfig.json's `include` is ["src/renderer"]), so
  * `npm run typecheck` never sees it, while vitest's `include` glob for
@@ -26,19 +26,18 @@ import { EXPECTED, RATIFIED_HOISTS } from '../../scripts/lockwalk.mjs';
 // Self-identifying lane marker (survives tokenisation as a plain string const).
 const LANE_TOKEN = 'S442WINDOWSPINX5V2';
 
-// The state the contracts v0.5.1 re-pin (error-registry expansion, 2026-09-23) pins
-// the repo to. v0.5.1 is the newest contracts tag; its annotated tag peels to this
-// commit (live ls-remote, 2026-09-23), which must be what the lockfile resolves.
-// The `version` constant stays 0.4.7 THROUGH the bump: the v0.5.1 tag manifest's
-// `version` field is stale by the estate's deliberate skew (cut without bumping the
-// field — v0.5.0 kept it, v0.5.1 kept it — the v0.99.2/ui-v0.99.5 precedent), and npm
-// writes the lock entry's version from the MANIFEST, not the tag — the identity proof
-// is the `resolved` peel sha, mirrored by lockwalk's exact-match
-// `manifestVersion: '0.4.7'` override.
-const EXPECTED_CONTRACTS_RANGE = 'github:detain/phlix-contracts#v0.5.1';
+// The state the contracts v0.5.2 re-pin (2026-09-25) pins the repo to. v0.5.2 is the
+// newest contracts tag; its annotated tag (object 9676874e) peels to this commit (live
+// ls-remote, 2026-09-25), which must be what the lockfile resolves.
+// The `version` constant MOVES to 0.5.2 with the tag: the v0.5.0/v0.5.1 stale-field
+// skew ENDED at this release — commit ac669ca re-normalized the manifest `version` to
+// 0.5.2 at the tag (measured via git show), so npm writes the honest field and the
+// lockwalk `manifestVersion: '0.4.7'` override's written retirement condition FIRED.
+// The identity proof remains the `resolved` peel sha.
+const EXPECTED_CONTRACTS_RANGE = 'github:detain/phlix-contracts#v0.5.2';
 const EXPECTED_CONTRACTS_RESOLVED =
-  'git+ssh://git@github.com/detain/phlix-contracts.git#e3c14f07e8927224978a921e1f79406629ceb6c5';
-const EXPECTED_CONTRACTS_VERSION = '0.4.7';
+  'git+ssh://git@github.com/detain/phlix-contracts.git#7afb6a9171c33c18a2303716516572a4dfc405d9';
+const EXPECTED_CONTRACTS_VERSION = '0.5.2';
 
 const root = new URL('../../', import.meta.url);
 const readJson = (rel) => JSON.parse(readFileSync(fileURLToPath(new URL(rel, root)), 'utf8'));
@@ -51,7 +50,7 @@ describe('S442 — @phlix/contracts direct pin is current', () => {
     expect(LANE_TOKEN).toMatch(/^S442/);
   });
 
-  it('declares the v0.5.1 tag in package.json', () => {
+  it('declares the v0.5.2 tag in package.json', () => {
     expect(pkg.dependencies['@phlix/contracts']).toBe(EXPECTED_CONTRACTS_RANGE);
   });
 
@@ -59,51 +58,64 @@ describe('S442 — @phlix/contracts direct pin is current', () => {
     expect(lock.packages[''].dependencies['@phlix/contracts']).toBe(EXPECTED_CONTRACTS_RANGE);
   });
 
-  it('resolves the hoisted @phlix/contracts to the v0.5.1 target, not a drifted commit', () => {
+  it('resolves the hoisted @phlix/contracts to the v0.5.2 target, not a drifted commit', () => {
     const entry = lock.packages['node_modules/@phlix/contracts'];
     expect(entry.version).toBe(EXPECTED_CONTRACTS_VERSION);
     expect(entry.resolved).toBe(EXPECTED_CONTRACTS_RESOLVED);
     // The three sources of truth must agree, not just the two on disk: lockwalk's
-    // EXPECTED row carries the same tag/peel and the manifestVersion override that
-    // keeps rule 1 honest against the stale 0.4.7 field.
+    // EXPECTED row carries the same tag/peel — and the manifestVersion skew override
+    // is GONE, retired at v0.5.2 when the release commit re-normalized the manifest
+    // `version` field to 0.5.2 (measured via git show). Rule 1 now checks this row
+    // against the plain tag-derived version again; a hand-revived override goes red here.
     const contracts = EXPECTED['@phlix/contracts'];
-    expect(contracts.tag).toBe('v0.5.1');
-    expect(contracts.sha).toBe('e3c14f07e8927224978a921e1f79406629ceb6c5');
-    expect(contracts.manifestVersion).toBe(EXPECTED_CONTRACTS_VERSION);
+    expect(contracts.tag).toBe('v0.5.2');
+    expect(contracts.sha).toBe('7afb6a9171c33c18a2303716516572a4dfc405d9');
+    expect(contracts.manifestVersion).toBeUndefined();
   });
 });
 
-describe('ui v0.99.6 re-pin — ui converges honestly: byte-identical contracts requests, zero waivers, zero nested copies', () => {
+describe('contracts v0.5.2 re-pin — ui diverges honestly: one ratified hoist, zero nested copies', () => {
   // History of this guard: ui's manifest once requested contracts #v0.4.5 while
   // this repo's direct pin rode higher — the divergence S442 documented and the
   // lockwalk ratified until W82 retired that exception; the W85 dual-repin restored
   // byte-IDENTICAL declarations (ui v0.99.3–v0.99.5 request #v0.4.7 against a direct
-  // pin of #v0.4.7). The equality era ended by design at the contracts v0.5.0 re-pin:
-  // the direct pin advanced (additive error-registry expansion) while ui v0.99.5's
-  // manifest still spoke #v0.4.7 — the S442 divergence class, ratified exactly in
-  // lockwalk's RATIFIED_HOISTS (version AND sha) and carried at v0.5.1. It ENDED
-  // again at the ui v0.99.6 re-pin (2026-09-24): ui v0.99.6's manifest requests the
-  // direct pin #v0.5.1 outright (measured via git show at 98a5bf38), the waiver's
-  // written retirement condition FIRED, the entry retired, and byte-equality is
-  // restored — mirroring the v0.4.5-era retirement. Fail-loud on every face of the
-  // new truth, BOTH directions: BEHIND — divergence-era words (#v0.4.7) returning in
-  // ui's lock line, or a waiver re-spliced into the map; FALSELY-NORMALIZED — any
-  // hand-edited tag the INSTALLED ui manifest does not actually speak (the installed
-  // tree is the independent witness). The edge walks plain lockwalk rule 1 from here.
-  it("keeps ui's lock-declared contracts request byte-pinned to #v0.5.1 — equal to root and to the installed manifest", () => {
+  // pin of #v0.4.7). That equality era ended by design at the contracts v0.5.0
+  // re-pin, returned at the ui v0.99.6 re-pin (waiver retired, three-way byte-equality
+  // witness), and ENDED AGAIN at this contracts v0.5.2 re-pin: the direct pin advanced
+  // while the installed ui v0.99.6 still speaks #v0.5.1 (measured via git show at
+  // 98a5bf38) — the S442 divergence class returns, re-ratified exactly in lockwalk's
+  // RATIFIED_HOISTS (version AND sha of the hoisted 0.5.2@7afb6a91 copy, which npm
+  // 12.0.2 dedupes ui's edge onto — no nesting, proven below and on disk).
+  // Fail-loud on every face of the new truth, BOTH directions: BEHIND — divergence
+  // regression words (#v0.4.7-era) returning in ui's lock line, or the waiver drifting
+  // off the hoisted copy; FALSELY-NORMALIZED — ui's lock line hand-edited to masquerade
+  // as the new direct pin (the INSTALLED ui manifest is the independent witness: it
+  // cannot speak a tag it does not). RETIREMENT PATH (recorded, lockwalk rule 2): when
+  // a ui tag requests the direct pin (#v0.5.2)-or-newer outright, the key misses, the
+  // waiver retires per its own written law, byte-equality is restored, and this
+  // describe flips back to the #50-era three-way equality witness.
+  it("keeps ui's lock-declared contracts request byte-pinned to its manifest's #v0.5.1", () => {
     const ui = lock.packages['node_modules/@phlix/ui'];
     expect(ui.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.5.1');
-    // Equality era: root and ui declare the IDENTICAL spec — the divergence-era
-    // .not.toBe law inverts, and a regression to #v0.4.7 goes red on both lines.
-    expect(ui.dependencies['@phlix/contracts']).toBe(pkg.dependencies['@phlix/contracts']);
+    // Divergence era: root and ui declare DIFFERENT specs — the equality-era .toBe law
+    // inverts back to .not.toBe, and a regression to #v0.4.7-era words goes red above.
+    expect(ui.dependencies['@phlix/contracts']).not.toBe(pkg.dependencies['@phlix/contracts']);
     // The installed tree independently proves the lock line is the manifest's verbatim
     // words, not a hand-edit: falsifying either tag here trips this witness.
     const installed = readJson('node_modules/@phlix/ui/package.json');
     expect(installed.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.5.1');
     expect(installed.dependencies['@phlix/syncplay']).toBe('github:detain/phlix-syncplay#v0.1.5');
-    expect(Object.keys(RATIFIED_HOISTS)).toEqual([]);
+    // Exactly one waiver, keyed to ui's true words, ratified to the hoisted copy's
+    // version AND sha — never a wildcard.
+    expect(Object.keys(RATIFIED_HOISTS)).toEqual([
+      'node_modules/@phlix/ui>@phlix/contracts@v0.5.1',
+    ]);
+    expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.5.1']).toEqual({
+      version: EXPECTED_CONTRACTS_VERSION,
+      sha: '7afb6a9171c33c18a2303716516572a4dfc405d9',
+    });
     expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.4.7']).toBeUndefined();
-    expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.5.1']).toBeUndefined();
+    expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.5.2']).toBeUndefined();
   });
 
   it('ships no nested @phlix/ui → contracts copy in the lock', () => {
@@ -119,19 +131,19 @@ describe('ui v0.99.6 re-pin — ui converges honestly: byte-identical contracts 
     ).toBe(false);
   });
 
-  it('hoists a single @phlix/contracts resolution at the pinned version, v0.5.1 content on disk', () => {
+  it('hoists a single @phlix/contracts resolution at the pinned version, v0.5.2 content on disk', () => {
     const entry = lock.packages['node_modules/@phlix/contracts'];
     expect(entry.version).toBe(EXPECTED_CONTRACTS_VERSION);
     const installed = readJson('node_modules/@phlix/contracts/package.json');
     expect(installed.version).toBe(EXPECTED_CONTRACTS_VERSION);
-    // The stale-manifest skew means the version field cannot tell 625a5625 (v0.4.7),
-    // 8ef65d30 (v0.5.0) or e3c14f07 (v0.5.1) apart — the lock sha pins the declaration,
-    // and this content marker pins the INSTALLED tree. dist/error-codes.json shipped
-    // first at v0.5.0 (the error-registry addition), so mere existence stopped
-    // discriminating at this re-pin: the v0.5.1 expansion (PR #78) grew the registry
-    // from 147 to 202 codes (verified purely additive — zero removed), so the COUNT is
-    // the marker now. A resolution rolled back to the v0.5.0 peel — or older — while
-    // keeping the honest 0.4.7 field goes RED here.
+    // The stale-manifest skew ENDED at v0.5.2 (field re-normalized at the tag by
+    // ac669ca), so the version field itself now tells 0.5.2 apart from the whole
+    // 0.4.7-labelled era (v0.4.7/v0.5.0/v0.5.1 all read 0.4.7) — but the census
+    // marker stays load-bearing: v0.5.2 (PRs #79-#83: docblock coordinate currency,
+    // verify:cites tripwire, .gitattributes LF) did NOT touch dist/error-codes.json
+    // (byte-identical across v0.5.1→v0.5.2, verified via git diff), so the registry
+    // count remains 202. A resolution rolled back to any older peel — or a future
+    // registry expansion silently mis-labelled — goes RED here, field or no field.
     const errorCodes = readJson('node_modules/@phlix/contracts/dist/error-codes.json');
     expect(errorCodes.codes).toHaveLength(202);
   });

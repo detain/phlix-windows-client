@@ -7,6 +7,46 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — re-pin `@phlix/contracts` v0.5.1 → v0.5.2 (gitattributes/coordinate-currency release) — 2026-09-25
+
+- **Single contracts pin advanced.** `package.json` re-pins `@phlix/contracts` to the
+  `v0.5.2` tag (annotated object `9676874e`, peel `7afb6a91`, the release PR #83 head
+  carrying the errors.ts coordinate re-sweep #81, `.gitattributes` LF enforcement #82 and
+  the CI-freshness fixes #79/#80); `NPM_CONFIG_USERCONFIG=/dev/null npm install
+  --allow-git=all` (node 24.21 / npm 12.0.2, CI-faithful) regenerated the committed lock
+  surgically — root echo, the contracts node's `resolved` and its `version` field only;
+  ui's lock line, the ui/syncplay nodes, and every other entry never moved. No consumer
+  code churn: `v0.5.2` touched no wire payload (its `dist/error-codes.json` is
+  byte-identical to `v0.5.1`'s — the 202-code census marker holds) and the full 401-test
+  suite ran with zero source edits.
+- **The contracts manifest-version skew ENDED — override RETIRED per its own written
+  law.** The `manifestVersion: '0.4.7'` override carried through v0.5.0/v0.5.1 stated:
+  "a contracts release that re-normalizes the field to 0.5.0+ must retire it again."
+  Release commit `ac669ca` re-normalized the tag manifest's `version` to `0.5.2`
+  (measured via `git show v0.5.2:package.json`), firing the condition — the lock entry now
+  honestly reads `0.5.2` and `scripts/lockwalk.mjs` drops the field from the contracts
+  row; rule 1 checks it against the plain tag-derived version again. The override
+  MECHANISM stays, solely for the ui row (ui's field is STILL stale at `0.99.4` under
+  `#v0.99.6`, re-measured via `git show` at `98a5bf38` — that override carries unchanged).
+- **RATIFIED_HOISTS re-added — the byte-equality era ended the moment the direct pin
+  advanced.** The installed ui `v0.99.6` still requests `#v0.5.1` (lock line + installed
+  manifest agree), so the ui→contracts edge diverges again and the waiver's retirement
+  condition has NOT fired. Observed npm behavior (the written decision point): npm 12.0.2
+  DEDUPED ui's unsatisfied git-tag edge onto the hoisted `0.5.2@7afb6a91` copy — zero
+  nested nodes in the lock, zero nested dirs on disk — the same un-self-healing
+  git-edge behavior the v0.5.0-era waiver documented. New exact-match entry
+  `node_modules/@phlix/ui>@phlix/contracts@v0.5.1 → 0.5.2@7afb6a91` (version AND sha,
+  never a wildcard); `contractsPin.test.mjs` converts to the divergence-era law with the
+  recorded retirement path (mirror of the #49-era structure, folded in place — no test
+  added, 401 denominator exact), and its mutation proofs run BOTH directions: root's edge
+  via plain rule 1 (behind rollback + false-field + sha-only drift) and ui's edge via
+  `ratified-hoist-drift` on every same mutation, plus the installed-tree witness that
+  catches a hand-edited ui lock line masquerading as the root pin.
+- **Gates.** `npm test` 401/33 exact · `vue-tsc --noEmit` ×2 + `tsc -p
+  tsconfig.main.json --noEmit` PASS · `npm run lint` PASS · `npm run build` PASS ·
+  `node scripts/lockwalk.mjs --live` — 4 edges, 0 mismatches, all three peel proofs OK
+  against the live remotes (`v0.5.2` tag object `9676874e` → commit `7afb6a91` verified).
+
 ### Changed — re-pin `@phlix/ui` v0.99.5 → v0.99.6 (estate error-catalog cascade) — 2026-09-24
 
 - **Single ui pin advanced.** `package.json` re-pins `@phlix/ui` to the `v0.99.6` tag
