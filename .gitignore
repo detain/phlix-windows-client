@@ -3,6 +3,8 @@ node_modules
 .logs
 coverage
 *.tsbuildinfo
+# Playwright smoke-run artifacts (config's default outputDir, see playwright.config.ts)
+test-results
 
 
 # Caliber local state

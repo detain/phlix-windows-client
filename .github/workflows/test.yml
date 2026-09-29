@@ -37,9 +37,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Security audit
-        run: npm audit --audit-level=high
-
       - name: Build app
         run: npm run build
 
@@ -81,6 +78,15 @@ jobs:
         with:
           api-token: ${{ secrets.CODACY_API_TOKEN }}
           coverage-reports: ./coverage/lcov.info
+
+      # Audit runs LAST in the step graph on purpose: any failing step without
+      # `if: always()` skips everything after it, so the old audit-first ordering
+      # let a red `npm audit` silently skip every vitest signal (proven at
+      # 633863a: Test job red on audit alone, 0 tests executed). As the final
+      # step it still hard-gates the job on both matrix legs while tests,
+      # coverage and the best-effort uploads always report first.
+      - name: Security audit
+        run: npm audit --audit-level=high
 
   lint:
     name: Lint
