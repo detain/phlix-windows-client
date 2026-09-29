@@ -7,6 +7,34 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — dependency security: electron 42.8.1→42.11.9, undici 7.29.0→7.30.0 & 6.28.0→6.29.0, js-yaml 5.2.3→5.4.2 (audit gate re-green) — 2026-09-29
+
+- **Why:** master CI turned RED solely on the `npm audit --audit-level=high` step
+  (Test workflow audit step + Build workflow `Security Audit` job) after three fresh
+  advisories. No other step was failing — v24.21.0/npm 12.0.2 reproduced exactly
+  3 vulnerabilities locally (1 moderate, 2 high).
+- **Advisories cleared:**
+  | GHSA | package | via (path) | severity | vulnerable | first patched |
+  |------|---------|------------|----------|------------|---------------|
+  | GHSA-gr2m-v5gq-v685 | electron | root devDep | high | ≥42.0.0-alpha.1 <42.9.2 | 42.9.2 |
+  | GHSA-3wwx-pv8p-q78v | undici | jsdom `^7.25.0` + `@electron/get`; `@electron/rebuild→node-gyp` `^6.25.0` | high (npm rollup; advisory medium) | ≥6.25.0 <6.28.1, ≥7.28.0 <7.29.1 | 6.28.1 / 7.29.1 |
+  | GHSA-r3ph-w7gj-g6xm | js-yaml | root devDep floor pin `>=4.3.1` hoisted to 5.x | moderate | ≥5.0.0 ≤5.4.0 | 5.4.1 |
+- **How:** one `npm update electron undici js-yaml` — every resolved bump stayed
+  **inside the already-declared package.json ranges** (`^42.1.0`, jsdom's `^7.25.0` /
+  node-gyp's `^6.25.0`, `>=4.3.1`), so `package.json` is untouched and the lockfile
+  diff is exactly 4 nodes × {version, resolved, integrity}. No new deps, no removals,
+  no overrides/resolutions. Electron took the same-major minor ladder to 42.11.9
+  (well past the 42.9.2 fix); undici landed on the patched heads of both declared
+  streams (6.29.0, 7.30.0); js-yaml 5.4.2 clears the moderate advisory past the CI
+  `--audit-level=high` threshold anyway (house policy: don't leave known advisories
+  installed even below the gate).
+- **Gates after bump (local, CI-faithful `NPM_CONFIG_USERCONFIG=/dev/null`):**
+  `npm audit --audit-level=high` → 0 vulnerabilities exit 0; `npx vitest run` →
+  430/430 (33 files); `npm run typecheck` (vue-tsc + tsc) → 0; `npm run lint` → 0;
+  `npm run build` (renderer + main + preload assert) → 0; `xvfb-run npm run smoke`
+  on Electron 42.11.9 → 1 passed — the rendered-content boot guards from 633863a
+  stayed green on the new binary (no electron 42.8→42.11 boot regressions).
+
 ### Changed — re-pin `@phlix/ui` v0.99.6 → v0.99.7 (cascade head; BOTH stale-manifest skews end) — 2026-09-25
 
 - **Single ui pin advanced.** `package.json` re-pins `@phlix/ui` to the `v0.99.7` tag
