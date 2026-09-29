@@ -122,7 +122,7 @@ vi.mock('electron', () => ({
 // Import the security-critical path safety function and protocol handler
 // ---------------------------------------------------------------------------
 import { isPathSafe } from '../../src/main/pathUtils';
-import { setupAppProtocolHandler } from '../../src/main/index';
+import { setupAppProtocolHandler, PROD_BOOT_URL } from '../../src/main/index';
 
 // ---------------------------------------------------------------------------
 // Test data
@@ -217,6 +217,53 @@ describe('app:// protocol handler path resolution', () => {
       expect(response.status).toBe(200);
       const text = await response.text();
       expect(text).toContain('<!DOCTYPE html>');
+    });
+
+    // --- Production boot contract -------------------------------------------------
+    // Defect (found by reviewer on 729a619's gate, empirically reproduced 2026-09-29
+    // via headless xvfb boot on Electron 42): createWindow() booted
+    // 'app://-/app' while the prefix gate demanded startsWith('/app/'), so the
+    // pathname '/app' fell through to 403 'Forbidden' and EVERY production cold
+    // boot rendered the error page. The smoke test missed it because it only
+    // regex-matches window.url() against /^\/app/ — which an error page at the
+    // same URL happily satisfies. These pins keep boot URL and handler in sync.
+
+    it('PROD_BOOT_URL is the canonical trailing-slash form', () => {
+      expect(PROD_BOOT_URL).toBe('app://-/app/');
+    });
+
+    it('serves 200 + index.html for the exact PROD_BOOT_URL the window loads (cold-boot pin)', async () => {
+      const handler = getAppHandler();
+      expect(handler).toBeDefined();
+      const response = handler!({ url: PROD_BOOT_URL })!;
+      expect(response.status).toBe(200);
+      const text = await response.text();
+      expect(text).toContain('<!DOCTYPE html>');
+    });
+
+    it('serves 200 + index.html for bare /app (no trailing slash) — SPA root like a real web server', async () => {
+      const handler = getAppHandler();
+      expect(handler).toBeDefined();
+      // Also covers renderer reloads at router base: vue-router '/app' nav items
+      // make window.location '/app', and a reload re-requests it through here.
+      const response = handler!({ url: 'app://-/app' })!;
+      expect(response.status).toBe(200);
+      const text = await response.text();
+      expect(text).toContain('<!DOCTYPE html>');
+    });
+
+    it('still 403s paths that merely share the /app letter prefix (no gate bleed)', () => {
+      const handler = getAppHandler();
+      expect(handler).toBeDefined();
+      expect(handler!({ url: 'app://-/apple' })!.status).toBe(403);
+      expect(handler!({ url: 'app://-/appsecret/main.js' })!.status).toBe(403);
+    });
+
+    it('still 403s paths outside the /app SPA prefix (root, absolute escapes)', () => {
+      const handler = getAppHandler();
+      expect(handler).toBeDefined();
+      expect(handler!({ url: 'app://-/' })!.status).toBe(403);
+      expect(handler!({ url: 'app://-/etc/passwd' })!.status).toBe(403);
     });
   });
 });

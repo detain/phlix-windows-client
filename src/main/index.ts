@@ -235,7 +235,7 @@ function createWindow(): void {
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadURL('app://-/app');
+    mainWindow.loadURL(PROD_BOOT_URL);
   }
 
   // Show when ready
@@ -791,9 +791,20 @@ protocol.registerSchemesAsPrivileged([
 export const RENDERER_DIST_DIR = path.join(__dirname, '../renderer');
 
 /**
+ * Production boot URL. Must always be a path setupAppProtocolHandler() serves
+ * with 200 — it is pinned against the live handler in
+ * tests/unit/protocolHandler.test.ts. Keep the trailing slash explicit: the
+ * bare '/app' form happens to be accepted as well, but the canonical form the
+ * handler's prefix gate was written for is '/app/'.
+ */
+export const PROD_BOOT_URL = 'app://-/app/';
+
+/**
  * Handles app:// protocol requests in production.
  *
  * Maps URLs like app://-/app/servers -> dist/renderer/servers (or index.html if not found).
+ * The bare prefix '/app' (no trailing slash) is served index.html, exactly like a
+ * real web server redirects/routes '/app' to the SPA root.
  * Provides path traversal protection by resolving the requested path against
  * RENDERER_DIST_DIR and verifying the result is within that directory.
  * Falls back to index.html for SPA routing (HTML5 history fallback).
@@ -810,8 +821,10 @@ export function setupAppProtocolHandler(): void {
       return new Response('Forbidden', { status: 403 });
     }
 
-    // Validate pathname starts with /app/ (the SPA routing prefix)
-    if (!urlPath.startsWith('/app/')) {
+    // Validate pathname is the SPA prefix ('/app', which routes to index.html
+    // like any real web server would) or lives under it ('/app/...').
+    const isSpaPrefixOrChild = urlPath === '/app' || urlPath.startsWith('/app/');
+    if (!isSpaPrefixOrChild) {
       log.warn(`[app protocol] Invalid path format: ${urlPath}`);
       return new Response('Forbidden', { status: 403 });
     }
