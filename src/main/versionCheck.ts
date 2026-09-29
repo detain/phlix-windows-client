@@ -71,7 +71,17 @@ export async function checkMinServerVersion(apiBase: string): Promise<boolean> {
 
   // Strip trailing slash for consistent URL construction
   const base = apiBase.endsWith('/') ? apiBase.slice(0, -1) : apiBase;
-  const versionUrl = `${base}/api/v1/server/version`;
+  // W2: the real server metadata endpoint is GET /system/info at the ROOT —
+  // NOT /api/v1/... and there is no /api/v1/server/version anywhere on server
+  // or hub (the previous target made this gate inert). Verified against
+  // server source: phlix-server/src/Server/Core/Application.php:245 registers
+  // `$this->router->get('/system/info', ...)` and its JSON carries a TOP-LEVEL
+  // `version` string (Application.php:253, Version::STRING); the /api/v1
+  // discovery route confirms the root paths
+  // ('endpoints' => '/health, /system/info', Application.php:368-372).
+  // The hub exposes only root /health (phlix-hub/src/Application.php:339),
+  // so hub-mode bases fail open through the warn paths below.
+  const versionUrl = `${base}/system/info`;
 
   try {
     log.info(`[versionCheck] Checking server version at ${versionUrl}`);
@@ -85,14 +95,18 @@ export async function checkMinServerVersion(apiBase: string): Promise<boolean> {
     });
 
     if (!response.ok) {
-      // Old servers may not have the version endpoint — fail-open
-      log.warn(`[versionCheck] Server returned HTTP ${response.status} for version endpoint — assuming pre-1.1.0 server, allowing boot to continue`);
+      // Old servers (and hubs, which have no /system/info) answer 404 here —
+      // fail-open, but warn loudly that enforcement did not run.
+      log.warn(`[versionCheck] Server returned HTTP ${response.status} for /system/info — min-server-version enforcement INACTIVE for this boot; allowing boot to continue`);
       return true;
     }
 
     let version: string | undefined;
     try {
-      const data = await response.json() as { version?: string; data?: { version?: string } };
+      // /system/info carries a top-level `version` (server name is under
+      // `server` as a string); the `data.version` shape is kept as a
+      // defensive alias for proxy-wrapped responses.
+      const data = await response.json() as { server?: string; version?: string; data?: { version?: string } };
       version = data.version ?? data.data?.version;
     } catch {
       // Malformed JSON response
@@ -116,9 +130,10 @@ export async function checkMinServerVersion(apiBase: string): Promise<boolean> {
     log.info(`[versionCheck] Server version ${version} satisfies minimum ${MIN_SERVER_VERSION}`);
     return true;
   } catch (err) {
-    // Network error, timeout, etc. — fail-open for pre-1.1.0 servers
+    // Network error, timeout, etc. — fail-open for pre-1.1.0 servers, but the
+    // warn tells operators the gate did not actually run this boot.
     const message = err instanceof Error ? err.message : String(err);
-    log.warn(`[versionCheck] Could not reach version endpoint (${message}) — allowing boot to continue`);
+    log.warn(`[versionCheck] Could not reach version endpoint (${message}) — min-server-version enforcement INACTIVE for this boot; allowing boot to continue`);
     return true;
   }
 }

@@ -12,6 +12,9 @@ describe('notification IPC', () => {
   // which breaks the multi-line regexes below (\n vs \r\n).
   const mainSource = readFileSync(resolve(PROJECT_ROOT, 'src/main/index.ts'), 'utf-8').replace(/\r\n/g, '\n');
   const preloadSource = readFileSync(resolve(PROJECT_ROOT, 'src/preload/index.ts'), 'utf-8').replace(/\r\n/g, '\n');
+  // W3: the deep-link grammar was promoted out of index.ts into the single
+  // canonical parser module — the parser-shape assertions read that file now.
+  const deepLinkParserSource = readFileSync(resolve(PROJECT_ROOT, 'src/main/deepLinkValidator.ts'), 'utf-8').replace(/\r\n/g, '\n');
 
   it('notification:show handler checks Notification.isSupported()', () => {
     expect(mainSource).toMatch(/Notification\.isSupported\(\)/);
@@ -35,8 +38,8 @@ describe('notification IPC', () => {
   });
 
   it('parseDeepLinkUrl accepts phlix://internal paths and returns the path', () => {
-    expect(mainSource).toMatch(/host\s*===\s*'internal'/);
-    expect(mainSource).toMatch(/return\s+path\s*;/);
+    expect(deepLinkParserSource).toMatch(/host\s*===\s*'internal'/);
+    expect(deepLinkParserSource).toMatch(/return\s+path\s*;/);
   });
 
   it('preload exposes showNotification via ipcRenderer.invoke', () => {

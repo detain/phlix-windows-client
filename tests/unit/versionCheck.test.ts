@@ -206,8 +206,51 @@ describe('checkMinServerVersion', () => {
 
     await checkMinServerVersion('http://localhost:8096/');
     expect(fetchSpy).toHaveBeenCalledWith(
-      'http://localhost:8096/api/v1/server/version',
+      // W2: re-targeted from the nonexistent /api/v1/server/version to the
+      // real root endpoint (phlix-server/src/Server/Core/Application.php:245).
+      'http://localhost:8096/system/info',
       expect.objectContaining({ method: 'GET' })
+    );
+  });
+
+  it('reads the top-level version field of the real /system/info payload', async () => {
+    // Exact shape served by phlix-server Application.php:245-256 (server is a
+    // NAME string; version is top-level).
+    fetchSpy.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        server: 'Phlix Media Server',
+        version: '1.2.3',
+        php_version: '8.3.6',
+        workerman_version: '4.1.0'
+      })
+    } as Response);
+
+    const result = await checkMinServerVersion('http://localhost:8096');
+    expect(result).toBe(true);
+    expect(log.info).toHaveBeenCalledWith('[versionCheck] Server reports version: 1.2.3');
+  });
+
+  it('warns that enforcement is INACTIVE when the endpoint is unreachable', async () => {
+    fetchSpy.mockRejectedValueOnce(new Error('ETIMEDOUT'));
+
+    const result = await checkMinServerVersion('http://localhost:8096');
+    expect(result).toBe(true);
+    expect(log.warn).toHaveBeenCalledWith(
+      expect.stringContaining('enforcement INACTIVE')
+    );
+  });
+
+  it('warns that enforcement is INACTIVE on a non-OK response', async () => {
+    fetchSpy.mockResolvedValueOnce({
+      ok: false,
+      status: 404
+    } as Response);
+
+    const result = await checkMinServerVersion('http://localhost:8096');
+    expect(result).toBe(true);
+    expect(log.warn).toHaveBeenCalledWith(
+      expect.stringContaining('/system/info — min-server-version enforcement INACTIVE')
     );
   });
 

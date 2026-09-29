@@ -19,6 +19,11 @@ import * as path from 'path';
  * @returns true if the resolved path is inside baseDir, false otherwise
  */
 export function isPathSafe(baseDir: string, relativePath: string): boolean {
-  const resolved = path.resolve(baseDir, relativePath);
-  return resolved.startsWith(path.resolve(baseDir));
+  const resolvedBase = path.resolve(baseDir);
+  const resolved = path.resolve(resolvedBase, relativePath);
+  if (resolved === resolvedBase) return true;
+  // W-low(c): compare against base + separator, not bare base — a sibling
+  // directory sharing the base's name as a text prefix (e.g. base 'renderer'
+  // vs sibling 'rendererEvil') must NOT pass.
+  return resolved.startsWith(resolvedBase + path.sep);
 }

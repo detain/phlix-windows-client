@@ -12,6 +12,12 @@ import { randomUUID } from 'crypto';
 import { isPathSafe } from './pathUtils';
 import { validateExternalUrl } from './urlValidator';
 import { checkMinServerVersion } from './versionCheck';
+import {
+  parseDeepLinkUrl,
+  extractDeepLinkUrl,
+  redactDeepLinkUrl,
+  createDeepLinkDeduper
+} from './deepLinkValidator';
 import { getMainLocale, setMainLocale, t } from './i18n';
 import log from 'electron-log';
 import Store from 'electron-store';
@@ -39,98 +45,22 @@ const DEFAULT_HEIGHT = 870;
 // Re-export validateExternalUrl for backwards compatibility
 export { validateExternalUrl };
 
-const KNOWN_HOSTS = new Set(['media', 'play', 'accept-invite', 'server', 'internal']);
-
-const ID_PATTERN = /^[a-zA-Z0-9-]+$/;
-const TOKEN_PATTERN = /^[a-zA-Z0-9_-]+$/;
-
-// Re-export for unit-testing
+// The canonical deep-link grammar lives in src/main/deepLinkValidator.ts
+// (W3 unification: this file used to re-implement it inline — that fork is
+// gone). Re-exported here for the existing unit-test import surface.
 export { parseDeepLinkUrl, extractDeepLinkUrl };
 
-function parseDeepLinkUrl(url: string): string | null {
-  try {
-    const parsed = new URL(url);
-
-    if (parsed.protocol !== 'phlix:') {
-      log.warn(`[deeplink] Invalid protocol: ${parsed.protocol}`);
-      return null;
-    }
-
-    const host = parsed.hostname;
-    if (!host) {
-      log.warn('[deeplink] Empty host');
-      return null;
-    }
-
-    if (!KNOWN_HOSTS.has(host)) {
-      log.warn(`[deeplink] Unknown host: ${host}`);
-      return null;
-    }
-
-    // For internal routing (notification clicks), allow any path after the host
-    if (host === 'internal') {
-      const path = parsed.pathname ?? '/';
-      return path; // Return the path directly for internal routing
-    }
-
-    const rawPath = parsed.pathname;
-    if (!rawPath || rawPath === '/') {
-      log.warn(`[deeplink] Empty path for host: ${host}`);
-      return null;
-    }
-
-    // Remove leading slash to get the id/token
-    const value = rawPath.slice(1);
-
-    if (!value) {
-      log.warn(`[deeplink] Empty value after host: ${host}`);
-      return null;
-    }
-
-    // Check for path traversal attempts
-    if (value.includes('..') || value.includes('/')) {
-      log.warn(`[deeplink] Path traversal or extra slash attempt: ${value}`);
-      return null;
-    }
-
-    // Null byte injection check
-    if (value.includes('\x00')) {
-      log.warn(`[deeplink] Null byte in value: ${value}`);
-      return null;
-    }
-
-    // Validate based on host type
-    if (host === 'accept-invite') {
-      if (!TOKEN_PATTERN.test(value)) {
-        log.warn(`[deeplink] Invalid token format: ${value}`);
-        return null;
-      }
-    } else {
-      if (!ID_PATTERN.test(value)) {
-        log.warn(`[deeplink] Invalid id format: ${value}`);
-        return null;
-      }
-    }
-
-    // Build the internal path
-    const routePath = `/${host}/${value}`;
-    return routePath;
-  } catch (err) {
-    log.warn(`[deeplink] Failed to parse URL: ${url} — ${err}`);
-    return null;
-  }
-}
-
-function extractDeepLinkUrl(argv: string[]): string | null {
-  for (const arg of argv) {
-    if (typeof arg === 'string' && arg.startsWith('phlix://')) {
-      return arg;
-    }
-  }
-  return null;
-}
+// W-low(a): once-guard window — the same URL arriving twice inside this
+// window (double OS delivery, double notification click) is delivered once.
+const DEEPLINK_DEDUPE_WINDOW_MS = 2000;
+const deepLinkDeduper = createDeepLinkDeduper(DEEPLINK_DEDUPE_WINDOW_MS);
 
 function handleDeepLinkUrl(url: string): void {
+  if (deepLinkDeduper.suppresses(url)) {
+    log.info(`[deeplink] Duplicate delivery suppressed within ${DEEPLINK_DEDUPE_WINDOW_MS}ms: ${redactDeepLinkUrl(url)}`);
+    return;
+  }
+
   const path = parseDeepLinkUrl(url);
   if (!path) return;
 
@@ -154,9 +84,13 @@ function setAsDefaultProtocolClient(): void {
 // Cold start: check if a deep link URL was passed via command line
 const coldStartUrl = extractDeepLinkUrl(process.argv);
 if (coldStartUrl) {
-  // Store it for handling after app is ready
-  log.info(`[deeplink] Cold start URL detected: ${coldStartUrl}`);
-  // Queue for delivery once the window is ready
+  // W3: never log a raw cold-start URL — it may carry a one-time invite token.
+  log.info(`[deeplink] Cold start URL detected: ${redactDeepLinkUrl(coldStartUrl)}`);
+  // Queue for delivery once the window is ready. This is the ONLY cold-start
+  // dispatch (W-low a): an earlier revision also sent from the whenReady
+  // callback, double-dispatching every cold start — and that immediate arm
+  // fired before the renderer bridge subscribed, so the delayed arm below is
+  // the one that reliably delivers.
   app.once('browser-window-created', () => {
     // Use setTimeout to ensure window webContents is fully initialized
     setTimeout(() => {
@@ -187,7 +121,20 @@ app.on('second-instance', (_event, argv, _workingDirectory) => {
   }
 });
 
-const store = new Store<{ minimizeToTray: boolean; windowBounds?: WindowBounds; disableHardwareAcceleration: boolean }>();
+// W-low(d): every key touched via store.get/set is declared here — previously
+// hubUrl/activeServerId/connectionMode/serverUrl/deviceId/notificationsEnabled
+// were used untyped (Store<> generic omitted them).
+const store = new Store<{
+  minimizeToTray: boolean;
+  windowBounds?: WindowBounds;
+  disableHardwareAcceleration: boolean;
+  hubUrl?: string | null;
+  activeServerId?: string | null;
+  connectionMode?: string;
+  serverUrl?: string | null;
+  deviceId?: string;
+  notificationsEnabled?: boolean;
+}>();
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
@@ -703,7 +650,7 @@ ipcMain.handle('app:check-server-version', async (_, { apiBase }: { apiBase: str
  * The ID is sent to the server as `X-Phlix-Device-ID` via `buildPhlixHeaders`.
  */
 ipcMain.handle('app:get-device-id', () => {
-  let deviceId = store.get('deviceId') as string | undefined;
+  let deviceId = store.get('deviceId');
   if (!deviceId) {
     deviceId = `windows-${randomUUID()}`;
     store.set('deviceId', deviceId);
@@ -976,16 +923,15 @@ app.whenReady().then(() => {
   createTray();
   setupAutoUpdater();
 
-  // Handle cold start deep link
-  if (coldStartUrl) {
-    handleDeepLinkUrl(coldStartUrl);
-  }
+  // W-low(a): cold start deep links are dispatched exactly once, from the
+  // browser-window-created arm above — do not add a second dispatch here.
 });
 
 // Handle open-url event on macOS
 app.on('open-url', (event, url) => {
   event.preventDefault();
-  log.info(`[deeplink] open-url event: ${url}`);
+  // W3: redact — the URL may carry a one-time invite token.
+  log.info(`[deeplink] open-url event: ${redactDeepLinkUrl(url)}`);
   handleDeepLinkUrl(url);
 });
 
@@ -1005,6 +951,10 @@ app.on('before-quit', () => {
   isQuitting = true;
   // W4.6: release power blocker on before-quit
   ensurePowerBlocker(false);
+  // W-low(e): cancel a pending debounced bounds save so it cannot fire while
+  // the window is tearing down.
+  if (saveBoundsTimer) clearTimeout(saveBoundsTimer);
+  saveBoundsTimer = null;
   // W4.9: stop the periodic update check so the process can exit cleanly
   if (_updateCheckTimer) {
     clearInterval(_updateCheckTimer);
