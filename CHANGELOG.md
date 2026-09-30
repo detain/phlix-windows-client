@@ -7,6 +7,38 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — dependency security: brace-expansion →1.1.21/2.1.7/5.0.12, axios 1.19.0→1.20.0, fast-uri 3.1.7→3.1.8 (audit gate re-green) — 2026-09-30
+
+- **Why:** master CI turned RED solely on the `npm audit --audit-level=high` step
+  (Test workflow audit step — last per c75fdf0 — + Build workflow `Security Audit`)
+  on advisories newly disclosed against the lockfile that was green 2026-09-29.
+  No other step was failing — v24.21.0/npm 12.0.2 reproduced exactly 3 vulnerable
+  packages locally (2 high — axios, brace-expansion — + 1 moderate — fast-uri).
+- **Advisories cleared:**
+  | GHSA | package | via (path) | severity | vulnerable | first patched |
+  |------|---------|------------|----------|------------|---------------|
+  | GHSA-q2hr-2g5m-vwhr / GHSA-qhr7-859c-m2p7 / GHSA-6j4f-fj2g-mc7p | brace-expansion | `@electron/asar→minimatch@3` `^1.1.7`, `@electron/universal→dir-compare→minimatch@3`, eslint core trio `^1.1.7` (1.1.18); `ejs→jake→filelist→minimatch@5` + `@electron/universal→minimatch@9` + `@vue/test-utils→js-beautify→editorconfig→minimatch@9` `^2.0.1`/`^2.0.2` (2.1.4); `app-builder-lib→minimatch@10` `^5.0.8` (5.0.9) | high | <1.1.21 ∪ ≥2.0.0 <2.1.7 ∪ ≥4.0.0 <5.0.12 | 1.1.21 / 2.1.7 / 5.0.12 |
+  | GHSA-vh66-26gq-q6x8, GHSA-9fr6-4gfg-395g, GHSA-c29m-xwm3-cm6r, GHSA-mghh-pgcx-3jjj, GHSA-x97p-jq2g-jp4f, GHSA-3pq3-5fj3-cg6v, GHSA-542g-h47m-68v8 | axios | dev-only via `wait-on@7.2.0` `^1.6.1` (1.19.0) | high | ≥1.0.0 <1.20.0 (per-advisory floors 1.0.0–1.16.1) | 1.20.0 |
+  | GHSA-hrr3-gc8f-f4qj | fast-uri | `electron-builder→app-builder-lib→ajv@8.20.0` `^3.0.1` (3.1.7) | moderate | ≥3.0.0 <3.1.8 | 3.1.8 |
+- **How:** one `npm update axios fast-uri brace-expansion` — every resolved bump
+  stayed **inside the already-declared parent ranges** (`^1.6.1`, `^3.0.1`, and the
+  three minimatch streams `^1.1.7`/`^2.0.x`/`^5.0.8`), so `package.json` is untouched
+  and the lockfile diff is exactly 11 nodes × {version, resolved, integrity}
+  (brace-expansion 1.1.18→1.1.21 ×5, 2.1.4→2.1.7 ×3, 5.0.9→5.0.12 ×1, axios ×1,
+  fast-uri ×1), 33+/33−, no new deps, no removals, no overrides/resolutions. The
+  three-part brace-expansion ladder follows each consumer's own major line — the
+  classic blanket-override breakage (forcing v2 semantics on v1 consumers) is
+  avoided entirely because the patched heads exist on every stream. fast-uri is
+  moderate — below the `--audit-level=high` gate — cleared anyway per house policy
+  (don't leave known advisories installed; same treatment as js-yaml on 2026-09-29).
+- **Gates after bump (local, CI-faithful `NPM_CONFIG_USERCONFIG=/dev/null`):**
+  `npm audit --audit-level=high` → 0 vulnerabilities exit 0; `npx vitest run` →
+  433/433 (34 files); `npm run typecheck` (vue-tsc + tsc main) → 0;
+  `npx vue-tsc --noEmit -p tsconfig.test.json` → 0; `npm run lint` → 0;
+  `npm run build` (renderer + main + preload assert) → 0; `xvfb-run npm run smoke`
+  → 1 passed (the 633863a content-assert boot guards stayed green — the electron
+  binary itself did not move this round).
+
 ### Changed — dependency security: electron 42.8.1→42.11.9, undici 7.29.0→7.30.0 & 6.28.0→6.29.0, js-yaml 5.2.3→5.4.2 (audit gate re-green) — 2026-09-29
 
 - **Why:** master CI turned RED solely on the `npm audit --audit-level=high` step
