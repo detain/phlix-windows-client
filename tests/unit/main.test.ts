@@ -335,6 +335,10 @@ describe('buildExtraRoutes', () => {
     const names = buildExtraRoutes('server').map((r) => r.name);
     expect(names).toContain('admin-dashboard');
     expect(names).toContain('library-scan');
+    // L-4 follow-up: the scan route is admin-gated (see library-scan-route.test.ts).
+    expect(buildExtraRoutes('server').find((r) => r.name === 'library-scan')?.meta).toEqual({
+      requiresAdmin: true
+    });
   });
 
   it('hub mode: hub pages + the hub admin section', async () => {
