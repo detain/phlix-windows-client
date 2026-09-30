@@ -27,7 +27,7 @@ const PROJECT_ROOT = resolve(__dirname, '../..');
 function libraryScanRouteBlock(): string {
   const src = readFileSync(resolve(PROJECT_ROOT, 'src/renderer/main.ts'), 'utf-8').replace(/\r\n/g, '\n');
   const start = src.indexOf("path: '/app/library/scan'");
-  expect(start, 'src/renderer/main.ts must define the /app/library/scan route').not.toBe(-1);
+  if (start === -1) throw new Error('src/renderer/main.ts must define the /app/library/scan route');
   const open = src.lastIndexOf('{', start);
   let depth = 0;
   for (let i = open; i < src.length; i++) {
@@ -41,12 +41,8 @@ function libraryScanRouteBlock(): string {
 }
 
 describe('/app/library/scan route gate (L-4)', () => {
-  it('carries meta.requiresAdmin === true in source', () => {
-    expect(libraryScanRouteBlock()).toMatch(
-      /meta:\s*\{\s*requiresAdmin:\s*true\s*\}/,
-      'the library-scan route must set `meta: { requiresAdmin: true }` — ' +
-        'the exact key the vendored ui authGuard checks',
-    );
+  it('carries meta.requiresAdmin === true in source — the exact key the vendored ui authGuard checks', () => {
+    expect(libraryScanRouteBlock()).toMatch(/meta:\s*\{\s*requiresAdmin:\s*true\s*\}/);
   });
 
   it('uses the SAME meta shape the vendored admin section carries (live cross-check)', () => {
