@@ -7,6 +7,57 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — re-pin `@phlix/ui` v0.99.7 → v0.99.8 (retag-cascade head: bearer carrier, invite DTO, paths guards, player.css; first true locale re-vendor) — 2026-09-30
+
+- **Single ui pin advanced.** `package.json` re-pins `@phlix/ui` to the `v0.99.8` tag
+  (annotated object `35f727a6`, peel `a580410f`);
+  `NPM_CONFIG_USERCONFIG=/dev/null npm install --allow-git=all` (node 24 /
+  npm 12.0.2, CI-faithful) regenerated the committed lock surgically: the diff is
+  the root echo → `v0.99.8` plus the ui node alone — `version` `0.99.7` → `0.99.8`
+  (honest field, era carries), `resolved` → `a580410f`, and `pinia`/`vue`/`vue-router`
+  REMOVED from the ui node's `dependencies` because the v0.99.8 manifest declares them
+  as peerDependencies. Zero resolution movement behind that removal: the hoisted root
+  trio (vue 3.5.41 / pinia 3.0.4 / vue-router 5.2.0) is untouched, zero nested @phlix
+  copies, no unrelated drift. The installed `dist/phlix-ui.js` is blob-identical to
+  `git show a580410f:dist/phlix-ui.js` (sha256 `63fe4ab3…` both sides).
+- **What the bump carries into the vendored chunks (the P1 the retag cascade owed):**
+  the `:8097` syncplay builder is now `` `${ws|wss}://…:8097?room=…` `` +
+  `["bearer", token]` two-entry subprotocol negotiation (present in `phlix-ui.js`,
+  `player.js` and `SyncPlayModal-*.js`) with **zero `[?&]token=` query carriers across
+  the whole installed dist — windows' last `?token=` producer is retired**; the
+  LibraryScanPage/LibrariesPage chunks carry the `e.paths?.length` / `.paths?.join`
+  guards (P1 crash-fix for missing-key library rows); the invite surface is the
+  create-token DTO (`invite-result__value--token`, `/api/v1/me/invite-links/…/redeem`,
+  one-time "Invite token copied" flow), closing the audit's degraded
+  url-only InviteLinksPage drift; `player.css` is reachable via the `./player.css`
+  export. The load-bearing minified pins in `tests/unit/library-scan-route.test.ts`
+  (`e.meta?.requiresAdmin === !0`, `meta: { requiresAdmin: !0 }`) survive the regen
+  unchanged (5/5 pass reading the NEW bundle).
+- **Honest-version + zero-waiver eras CARRY (third pin move under each law).**
+  `git show a580410f:package.json` reads `version: 0.99.8` honest (no
+  `manifestVersion` override returns) and requests `#v0.5.2`/`#v0.1.5` outright, so
+  `RATIFIED_HOISTS` stays present-but-empty and the ui→contracts edge keeps walking
+  plain lockwalk rule 1. `scripts/lockwalk.mjs` EXPECTED row advances to
+  `v0.99.8`/`a580410f`; the ui-mutation proofs were re-cut for the new era (stale
+  words `0.99.4`/`0.99.7` and sha-drift all go RED); `lockwalk: 4 edges walked,
+  0 mismatches`.
+- **Locale vendor MOVED with the pin — first true re-vendor since dc1df7d5.**
+  Unlike the drift-free .6/.7 carries, v0.99.8 shifted the tree:
+  `src/i18n/locales` `f8b090a6` → `a0f018cf` and `messages.ts` `d0094683` →
+  `574b98e5` (catalog 412 → **441** flattened keys — the 4c4fe969 i18n-adoption
+  wave), so `scripts/sync-ui-locale-bundles.mjs` `SOURCE_REF` advanced to `a580410f`
+  and the re-run re-vendored all six locale bundles + the `PIN` (12 of 14 content
+  hashes advanced; only the `index.ts` pair held). The exact bundle↔installed
+  set-equality law re-established at 441↔441 both directions; era prose in
+  `i18nLocales.test.ts`/`contractsPin.test.mjs`/`docs/i18n.md`/`README.md` updated
+  to the measured truth.
+- **Gates.** `npm audit --audit-level=high` → 0 vulnerabilities (note: audit does not
+  cover git deps — the @phlix/ui pin moves outside its scope) · full `npx vitest run`
+  → 433/433 (34 files) · `vue-tsc --noEmit` + `vue-tsc --noEmit -p tsconfig.test.json`
+  + `tsc -p tsconfig.main.json --noEmit` PASS · `npm run lint` PASS ·
+  `npm run build` PASS · `xvfb-run npm run smoke` → 1 passed — the 633863a
+  content-assert boot guards stay green against the NEW vendored bundle.
+
 ### Changed — dependency security: brace-expansion →1.1.21/2.1.7/5.0.12, axios 1.19.0→1.20.0, fast-uri 3.1.7→3.1.8 (audit gate re-green) — 2026-09-30
 
 - **Why:** master CI turned RED solely on the `npm audit --audit-level=high` step

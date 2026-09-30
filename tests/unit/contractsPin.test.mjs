@@ -7,10 +7,13 @@
  * package-lock.json off disk and asserts the direct `@phlix/contracts` pin has
  * been advanced to the current tag (v0.5.2, re-pinned 2026-09-25 atop the
  * field-re-normalizing release ac669ca + .gitattributes/coordinate-currency era).
- * Unchanged by the ui v0.99.7 re-pin (2026-09-25) that follows here — but that lane
+ * Unchanged by the ui v0.99.7 re-pin (2026-09-25) nor the ui v0.99.8 re-pin
+ * (2026-09-30, a580410f) that follow here — v0.99.7's lane
  * restored BYTE-EQUALITY on the ui→contracts edge (ui v0.99.7 requests `#v0.5.2`
  * outright), retiring the exact-match waiver per its own written law and flipping
- * the second describe back to the #50-era three-way equality witness. Like
+ * the second describe back to the #50-era three-way equality witness — a carriage
+ * v0.99.8 re-measured and held (its manifest speaks `#v0.5.2` too, git show at
+ * a580410f). Like
  * tests/unit/copyright.test.mjs it lives outside the
  * TypeScript project (tsconfig.json's `include` is ["src/renderer"]), so
  * `npm run typecheck` never sees it, while vitest's `include` glob for
@@ -78,7 +81,7 @@ describe('S442 — @phlix/contracts direct pin is current', () => {
   });
 });
 
-describe('ui v0.99.7 re-pin — ui converges honestly: byte-identical contracts requests, zero waivers, zero nested copies', () => {
+describe('ui v0.99.7 re-pin (carried at v0.99.8) — ui converges honestly: byte-identical contracts requests, zero waivers, zero nested copies', () => {
   // History of this guard: ui's manifest once requested contracts #v0.4.5 while
   // this repo's direct pin rode higher — the divergence S442 documented and the
   // lockwalk ratified until W82 retired that exception; the W85 dual-repin restored

@@ -40,6 +40,7 @@ export const FR_MESSAGES = {
     noMatches: 'Aucun résultat',
     searchPlaceholder: 'Rechercher…',
     selectPlaceholder: 'Sélectionner…',
+    breadcrumb: 'Fil d’Ariane',
   },
   shell: {
     skipToContent: 'Aller au contenu',
@@ -268,6 +269,30 @@ export const FR_MESSAGES = {
     transcodeBodyUntitled:
       'Impossible de démarrer la lecture de ce titre pour le moment. Réessayez plus tard.',
     goBack: 'Revenir',
+    themeMute: 'Couper la musique du générique',
+    themeUnmute: 'Réactiver la musique du générique',
+    themeStop: 'Arrêter la musique du générique',
+    skipControls: 'Contrôles de saut',
+  },
+  itemActions: {
+    addFavorite: 'Ajouter aux favoris',
+    removeFavorite: 'Retirer des favoris',
+    inFavorites: 'Dans les favoris',
+    watchlist: 'Ma liste',
+    markWatched: 'Marquer comme vu',
+    watched: 'Vu',
+    markWatchedAria: 'Marquer comme vu',
+    markUnwatchedAria: 'Marquer comme non vu',
+  },
+  reader: {
+    decreaseFont: 'Réduire la taille du texte',
+    increaseFont: 'Agrandir la taille du texte',
+    lightMode: 'Mode clair',
+    sepiaMode: 'Mode sépia',
+    darkMode: 'Mode sombre',
+  },
+  mcpTokens: {
+    title: 'Jetons MCP',
   },
   syncplay: {
     syncPlay: 'SyncPlay',
@@ -304,6 +329,7 @@ export const FR_MESSAGES = {
     fastForward: 'Avance rapide',
     playAll: 'Lire pour tout le monde',
     pauseAll: 'Mettre en pause pour tout le monde',
+    modeSelect: 'Créer ou rejoindre un salon',
   },
   music: {
     title: 'Bibliothèque musicale',
@@ -366,6 +392,9 @@ export const FR_MESSAGES = {
     artistNotFound: 'Artiste introuvable',
     artistsNotFound: 'Aucun artiste trouvé',
     artistsDescription: 'Parcourez tous les artistes de votre médiathèque',
+    trackListing: 'Liste des pistes',
+    searchTracksAria: 'Rechercher des pistes',
+    musicTracksAria: 'Pistes de musique',
   },
   settings: {
     theme: 'Thème',
@@ -430,6 +459,12 @@ export const FR_MESSAGES = {
     markWatchedAria: 'Marquer comme vu',
     markUnwatchedAria: 'Marquer comme non vu',
     noEpisodes: 'Aucun épisode à lire pour le moment',
+    loadingAria: 'Chargement de la saison',
+    loadError: 'Impossible de charger cette saison',
+    backToSeries: 'Retour à la série',
+    episodes: 'Épisodes',
+    notFound: 'Saison introuvable',
+    notFoundDescription: '{series} ne comporte pas cette saison.',
   },
   parental: {
     title: 'Contrôle parental',

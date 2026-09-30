@@ -4,9 +4,10 @@
  *
  *  A. UI SEAM (vendored from phlix-ui, SSOT): key-set identity across the six
  *     bundles, coverage of the INSTALLED DEFAULT_MESSAGES, bundle-vs-installed
- *     SET EQUALITY (closed at the v0.99.5 re-pin, CARRIED at v0.99.6 and again at
- *     v0.99.7 — locale tree byte-identical across all three peels, messages.ts
- *     unmoved; the
+ *     SET EQUALITY (closed at the v0.99.5 re-pin, CARRIED untouched at v0.99.6 and
+ *     v0.99.7 — locale tree byte-identical across those peels, messages.ts
+ *     unmoved — and RE-CARRIED at v0.99.8, where the tree genuinely moved
+ *     (+29 keys) and the six bundles + PIN were re-vendored from a580410f; the
  *     formerly-ahead keys keep focused cross-bundle laws),
  *     placeholder parity, CLDR segment law (incl. the documented
  *     additive exception), diacritics/CJK sanity, and PIN/hash drift guards
@@ -196,15 +197,16 @@ describe('ui bundles — key-set identity and installed coverage', () => {
     }
   });
 
-  it('bundle key set EQUALS the installed pin (gap closed at v0.99.5, carried at v0.99.6, carried again at v0.99.7)', () => {
-    // Vendor @ bc1d29bf (tag v0.99.7) vs installed @phlix/ui v0.99.7 — the
+  it('bundle key set EQUALS the installed pin (gap closed at v0.99.5, carried at v0.99.6/v0.99.7, re-carried via the v0.99.8 re-vendor)', () => {
+    // Vendor @ a580410f (tag v0.99.8) vs installed @phlix/ui v0.99.8 — the
     // dc1df7d5-era 7-key ahead-of-pin gap closed at the v0.99.5 re-pin and the
-    // equality CARRIES at v0.99.6 and again at v0.99.7: src/i18n/locales is
-    // byte-identical across all three peels (tree f8b090a6 at each) and
-    // src/i18n/messages.ts never moved between them, so the bundle-vs-installed
-    // relation is unchanged and all 14
-    // PIN content hashes ride through untouched. So the
-    // relation is exact set equality in BOTH directions (installed ⊆ bundle
+    // equality CARRIED untouched at v0.99.6 and v0.99.7 (tree f8b090a6,
+    // messages.ts d0094683 unmoved across those peels, 14/14 PIN hashes riding
+    // through). At v0.99.8 the locale tree genuinely MOVED (→ a0f018cf;
+    // messages.ts → 574b98e5; +29 keys across the six locales), so the sync
+    // script was re-run at the .8 peel: 12/14 PIN content hashes advanced
+    // (only the index.ts pair held) and BOTH sides land at 441 flattened keys.
+    // The relation stays exact set equality in BOTH directions (installed ⊆ bundle
     // is separately pinned above; this pins bundle ⊆ installed and, with it,
     // the empty extras set). The seven keys are additionally pinned present
     // in the installed catalog so a future upstream rename cannot dissolve
