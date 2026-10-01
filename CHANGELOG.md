@@ -7,6 +7,49 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — re-pin `@phlix/contracts` v0.5.2 → v0.5.3 (registry-expansion release; divergence era returns) — 2026-10-01
+
+- **Single contracts pin advanced.** `package.json` re-pins `@phlix/contracts` to the
+  `v0.5.3` tag (annotated object `eb90e6d`, peel `430981e3`, cut 2026-10-01 atop the
+  coordinate-currency/manifest re-vendor era); `NPM_CONFIG_USERCONFIG=/dev/null npm
+  install --allow-git=all` (node 24.21 / npm 12.0.2, CI-faithful) regenerated the
+  committed lock surgically — the diff is exactly 3+/3−: root echo, the contracts
+  node's `resolved`, and its `version` field; the ui/syncplay lines and every other
+  entry never moved. Unlike the v0.5.2 carry, this bump DOES move registry content:
+  `dist/error-codes.json` expands additively 202 → **204** codes (md5 `40c1da48…`) and
+  `dist/server-route-manifest.json` sits at 412 tuples (md5 `91579683…`); no consumer
+  code churn — windows reads the registry only through its pin tests, and the full
+  433-test suite ran with zero source edits.
+- **Honest-field era CARRIES.** `git show v0.5.3:package.json` reads `version: 0.5.3`
+  (the normalization `ac669ca` opened at v0.5.2 holds), so npm writes the honest lock
+  line and the `manifestVersion` override stays RETIRED — the contracts row walks the
+  plain tag-derived version; no override is active on any @phlix/* row.
+- **RATIFIED_HOISTS re-added — the byte-equality era ENDED.** The installed ui
+  `v0.99.8` still requests `#v0.5.2` (measured via `git show a580410f:package.json`
+  AND independently off the installed `node_modules/@phlix/ui/package.json`), so the
+  moment the direct pin advanced to `#v0.5.3` the ui→contracts edge diverged again and
+  the waiver's written retirement condition had NOT fired. Observed npm behavior (the
+  written decision point): npm 12.0.2 again DEDUPED ui's unsatisfied git-tag edge onto
+  the hoisted `0.5.3@430981e` copy — zero nested nodes in the lock, zero nested dirs on
+  disk — the same behavior the v0.5.0-era and v0.5.2-era waivers documented. New
+  exact-match entry `node_modules/@phlix/ui>@phlix/contracts@v0.5.2 → 0.5.3@430981e`
+  (version AND sha, never a wildcard — the fourth firing of this law);
+  `contractsPin.test.mjs`/`lockwalk.test.mjs` convert back to the divergence-era law
+  with the recorded retirement path (dies when a ui tag requests `#v0.5.3`-or-newer
+  outright), mutation proofs run BOTH directions — root's rule-1 edge and ui's
+  `ratified-hoist-drift` edge light up on every hoist-copy mutation (behind rollback to
+  the real v0.5.2@7afb6a91 snapshot, false-version, sha-only drift) — and the census
+  marker rotates 202 → 204 by measurement-from-red. The locale-sync law
+  (`SOURCE_REF a580410f`, 441↔441 catalog equality) is untouched: this pin move
+  advances contracts only, never the ui pin.
+- **Gates.** `node scripts/lockwalk.mjs --live` → 4 edges, 0 mismatches, all three peel
+  proofs OK against the live remotes (`v0.5.3` tag object `eb90e6d` → commit `430981e3`
+  verified) · full `npx vitest run` → 433/433 · `vue-tsc --noEmit` + `vue-tsc --noEmit
+  -p tsconfig.test.json` + `tsc -p tsconfig.main.json --noEmit` PASS · `npm run lint`
+  PASS · `npm run build` PASS · `npm audit --audit-level=high` → 0 vulnerabilities
+  (git deps outside audit scope, standing note) · `xvfb-run --auto-servernum npm run
+  smoke` → 1 passed.
+
 ### Changed — re-pin `@phlix/ui` v0.99.7 → v0.99.8 (retag-cascade head: bearer carrier, invite DTO, paths guards, player.css; first true locale re-vendor) — 2026-09-30
 
 - **Single ui pin advanced.** `package.json` re-pins `@phlix/ui` to the `v0.99.8` tag
