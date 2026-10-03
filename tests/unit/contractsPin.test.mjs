@@ -11,10 +11,13 @@
  * edge (ui v0.99.7 requests `#v0.5.2` outright), retiring the exact-match waiver per
  * its own written law and flipping the second describe to the #50-era three-way
  * equality witness — carried at v0.99.8 (2026-09-30, a580410f). That equality era
- * ENDED at this contracts v0.5.3 re-pin: the direct pin advanced past what installed
- * ui v0.99.8 requests, so the second describe flips back to the eab9a82-era
+ * ENDED at the contracts v0.5.3 re-pin (2026-10-01): the direct pin advanced past what
+ * installed ui v0.99.8 requested, so the second describe flipped to the eab9a82-era
  * DIVERGENCE law (ui line byte-pinned to its own `#v0.5.2` words, .not-to-root
- * inversion, one exact-match waiver entry). Like
+ * inversion, one exact-match waiver entry). The divergence era itself ENDED at the
+ * ui v0.99.9 re-pin (2026-10-03, cc931723): ui v0.99.9 requests `#v0.5.3` outright, so
+ * the second describe is back to the EQUALITY law (ui line byte-pinned to the SAME
+ * `#v0.5.3` words as root, .toBe, zero waivers — installed tree as the witness). Like
  * tests/unit/copyright.test.mjs it lives outside the
  * TypeScript project (tsconfig.json's `include` is ["src/renderer"]), so
  * `npm run typecheck` never sees it, while vitest's `include` glob for
@@ -84,45 +87,41 @@ describe('S442 — @phlix/contracts direct pin is current', () => {
   });
 });
 
-describe('contracts v0.5.3 re-pin — divergence era returns: ui line byte-pinned to its own #v0.5.2 words, one exact-match waiver, zero nested copies', () => {
+describe('ui v0.99.9 re-pin — equality era restored: ui line byte-pinned to the same #v0.5.3 words as root, zero waivers, zero nested copies', () => {
   // History of this guard: ui's manifest once requested contracts #v0.4.5 while
   // this repo's direct pin rode higher — the divergence S442 documented and the
   // lockwalk ratified until W82 retired that exception; the W85 dual-repin restored
   // byte-IDENTICAL declarations; equality ended at the contracts v0.5.0 re-pin,
   // returned at the ui v0.99.6 re-pin, ended again at the contracts v0.5.2 re-pin,
-  // ENDED A THIRD TIME at the ui v0.99.7 re-pin (carried at v0.99.8), and the
-  // equality era itself ENDED at this contracts v0.5.3 re-pin (2026-10-01): the
-  // direct pin advanced to `#v0.5.3` while the INSTALLED ui v0.99.8 still speaks
-  // `#v0.5.2` (measured via git show at a580410f AND independently off the installed
-  // node_modules/@phlix/ui/package.json). npm 12.0.2 deduped ui's edge onto the
-  // hoisted 0.5.3 copy (no nested node in the lock, no nested dir on disk) — the
-  // fourth firing of this exact divergence class, ratified the same way: an
-  // exact-match waiver pinning version AND sha of the hoisted copy.
-  // Fail-loud on every face of the new truth, BOTH directions: FALSELY-EQUAL — root
-  // and ui lock lines hand-edited to match while the installed manifest disagrees;
-  // STALE-DRIFT — ui's words changing from `#v0.5.2` without the waiver key moving
-  // with them (the installed tree is the independent witness).
-  it("keeps ui's lock-declared contracts request byte-pinned to its manifest's #v0.5.2 words — NOT equal to root", () => {
+  // ENDED A THIRD TIME at the ui v0.99.7 re-pin (carried at v0.99.8), the divergence
+  // era returned at the contracts v0.5.3 re-pin (2026-10-01), and the DIVERGENCE ERA
+  // ITSELF ENDED at this ui v0.99.9 re-pin (2026-10-03): installed ui v0.99.9 requests
+  // `#v0.5.3` outright (measured via git show at cc931723 AND independently off the
+  // installed node_modules/@phlix/ui/package.json), byte-equality with the direct pin
+  // restored — the @v0.5.2 waiver retired per its own written law, map
+  // present-but-empty. npm dedupes ui's edge onto the single hoisted 0.5.3 copy (no
+  // nested node in the lock, no nested dir on disk).
+  // Fail-loud on every face of the new truth, BOTH directions: FALSELY-DIVERGENT —
+  // root and ui lock lines hand-edited apart while the installed manifest agrees;
+  // STALE-DRIFT — ui's words changing from `#v0.5.3` without a live waiver (the
+  // installed tree is the independent witness).
+  it("keeps ui's lock-declared contracts request byte-pinned to its manifest's #v0.5.3 words — EQUAL to root", () => {
     const ui = lock.packages['node_modules/@phlix/ui'];
-    expect(ui.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.5.2');
-    // Divergence era: root advanced to #v0.5.3 while ui v0.99.8 still declares
-    // #v0.5.2 — the equality-era .toBe law inverts, and a ui bump to #v0.5.3
-    // (which would retire the waiver) goes red on both lines until this file is
-    // re-measured.
-    expect(ui.dependencies['@phlix/contracts']).not.toBe(pkg.dependencies['@phlix/contracts']);
+    expect(ui.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.5.3');
+    // Equality era: ui v0.99.9 declares the identical words to the root pin — the
+    // divergence-era .not.toBe law flips back to .toBe, and a hand-split of the two
+    // lines (or a ui downgrade to a #v0.5.2-era tag without re-ratifying a waiver)
+    // goes red on both lines until this file is re-measured.
+    expect(ui.dependencies['@phlix/contracts']).toBe(pkg.dependencies['@phlix/contracts']);
     // The installed tree independently proves the lock line is the manifest's verbatim
     // words, not a hand-edit: falsifying either tag here trips this witness.
     const installed = readJson('node_modules/@phlix/ui/package.json');
-    expect(installed.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.5.2');
+    expect(installed.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.5.3');
     expect(installed.dependencies['@phlix/syncplay']).toBe('github:detain/phlix-syncplay#v0.1.5');
-    // The divergence era's single exact-match waiver: ui's #v0.5.2 edge resolves to
-    // the hoisted 0.5.3@430981e copy, pinned version AND sha.
-    expect(RATIFIED_HOISTS).toEqual({
-      'node_modules/@phlix/ui>@phlix/contracts@v0.5.2': {
-        version: EXPECTED_CONTRACTS_VERSION,
-        sha: '430981e3b231a04c9464382642f54c2eeea33c1c',
-      },
-    });
+    // The equality era's steady state: zero ratified hoists — the waiver's written
+    // retirement condition (#v0.5.3-or-newer requested outright) fired at ui v0.99.9.
+    expect(RATIFIED_HOISTS).toEqual({});
+    expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.5.2']).toBeUndefined();
     expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.4.7']).toBeUndefined();
     expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.5.1']).toBeUndefined();
   });

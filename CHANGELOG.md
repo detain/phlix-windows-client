@@ -7,6 +7,49 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — re-pin `@phlix/ui` v0.99.8 → v0.99.9 (playlist create-contract fix; waiver retires, byte-equality era restored) — 2026-10-03
+
+- **Single ui pin advanced.** `package.json` re-pins `@phlix/ui` to the `v0.99.9` tag
+  (annotated object `c7130f70`, peel `cc931723`, cut 2026-10-03 atop the headline
+  user-facing fix: `createPlaylist` now honors the server create-contract — grid
+  "Add to playlist" sends exactly `{name, library_id}` to `POST /api/v1/playlists` and
+  chains the items leg — plus the contracts `#v0.5.3` re-pin and the `library_id`
+  wire-truth pass carried inside the tag); `NPM_CONFIG_USERCONFIG=/dev/null npm
+  install --allow-git=all` regenerated the committed lock surgically — the diff is
+  exactly 4+/4−: root echo, the ui node's `version` `0.99.8` → `0.99.9` (honest field,
+  era carries), its `resolved` → `cc931723`, and the ui node's recorded contracts edge
+  `#v0.5.2` → `#v0.5.3`; the syncplay lines and every other entry never moved; zero
+  `devOptional`→`dev` rewrite churn.
+- **The @v0.5.2 waiver RETIRED — fourth firing of the written law.** ui v0.99.9's
+  manifest requests `#v0.5.3` outright (measured via `git show cc931723:package.json`
+  AND independently off the installed `node_modules/@phlix/ui/package.json` after
+  `npm ci`), so the divergence class that opened at the contracts v0.5.3 re-pin closed
+  the moment this tag landed: `RATIFIED_HOISTS` returns to present-but-empty, and BOTH
+  contracts edges (root and ui) now walk plain rule 1 onto the single hoisted
+  `0.5.3@430981e` copy. `lockwalk.mjs`'s EXPECTED rows rotate (ui →
+  `v0.99.9`/`cc931723`); `contractsPin.test.mjs`/`lockwalk.test.mjs` convert back to
+  the equality-era law — the ui line is byte-pinned to the SAME `#v0.5.3` words as root
+  (`.toBe`, the divergence-era inversion flips), mutation proofs run both directions
+  (every hoist-copy mutation now reds BOTH requesters' rule-1 edges, and a
+  `ratified-hoist-drift` finding can no longer be produced), and the dead waiver keys
+  (`@v0.4.5`, `@v0.4.7`, `@v0.5.1`, and now `@v0.5.2`) are pinned absent. Vendored
+  registry content is unchanged by the tag itself — contracts was already `#v0.5.3`
+  (204-code census holds), and the ui dist's main entry rotates to blob sha256
+  `5efa7cb5…` (the same bundle server/hub/tizen ship).
+- **Locale-sync law untouched.** The vendored `src/renderer/i18n/ui-locale-bundles/`
+  set stays pinned at `a580410f` (v0.99.8 peel) deliberately: the ui locale tree is
+  byte-identical across `a580410f..cc931723` (only `errors.ts` moved in between,
+  outside the vendored set), so the 441↔441 set-equality law holds without a re-vendor
+  — documented in `docs/i18n.md`.
+- **Gates.** `node scripts/lockwalk.mjs --live` → edges clean, peel proofs OK against
+  the live remotes (`v0.99.9` tag object `c7130f70` → commit `cc931723` verified) ·
+  full `npx vitest run` → see close report for the exact count (433/433 f95fe29-era
+  baseline, test bodies rewritten in-place this lane) · `vue-tsc --noEmit` +
+  `vue-tsc --noEmit -p tsconfig.test.json` + `tsc -p tsconfig.main.json --noEmit` PASS ·
+  `npm run lint` PASS · `npm run build` PASS · `npm audit --audit-level=high` → 0
+  vulnerabilities (git deps outside audit scope, standing note) · `xvfb-run
+  --auto-servernum npm run smoke` → 1 passed.
+
 ### Changed — re-pin `@phlix/contracts` v0.5.2 → v0.5.3 (registry-expansion release; divergence era returns) — 2026-10-01
 
 - **Single contracts pin advanced.** `package.json` re-pins `@phlix/contracts` to the

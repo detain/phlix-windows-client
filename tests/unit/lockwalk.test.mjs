@@ -20,12 +20,15 @@
  * via git show at bc1d29bf — the waiver's written law had then fired three times;
  * byte-equality restored, map present-but-empty), CARRIED at the ui v0.99.8 re-pin
  * (2026-09-30: v0.99.8 requests `#v0.5.2` outright too, measured via git show at
- * a580410f), and ENDED at the contracts v0.5.3 re-pin (2026-10-01: the direct pin
+ * a580410f), ENDED at the contracts v0.5.3 re-pin (2026-10-01: the direct pin
  * advanced to `#v0.5.3` while installed ui v0.99.8 still speaks `#v0.5.2` — the
  * divergence class returned for the fourth time under the same law, re-ratified as a
  * fresh exact-match waiver keyed @v0.5.2, version AND sha of the hoisted 0.5.3@430981e
- * copy). The denominators below pin that
- * single-waiver reality.
+ * copy), and RETIRED AGAIN at the ui v0.99.9 re-pin (2026-10-03: ui v0.99.9 requests
+ * the direct pin `#v0.5.3` outright, measured via git show at cc931723 — the waiver's
+ * written law had then fired four times; byte-equality restored, map
+ * present-but-empty). The denominators below pin that
+ * zero-waiver reality.
  *
  * Like tests/unit/contractsPin.test.mjs (its S442 sibling) this is plain Node
  * ESM outside the TypeScript project, so `npm run typecheck` never sees it
@@ -94,20 +97,19 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
     expect(findings.some((f) => f.startsWith('request-vs-resolved:') && f.includes('@phlix/syncplay#v0.1.5'))).toBe(true);
   });
 
-  it('REGRESSION: flags contracts resolution drift on the root edge (rule 1) AND the ui edge (waiver drift), in every direction', () => {
-    // Since the contracts v0.5.3 re-pin the two contracts edges walk DIFFERENT laws:
-    // root declares `#v0.5.3` and walks PLAIN rule 1 (no override — the manifestVersion
-    // era is over for the whole @phlix/* set, both fields honest at their tags, measured
-    // via git show); ui v0.99.8 still declares `#v0.5.2` and walks the exact-match
-    // waiver keyed @v0.5.2, which pins version AND sha of the hoisted 0.5.3@430981e copy.
-    // Three hand-edits of the hoisted contracts node, each must go RED on BOTH edges:
+  it('REGRESSION: flags contracts resolution drift on BOTH edges via plain rule 1, in every direction', () => {
+    // Since the ui v0.99.9 re-pin BOTH contracts edges walk PLAIN rule 1: root and ui
+    // declare the identical `#v0.5.3` spec (byte-equality restored — the @v0.5.2 waiver
+    // retired per its own written law when ui v0.99.9 requested the direct pin outright,
+    // measured via git show at cc931723; no manifestVersion override anywhere in the set,
+    // both fields honest at their tags). Three hand-edits of the hoisted contracts node,
+    // each must go RED on BOTH edges:
     //  a) rolled back to the real v0.5.2 peel with that release's honest 0.5.2 field
-    //     (the behind direction — an honest snapshot of yesterday's tree: rule 1 flags
-    //     version 0.5.2≠0.5.3 on root; the waiver flags ratified-hoist-drift on ui);
-    //  b) falsely claiming a version the tag never shipped (0.4.7 — a dead skew word
-    //     from the v0.5.0/v0.5.1 era — at the current peel);
-    //  c) sha-only drift under the honest version (a same-field foreign commit: root
-    //     flags the peel naming, ui flags hoist drift since the sha no longer matches).
+    //     (the behind direction — an honest snapshot of yesterday's tree);
+    //  b) falsely claiming 0.4.7 at the current peel — a dead skew word from the
+    //     v0.5.0/v0.5.1 era;
+    //  c) sha-only drift under the honest version (a same-field foreign commit: the
+    //     peel-naming branch fires on both edges).
     const mutated = [
       { version: '0.5.2', resolved: 'git+ssh://git@github.com/detain/phlix-contracts.git#7afb6a9171c33c18a2303716516572a4dfc405d9' },
       { ...lock.packages['node_modules/@phlix/contracts'], version: '0.4.7' },
@@ -129,28 +131,31 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
         // Cases (a)/(b): wrong version line — rule 1 names the tag-derived truth.
         expect(rootEdge).toContain('pinned version line reads 0.5.3');
       }
-      // ui requests #v0.5.2 and rides the waiver — every hoist-copy mutation that
-      // lights root's rule-1 edge ALSO trips ratified-hoist-drift on the ui edge
-      // (the waiver pins version AND sha, so version drift, false-version, and sha
-      // drift are all detectable from either direction).
-      expect(
-        findings.some(
-          (f) =>
-            f.startsWith('ratified-hoist-drift:') &&
-            f.includes('node_modules/@phlix/ui requests @phlix/contracts#v0.5.2'),
-        ),
-      ).toBe(true);
+      // ui requests the SAME #v0.5.3 words since the v0.99.9 re-pin — the identical
+      // rule-1 edge must light on the ui edge too (mutating the single hoisted node
+      // provably reds both requesters).
+      const uiEdge = rv.find((f) => f.includes('node_modules/@phlix/ui requests @phlix/contracts#v0.5.3'));
+      expect(uiEdge).toBeDefined();
+      if (edit.version === CONTRACTS_HONEST_VERSION) {
+        expect(uiEdge).toContain('not the pinned v0.5.3 peel 430981e3b231a04c9464382642f54c2eeea33c1c');
+      } else {
+        expect(uiEdge).toContain('pinned version line reads 0.5.3');
+      }
+      // The waiver map is empty — a ratified-hoist finding can never be produced in
+      // the equality era (dead-waiver-silent law).
+      expect(findings.some((f) => f.startsWith('ratified-hoist-drift:'))).toBe(false);
     }
   });
 
   it('REGRESSION: flags the ui lock version line moving off the honest tag-derived truth', () => {
-    // v0.99.8 re-pin truth: the tag manifest's `version` field is HONEST — it reads
-    // 0.99.8 at a580410f (measured via git show), carrying the honest-field era that
+    // v0.99.9 re-pin truth: the tag manifest's `version` field is HONEST — it reads
+    // 0.99.9 at cc931723 (measured via git show), carrying the honest-field era that
     // OPENED at v0.99.7, when the exact-match `manifestVersion: '0.99.4'` override's
-    // written retirement condition fired at bc1d29bf. Rule 1 checks the lock against the
-    // plain TAG-derived version, mirroring the contracts-row retirement at v0.5.2. Three
-    // hand-edits must go RED: a) the stale-manifest word 0.99.4 reviving the dead skew;
-    // b) the now-behind word 0.99.7; c) sha-only drift under
+    // written retirement condition fired at bc1d29bf and has held through v0.99.8/v0.99.9.
+    // Rule 1 checks the lock against the plain TAG-derived version, mirroring the
+    // contracts-row retirement at v0.5.2. Three hand-edits must go RED:
+    // a) the stale-manifest word 0.99.4 reviving the dead skew;
+    // b) the now-behind word 0.99.8; c) sha-only drift under
     // the honest version. Mutation-proof, exact-match — a hand-revived override cannot
     // make any of these pass, because EXPECTED['@phlix/ui'].manifestVersion is gone
     // (asserted in the zero-override test below).
@@ -164,25 +169,25 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
       staleWord.some(
         (f) =>
           f.startsWith('request-vs-resolved:') &&
-          f.includes('@phlix/ui#v0.99.8') &&
+          f.includes('@phlix/ui#v0.99.9') &&
           f.includes('version 0.99.4') &&
-          f.includes('pinned version line reads 0.99.8'),
+          f.includes('pinned version line reads 0.99.9'),
       ),
     ).toBe(true);
 
     const furtherBehind = structuredClone(lock);
     furtherBehind.packages['node_modules/@phlix/ui'] = {
       ...furtherBehind.packages['node_modules/@phlix/ui'],
-      version: '0.99.7',
+      version: '0.99.8',
     };
     const ahead = walk(furtherBehind).findings;
     expect(
       ahead.some(
         (f) =>
           f.startsWith('request-vs-resolved:') &&
-          f.includes('@phlix/ui#v0.99.8') &&
-          f.includes('version 0.99.7') &&
-          f.includes('pinned version line reads 0.99.8'),
+          f.includes('@phlix/ui#v0.99.9') &&
+          f.includes('version 0.99.8') &&
+          f.includes('pinned version line reads 0.99.9'),
       ),
     ).toBe(true);
 
@@ -196,8 +201,8 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
       shaFindings.some(
         (f) =>
           f.startsWith('request-vs-resolved:') &&
-          f.includes('@phlix/ui#v0.99.8') &&
-          f.includes('not the pinned v0.99.8 peel a580410fd2e6667cf6cb0d450faca3108f679812'),
+          f.includes('@phlix/ui#v0.99.9') &&
+          f.includes('not the pinned v0.99.9 peel cc931723a93bfb4fdbc891ba0e691ca0b24910b4'),
       ),
     ).toBe(true);
   });
@@ -221,46 +226,42 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
   });
 });
 
-describe('contracts v0.5.3 re-pin — the waiver era is back: one exact-match ratified hoist, divergence re-ratified', () => {
-  it('RATIFIED_HOISTS carries exactly one entry: the fourth firing of the written law', () => {
-    // The equality era that opened at the ui v0.99.7 re-pin (carried at v0.99.8) ENDED
-    // at the contracts v0.5.3 re-pin (2026-10-01): the direct pin advanced to `#v0.5.3`
-    // while installed ui v0.99.8 still requests `#v0.5.2` (measured via git show at
-    // a580410f AND off the installed node's manifest). The divergence class — fourth
-    // era under this same law (v0.4.5-era, v0.4.7-era, v0.5.1-era, now v0.5.2-era) —
-    // returned as a fresh exact-match entry (version AND sha of the hoisted
-    // 0.5.3@430981e copy), never a wildcard. It dies when a ui tag requests
-    // `#v0.5.3`-or-newer outright.
-    expect(Object.keys(RATIFIED_HOISTS)).toEqual([
-      'node_modules/@phlix/ui>@phlix/contracts@v0.5.2',
-    ]);
-    expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.5.2']).toEqual({
-      version: '0.5.3',
-      sha: '430981e3b231a04c9464382642f54c2eeea33c1c',
-    });
+describe('ui v0.99.9 re-pin — the waiver era is over again: zero ratified hoists, byte-equality restored', () => {
+  it('RATIFIED_HOISTS is empty: the written law fired its retirement condition a fourth time', () => {
+    // The divergence era that opened at the contracts v0.5.3 re-pin (2026-10-01) ENDED
+    // at the ui v0.99.9 re-pin (2026-10-03): ui v0.99.9 requests the direct pin
+    // `#v0.5.3` outright (measured via git show at cc931723), satisfying the waiver's
+    // written retirement condition — `#v0.5.3`-or-newer. The map stays present-but-empty,
+    // the steady-state monument of the equality eras (this retirement has now fired four
+    // times: v0.4.5-era → v0.99.2, v0.4.7-era → v0.99.6…v0.99.7, v0.5.2-edge era → the
+    // @v0.5.2 waiver's retirement here at v0.99.9).
+    expect(RATIFIED_HOISTS).toEqual({});
+    expect(Object.keys(RATIFIED_HOISTS)).toEqual([]);
   });
 
-  it('dead exception keys stay dead, the ui contracts line is byte-pinned to #v0.5.2 (NOT root), the ui override stays retired, and the walk is clean', () => {
+  it('dead exception keys stay dead, the ui contracts line is byte-pinned to root (#v0.5.3, equality restored), the ui override stays retired, and the walk is clean', () => {
     // Mutation-proof in BOTH directions on the ui→contracts edge: the older divergence
-    // words (#v0.4.5, #v0.4.7, #v0.5.1) must never silently return as live map keys.
-    // ui's request is byte-DIVERGENT from the root's (#v0.5.2 vs #v0.5.3 — the
-    // equality-era .toBe law inverts), and the hoisted 0.5.3@430981e copy satisfies
-    // root under plain rule 1 and ui under the waiver, with zero walk findings. On the
-    // ui row itself: the `manifestVersion: '0.99.4'` override stays retired — its
-    // written condition fired when the v0.99.7 tag normalized the field (measured via
-    // git show), carried at v0.99.8 — so a hand-revived override goes red here and the
-    // lock's honest 0.99.8 version line is checked against the tag-derived truth.
+    // words (#v0.4.5, #v0.4.7, #v0.5.1) and the just-retired waiver key (@v0.5.2) must
+    // never silently return as live map keys. ui's request is now byte-IDENTICAL to the
+    // root's (#v0.5.3 both — the divergence-era `.not.toBe` law flips back to `.toBe`),
+    // the single hoisted 0.5.3@430981e copy satisfies BOTH edges under plain rule 1,
+    // with zero walk findings. On the ui row itself: the `manifestVersion: '0.99.4'`
+    // override stays retired — its written condition fired when the v0.99.7 tag
+    // normalized the field (measured via git show), carried through v0.99.8/v0.99.9 —
+    // so a hand-revived override goes red here and the lock's honest 0.99.9 version
+    // line is checked against the tag-derived truth.
     expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.4.5']).toBeUndefined();
     expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.4.7']).toBeUndefined();
     expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.5.1']).toBeUndefined();
+    expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.5.2']).toBeUndefined();
     const ui = lock.packages['node_modules/@phlix/ui'];
-    expect(ui.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.5.2');
-    expect(ui.dependencies['@phlix/contracts']).not.toBe(pkg.dependencies['@phlix/contracts']);
+    expect(ui.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.5.3');
+    expect(ui.dependencies['@phlix/contracts']).toBe(pkg.dependencies['@phlix/contracts']);
     const uiRow = EXPECTED['@phlix/ui'];
-    expect(uiRow.tag).toBe('v0.99.8');
-    expect(uiRow.sha).toBe('a580410fd2e6667cf6cb0d450faca3108f679812');
+    expect(uiRow.tag).toBe('v0.99.9');
+    expect(uiRow.sha).toBe('cc931723a93bfb4fdbc891ba0e691ca0b24910b4');
     expect(uiRow.manifestVersion).toBeUndefined();
-    expect(ui.version).toBe('0.99.8');
+    expect(ui.version).toBe('0.99.9');
     const { findings } = walk(lock);
     expect(findings).toEqual([]);
   });
