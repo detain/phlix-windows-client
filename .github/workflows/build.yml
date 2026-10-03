@@ -157,8 +157,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Allow-list gate (same contract as test.yml's Security audit step): raw
+      # exit code, no `|| true`. Passes only while every reported advisory id is
+      # explicitly justified in scripts/audit-gate.mjs's ALLOWED_ADVISORIES —
+      # today just GHSA-ch52-4w7c-c8xp (http-cache-semantics: no patched release
+      # exists, dev-chain-only reach via electron-builder, suggested downgrade
+      # provably regresses 1 critical + 2 highs). Any other advisory — or any
+      # unread/failed audit — reddens this job, which blocks the build →
+      # release-latest/release chain below by `needs:`.
       - name: Run npm audit
-        run: npm audit --audit-level=high
+        run: node scripts/audit-gate.mjs
 
   build:
     name: Build for ${{ matrix.target }}

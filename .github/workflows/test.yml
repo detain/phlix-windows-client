@@ -85,8 +85,18 @@ jobs:
       # 633863a: Test job red on audit alone, 0 tests executed). As the final
       # step it still hard-gates the job on both matrix legs while tests,
       # coverage and the best-effort uploads always report first.
+      #
+      # `node scripts/audit-gate.mjs` wraps `npm audit --json --audit-level=high`
+      # with an explicit, justified advisory allow-list (currently only
+      # GHSA-ch52-4w7c-c8xp: http-cache-semantics has no patched release, the
+      # advisory is dev-chain-only via electron-builder, and npm's suggested
+      # fix provably regresses 1 critical + 2 highs). Raw exit code — no
+      # `|| true`, no continue-on-error: the gate fails the job on any other
+      # advisory AND on any neutering vector (unparseable/unknown audit output,
+      # failed spawn, broken audit reporting zero advisories). See the script
+      # header for the upstream-watch removal plan.
       - name: Security audit
-        run: npm audit --audit-level=high
+        run: node scripts/audit-gate.mjs
 
   lint:
     name: Lint

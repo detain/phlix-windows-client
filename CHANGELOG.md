@@ -7,6 +7,51 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed — CI audit gate: justified allow-list wrapper for GHSA-ch52-4w7c-c8xp (release channel re-green) — 2026-10-03
+
+- **Why:** master CI has been RED solely on the `npm audit --audit-level=high`
+  steps (Test workflow's final audit step + Build workflow `Security Audit`),
+  which blocks the entire `build → release-latest`/`release` installer chain.
+  The single root advisory is GHSA-ch52-4w7c-c8xp (http-cache-semantics
+  max-stale cross-user response disclosure, CWE-524, CVSS 7.5). npm's human
+  output counts 8 high findings — those are 8 affected PACKAGES
+  (`http-cache-semantics` plus its dev-chain carriers up through
+  `electron-builder`) tracing to this ONE advisory id.
+- **Why no fix-at-source exists (adversarially proven, not assumed):** every
+  published http-cache-semantics release (`<=4.2.0`, latest included) is
+  vulnerable — there is no patched target to bump to. npm's suggested
+  `audit fix --force` downgrades electron-builder 26.8.1→26.5.0, proven to
+  regress 1 critical + 2 highs; overrides are impossible under the caret
+  range. The advisory reaches ONLY the dev chain
+  (`electron-builder → app-builder-lib → @electron/get → got → cacheable-request
+  → http-cache-semantics`) with zero prod parents — nothing shipped to users.
+- **What shipped instead (Option A):** `scripts/audit-gate.mjs` runs
+  `npm audit --json --audit-level=high` and passes ONLY while the reported
+  advisory-id set is a subset of an explicit `ALLOWED_ADVISORIES` allow-list
+  (today: exactly the ch52 entry, printed with its full justification on every
+  run). Both workflow steps now call `node scripts/audit-gate.mjs` with raw
+  exit codes — no `|| true`, no continue-on-error — and stay LAST in job order.
+  The gate is STRICTER than the bare step it replaces: sub-high advisories also
+  reddened it before (npm's JSON lists them regardless of `--audit-level`) and
+  anti-neutering refuses ANY unread audit — unparseable JSON, unknown report
+  shape, failed spawn, or a nonzero exit reporting zero advisories all exit 2
+  (structural), never 0.
+- **Guarded by:** `tests/unit/audit-gate.test.mjs` — fixture matrix over the
+  pure `collectAdvisoryIds`/`decide` functions (clean→0, ch52-only→0,
+  ch52+intruder→1, garbage→2, empty-with-failed-exit→2, unnameable advisory→2,
+  case-insensitive id matching, v2-shape fallback) plus allow-list integrity
+  pins (exactly-one-entry, canonical-form key, non-empty justification).
+- **UPSTREAM WATCH (the removal plan):** the got 11.8.6 chain declares
+  `http-cache-semantics: ^4.0.0` (via cacheable-request), so the moment a
+  4.2.1+ (or any release outside the vulnerable range) lands,
+  `npm update http-cache-semantics && node scripts/audit-gate.mjs` clears it —
+  then DELETE the allow-list entry and the ch52 fixtures. Re-verify advisory
+  status by 2027-01-03: https://github.com/advisories/GHSA-ch52-4w7c-c8xp
+- **Gates (NPM_CONFIG_USERCONFIG=/dev/null):** `node scripts/audit-gate.mjs`
+  exit 0 against the live lock (allowed ch52, prints justification); vitest
+  453/453 (433 baseline + 20 new); vue-tsc 0, tsc -p tsconfig.main.json 0,
+  vue-tsc -p tsconfig.test.json 0, eslint 0; workflows YAML-parsed clean.
+
 ### Changed — re-pin `@phlix/ui` v0.99.8 → v0.99.9 (playlist create-contract fix; waiver retires, byte-equality era restored) — 2026-10-03
 
 - **Single ui pin advanced.** `package.json` re-pins `@phlix/ui` to the `v0.99.9` tag
