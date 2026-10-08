@@ -22,6 +22,7 @@ import {
 } from '../../scripts/audit-gate.mjs';
 
 const CH52 = 'GHSA-ch52-4w7c-c8xp';
+const HP3W = 'GHSA-hp3w-g68c-fv3c';
 
 /** v3 npm-audit advisory object for an arbitrary GHSA (url carries the id). */
 function advisory(ghsa, name = 'some-package', severity = 'high') {
@@ -99,12 +100,30 @@ describe('decide — pass verdicts', () => {
     expect(verdict.allowed).toEqual([]);
   });
 
-  it('passes the live ch52-only state and names it as allowed', () => {
+  it('passes a subset report (ch52 alone) and names it as allowed', () => {
     const verdict = decide({ exitCode: 1, stdout: json(v3Report({ 'http-cache-semantics': [advisory(CH52, 'http-cache-semantics')] })) });
     expect(verdict.code).toBe(EXIT_OK);
     expect(verdict.allowed).toEqual([CH52]);
     expect(ALLOWED_ADVISORIES.get(CH52).justification).toMatch(/UPSTREAM WATCH/);
     expect(ALLOWED_ADVISORIES.get(CH52).justification).toMatch(/Re-verify advisory status by 2027-01-03/);
+  });
+
+  it('passes the live ch52+hp3w state, each with its documented escape analysis', () => {
+    const verdict = decide({
+      exitCode: 1,
+      stdout: json(v3Report({
+        'http-cache-semantics': [advisory(CH52, 'http-cache-semantics')],
+        'sprintf-js': [advisory(HP3W, 'sprintf-js', 'moderate')],
+      })),
+    });
+    expect(verdict.code).toBe(EXIT_OK);
+    expect(verdict.allowed).toEqual([CH52, HP3W]);
+    const hp3w = ALLOWED_ADVISORIES.get(HP3W);
+    expect(hp3w.package).toBe('sprintf-js');
+    expect(hp3w.justification).toMatch(/optional/i);
+    expect(hp3w.justification).toMatch(/no patched release exists/);
+    expect(hp3w.justification).toMatch(/UPSTREAM WATCH/);
+    expect(hp3w.justification).toMatch(/Re-verify advisory status by 2027-01-03/);
   });
 
   it('matches allow-list entries case-insensitively (GHSA ids are case-insensitive by spec)', () => {
@@ -168,8 +187,8 @@ describe('decide — fail-loud verdicts', () => {
 });
 
 describe('allow-list integrity', () => {
-  it('contains EXACTLY the one justified ch52 entry — additions/removals must be a reviewed decision', () => {
-    expect([...ALLOWED_ADVISORIES.keys()]).toEqual([CH52]);
+  it('contains EXACTLY the two justified entries (ch52, hp3w) — additions/removals must be a reviewed decision', () => {
+    expect([...ALLOWED_ADVISORIES.keys()]).toEqual([CH52, HP3W]);
   });
 
   it('keys every entry in the canonical npm-reported GHSA form', () => {

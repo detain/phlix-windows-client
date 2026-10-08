@@ -14,7 +14,7 @@
  * advisory appears — at any severity, unlike the bare --audit-level=high step
  * this replaces, which silently passed sub-high findings.
  *
- * REACH (why this one advisory is acceptable): dev-chain-only. The path is
+ * REACH (why the ch52 advisory is acceptable): dev-chain-only. The path is
  * electron-builder → app-builder-lib → @electron/get → got → cacheable-request →
  * http-cache-semantics; the shipped app bundles none of it (package.json keeps
  * electron-builder in devDependencies; `npm audit --json` metadata reports zero
@@ -63,6 +63,31 @@ export const ALLOWED_ADVISORIES = new Map([
         'overrides impossible under the caret range. UPSTREAM WATCH: got 11.8.6 chain declares ' +
         '^4.0.0, so `npm update http-cache-semantics` clears it the moment 4.2.1+ lands — then ' +
         'REMOVE this entry. Re-verify advisory status by 2027-01-03.',
+    },
+  ],
+  [
+    'GHSA-hp3w-g68c-fv3c',
+    {
+      package: 'sprintf-js',
+      justification:
+        'dev-chain-only, reached solely through an OPTIONAL dependency (electron-builder -> ' +
+        'app-builder-lib -> @electron/get -> global-agent? -> roarr -> sprintf-js; @electron/get ' +
+        'declares global-agent as optionalDependencies ^3.0.0, npm installs it, nothing shipped ' +
+        'to users — zero prod parents); no patched release exists — every published version ' +
+        '<=1.1.3 is flagged and 1.1.3 is the LAST release ever published (2023), so no bump can ' +
+        'clear it; roarr >=3.2.0 drops the sprintf-js dependency entirely but is unreachable ' +
+        'from global-agent 3.0.0\'s declared range, and npm audit fix --force downgrades the ' +
+        'electron-builder toolchain (same regression class as the ch52 entry above — rejected). ' +
+        'The other advisories surfaced alongside it on the ubuntu-26.04 audit (shell-quote ' +
+        'CRITICAL GHSA-pqg4, source-map-js + @vue/server-renderer HIGH, postcss-selector-parser ' +
+        'MODERATE) ALL had patched targets and were cleared in-range by npm update — see the ' +
+        'lockfile commit this entry rides with; only this one has no escape but documentation. ' +
+        'UPSTREAM WATCH (the removal plan): app-builder-lib still declares @electron/get ' +
+        '^3.0.0 at the newest v26 tag (26.17.0); @electron/get 5.1.0 dropped global-agent ' +
+        'entirely. The moment app-builder-lib declares @electron/get >=5 (or roarr >=3.2 becomes ' +
+        'reachable): `npm update && node scripts/audit-gate.mjs`, then REMOVE this entry, its ' +
+        'justification, and the hp3w fixtures in tests/unit/audit-gate.test.mjs. Re-verify ' +
+        'advisory status by 2027-01-03: https://github.com/advisories/GHSA-hp3w-g68c-fv3c',
     },
   ],
 ]);
