@@ -29,7 +29,7 @@ env:
 jobs:
   lint:
     name: Lint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     steps:
       - name: Checkout code
@@ -49,7 +49,7 @@ jobs:
 
   typecheck:
     name: Type Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     steps:
       - name: Checkout code
@@ -75,7 +75,7 @@ jobs:
 
   test:
     name: Test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     steps:
       - name: Checkout code
@@ -107,7 +107,7 @@ jobs:
       # two legs independent so a Linux failure cannot cancel the Windows result.
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-26.04, windows-latest]
 
     steps:
       - name: Checkout code
@@ -129,7 +129,7 @@ jobs:
         run: npm run build
 
       - name: Run smoke test (Linux)
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-26.04'
         run: xvfb-run --auto-servernum npm run smoke
 
       - name: Run smoke test (Windows)
@@ -142,7 +142,7 @@ jobs:
   # Dependency updates are handled manually or via the tag workflow.
   audit:
     name: Security Audit
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     steps:
       - name: Checkout code
@@ -252,7 +252,7 @@ jobs:
     name: Version drift check
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     steps:
       - name: Checkout code
@@ -283,7 +283,7 @@ jobs:
     # bare, clickable installer.) Skipped on PRs and tag pushes (tags cut a
     # versioned release via the `release` job below).
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: write
 
@@ -345,7 +345,7 @@ jobs:
     # Only publish a GitHub Release on a version tag — master/PR builds just
     # upload installer artifacts (above) without cutting a release.
     if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: write
 

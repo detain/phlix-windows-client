@@ -21,7 +21,7 @@ jobs:
       # cancelled the Windows results whenever the Ubuntu leg failed).
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-26.04, windows-latest]
         node-version: [24.x]
 
     steps:
@@ -46,16 +46,16 @@ jobs:
       - name: Run tests with coverage
         run: npm test -- --coverage
         # NOTE: this MUST be matrix.os, not runner.os. `runner.os` evaluates to
-        # Linux/Windows/macOS and can NEVER equal 'ubuntu-latest', so the previous
+        # Linux/Windows/macOS and can NEVER equal 'ubuntu-26.04', so the previous
         # condition was always false and these three steps never ran once.
-        if: matrix.os == 'ubuntu-latest' && matrix.node-version == '24.x'
+        if: matrix.os == 'ubuntu-26.04' && matrix.node-version == '24.x'
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v6
         # NOTE: this MUST be matrix.os, not runner.os. `runner.os` evaluates to
-        # Linux/Windows/macOS and can NEVER equal 'ubuntu-latest', so the previous
+        # Linux/Windows/macOS and can NEVER equal 'ubuntu-26.04', so the previous
         # condition was always false and these three steps never ran once.
-        if: matrix.os == 'ubuntu-latest' && matrix.node-version == '24.x'
+        if: matrix.os == 'ubuntu-26.04' && matrix.node-version == '24.x'
         with:
           files: ./coverage/lcov.info
           # The coverage threshold (vitest, see vitest.config.mts) already gates
@@ -72,9 +72,9 @@ jobs:
         uses: codacy/codacy-coverage-reporter-action@v1
         continue-on-error: true
         # NOTE: this MUST be matrix.os, not runner.os. `runner.os` evaluates to
-        # Linux/Windows/macOS and can NEVER equal 'ubuntu-latest', so the previous
+        # Linux/Windows/macOS and can NEVER equal 'ubuntu-26.04', so the previous
         # condition was always false and these three steps never ran once.
-        if: matrix.os == 'ubuntu-latest' && matrix.node-version == '24.x'
+        if: matrix.os == 'ubuntu-26.04' && matrix.node-version == '24.x'
         with:
           api-token: ${{ secrets.CODACY_API_TOKEN }}
           coverage-reports: ./coverage/lcov.info
@@ -100,7 +100,7 @@ jobs:
 
   lint:
     name: Lint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     steps:
       - name: Checkout code
@@ -120,7 +120,7 @@ jobs:
 
   types:
     name: Type Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     steps:
       - name: Checkout code
@@ -154,7 +154,7 @@ jobs:
       # Windows leg (which has to download Electron + Playwright first).
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-26.04, windows-latest]
         node-version: [24.x]
 
     steps:
@@ -177,7 +177,7 @@ jobs:
         run: npm run build
 
       - name: Run smoke test (Linux)
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-26.04'
         run: xvfb-run --auto-servernum npm run smoke
 
       - name: Run smoke test (Windows)
