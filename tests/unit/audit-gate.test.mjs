@@ -2,12 +2,19 @@
  * @vitest-environment node
  *
  * Guard tests for scripts/audit-gate.mjs — the npm-audit allow-list gate wired
- * into .github/workflows/test.yml + build.yml. The gate exists because master CI
- * is red on GHSA-ch52-4w7c-c8xp (http-cache-semantics), an advisory with NO
- * patched release, reachable only through the electron-builder dev chain. It may
- * pass ONLY while every reported advisory id is explicitly allow-listed, and it
- * must fail LOUD on every neutering vector: unparseable JSON, unknown report
- * shape, a failed spawn, or a nonzero audit exit reporting zero advisories.
+ * into .github/workflows/test.yml + build.yml. The gate exists because the dev
+ * toolchain reports GHSA-hp3w-g68c-fv3c (sprintf-js), an advisory with NO
+ * patched release, reachable only through the electron-builder optional-dep
+ * chain — and being moderate severity, the bare --audit-level=high step would
+ * swallow it silently. It may pass ONLY while every reported advisory id is
+ * explicitly allow-listed, and it must fail LOUD on every neutering vector:
+ * unparseable JSON, unknown report shape, a failed spawn, or a nonzero audit
+ * exit reporting zero advisories.
+ *
+ * HISTORY: the founding entry was GHSA-ch52-4w7c-c8xp (http-cache-semantics);
+ * upstream 4.3.0 landed 2026-10-04 inside the declared ^4.0.0 range and the
+ * documented removal plan executed 2026-10-08 — the entry and its fixtures were
+ * deleted, and every "live reported advisory" role below is carried by hp3w.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -21,7 +28,6 @@ import {
   decide,
 } from '../../scripts/audit-gate.mjs';
 
-const CH52 = 'GHSA-ch52-4w7c-c8xp';
 const HP3W = 'GHSA-hp3w-g68c-fv3c';
 
 /** v3 npm-audit advisory object for an arbitrary GHSA (url carries the id). */
@@ -50,23 +56,28 @@ const json = (report) => JSON.stringify(report);
 
 describe('collectAdvisoryIds', () => {
   it('dedupes the eight affected electron-builder-chain packages down to the single real advisory', () => {
-    // Condensed from the live `npm audit --json` on master @ 344b9bb: npm counts
-    // 8 vulnerable PACKAGES but the advisory set is exactly one GHSA.
-    const chain = ['@electron/get', 'app-builder-lib', 'cacheable-request', 'dmg-builder',
-      'electron-builder', 'electron-builder-squirrel-windows', 'got'];
+    // Condensed from the live `npm audit --json` on master after http-cache-semantics
+    // 4.3.0 cleared ch52: npm counts 8 vulnerable PACKAGES but the advisory set is
+    // exactly one GHSA (hp3w), reached through the optional global-agent → roarr arm.
     const report = v3Report({
-      ...Object.fromEntries(chain.map((pkg) => [pkg, [pkg === 'electron-builder' ? 'got' : pkg]])),
-      'http-cache-semantics': [advisory(CH52, 'http-cache-semantics')],
+      '@electron/get': ['global-agent'],
+      'app-builder-lib': ['@electron/get', 'dmg-builder', 'electron-builder-squirrel-windows'],
+      'dmg-builder': ['app-builder-lib'],
+      'electron-builder': ['app-builder-lib', 'dmg-builder'],
+      'electron-builder-squirrel-windows': ['app-builder-lib'],
+      'global-agent': ['roarr'],
+      roarr: ['sprintf-js'],
+      'sprintf-js': [advisory(HP3W, 'sprintf-js', 'moderate')],
     });
-    expect([...collectAdvisoryIds(json(report))]).toEqual([CH52]);
+    expect([...collectAdvisoryIds(json(report))]).toEqual([HP3W]);
   });
 
   it('collects every distinct advisory id across packages', () => {
     const report = v3Report({
-      a: [advisory(CH52, 'a')],
+      a: [advisory(HP3W, 'a')],
       b: [advisory('GHSA-aaaa-bbbb-cccc', 'b'), 'a'],
     });
-    expect([...collectAdvisoryIds(json(report))].sort()).toEqual(['GHSA-aaaa-bbbb-cccc', CH52]);
+    expect([...collectAdvisoryIds(json(report))].sort()).toEqual(['GHSA-aaaa-bbbb-cccc', HP3W]);
   });
 
   it('falls back to a github_advisory_id field when the url lacks a GHSA path', () => {
@@ -75,8 +86,8 @@ describe('collectAdvisoryIds', () => {
   });
 
   it('reads the legacy v2 `advisories`-keyed shape', () => {
-    const report = { auditReportVersion: 2, advisories: { 100: { github_advisory_id: CH52, module_name: 'http-cache-semantics' } }, metadata: {} };
-    expect([...collectAdvisoryIds(json(report))]).toEqual([CH52]);
+    const report = { auditReportVersion: 2, advisories: { 100: { github_advisory_id: HP3W, module_name: 'sprintf-js' } }, metadata: {} };
+    expect([...collectAdvisoryIds(json(report))]).toEqual([HP3W]);
   });
 
   it('throws on unparseable output instead of guessing', () => {
@@ -100,24 +111,16 @@ describe('decide — pass verdicts', () => {
     expect(verdict.allowed).toEqual([]);
   });
 
-  it('passes a subset report (ch52 alone) and names it as allowed', () => {
-    const verdict = decide({ exitCode: 1, stdout: json(v3Report({ 'http-cache-semantics': [advisory(CH52, 'http-cache-semantics')] })) });
-    expect(verdict.code).toBe(EXIT_OK);
-    expect(verdict.allowed).toEqual([CH52]);
-    expect(ALLOWED_ADVISORIES.get(CH52).justification).toMatch(/UPSTREAM WATCH/);
-    expect(ALLOWED_ADVISORIES.get(CH52).justification).toMatch(/Re-verify advisory status by 2027-01-03/);
-  });
-
-  it('passes the live ch52+hp3w state, each with its documented escape analysis', () => {
+  it('passes the live hp3w-only state with its documented escape analysis', () => {
+    // The real master reading: npm exits 0 (moderate < --audit-level=high) while
+    // the JSON still names hp3w — the subset law allows it, `clean` stays false.
     const verdict = decide({
-      exitCode: 1,
-      stdout: json(v3Report({
-        'http-cache-semantics': [advisory(CH52, 'http-cache-semantics')],
-        'sprintf-js': [advisory(HP3W, 'sprintf-js', 'moderate')],
-      })),
+      exitCode: 0,
+      stdout: json(v3Report({ 'sprintf-js': [advisory(HP3W, 'sprintf-js', 'moderate')] })),
     });
     expect(verdict.code).toBe(EXIT_OK);
-    expect(verdict.allowed).toEqual([CH52, HP3W]);
+    expect(verdict.clean).toBe(false);
+    expect(verdict.allowed).toEqual([HP3W]);
     const hp3w = ALLOWED_ADVISORIES.get(HP3W);
     expect(hp3w.package).toBe('sprintf-js');
     expect(hp3w.justification).toMatch(/optional/i);
@@ -127,25 +130,37 @@ describe('decide — pass verdicts', () => {
   });
 
   it('matches allow-list entries case-insensitively (GHSA ids are case-insensitive by spec)', () => {
-    const verdict = decide({ exitCode: 1, stdout: json(v3Report({ a: [advisory(CH52.toUpperCase(), 'a')] })) });
+    const verdict = decide({ exitCode: 1, stdout: json(v3Report({ a: [advisory(HP3W.toUpperCase(), 'a')] })) });
     expect(verdict.code).toBe(EXIT_OK);
-    expect(verdict.allowed).toEqual([CH52]); // canonical key form surfaces downstream
+    expect(verdict.allowed).toEqual([HP3W]); // canonical key form surfaces downstream
   });
 });
 
 describe('decide — fail-loud verdicts', () => {
-  it('reddens when ch52 is joined by ANY new advisory', () => {
+  it('reddens when hp3w is joined by ANY new advisory — an id NOT on the one-entry allow-list exits 1', () => {
     const verdict = decide({
       exitCode: 1,
       stdout: json(v3Report({
-        'http-cache-semantics': [advisory(CH52, 'http-cache-semantics')],
+        'sprintf-js': [advisory(HP3W, 'sprintf-js', 'moderate')],
         evil: [advisory('GHSA-dead-beef-cafe', 'evil')],
       })),
     });
     expect(verdict.code).toBe(EXIT_VIOLATION);
     expect(verdict.unknown).toEqual(['GHSA-dead-beef-cafe']);
     expect(verdict.problems.join(' ')).toMatch(/NOT on the allow-list: GHSA-dead-beef-cafe/);
-    expect(verdict.allowed).toEqual([CH52]); // still reported for context
+    expect(verdict.allowed).toEqual([HP3W]); // still reported for context
+  });
+
+  it('rejects the cleared founding advisory too — re-adding ch52 to the report reddens the gate', () => {
+    // http-cache-semantics <=4.2.0 was fixed by taking 4.3.0 in-lockstep with this
+    // allow-list rotation; if the lock ever regresses and npm names ch52 again,
+    // the one-entry allow-list must NOT cover it.
+    const verdict = decide({
+      exitCode: 1,
+      stdout: json(v3Report({ 'http-cache-semantics': [advisory('GHSA-ch52-4w7c-c8xp', 'http-cache-semantics')] })),
+    });
+    expect(verdict.code).toBe(EXIT_VIOLATION);
+    expect(verdict.unknown).toEqual(['GHSA-ch52-4w7c-c8xp']);
   });
 
   it('reddens even when npm itself exits 0 below its --audit-level threshold (stricter than the bare step)', () => {
@@ -187,8 +202,8 @@ describe('decide — fail-loud verdicts', () => {
 });
 
 describe('allow-list integrity', () => {
-  it('contains EXACTLY the two justified entries (ch52, hp3w) — additions/removals must be a reviewed decision', () => {
-    expect([...ALLOWED_ADVISORIES.keys()]).toEqual([CH52, HP3W]);
+  it('contains EXACTLY the one justified entry (hp3w) — ch52 is removed for good, additions/removals must be a reviewed decision', () => {
+    expect([...ALLOWED_ADVISORIES.keys()]).toEqual([HP3W]);
   });
 
   it('keys every entry in the canonical npm-reported GHSA form', () => {

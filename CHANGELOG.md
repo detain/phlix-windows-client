@@ -7,6 +7,30 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — took `http-cache-semantics` 4.3.0: GHSA-ch52 allow-list removal plan executed — 2026-10-08
+
+- **What:** `npm update http-cache-semantics` rolled the dev-chain node
+  4.2.0 → 4.3.0 (published upstream 2026-10-04, inside cacheable-request
+  7.0.4's declared `^4.0.0` range — no parent version touched, lock diff is
+  the one node's version/resolved/integrity, proven idempotent under a real
+  `npm install`). The founding `GHSA-ch52-4w7c-c8xp` entry was deleted from
+  `scripts/audit-gate.mjs`'s `ALLOWED_ADVISORIES`, exactly as its own
+  UPSTREAM WATCH removal plan prescribed. `package.json` is untouched.
+- **Gate after-state:** `npm audit --json` on the updated lock reports ONLY
+  `GHSA-hp3w-g68c-fv3c` (sprintf-js 1.1.3 — still the last release ever
+  published, still no patched target). It stays allow-listed with its full
+  escape analysis and its 2027-01-03 re-verify date; its justification's
+  cross-reference to the (now-removed) ch52 entry was reworded to a historical
+  mention. Fail-loud/anti-neutering exit semantics are byte-ident.
+- **Fixtures rotated:** `tests/unit/audit-gate.test.mjs` re-grounded on the
+  LIVE hp3w 8-package chain (dedupe fixture), the exact-set law now pins
+  precisely `[GHSA-hp3w-g68c-fv3c]` (re-adding ch52 fails it), and ch52 gained
+  a dedicated fail-loud test proving a cleared advisory must NOT reappear on
+  the allow-list — if the lock ever regresses and npm names it again, the gate
+  reddens. Suite stays 21 tests (two pass cases consolidated; the ch52
+  must-stay-gone case added). Unknown-id → exit 1 and subset → exit 0 laws
+  remain load-bearing.
+
 ### Fixed — CI audit gate: justified allow-list wrapper for GHSA-ch52-4w7c-c8xp (release channel re-green) — 2026-10-03
 
 - **Why:** master CI has been RED solely on the `npm audit --audit-level=high`

@@ -2,34 +2,40 @@
  * audit-gate — npm-audit wrapper with an explicit, justified advisory allow-list.
  *
  * WHY THIS EXISTS:
- * `npm audit --audit-level=high` on master is red solely on GHSA-ch52-4w7c-c8xp
- * (http-cache-semantics max-stale cross-user response disclosure). That advisory
- * has NO patched target — every published release of http-cache-semantics
- * (<=4.2.0, latest included) is flagged — so no bump can clear it, and npm's own
- * suggested fix (electron-builder 26.5.0 downgrade) was adversarially PROVEN to
- * regress 1 critical + 2 highs. Overrides are impossible (the declaration is a
- * caret range deep in a git-pinned toolchain). The gate therefore ships as a
- * DOCUMENTED ALLOW-LIST: the audit passes only while the reported advisory-id set
- * is a subset of ALLOWED_ADVISORIES below, and turns red the moment ANY other
- * advisory appears — at any severity, unlike the bare --audit-level=high step
- * this replaces, which silently passed sub-high findings.
+ * The dev toolchain reports GHSA-hp3w-g68c-fv3c (sprintf-js). It has NO patched
+ * target — every published release (<=1.1.3, the LAST version ever published,
+ * 2023) is flagged — so no bump can clear it, and npm's own suggested fix
+ * (downgrading the electron-builder toolchain) was adversarially PROVEN to
+ * regress criticals in the founding ch52 era. Being moderate severity, the bare
+ * `npm audit --audit-level=high` step this gate replaces exits 0 WITHOUT even
+ * naming it. The gate is stricter: the audit passes only while the reported
+ * advisory-id set is a subset of ALLOWED_ADVISORIES below, and turns red the
+ * moment ANY other advisory appears — at any severity.
  *
- * REACH (why the ch52 advisory is acceptable): dev-chain-only. The path is
- * electron-builder → app-builder-lib → @electron/get → got → cacheable-request →
- * http-cache-semantics; the shipped app bundles none of it (package.json keeps
- * electron-builder in devDependencies; `npm audit --json` metadata reports zero
- * prod-path hits). 8 high "vulnerabilities" in npm's human output are 8 affected
- * PACKAGES traced to this ONE advisory id — the JSON-parse below dedupes by id.
+ * HISTORY: the gate was founded 2026-10-03 for GHSA-ch52-4w7c-c8xp
+ * (http-cache-semantics <=4.2.0, no patched release then). Upstream published
+ * 4.3.0 on 2026-10-04 — inside cacheable-request's declared `^4.0.0` range —
+ * and the documented removal plan ran on 2026-10-08: the lock took 4.3.0, the
+ * ch52 entry was deleted, its fixtures rotated. hp3w is the sole survivor.
  *
- * UPSTREAM WATCH (the removal plan — Option B):
- * cacheable-request declares `http-cache-semantics: ^4.0.0` (got 11.8.6 chain),
- * so ANY fixed release (4.2.1+, if the advisory ever receives one) is inside the
- * declared range. The moment one exists:
- *     npm update http-cache-semantics && node scripts/audit-gate.mjs
- * then DELETE this allow-list entry, its justification, and the ch52 fixtures in
+ * REACH (why the hp3w advisory is acceptable): dev-chain-only, reached solely
+ * through an OPTIONAL dependency: electron-builder → app-builder-lib →
+ * @electron/get → global-agent? → roarr → sprintf-js. The shipped app bundles
+ * none of it (package.json keeps electron-builder in devDependencies; `npm
+ * audit --json` metadata reports zero prod-path hits). The 8 "vulnerabilities"
+ * in npm's human output are 8 affected PACKAGES traced to this ONE advisory id
+ * — the JSON-parse below dedupes by id.
+ *
+ * UPSTREAM WATCH (the hp3w removal plan):
+ * app-builder-lib declares @electron/get ^3.0.0 at the newest v26 tag (26.17.0);
+ * @electron/get 5.1.0 dropped global-agent entirely, and roarr >=3.2.0 drops
+ * sprintf-js (unreachable from global-agent 3.0.0's range). The moment
+ * app-builder-lib declares @electron/get >=5 (or roarr >=3.2 becomes reachable):
+ *     npm update && node scripts/audit-gate.mjs
+ * then DELETE this allow-list entry, its justification, and the hp3w fixtures in
  * tests/unit/audit-gate.test.mjs (which pin the entry's existence and flip red
  * when it is removed while the advisory still reports).
- * Re-verify status by 2027-01-03: https://github.com/advisories/GHSA-ch52-4w7c-c8xp
+ * Re-verify status by 2027-01-03: https://github.com/advisories/GHSA-hp3w-g68c-fv3c
  *
  * ANTI-NEUTERING LAW:
  * A silent gate is worse than no gate. The script distinguishes "audit clean"
@@ -52,20 +58,6 @@ export const EXIT_STRUCTURE_ERROR = 2;
 // every run. Subset semantics: ANY advisory id missing here reddens the gate.
 export const ALLOWED_ADVISORIES = new Map([
   [
-    'GHSA-ch52-4w7c-c8xp',
-    {
-      package: 'http-cache-semantics',
-      justification:
-        'dev-chain-only (electron-builder -> @electron/get -> got -> cacheable-request -> ' +
-        'http-cache-semantics; zero prod parents, nothing shipped to users); no patched ' +
-        'release exists — every published version <=4.2.0 is flagged and npm audit fix --force ' +
-        'downgrades electron-builder to 26.5.0, which regresses 1 critical + 2 highs (rejected); ' +
-        'overrides impossible under the caret range. UPSTREAM WATCH: got 11.8.6 chain declares ' +
-        '^4.0.0, so `npm update http-cache-semantics` clears it the moment 4.2.1+ lands — then ' +
-        'REMOVE this entry. Re-verify advisory status by 2027-01-03.',
-    },
-  ],
-  [
     'GHSA-hp3w-g68c-fv3c',
     {
       package: 'sprintf-js',
@@ -77,7 +69,8 @@ export const ALLOWED_ADVISORIES = new Map([
         '<=1.1.3 is flagged and 1.1.3 is the LAST release ever published (2023), so no bump can ' +
         'clear it; roarr >=3.2.0 drops the sprintf-js dependency entirely but is unreachable ' +
         'from global-agent 3.0.0\'s declared range, and npm audit fix --force downgrades the ' +
-        'electron-builder toolchain (same regression class as the ch52 entry above — rejected). ' +
+        'electron-builder toolchain (same regression class as the historical ch52/' +
+        'http-cache-semantics downgrade fix — proven to regress criticals — rejected). ' +
         'The other advisories surfaced alongside it on the ubuntu-26.04 audit (shell-quote ' +
         'CRITICAL GHSA-pqg4, source-map-js + @vue/server-renderer HIGH, postcss-selector-parser ' +
         'MODERATE) ALL had patched targets and were cleared in-range by npm update — see the ' +
