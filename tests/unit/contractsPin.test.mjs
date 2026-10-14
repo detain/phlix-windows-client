@@ -15,8 +15,10 @@
  * installed ui v0.99.8 requested, so the second describe flipped to the eab9a82-era
  * DIVERGENCE law (ui line byte-pinned to its own `#v0.5.2` words, .not-to-root
  * inversion, one exact-match waiver entry). The divergence era itself ENDED at the
- * ui v0.99.9 re-pin (2026-10-03, cc931723): ui v0.99.9 requests `#v0.5.3` outright, so
- * the second describe is back to the EQUALITY law (ui line byte-pinned to the SAME
+ * ui v0.99.9 re-pin (2026-10-03, cc931723): ui v0.99.9 requests `#v0.5.3` outright —
+ * and the v0.99.10 re-pin (2026-10-14, 18c76eb0) CARRIES that equality era unchanged
+ * (same `#v0.5.3` request measured via git show), so
+ * the second describe stays on the EQUALITY law (ui line byte-pinned to the SAME
  * `#v0.5.3` words as root, .toBe, zero waivers — installed tree as the witness). Like
  * tests/unit/copyright.test.mjs it lives outside the
  * TypeScript project (tsconfig.json's `include` is ["src/renderer"]), so
@@ -87,7 +89,7 @@ describe('S442 — @phlix/contracts direct pin is current', () => {
   });
 });
 
-describe('ui v0.99.9 re-pin — equality era restored: ui line byte-pinned to the same #v0.5.3 words as root, zero waivers, zero nested copies', () => {
+describe('ui v0.99.9 re-pin, carried at v0.99.10 — equality era: ui line byte-pinned to the same #v0.5.3 words as root, zero waivers, zero nested copies', () => {
   // History of this guard: ui's manifest once requested contracts #v0.4.5 while
   // this repo's direct pin rode higher — the divergence S442 documented and the
   // lockwalk ratified until W82 retired that exception; the W85 dual-repin restored
@@ -95,8 +97,9 @@ describe('ui v0.99.9 re-pin — equality era restored: ui line byte-pinned to th
   // returned at the ui v0.99.6 re-pin, ended again at the contracts v0.5.2 re-pin,
   // ENDED A THIRD TIME at the ui v0.99.7 re-pin (carried at v0.99.8), the divergence
   // era returned at the contracts v0.5.3 re-pin (2026-10-01), and the DIVERGENCE ERA
-  // ITSELF ENDED at this ui v0.99.9 re-pin (2026-10-03): installed ui v0.99.9 requests
-  // `#v0.5.3` outright (measured via git show at cc931723 AND independently off the
+  // ITSELF ENDED at the ui v0.99.9 re-pin (2026-10-03) and CARRIED at v0.99.10
+  // (2026-10-14): installed ui requests
+  // `#v0.5.3` outright (measured via git show at cc931723 and 18c76eb0 AND independently off the
   // installed node_modules/@phlix/ui/package.json), byte-equality with the direct pin
   // restored — the @v0.5.2 waiver retired per its own written law, map
   // present-but-empty. npm dedupes ui's edge onto the single hoisted 0.5.3 copy (no
@@ -108,7 +111,7 @@ describe('ui v0.99.9 re-pin — equality era restored: ui line byte-pinned to th
   it("keeps ui's lock-declared contracts request byte-pinned to its manifest's #v0.5.3 words — EQUAL to root", () => {
     const ui = lock.packages['node_modules/@phlix/ui'];
     expect(ui.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.5.3');
-    // Equality era: ui v0.99.9 declares the identical words to the root pin — the
+    // Equality era (carried at v0.99.10): ui declares the identical words to the root pin — the
     // divergence-era .not.toBe law flips back to .toBe, and a hand-split of the two
     // lines (or a ui downgrade to a #v0.5.2-era tag without re-ratifying a waiver)
     // goes red on both lines until this file is re-measured.
@@ -119,7 +122,8 @@ describe('ui v0.99.9 re-pin — equality era restored: ui line byte-pinned to th
     expect(installed.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.5.3');
     expect(installed.dependencies['@phlix/syncplay']).toBe('github:detain/phlix-syncplay#v0.1.5');
     // The equality era's steady state: zero ratified hoists — the waiver's written
-    // retirement condition (#v0.5.3-or-newer requested outright) fired at ui v0.99.9.
+    // retirement condition (#v0.5.3-or-newer requested outright) fired at ui v0.99.9
+    // and holds at v0.99.10.
     expect(RATIFIED_HOISTS).toEqual({});
     expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.5.2']).toBeUndefined();
     expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.4.7']).toBeUndefined();

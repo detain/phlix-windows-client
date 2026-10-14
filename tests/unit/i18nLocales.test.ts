@@ -197,10 +197,11 @@ describe('ui bundles — key-set identity and installed coverage', () => {
     }
   });
 
-  it('bundle key set EQUALS the installed pin (gap closed at v0.99.5, carried at v0.99.6/v0.99.7, re-carried via the v0.99.8 re-vendor and held at the v0.99.9 npm-pin bump)', () => {
+  it('bundle key set EQUALS the installed pin (gap closed at v0.99.5, carried at v0.99.6/v0.99.7, re-carried via the v0.99.8 re-vendor and held at the v0.99.9/v0.99.10 npm-pin bumps)', () => {
     // Vendor @ a580410f (tag v0.99.8) vs installed @phlix/ui (v0.99.8 at the
-    // re-vendor; v0.99.9 since the 2026-10-03 npm-pin bump — the locale tree is
-    // byte-identical across the two peels, so equality holds untouched) — the
+    // re-vendor; v0.99.9 since the 2026-10-03 npm-pin bump and v0.99.10 since
+    // the 2026-10-14 one — the locale tree is
+    // byte-identical across those peels, so equality holds untouched) — the
     // dc1df7d5-era 7-key ahead-of-pin gap closed at the v0.99.5 re-pin and the
     // equality CARRIED untouched at v0.99.6 and v0.99.7 (tree f8b090a6,
     // messages.ts d0094683 unmoved across those peels, 14/14 PIN hashes riding

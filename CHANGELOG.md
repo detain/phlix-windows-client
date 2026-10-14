@@ -7,6 +7,52 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — ui re-pin v0.99.9 → v0.99.10 — 2026-10-14
+
+- **Pin advance (release-cascade lane, ui tag v0.99.10).** `@phlix/ui` bumped
+  `#v0.99.9` → `#v0.99.10` (annotated tag `5898effc`, peels to `18c76eb0` —
+  `lockwalk --live` re-peeled off the remote at this lane; strict-equality pin
+  law holds; manifest `version` field honestly reads `0.99.10`, the
+  honest-field era carrying through its fourth release). The release carries
+  the **plugin-themes fix** (ui `c81480b9`): the themes store's fetch no
+  longer short-circuits on an EMPTY-string apiBase — an absent base is
+  same-origin, so the loader gates on `null` and hosted Appearance pickers
+  discover plugin themes. The renderer proof lands in `main-*.js`:
+  `if(c!==null&&!(a.value&&!d))` wrapping the `get("/api/v1/themes",…)` call
+  site (the old `if(c!==""&&…)` short-circuit is gone; the chunk's single
+  remaining `!==""&&!` match is an unrelated numeric-coercion helper).
+- **Equality era CARRIED unchanged:** ui v0.99.10's manifest still requests
+  contracts `#v0.5.3` and syncplay `#v0.1.5` outright (measured via git show
+  at `18c76eb0`), so `RATIFIED_HOISTS` stays `{}` per its written law, both
+  contracts edges keep walking plain rule 1, and zero waiver keys move. The
+  era wording in `lockwalk.mjs`/`contractsPin.test.mjs`/`lockwalk.test.mjs`
+  rotated v0.99.9 → v0.99.10 with history kept verbatim; the ui-drift
+  mutation catchers re-pin the finding strings (stale word 0.99.4 kept dead,
+  behind word advanced to 0.99.9, sha literal to the `18c76eb0` peel).
+- **Lock churn is the minimal declared-delta shape:** exactly 3+/3− — the
+  root edge, and in the `node_modules/@phlix/ui` node the `version`/`resolved`
+  pair (the contracts edge under ui unchanged — v0.99.10 rotated no
+  dependency edges). The hand-edit was PROVEN idempotent under real npm
+  (11.19.0 / node 24.20.0 docker venue, `NPM_CONFIG_USERCONFIG=/dev/null`):
+  `npm install --package-lock-only` left the md5 byte-identical. `npm ci`
+  clean; vendored identity: installed `dist/phlix-ui.js` sha256
+  `deff3847…c056c8c7` == the tag's tree blob == the server/hub/tizen lanes'
+  install.
+- **i18n law untouched.** `scripts/sync-ui-locale-bundles.mjs` needs no
+  re-run: `src/i18n/locales/` + `messages.ts` are byte-unchanged between
+  `a580410f` (the vendor PIN) and `18c76eb0` (`git diff` empty — v0.99.10's
+  src delta is themes/composables + its own test tree, all outside the
+  vendored set), so the six bundles and the PIN manifest stay true;
+  docs/i18n.md and the i18nLocales era wording carried the bump.
+- **Gates:** `vue-tsc --noEmit` 0; `tsc -p tsconfig.main.json` 0;
+  `eslint .` 0; `node scripts/audit-gate.mjs` clean (allow-list posture
+  unchanged from the GHSA-ch52 removal); `node scripts/lockwalk.mjs --live`
+  4 edges / 0 mismatches (live tag-object peels re-verified); `vitest run`
+  **35 files / 454 total** (453 passed + 1 skipped — the sibling-clone-only
+  i18n pristine-source leg, skipped exactly as CI does; baseline held);
+  `npm run build` 0 (preload assert OK). CI re-runs every leg incl. the
+  windows electron smoke.
+
 ### Changed — took `http-cache-semantics` 4.3.0: GHSA-ch52 allow-list removal plan executed — 2026-10-08
 
 - **What:** `npm update http-cache-semantics` rolled the dev-chain node

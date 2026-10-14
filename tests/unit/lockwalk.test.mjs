@@ -27,8 +27,9 @@
  * copy), and RETIRED AGAIN at the ui v0.99.9 re-pin (2026-10-03: ui v0.99.9 requests
  * the direct pin `#v0.5.3` outright, measured via git show at cc931723 — the waiver's
  * written law had then fired four times; byte-equality restored, map
- * present-but-empty). The denominators below pin that
- * zero-waiver reality.
+ * present-but-empty), CARRIED at the ui v0.99.10 re-pin (2026-10-14: ui v0.99.10
+ * still requests `#v0.5.3` outright, measured via git show at 18c76eb0).
+ * The denominators below pin that zero-waiver reality.
  *
  * Like tests/unit/contractsPin.test.mjs (its S442 sibling) this is plain Node
  * ESM outside the TypeScript project, so `npm run typecheck` never sees it
@@ -98,7 +99,8 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
   });
 
   it('REGRESSION: flags contracts resolution drift on BOTH edges via plain rule 1, in every direction', () => {
-    // Since the ui v0.99.9 re-pin BOTH contracts edges walk PLAIN rule 1: root and ui
+    // Since the ui v0.99.9 re-pin (carried at v0.99.10) BOTH contracts edges walk
+    // PLAIN rule 1: root and ui
     // declare the identical `#v0.5.3` spec (byte-equality restored — the @v0.5.2 waiver
     // retired per its own written law when ui v0.99.9 requested the direct pin outright,
     // measured via git show at cc931723; no manifestVersion override anywhere in the set,
@@ -131,7 +133,8 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
         // Cases (a)/(b): wrong version line — rule 1 names the tag-derived truth.
         expect(rootEdge).toContain('pinned version line reads 0.5.3');
       }
-      // ui requests the SAME #v0.5.3 words since the v0.99.9 re-pin — the identical
+      // ui requests the SAME #v0.5.3 words since the v0.99.9 re-pin (carried at
+      // v0.99.10) — the identical
       // rule-1 edge must light on the ui edge too (mutating the single hoisted node
       // provably reds both requesters).
       const uiEdge = rv.find((f) => f.includes('node_modules/@phlix/ui requests @phlix/contracts#v0.5.3'));
@@ -148,14 +151,16 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
   });
 
   it('REGRESSION: flags the ui lock version line moving off the honest tag-derived truth', () => {
-    // v0.99.9 re-pin truth: the tag manifest's `version` field is HONEST — it reads
-    // 0.99.9 at cc931723 (measured via git show), carrying the honest-field era that
+    // v0.99.10 re-pin truth (equality era carried from v0.99.9): the tag manifest's
+    // `version` field is HONEST — it reads
+    // 0.99.10 at 18c76eb0 (measured via git show), carrying the honest-field era that
     // OPENED at v0.99.7, when the exact-match `manifestVersion: '0.99.4'` override's
-    // written retirement condition fired at bc1d29bf and has held through v0.99.8/v0.99.9.
+    // written retirement condition fired at bc1d29bf and has held through
+    // v0.99.8/v0.99.9/v0.99.10.
     // Rule 1 checks the lock against the plain TAG-derived version, mirroring the
     // contracts-row retirement at v0.5.2. Three hand-edits must go RED:
     // a) the stale-manifest word 0.99.4 reviving the dead skew;
-    // b) the now-behind word 0.99.8; c) sha-only drift under
+    // b) the now-behind word 0.99.9; c) sha-only drift under
     // the honest version. Mutation-proof, exact-match — a hand-revived override cannot
     // make any of these pass, because EXPECTED['@phlix/ui'].manifestVersion is gone
     // (asserted in the zero-override test below).
@@ -169,25 +174,25 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
       staleWord.some(
         (f) =>
           f.startsWith('request-vs-resolved:') &&
-          f.includes('@phlix/ui#v0.99.9') &&
+          f.includes('@phlix/ui#v0.99.10') &&
           f.includes('version 0.99.4') &&
-          f.includes('pinned version line reads 0.99.9'),
+          f.includes('pinned version line reads 0.99.10'),
       ),
     ).toBe(true);
 
     const furtherBehind = structuredClone(lock);
     furtherBehind.packages['node_modules/@phlix/ui'] = {
       ...furtherBehind.packages['node_modules/@phlix/ui'],
-      version: '0.99.8',
+      version: '0.99.9',
     };
     const ahead = walk(furtherBehind).findings;
     expect(
       ahead.some(
         (f) =>
           f.startsWith('request-vs-resolved:') &&
-          f.includes('@phlix/ui#v0.99.9') &&
-          f.includes('version 0.99.8') &&
-          f.includes('pinned version line reads 0.99.9'),
+          f.includes('@phlix/ui#v0.99.10') &&
+          f.includes('version 0.99.9') &&
+          f.includes('pinned version line reads 0.99.10'),
       ),
     ).toBe(true);
 
@@ -201,8 +206,8 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
       shaFindings.some(
         (f) =>
           f.startsWith('request-vs-resolved:') &&
-          f.includes('@phlix/ui#v0.99.9') &&
-          f.includes('not the pinned v0.99.9 peel cc931723a93bfb4fdbc891ba0e691ca0b24910b4'),
+          f.includes('@phlix/ui#v0.99.10') &&
+          f.includes('not the pinned v0.99.10 peel 18c76eb0a74463344beec4781e756e97c83f0666'),
       ),
     ).toBe(true);
   });
@@ -226,12 +231,13 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
   });
 });
 
-describe('ui v0.99.9 re-pin — the waiver era is over again: zero ratified hoists, byte-equality restored', () => {
+describe('ui v0.99.9 re-pin carried at v0.99.10 — the waiver era stays over: zero ratified hoists, byte-equality holds', () => {
   it('RATIFIED_HOISTS is empty: the written law fired its retirement condition a fourth time', () => {
     // The divergence era that opened at the contracts v0.5.3 re-pin (2026-10-01) ENDED
     // at the ui v0.99.9 re-pin (2026-10-03): ui v0.99.9 requests the direct pin
     // `#v0.5.3` outright (measured via git show at cc931723), satisfying the waiver's
-    // written retirement condition — `#v0.5.3`-or-newer. The map stays present-but-empty,
+    // written retirement condition — `#v0.5.3`-or-newer; the v0.99.10 re-pin CARRIES
+    // that state (same request measured via git show at 18c76eb0). The map stays present-but-empty,
     // the steady-state monument of the equality eras (this retirement has now fired four
     // times: v0.4.5-era → v0.99.2, v0.4.7-era → v0.99.6…v0.99.7, v0.5.2-edge era → the
     // @v0.5.2 waiver's retirement here at v0.99.9).
@@ -247,8 +253,9 @@ describe('ui v0.99.9 re-pin — the waiver era is over again: zero ratified hois
     // the single hoisted 0.5.3@430981e copy satisfies BOTH edges under plain rule 1,
     // with zero walk findings. On the ui row itself: the `manifestVersion: '0.99.4'`
     // override stays retired — its written condition fired when the v0.99.7 tag
-    // normalized the field (measured via git show), carried through v0.99.8/v0.99.9 —
-    // so a hand-revived override goes red here and the lock's honest 0.99.9 version
+    // normalized the field (measured via git show), carried through v0.99.8/v0.99.9/
+    // v0.99.10 —
+    // so a hand-revived override goes red here and the lock's honest 0.99.10 version
     // line is checked against the tag-derived truth.
     expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.4.5']).toBeUndefined();
     expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.4.7']).toBeUndefined();
@@ -258,10 +265,10 @@ describe('ui v0.99.9 re-pin — the waiver era is over again: zero ratified hois
     expect(ui.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.5.3');
     expect(ui.dependencies['@phlix/contracts']).toBe(pkg.dependencies['@phlix/contracts']);
     const uiRow = EXPECTED['@phlix/ui'];
-    expect(uiRow.tag).toBe('v0.99.9');
-    expect(uiRow.sha).toBe('cc931723a93bfb4fdbc891ba0e691ca0b24910b4');
+    expect(uiRow.tag).toBe('v0.99.10');
+    expect(uiRow.sha).toBe('18c76eb0a74463344beec4781e756e97c83f0666');
     expect(uiRow.manifestVersion).toBeUndefined();
-    expect(ui.version).toBe('0.99.9');
+    expect(ui.version).toBe('0.99.10');
     const { findings } = walk(lock);
     expect(findings).toEqual([]);
   });

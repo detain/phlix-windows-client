@@ -112,24 +112,25 @@ const NESTED_NODE_RE = /\/node_modules\/@phlix\/[\w-]+$/;
 
 // Single resolutions: package -> the tag this repo standardizes on and
 // the commit that tag peels to (re-verified against the live remotes via
-// `git ls-remote ... refs/tags/<tag>^{}` on 2026-10-03, ui v0.99.9 re-pin):
+// `git ls-remote ... refs/tags/<tag>^{}` on 2026-10-14, ui v0.99.10 re-pin):
 //   phlix-contracts v0.5.3 -> 430981e3  (annotated tag object eb90e6d; its manifest `version` field is
 //                                         HONEST - reads 0.5.3 at the tag (measured via git show; npm 12.0.2
 //                                         accordingly writes lock version 0.5.3), CARRYING the normalization
 //                                         the v0.5.2 release commit ac669ca opened, so the `manifestVersion`
 //                                         override stays RETIRED and the contracts row walks the plain
 //                                         tag-derived version. Since the ui v0.99.9 re-pin (2026-10-03) the
-//                                         equality era is RESTORED: ui v0.99.9's manifest requests `#v0.5.3`
-//                                         outright (measured via git show at cc931723) - both the root->contracts
+//                                         equality era is RESTORED and CARRIED at v0.99.10: ui's manifest
+//                                         requests `#v0.5.3` outright (measured via git show at cc931723 and
+//                                         again at 18c76eb0) - both the root->contracts
 //                                         and ui->contracts edges walk plain rule 1 onto the one hoisted
 //                                         0.5.3@430981e copy; the RATIFIED_HOISTS waiver retired per its own
 //                                         written law (see rule 2))
-//   phlix-syncplay  v0.1.5 -> b82d4f36  (unchanged; ui v0.99.9 still requests #v0.1.5, measured via git show)
-//   phlix-ui        v0.99.9 -> cc931723  (annotated tag object c7130f70; its manifest `version` field stays
-//                                         HONEST - reads 0.99.9 at the tag (measured via git show; the
+//   phlix-syncplay  v0.1.5 -> b82d4f36  (unchanged; ui v0.99.10 still requests #v0.1.5, measured via git show)
+//   phlix-ui        v0.99.10 -> 18c76eb0  (annotated tag object 5898effc; its manifest `version` field stays
+//                                         HONEST - reads 0.99.10 at the tag (measured via git show; the
 //                                         version-field alignment law has held since v0.99.7, when the
 //                                         `manifestVersion: '0.99.4'` skew override's own written retirement
-//                                         condition fired at bc1d29bf; v0.99.8 and now v0.99.9 CARRY it) -
+//                                         condition fired at bc1d29bf; v0.99.8, v0.99.9 and now v0.99.10 CARRY it) -
 //                                         the ui row keeps walking the plain tag-derived version and that
 //                                         override stays RETIRED, mirroring the contracts-row retirement at
 //                                         v0.5.2. No manifestVersion override is active anywhere now; the
@@ -144,7 +145,7 @@ export const EXPECTED = {
     // 0.5.3 at 430981e, measured via git show; the normalization the v0.5.2 release commit
     // ac669ca opened carries through), so this row walks the plain tag-derived version. The
     // override MECHANISM stays armed for a future stale-field tag; none is active — the ui row
-    // retired its own at v0.99.7 (field honest at bc1d29bf) and v0.99.8/v0.99.9 carry it.
+    // retired its own at v0.99.7 (field honest at bc1d29bf) and v0.99.8/v0.99.9/v0.99.10 carry it.
     repo: 'git+ssh://git@github.com/detain/phlix-contracts.git',
   },
   '@phlix/syncplay': {
@@ -153,13 +154,13 @@ export const EXPECTED = {
     repo: 'git+ssh://git@github.com/detain/phlix-syncplay.git',
   },
   '@phlix/ui': {
-    tag: 'v0.99.9',
-    sha: 'cc931723a93bfb4fdbc891ba0e691ca0b24910b4',
-    // v0.99.9 re-pin (2026-10-03): the honest-field era OPENED at v0.99.7, when the
+    tag: 'v0.99.10',
+    sha: '18c76eb0a74463344beec4781e756e97c83f0666',
+    // v0.99.10 re-pin (2026-10-14): the honest-field era OPENED at v0.99.7, when the
     // `manifestVersion: '0.99.4'` skew override's own written condition fired (field
-    // re-normalized to 0.99.7 at bc1d29bf, measured via git show). v0.99.8 carried it;
-    // the v0.99.9 tag CARRIES it too — reads 0.99.9 at cc931723 (measured via git show;
-    // npm writes lock version 0.99.9) — so this row keeps walking the plain
+    // re-normalized to 0.99.7 at bc1d29bf, measured via git show). v0.99.8, v0.99.9 and
+    // now the v0.99.10 tag CARRY it — reads 0.99.10 at 18c76eb0 (measured via git show;
+    // npm writes lock version 0.99.10) — so this row keeps walking the plain
     // tag-derived version; the override stays RETIRED. No manifestVersion
     // override is active anywhere now; the MECHANISM stays armed for a future
     // stale-field tag.
