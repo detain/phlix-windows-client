@@ -7,6 +7,63 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed — stop fabricating the update feed: electron-builder's authentic latest.yml + blockmaps ride the release — 2026-10-29
+
+- **Why:** review `windows__crossfe` M-WINDOWS-05 (M1). The release job in
+  `.github/workflows/build.yml` hand-wrote `artifacts/latest.yml` with
+  `sha256:`/`target:` fields where electron-updater's `UpdateInfo` contract is
+  base64 `sha512` (+ `size`, + blockmap), discarded the schema-correct
+  `release/latest.yml` that electron-builder itself emits during the nsis leg
+  (`build.publish` is the GitHub provider — the file was built, uploaded by
+  nobody), invented `latest-windows.yml` for the appx leg (no code path reads
+  an APPX feed on Windows — `NsisUpdater` is the consumer, and appx only emits
+  update metadata when `electronUpdaterAware` is set; it isn't), and shipped
+  zero `.exe.blockmap` assets, so differential downloads were impossible even
+  in principle. `git log -S latest.yml` shows the hand-write (2bb876c) carried
+  no pinned reason — it was ignorance of the builder output, not a deliberate
+  discard.
+- **What:** deleted both hand-write steps (and the `{f}.sha256` sidecars only
+  they consumed). The build job's artifact upload now carries
+  `release/latest.yml` and `release/*.blockmap` (the nsis leg produces them;
+  unmatched patterns in the appx leg are tolerated exactly as the existing
+  `release/*.appx` non-match in the nsis leg is), and the versioned release
+  attaches builder's `artifacts/nsis/latest.yml` +
+  `artifacts/nsis/*.exe.blockmap` verbatim next to the installer. A new
+  fail-loud **Verify the updater feed** step gates `Create Release`: the feed
+  must exist, match the tag version, carry `sha512:`/`files:`/a space-free
+  `path:`, and contain no `sha256:`/`target:` — so a missing or fabricated
+  feed reddens the release instead of warning-and-skipping.
+- **Name law (config, not cat):** `build.nsis.artifactName` is now pinned to
+  `${productName}-Setup-${version}.${ext}`. Proven against this repo's live
+  `latest` release the same day: the space-carrying default name is stored by
+  GitHub with dots (`Phlix.Setup.1.0.0.exe`), while builder's GitHub feed url
+  and electron-updater's space→dash request both ask for the **dashed** form —
+  404 on every updater download (HEAD probes: dot form 302, dash form 404,
+  space form 404). A space-free template makes feed url, on-disk file, stored
+  asset name and updater request path one string. The README download table,
+  the checksum-verification snippet (its "search for 'Phlix Setup'" quirk is
+  obsolete), and the Release Process asset list were cured to match; the
+  rolling `latest` release re-rolls with the new names on the next master
+  push.
+- **Pins:** new `tests/unit/updateFeedWorkflow.test.mjs` (9 laws) — 7 of them
+  red at parent `1fa7694` (measured), the other 2 pin pre-existing config
+  contracts (GitHub publish provider, appx updater-unawareness) so a future
+  config edit cannot silently break the cure. The verification step itself
+  enforces runtime shape on CI.
+- **Honest residual:** the tag-triggered chain still has never executed (zero
+  `v*` tags — same disclosure as the 2026-10-29 chain repair above); the first
+  real tag push is the end-to-end proving run for feed download + sha512 +
+  differential update. A full local `electron-builder --win nsis` dry-run to
+  capture builder's `latest.yml` bytes is environment-blocked on this Linux
+  host (makensis argv locale issue cleared with `LC_ALL=C.UTF-8`, then
+  `spawn wine ENOENT`); the feed schema the pins assert was instead derived
+  from the installed `app-builder-lib@26.17.0` source
+  (`publish/updateInfoBuilder.js`, `targets/nsis/NsisTarget.js`,
+  `targets/differentialUpdateInfoBuilder.js`) and cross-checked against
+  `electron-updater@6`'s `GitHubProvider.resolveFiles`. No `src/` change: the
+  updater consumes the feed exclusively through the `autoUpdater` events
+  already wired in `src/main/index.ts`.
+
 ### Fixed — clicking the app after close-to-tray restores the window — 2026-10-29
 
 - **Why:** review `windows__casualgamer` M-WINDOWS-03 — close-to-tray is the

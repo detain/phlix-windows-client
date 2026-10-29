@@ -227,6 +227,15 @@ jobs:
           sha256sum *.exe *.appx *.nupkg > SHA256SUMS.txt 2>/dev/null || echo "No artifacts found" >&2
 
       - name: Upload artifacts
+        # The nsis leg's release/ also carries electron-builder's own updater
+        # feed (latest.yml, sha512 schema) and the installer's .blockmap used
+        # for differential downloads — both must reach the versioned release
+        # verbatim (M-WINDOWS-05: the feed was previously hand-fabricated in
+        # the release job from a sha256 the updater cannot consume). The appx
+        # leg emits no feed (electronUpdaterAware is unset), and unmatched
+        # patterns are tolerated by upload-artifact as long as the set is
+        # non-empty — exactly how *.appx never matching in the nsis leg today
+        # still uploads.
         uses: actions/upload-artifact@v7
         with:
           name: phlix-windows-${{ matrix.target }}
@@ -234,17 +243,24 @@ jobs:
             release/*.exe
             release/*.appx
             release/*.nupkg
+            release/*.blockmap
+            release/latest.yml
             release/SHA256SUMS.txt
           if-no-files-found: error
 
   # ─── updater note ─────────────────────────────────────────────────────────────
-  # allowPrerelease is NOT set in this repo. The updater feed (latest.yml) follows
-  # tagged releases only and is generated at release time. If @phlix/ui (the
-  # consuming package) implements its own electron-updater auto-updater consumption,
-  # allowPrerelease: false would be set there — this repo only hosts the installer
-  # artifacts and the feed. For reference, electron-updater's autoUpdater options
-  # (allowPrerelease, autoDownload, etc.) are consumed by the client at runtime,
-  # not defined in the feed itself.
+  # The updater feed is electron-builder's OWN release/latest.yml (sha512
+  # schema), generated during the nsis packaging leg because package.json
+  # build.publish is the GitHub provider, carried through the artifact upload
+  # verbatim, and attached only to the versioned tag release below — never to
+  # the rolling `latest` prerelease. The client itself pins the update policy:
+  # src/main/index.ts sets autoUpdater.allowPrerelease = false, so the rolling
+  # prerelease serves downloads only. Feed url ↔ GitHub asset name ↔ the
+  # provider's dash-normalized download path are one string by the space-free
+  # nsis.artifactName law in package.json (M-WINDOWS-05: this workflow used to
+  # hand-write a sha256 look-alike no updater can verify). If @phlix/ui (the
+  # consuming package) ever ships its own auto-updater, it overrides these
+  # choices there — this repo hosts the installer artifacts and the feed.
 
   # ─── version-check ────────────────────────────────────────────────────────────
   # Runs before any release job. Fails if package.json version does not match
@@ -395,58 +411,47 @@ jobs:
 
       - name: Generate SHA256 checksums
         id: sha256
+        # Human-readable integrity companion for the release page. The
+        # updater-facing integrity data is electron-builder's own sha512 in
+        # artifacts/nsis/latest.yml (carried through the build artifact
+        # upload); the per-file {f}.sha256 sidecars the old fabricated-feed
+        # step consumed are gone with it (M-WINDOWS-05).
         # Only nsis + appx targets are configured (package.json "build"), so no
         # .nupkg is ever produced — unmatched globs would pass the literal
         # pattern to sha256sum and fail the step under bash -e.
         run: |
           cd artifacts
           sha256sum nsis/*.exe appx/*.appx > SHA256SUMS.txt
-          # Also write individual {file}.sha256 files for use in latest.yml
-          for f in nsis/*.exe; do
-            sha256sum "$f" | awk '{print $1}' > "${f}.sha256"
-          done
 
-      - name: Generate latest.yml for NSIS (electron-updater)
+      - name: Verify the updater feed is electron-builder's own
+        # Fail-loud gate replacing the old hand-written feed-generation steps
+        # (which fabricated a sha256 NSIS feed + an APPX alias feed).
+        # electron-builder's nsis leg writes release/latest.yml — the authentic
+        # update metadata (version/path/sha512/files, plus blockMapSize for
+        # differential downloads), because build.publish is the GitHub provider
+        # — alongside the installer's .blockmap; the build job uploads both
+        # verbatim.
+        # electron-updater's GitHub provider requests this asset by name from
+        # the release and verifies downloads against its sha512; a hand-rolled
+        # sha256 look-alike is metadata it cannot check. If the builder config
+        # ever stops emitting the feed, or a fabricated shape reappears, the
+        # release fails HERE instead of shipping unverifiable metadata — or,
+        # worse, softprops warning-and-skipping a missing file silently.
         run: |
-          VERSION="${{ steps.version.outputs.VERSION }}"
-          EXE=$(ls artifacts/nsis/*.exe | head -1)
-          EXE_NAME=$(basename "$EXE")
-          EXE_SHA256=$(cat "${EXE}.sha256")
-          RELEASE_DATE=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
-          cat > artifacts/latest.yml << YML
-          version: ${VERSION}
-          releaseDate: "${RELEASE_DATE}"
-          path: https://github.com/detain/phlix-windows-client/releases/download/v${VERSION}/${EXE_NAME}
-          sha256: ${EXE_SHA256}
-          files:
-            - url: https://github.com/detain/phlix-windows-client/releases/download/v${VERSION}/${EXE_NAME}
-              sha256: ${EXE_SHA256}
-              target: nsis
-          YML
-          cat artifacts/latest.yml
-
-      - name: Generate latest-windows.yml for APPX (electron-updater)
-        run: |
-          VERSION="${{ steps.version.outputs.VERSION }}"
-          APPX=$(ls artifacts/appx/*.appx 2>/dev/null | head -1 || true)
-          if [[ -f "$APPX" ]]; then
-            APPX_NAME=$(basename "$APPX")
-            APPX_SHA256=$(sha256sum "$APPX" | awk '{print $1}')
-            RELEASE_DATE=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
-            cat > artifacts/latest-windows.yml << YML
-          version: ${VERSION}
-          releaseDate: "${RELEASE_DATE}"
-          path: https://github.com/detain/phlix-windows-client/releases/download/v${VERSION}/${APPX_NAME}
-          sha256: ${APPX_SHA256}
-          files:
-            - url: https://github.com/detain/phlix-windows-client/releases/download/v${VERSION}/${APPX_NAME}
-              sha256: ${APPX_SHA256}
-              target: appx
-          YML
-            cat artifacts/latest-windows.yml
-          else
-            echo "No APPX artifact found — skipping latest-windows.yml"
+          set -e
+          VERSION='${{ steps.version.outputs.VERSION }}'
+          test -f artifacts/nsis/latest.yml
+          ls artifacts/nsis/*.exe.blockmap > /dev/null
+          grep -q "^version: ${VERSION}$" artifacts/nsis/latest.yml
+          grep -Eq '^sha512: [A-Za-z0-9+/=]+$' artifacts/nsis/latest.yml
+          grep -Eq '^path: "?[A-Za-z0-9._-]+"?$' artifacts/nsis/latest.yml
+          grep -Eq '^files:' artifacts/nsis/latest.yml
+          if grep -Eq 'sha256:|target:' artifacts/nsis/latest.yml; then
+            echo 'ERROR: latest.yml carries fabricated-schema fields (sha256:/target:) — not electron-builder output' >&2
+            exit 1
           fi
+          echo 'Updater feed verified (electron-builder sha512 schema, space-free url — see the nsis.artifactName law in package.json):'
+          cat artifacts/nsis/latest.yml
 
       - name: Create Release
         uses: softprops/action-gh-release@v3
@@ -454,12 +459,18 @@ jobs:
           draft: false
           prerelease: ${{ contains(steps.version.outputs.VERSION, 'beta') || contains(steps.version.outputs.VERSION, 'alpha') }}
           generate_release_notes: true
+          # Authentic NSIS updater triad: installer + its .blockmap (differential
+          # downloads) + builder's latest.yml — the feed electron-updater's
+          # GitHub provider fetches from the release by that exact asset name.
+          # The old APPX alias feed is gone: appx is not an updater target on
+          # Windows (NsisUpdater is) and never wrote a feed unless
+          # electronUpdaterAware is set (it isn't) — no code path ever read it.
           files: |
             artifacts/nsis/*.exe
+            artifacts/nsis/*.exe.blockmap
+            artifacts/nsis/latest.yml
             artifacts/nsis/SHA256SUMS.txt
             artifacts/appx/*.appx
             artifacts/SHA256SUMS.txt
-            artifacts/latest.yml
-            artifacts/latest-windows.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

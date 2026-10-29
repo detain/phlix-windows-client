@@ -47,7 +47,7 @@ Pick the asset that fits:
 
 | Asset | What it is | Use it if |
 |-------|-----------|-----------|
-| **`Phlix.Setup.1.0.0.exe`** ([direct download](https://github.com/detain/phlix-windows-client/releases/download/latest/Phlix.Setup.1.0.0.exe)) | NSIS desktop installer — per-user, no admin rights needed, lets you choose the install folder | you are almost everyone else |
+| **`Phlix-Setup-1.0.0.exe`** ([direct download](https://github.com/detain/phlix-windows-client/releases/download/latest/Phlix-Setup-1.0.0.exe)) | NSIS desktop installer — per-user, no admin rights needed, lets you choose the install folder | you are almost everyone else |
 | **`Phlix.1.0.0.appx`** | APPX package for Store/sideload distribution | you know why you want this — installing an unsigned `.appx` requires a trusted certificate or Developer Mode; prefer the `.exe` otherwise |
 | **`SHA256SUMS.txt`** | SHA-256 hashes of both installers | you want to verify the download (optional) |
 
@@ -68,16 +68,16 @@ the file is malicious, and there is no “verified publisher” here. To proceed
    release page into the same folder, then run both lines in PowerShell:
 
    ```powershell
-   $expected = (Select-String -Path .\SHA256SUMS.txt -Pattern 'Phlix Setup').Line.Split(' ')[0]
-   (Get-FileHash .\Phlix.Setup.1.0.0.exe -Algorithm SHA256).Hash.ToLower() -eq $expected
+   $expected = (Select-String -Path .\SHA256SUMS.txt -Pattern 'Phlix-Setup').Line.Split(' ')[0]
+   (Get-FileHash .\Phlix-Setup-1.0.0.exe -Algorithm SHA256).Hash.ToLower() -eq $expected
    ```
 
-   `True` means the bytes match. Comparing by eye instead, mind two format quirks the
+   `True` means the bytes match. Comparing by eye instead, mind the two format quirks the
    snippet above absorbs: `Get-FileHash` prints UPPERCASE hex while `SHA256SUMS.txt` is
    lowercase — the digits must agree, not the case (that is what `.ToLower()` normalizes);
-   and the installer’s line is labelled with its **build-time name**, `nsis/Phlix Setup
-   1.0.0.exe` — spaces and a directory prefix — which is the same asset you downloaded as
-   `Phlix.Setup.1.0.0.exe`. Search the file for “Phlix Setup”, not for the asset name.
+   and the installer's line in `SHA256SUMS.txt` is keyed by its staging path,
+   `nsis/Phlix-Setup-1.0.0.exe` — the file name itself is identical to the asset you
+   downloaded (the `nsis/` prefix is the only addition).
 2. In the SmartScreen dialog, click the small **“More info”** link.
 3. Click **“Run anyway”**.
 
@@ -315,7 +315,7 @@ The project uses GitHub Actions for continuous integration:
    - Run ESLint, vue-tsc, tsc -p tsconfig.main.json, vitest, smoke tests (Linux + Windows), and the dependency audit allow-list gate (`scripts/audit-gate.mjs`) before packaging
    - Build the NSIS and APPX packages
    - Verify the tag version matches `package.json` (drift fails the release)
-   - Create the GitHub Release with `SHA256SUMS.txt`, `latest.yml`, and `latest-windows.yml` attached
+   - Create the GitHub Release with the NSIS + APPX installers, `SHA256SUMS.txt`, and — attached verbatim, never hand-written — electron-builder's own `latest.yml` updater feed plus the installer's `.blockmap` (differential downloads)
 
 > **Note:** The tag-triggered chain was repaired on 2026-10-29 (see CHANGELOG — the
 > release job had two deterministically-failing steps and had never executed, as no
