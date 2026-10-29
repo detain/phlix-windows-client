@@ -35,6 +35,9 @@
  * |   | sentence AND its docblock literal still        | moves (policy flips) OR README drops the        |
  * |   | names the gate as blocking ONLY explicit       | end-user truth it mirrors - rewrite the         |
  * |   | below-min reports; unreported servers boot     | copy in the same commit (docs-follow-producers) |
+ * | 8 | Troubleshooting's "Ensure Node.js X+ is        | README's advice OR package.json engines.node    |
+ * |   | installed" bullet matches the MAJOR derived    | drifts apart — a doc-following dev would land   |
+ * |   | from package.json engines.node (M-WINDOWS-21)  | on a version the repo itself rejects            |
  *
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
@@ -47,6 +50,7 @@ const PROJECT_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const README = readFileSync(join(PROJECT_ROOT, 'README.md'), 'utf-8');
 const PKG = JSON.parse(readFileSync(join(PROJECT_ROOT, 'package.json'), 'utf-8')) as {
   version: string;
+  engines: { node: string };
   build: { productName: string; nsis: { artifactName: string } };
 };
 const WORKFLOW = readFileSync(join(PROJECT_ROOT, '.github', 'workflows', 'build.yml'), 'utf-8');
@@ -192,5 +196,27 @@ describe('End-user install story tracks shipped release reality (M-WINDOWS-19)',
       'pre-1.1.0 server without the version endpoint boots a degraded app instead of ' +
       'showing the too-old screen.'
     ).toContain('fails open');
+  });
+
+  // -- 8. Troubleshooting Node advice == engines floor (M-WINDOWS-21) ----------
+  it('troubleshooting Node bullet matches the package.json engines floor', () => {
+    const enginesMajor = /^>=(\d+)\./.exec(PKG.engines.node)?.[1];
+    expect(
+      enginesMajor,
+      `package.json engines.node is "${PKG.engines.node}" — not the ">=MAJOR.MINOR.PATCH" ` +
+      'shape this pin derives from. Re-read the floor and update BOTH sides of this pin.'
+    ).toBeTruthy();
+    const bullet = /- Ensure Node\.js (\d+)\+ is installed/.exec(README);
+    expect(
+      bullet,
+      'README\'s "App doesn\'t start" troubleshooting lost its Node.js install bullet — ' +
+      'restore it pointing at the engines floor (a dev on a too-old Node gets EBADENGINE, ' +
+      'exactly the advice defect M-WINDOWS-21 cured).'
+    ).toBeTruthy();
+    expect(
+      bullet?.[1],
+      `README troubleshooting advises Node ${bullet?.[1]}+ but package.json engines.node ` +
+      `requires ${PKG.engines.node} — the doc sends devs to a version the repo rejects.`
+    ).toBe(enginesMajor);
   });
 });

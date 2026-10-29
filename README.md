@@ -395,7 +395,7 @@ copy (Features + What Works bullets, how-to steps), and retire the pins together
 ### Common Issues
 
 **App doesn't start:**
-- Ensure Node.js 18+ is installed
+- Ensure Node.js 24+ is installed (the repo's `engines.node` requires `>=24.0.0` — see Prerequisites)
 - Run `npm install` to install dependencies
 - Check console for error messages
 

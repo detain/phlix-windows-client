@@ -7,6 +7,30 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Docs — M-WINDOWS-21: troubleshooting Node floor to engines truth + stale-version sweep — 2026-10-29
+
+- **Why:** review `windows__writer` M21 — the "App doesn't start" troubleshooting list
+  advised "Ensure Node.js 18+ is installed", a version the repo itself rejects:
+  package.json `engines.node` is `>=24.0.0` and both CI workflows run `24.x`
+  (test.yml matrix, build.yml `NODE_VERSION`). A dev following the doc on Node 18 hits
+  EBADENGINE and the failures the bullet claims to cure.
+- **Cure:** README's bullet corrected to Node 24+ naming the engines floor. Whole-tree
+  family sweep (README, docs/×8, DEVELOPER.md, workflows; no CONTRIBUTING.md exists):
+  the only other Node-version literals are truthful (README badge `>=24`, Prerequisites
+  `>=24.0.0`), honest historical prose (CHANGELOG venue notes, CALIBER_LEARNINGS
+  EBADENGINE gotchas — untouched per law), the end-user "you do not need Node.js" line
+  (true), CI matrix pins (untouched per law), and the caliber skills' own
+  "Caliber requires Node.js >= 20" floor (external tool scope, satisfied by 24 —
+  untouched). Sole wrong-advice site was README:398.
+- **Pin #8 (red-on-parent, measured):** `installStoryStatus.test.ts` gained
+  "troubleshooting Node bullet matches the package.json engines floor" — derives the
+  MAJOR from `engines.node` (not a re-literal) and compares to the README bullet. On
+  parent bytes it reddens exactly once with the "advises Node 18+ … requires >=24.0.0"
+  message (stash-probed); at head it passes 8/8 in-file.
+- **Gates:** vitest FULL serial (`--no-file-parallelism`) 52 files / **654 passed**
+  (653-era + 1 exact); `vue-tsc --noEmit` 0; `tsc -p tsconfig.main.json --noEmit` 0;
+  eslint on the touched test 0. Build N/A (docs + test only).
+
 ### Docs — M-WINDOWS-20: clone+cd install sequence to real repo dir + dir-name sweep — 2026-10-29
 
 - **Why:** review `windows__writer` M2 — the from-source install sequence failed when
