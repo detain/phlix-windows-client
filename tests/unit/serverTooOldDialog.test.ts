@@ -173,8 +173,8 @@ describe('showServerTooOldDialog (main-process too-old-server surface)', () => {
     const source = readFileSync(path.join(PROJECT_ROOT, 'src', 'main', 'index.ts'), 'utf8');
     const handler = source.match(/ipcMain\.handle\('app:check-server-version'[\s\S]*?\n\}\);/);
     expect(handler, 'app:check-server-version handler block').not.toBeNull();
-    expect(handler[0]).toMatch(/const result = await checkMinServerVersion\(apiBase\);/);
-    expect(handler[0]).toMatch(/if \(!result\.compatible\) \{\s*showServerTooOldDialog\(result\);\s*\}/);
-    expect(handler[0]).toMatch(/return result;/);
+    expect(handler![0]).toMatch(/const result = await checkMinServerVersion\(apiBase\);/);
+    expect(handler![0]).toMatch(/if \(!result\.compatible\) \{\s*showServerTooOldDialog\(result\);\s*\}/);
+    expect(handler![0]).toMatch(/return result;/);
   });
 });

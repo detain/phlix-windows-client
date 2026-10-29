@@ -312,7 +312,7 @@ describe('tray/second-instance restore wiring (M-WINDOWS-03)', () => {
       { title: 't', body: 'b', clickAction: '/library' } as unknown
     );
     expect(shown).toBe(true);
-    const clickHandler = tracks.notificationClickHandlers.at(-1);
+    const clickHandler = tracks.notificationClickHandlers[tracks.notificationClickHandlers.length - 1];
     expect(clickHandler).toBeDefined();
 
     clickHandler!();
@@ -328,7 +328,7 @@ describe('tray/second-instance restore wiring (M-WINDOWS-03)', () => {
     const handler = tracks.ipcHandlers.get('notification:show');
 
     await handler!({} as unknown, { title: 't', body: 'b' } as unknown);
-    tracks.notificationClickHandlers.at(-1)!();
+    tracks.notificationClickHandlers[tracks.notificationClickHandlers.length - 1]!();
 
     expect(win.calls).toEqual(['restore', 'show', 'focus']);
   });
@@ -341,7 +341,7 @@ describe('tray/second-instance restore wiring (M-WINDOWS-03)', () => {
     const handler = tracks.ipcHandlers.get('notification:show');
 
     await handler!({} as unknown, { title: 't', body: 'b', clickAction: '/library' } as unknown);
-    const clickHandler = tracks.notificationClickHandlers.at(-1);
+    const clickHandler = tracks.notificationClickHandlers[tracks.notificationClickHandlers.length - 1];
 
     // The old body ran mainWindow?.show() straight — on a destroyed window
     // that throws (BrowserWindow docs: touching a destroyed window throws
