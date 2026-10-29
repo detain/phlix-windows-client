@@ -63,7 +63,11 @@ const ORIGINAL_MAIN_PROCESS_STRINGS: Record<MainMessageKey, string> = {
   // the separate windows-own catalog (src/renderer/i18n/windows-own).
   'boot.tooOldTitle': 'Server Version Too Old',
   'boot.tooOldMessage': 'The Phlix server this app connected to is too old for this version of Phlix for Windows.',
-  'boot.tooOldDetail': 'Server version: {serverVersion}\nMinimum required: {minimumVersion}\n\nAsk the server owner to update Phlix Media Server, then restart this app.'
+  'boot.tooOldDetail': 'Server version: {serverVersion}\nMinimum required: {minimumVersion}\n\nAsk the server owner to update Phlix Media Server, then restart this app.',
+  // M-WINDOWS-15 additions (born in the catalog, same precedent): the honest
+  // failure surface for a deep link the app could not route.
+  'deeplink.failedTitle': 'Could Not Open Link',
+  'deeplink.failedMessage': 'Phlix received a link it could not open. Check where you got it and try again.'
 };
 
 function flattenedCatalogKeys(): MainMessageKey[] {

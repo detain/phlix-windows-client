@@ -62,5 +62,9 @@ export const es = {
     tooOldTitle: 'Versión del servidor demasiado antigua',
     tooOldMessage: 'El servidor Phlix al que se conectó esta aplicación es demasiado antiguo para esta versión de Phlix para Windows.',
     tooOldDetail: 'Versión del servidor: {serverVersion}\nMínimo requerido: {minimumVersion}\n\nPida al propietario del servidor que actualice Phlix Media Server y reinicie esta aplicación.'
+  },
+  deeplink: {
+    failedTitle: 'No se pudo abrir el enlace',
+    failedMessage: 'Phlix recibió un enlace que no pudo abrir. Comprueba su origen e inténtalo de nuevo.'
   }
 } satisfies MainCatalog;

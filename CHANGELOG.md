@@ -7,6 +7,53 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed — deep-link rejections surface honestly; the internal arm can no longer emit unroutable paths (M-WINDOWS-15) — 2026-10-29
+
+- **Why:** review `windows__gameux` MAJOR-4 — "the deep-link grammar emits
+  router paths that no router matches — invite/media/server links are silent
+  no-ops." Verified at HEAD: the grammar half was already cured by `667ab70`
+  (landed 2026-10-29, after the review's clone-pinned read) —
+  `ROUTE_BY_HOST` now emits `/app/media/:id`, `/app/player/:id`,
+  `/app/accept-invite/:token`, `/app/server/:id`, pinned against a REAL router
+  by `tests/unit/deepLinkRouteContract.test.ts`. Two residue classes of the
+  same finding stayed open: (1) the `internal` arm returned ANY path verbatim
+  — its own pinned test proved the defect shape (`phlix://internal/app/../../evil`
+  → `/evil`, a path with ZERO router records, so `router.push` rejects
+  unhandled — the silent no-op under another name); and (2) every PARSE
+  REJECTION (unknown host, malformed id/token, oversized link) was a log-only
+  drop in `drainPendingDeepLinks` — the user who clicked the link saw nothing.
+- **Cure (parser):** `/app`-root law on the internal arm — the path must be
+  exactly `/app` or start with `/app/` (segment-exact: `/appevil` is refused).
+  Consequence: EVERY accepted output resolves to at least the ui's
+  `/app/:pathMatch(.*)*` 404 view in EVERY app mode (catch-all coverage pinned
+  both-directions in the contract test, server mode included) — a delivered
+  link always renders.
+- **Cure (surface):** new exported `showDeepLinkRejectedDialog(url)` in
+  `src/main/index.ts` — a `dialog.showMessageBox` (type warning, same idiom as
+  `showServerTooOldDialog`) on the FIRST rejection of each drain pass, detail
+  carrying only the REDACTED link (W3 secret law). Valid deliveries never
+  trigger it; the WIN-06 pending-queue + `deeplink:ready` handshake drain is
+  untouched (all its pins held).
+- **i18n:** `deeplink.failedTitle`/`failedMessage` born-in-catalog (the
+  `boot.*` precedent), all 7 main catalogs; main-catalog key identity pin
+  rotated 34 → 36 (measured red first).
+- **Fixture re-anchors:** three `trayRestoreWiring.test.ts` legs pinned dead
+  non-`/app` paths (`/library`, `/tray-survivor`, `/settings`) — red on the new
+  law by design, re-anchored to real routes (notification-click `/app/settings`,
+  survivor `/app/tray-survivor`, second-instance `/app/search` — distinct to
+  stay clear of the 2s dedupe window).
+- **Tests:** 610 → 622 (+12 exact: validator +3 /app-law table, contract +8
+  two-mode matrix incl. server-mode catch-all honesty, drain +1 burst-dialog
+  redaction test; one pre-existing unparsable test extended to assert the
+  dialog). Mutations: grammar reverted to `/${host}/${value}` → 22 named reds
+  across the three deep-link files; `/app` law stripped → 4; dialog call
+  stripped → 2; dialog fed the RAW url → 1 (redaction assertion). All killed,
+  all restored byte-exact.
+- **Gates:** vitest FULL serial 622/622; vue-tsc 0; `tsc -p
+  tsconfig.main.json` 0; lint 0; audit-gate PASS (0 advisories); build OK.
+  No renderer-source change → `dist/` (gitignored) untouched; no IPC channels
+  added.
+
 ### Fixed — OS feedback surfaces (thumbar, display-sleep blocker, taskbar progress) now arm on the normal in-app playback path, not only when the shell drove the transport (M-WINDOWS-14) — 2026-10-29
 
 - **Why:** review `windows__gameux` MAJOR-3. The only senders of

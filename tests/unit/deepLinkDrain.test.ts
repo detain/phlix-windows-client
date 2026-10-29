@@ -47,7 +47,10 @@ const tracks = vi.hoisted(() => {
     appHandlers: new Map<string, Array<(event: unknown, ...args: unknown[]) => void>>(),
     ipcOnHandlers: new Map<string, (...args: unknown[]) => unknown>(),
     logs: [] as unknown[][],
-    deepLinkSends: [] as unknown[][]
+    deepLinkSends: [] as unknown[][],
+    // M-WINDOWS-15: the user-visible failure surface. Recorded like every
+    // other external effect of the drain.
+    dialogCalls: [] as unknown[][]
   };
 });
 
@@ -204,7 +207,10 @@ vi.mock('electron', () => {
     }),
     dialog: {
       showOpenDialog: vi.fn(() => Promise.resolve({ canceled: true, filePaths: [] })),
-      showMessageBox: vi.fn(() => Promise.resolve({ response: 0 }))
+      showMessageBox: vi.fn((...args: unknown[]) => {
+        tracks.dialogCalls.push(args);
+        return Promise.resolve({ response: 0 });
+      })
     },
     screen: {
       getAllDisplays: vi.fn(() => [{ bounds: { x: 0, y: 0, width: 1920, height: 1080 }, workArea: { x: 0, y: 0, width: 1920, height: 1040 } }])
@@ -369,15 +375,63 @@ describe('M-WINDOWS-06 event-driven deeplink drain', () => {
 
   it('an unparsable link is consumed, not retried — the queue never gets poisoned', () => {
     tracks.deepLinkSends.length = 0;
+    tracks.dialogCalls.length = 0;
     const win = currentWindow();
     announceReadyFrom(win); // warm (already true — re-drain of empty queue is a no-op)
 
     enqueueViaSecondInstance('phlix://bogus-host/x'); // unknown host → parse null
     expect(tracks.deepLinkSends).toEqual([]);
 
+    // M-WINDOWS-15: unknown kinds surface HONESTLY — a log-only drop is the
+    // silent no-op this review item's cure forbids. Exactly one dialog.
+    expect(tracks.dialogCalls.length).toBe(1);
+
     // The next link still flows, proving the bad entry left the queue.
+    tracks.dialogCalls.length = 0;
     enqueueViaSecondInstance('phlix://media/m-5');
     expect(tracks.deepLinkSends).toEqual([['deeplink:open', '/app/media/m-5']]);
+    // A DELIVERED link must not trigger the failure dialog (fail-surface is
+    // rejection-only; dialog spam on the happy path would be its own defect).
+    expect(tracks.dialogCalls).toEqual([]);
+  });
+
+  it('M-WINDOWS-15 rejection dialog: one per drain for a burst, catalog copy, redaction-safe', () => {
+    tracks.deepLinkSends.length = 0;
+    tracks.dialogCalls.length = 0;
+    const win = currentWindow();
+
+    // Pause the receiver so all three links pile into ONE drain pass — the
+    // burst shape (did-start-loading drops readiness; see the navigation test).
+    fireWebContentsEvent(win, 'did-start-loading');
+
+    // Malformed invite FIRST: its redacted form is the one the dialog shows,
+    // proving the secret-bearing link is redacted on the user surface too.
+    enqueueViaSecondInstance('phlix://accept-invite/bad$token!'); // TOKEN_PATTERN fail
+    enqueueViaSecondInstance('phlix://bogus-host/y'); // unknown host
+    enqueueViaSecondInstance('phlix://internal/not/app'); // non-/app path
+    expect(tracks.dialogCalls).toEqual([]); // held, not yet drained
+
+    announceReadyFrom(win);
+    expect(tracks.deepLinkSends).toEqual([]); // nothing routable in the burst
+    expect(tracks.dialogCalls.length).toBe(1); // ONE honest surface, no modal pile-up
+
+    // Shape: (parentWindow, options) with type/title/message/detail from the
+    // main-process catalog — the same dialog idiom as showServerTooOldDialog.
+    const [parent, options] = tracks.dialogCalls[0] as [unknown, Record<string, string>];
+    expect(parent).toBe(win);
+    expect(options.type).toBe('warning');
+    expect(options.title.length).toBeGreaterThan(0);
+    expect(options.message.length).toBeGreaterThan(0);
+
+    // Redaction law (W3): a malformed accept-invite candidate may still carry
+    // a live secret — it must never reach the dialog text, and the redacted
+    // form must be what the user sees.
+    const allDialogText = tracks.dialogCalls
+      .flatMap((call) => call.flatMap((arg) => Object.values(typeof arg === 'object' && arg !== null ? arg as Record<string, unknown> : [arg])))
+      .map(String)
+      .join('\n');
+    expect(allDialogText).not.toContain('bad$token!');
+    expect(allDialogText).toContain('[redacted]');
   });
 
   it('duplicate URLs inside the dedupe window deliver once, and every log line stays redacted', () => {

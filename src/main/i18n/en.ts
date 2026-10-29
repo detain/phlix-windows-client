@@ -60,5 +60,9 @@ export const en = {
     tooOldTitle: 'Server Version Too Old',
     tooOldMessage: 'The Phlix server this app connected to is too old for this version of Phlix for Windows.',
     tooOldDetail: 'Server version: {serverVersion}\nMinimum required: {minimumVersion}\n\nAsk the server owner to update Phlix Media Server, then restart this app.'
+  },
+  deeplink: {
+    failedTitle: 'Could Not Open Link',
+    failedMessage: 'Phlix received a link it could not open. Check where you got it and try again.'
   }
 } as const;

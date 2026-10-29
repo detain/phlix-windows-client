@@ -81,7 +81,14 @@ export function redactDeepLinkUrl(url: string): string {
  *   phlix://play/{id}              → /app/player/{id}           (ui route /app/player/:id)
  *   phlix://accept-invite/{token}  → /app/accept-invite/{token} (base64url, ≤256 chars; hub-mode route, token fed as prop)
  *   phlix://server/{id}            → /app/server/{id}           (hub-mode route)
- *   phlix://internal/{route...}    → /{route...}               (gated: no traversal, no null bytes, ≤1024 chars)
+ *   phlix://internal/{route...}    → /{route...}  (gated: MUST be '/app' or under '/app/' — every router
+ *                                                  record lives under that base (M-WINDOWS-15) — plus no
+ *                                                  traversal, no null bytes, ≤1024 chars)
+ *
+ * Every accepted output is routable by the renderer router in EVERY app mode:
+ * concrete record or the '/app/:pathMatch(.*)*' 404 view — never zero records.
+ * Rejections return null; the drain (src/main/index.ts) surfaces them with a
+ * user-visible dialog (M-WINDOWS-15: no silent no-ops end to end).
  */
 export function parseDeepLinkUrl(url: string): string | null {
   try {
@@ -113,7 +120,8 @@ export function parseDeepLinkUrl(url: string): string | null {
 
     // Internal routing (notification clicks) may carry a multi-segment router
     // path, but no longer bypasses validation (W-low b): traversal and length
-    // gates run here exactly as they do for external hosts.
+    // gates run here exactly as they do for external hosts — plus the
+    // M-WINDOWS-15 law below.
     if (host === 'internal') {
       const path = rawPath;
       if (path.length > MAX_INTERNAL_PATH_LENGTH) {
@@ -130,6 +138,19 @@ export function parseDeepLinkUrl(url: string): string | null {
       // URL parsing percent-encodes raw NUL to %00, so check both forms.
       if (path.includes('\x00') || /%00/i.test(path)) {
         log.warn(`[deeplink] Null byte in internal path: ${redactDeepLinkUrl(url)}`);
+        return null;
+      }
+      // M-WINDOWS-15 (windows__gameux M4): EVERY emitted router path must be
+      // resolvable by the renderer's router. Every record — vendored ui routes
+      // AND this repo's extraRoutes — lives under the '/app' base, and the
+      // '/app/:pathMatch(.*)*' catch-all guarantees at least a rendered 404
+      // view underneath it. A path outside that base (e.g. dot-segment
+      // normalization landing on '/evil') matches ZERO records: router.push()
+      // rejects unhandled and the link is a silent no-op — the exact bug class this
+      // review item names. Reject it here, where the drain can surface the
+      // failure honestly, instead of shipping dead paths to the renderer.
+      if (path !== '/app' && !path.startsWith('/app/')) {
+        log.warn(`[deeplink] Internal path is not an /app-rooted router path: ${redactDeepLinkUrl(url)}`);
         return null;
       }
       return path; // Return the path directly for internal routing

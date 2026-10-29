@@ -63,5 +63,9 @@ export const ja = {
     tooOldTitle: 'サーバーのバージョンが古すぎます',
     tooOldMessage: 'このアプリが接続した Phlix サーバーは、このバージョンの Phlix for Windows には古すぎます。',
     tooOldDetail: 'サーバーのバージョン: {serverVersion}\n必要とされる最低バージョン: {minimumVersion}\n\nサーバーの管理者に Phlix Media Server の更新を依頼し、このアプリを再起動してください。'
+  },
+  deeplink: {
+    failedTitle: 'リンクを開けませんでした',
+    failedMessage: 'Phlix は開けなかったリンクを受け取りました。入手元を確認してから再試行してください。'
   }
 } satisfies MainCatalog;

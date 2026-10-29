@@ -125,9 +125,35 @@ describe('parseDeepLinkUrl', () => {
       expect(parseDeepLinkUrl('phlix://internal/app/settings')).toBe('/app/settings');
     });
 
-    it('normalizes slash dot-segments so traversal cannot escape upward', () => {
-      // WHATWG URL parsing removes dot-segments: the surviving path is inert.
-      expect(parseDeepLinkUrl('phlix://internal/app/../../evil')).toBe('/evil');
+    it('accepts the /app home route itself', () => {
+      // '/app' is a real record (browse home) — the /app-root law accepts it
+      // exactly, including the no-trailing-slash form.
+      expect(parseDeepLinkUrl('phlix://internal/app')).toBe('/app');
+    });
+
+    it('M-WINDOWS-15: rejects an internal path outside the /app router base', () => {
+      // Every registered route — vendored ui AND this repo's extraRoutes —
+      // lives under '/app'; a path outside it matches ZERO records, so
+      // router.push() would reject unhandled: a silent no-op. The parser
+      // refuses to emit one.
+      expect(parseDeepLinkUrl('phlix://internal/settings')).toBeNull();
+      expect(parseDeepLinkUrl('phlix://internal/')).toBeNull();
+      expect(parseDeepLinkUrl('phlix://internal/app/syncplay')).toBe('/app/syncplay');
+    });
+
+    it('M-WINDOWS-15: the /app law is segment-exact, not string-prefix-exact', () => {
+      // '/appevil' startsWith('/app') but is a DIFFERENT first segment that
+      // no record owns — it must not slip through the '/app' acceptance.
+      expect(parseDeepLinkUrl('phlix://internal/appevil')).toBeNull();
+      expect(parseDeepLinkUrl('phlix://internal/app-evil')).toBeNull();
+    });
+
+    it('dot-segment normalization escaping /app is rejected, not returned', () => {
+      // WHATWG URL parsing removes dot-segments: the survivor was '/evil' —
+      // routable nowhere. Pre-M-WINDOWS-15 the parser RETURNED it (pinned as
+      // inert); the /app-root law now rejects it so the drain can surface the
+      // failure honestly instead of shipping a dead push to the renderer.
+      expect(parseDeepLinkUrl('phlix://internal/app/../../evil')).toBeNull();
     });
 
     it('rejects backslash traversal that survives URL parsing with a literal ".."', () => {

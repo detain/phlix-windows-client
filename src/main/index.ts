@@ -83,6 +83,32 @@ function handleDeepLinkUrl(url: string): void {
 }
 
 /**
+ * M-WINDOWS-15 (windows__gameux M4): the user-visible surface for a deep link
+ * the app RECEIVED but could not route. Before this, every parse rejection
+ * (unknown host, malformed id/token, non-/app internal path, oversized link)
+ * was a log-only drop — the clicking user saw nothing, which is the same
+ * "silent no-op" failure shape the review condemns for the broken grammar.
+ *
+ * Redaction law (W3): the detail line carries ONLY the redacted form of the
+ * link — a malformed accept-invite candidate may still contain a live secret.
+ * Exported for tests (same seam idiom as showServerTooOldDialog).
+ */
+export function showDeepLinkRejectedDialog(url: string): void {
+  const options: MessageBoxOptions = {
+    type: 'warning',
+    title: t('deeplink.failedTitle'),
+    message: t('deeplink.failedMessage'),
+    detail: redactDeepLinkUrl(url)
+  };
+  const parent = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
+  if (parent) {
+    dialog.showMessageBox(parent, options);
+  } else {
+    dialog.showMessageBox(options);
+  }
+}
+
+/**
  * Deliver every queued link, FIFO, exactly once (drain-once semantics via
  * explicit state): each URL leaves the queue BEFORE its dispatch, so a
  * re-entrant or repeated handshake can never deliver it twice, and an
@@ -99,6 +125,7 @@ function drainPendingDeepLinks(): void {
     deepLinkReceiverReady = false;
     return;
   }
+  const rejectedUrls: string[] = [];
   while (pendingDeepLinks.length > 0) {
     const url = pendingDeepLinks.shift()!;
     if (deepLinkDeduper.suppresses(url)) {
@@ -106,8 +133,18 @@ function drainPendingDeepLinks(): void {
       continue;
     }
     const path = parseDeepLinkUrl(url);
-    if (!path) continue; // the parser already logged the rejection (redacted)
+    if (!path) {
+      // M-WINDOWS-15: the parser already logged the rejection (redacted); the
+      // USER also gets told. One dialog per drain — a burst of bad links is a
+      // single honest surface, not a modal pile-up (each rejection keeps its
+      // redacted log line for diagnosis).
+      rejectedUrls.push(url);
+      continue;
+    }
     mainWindow.webContents.send('deeplink:open', path);
+  }
+  if (rejectedUrls.length > 0) {
+    showDeepLinkRejectedDialog(rejectedUrls[0]!);
   }
 }
 
@@ -985,6 +1022,9 @@ ipcMain.on('power:update', (_event, { playing }: { playing: boolean }) => {
 });
 
 // W4.7: native notifications — renderer requests native system notification
+// M-WINDOWS-15 law for producers: `clickAction` MUST be an /app-rooted router
+// path (e.g. '/app/settings'); anything else fails parseDeepLinkUrl's internal
+// /app gate and surfaces as a rejection dialog instead of a silent no-op.
 ipcMain.handle('notification:show', (_event, { title, body, clickAction }: { title: string; body: string; clickAction?: string }) => {
   if (!Notification.isSupported()) {
     log.warn('[notification] Notifications not supported on this platform');

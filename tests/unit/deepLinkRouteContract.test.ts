@@ -43,6 +43,19 @@ function hubRouter(): import('vue-router').Router {
   return app.config.globalProperties.$router as import('vue-router').Router;
 }
 
+/** Router built identically to the SERVER-mode boot path (the mode desktop
+ *  actually runs in until M-WINDOWS-16 wires hub config — windows__gameux M6). */
+function serverRouter(): import('vue-router').Router {
+  const app = createPhlixApp({
+    app: 'server',
+    apiBase: 'http://localhost:8096',
+    menu: [],
+    extraRoutes: buildExtraRoutes('server'),
+    requireConnection: true
+  });
+  return app.config.globalProperties.$router as import('vue-router').Router;
+}
+
 interface DeepLinkCase {
   /** The OS-facing link. */
   url: string;
@@ -133,5 +146,76 @@ describe('deep-link ↔ router contract (C1 guard)', () => {
     expect(record).toBeDefined();
     expect(record?.path).toBe('/app/accept-invite/:token');
     expect(record?.props).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// M-WINDOWS-15 (windows__gameux M4): every ACCEPTED deep link must resolve to
+// a RENDERED surface in BOTH app modes — concrete record where the route
+// exists, the '/app/:pathMatch(.*)*' 404 view where the current mode does not
+// register it (hub-only invite/server in server mode). What must never happen
+// is the pre-cure shape: zero matched records → router.push() rejects
+// unhandled → the link is a silent no-op.
+// ---------------------------------------------------------------------------
+
+/** Deepest record a path falls onto, or '' when NOTHING matches (the bug shape). */
+function deepestMatchedPath(router: import('vue-router').Router, path: string): string {
+  const matched = router.resolve(path).matched;
+  return matched.length > 0 ? matched[matched.length - 1].path : '';
+}
+
+describe('M-WINDOWS-15 mode matrix — no parser output dead-ends in either mode', () => {
+  // Routes the SERVER-mode router genuinely owns (ui core + this repo's
+  // server extraRoutes). These must land on the concrete record in BOTH modes.
+  const BOTH_MODE_CONCRETE: Array<{ url: string; recordPath: string }> = [
+    { url: 'phlix://media/m-1', recordPath: '/app/media/:id' },
+    { url: 'phlix://play/p-1', recordPath: '/app/player/:id' },
+    { url: 'phlix://internal/app/settings', recordPath: '/app/settings' },
+    { url: 'phlix://internal/app', recordPath: '/app' }
+  ];
+
+  it.each(BOTH_MODE_CONCRETE)('$url → concrete record in both modes', (c) => {
+    const path = parseDeepLinkUrl(c.url);
+    expect(typeof path).toBe('string');
+    expect(deepestMatchedPath(hubRouter(), path!)).toBe(c.recordPath);
+    expect(deepestMatchedPath(serverRouter(), path!)).toBe(c.recordPath);
+  });
+
+  // invite/server are hub-mode extraRoutes. In server mode they cannot land on
+  // a concrete view — but they MUST land on the rendered 404 catch-all, never
+  // on zero records. (Reaching the concrete invite view in server mode is
+  // M-WINDOWS-16's hub-mode cure, not this grammar contract.)
+  const HUB_ONLY: string[] = ['phlix://accept-invite/tok-1', 'phlix://server/s-1'];
+
+  it.each(HUB_ONLY)('$url → concrete in hub, rendered 404 catch-all in server mode', (url) => {
+    const path = parseDeepLinkUrl(url);
+    expect(typeof path).toBe('string');
+    expect(deepestMatchedPath(hubRouter(), path!)).not.toBe('');
+    expect(deepestMatchedPath(hubRouter(), path!)).not.toMatch(/:pathMatch/);
+
+    const serverDeepest = deepestMatchedPath(serverRouter(), path!);
+    expect(serverDeepest, `${path} matched NOTHING in server mode — silent-no-op shape is back`).toMatch(/:pathMatch/);
+  });
+
+  it('every accepted output is /app-rooted (the precondition of the catch-all guarantee)', () => {
+    const accepted: Array<string | null> = [
+      ...CASES.map((c) => c.url),
+      'phlix://internal/app',
+      'phlix://internal/app/library/scan',
+      'phlix://internal/app/deeply/nested-123'
+    ].map(parseDeepLinkUrl);
+    for (const path of accepted) {
+      expect(path, 'CASES entries must parse').toBeTypeOf('string');
+      expect(path === '/app' || (path as string).startsWith('/app/'), `${path} escapes the /app router base`).toBe(true);
+    }
+  });
+
+  it('rejected links never reach the router at all — the drain surfaces them (see deepLinkDrain.test.ts)', () => {
+    // Parser-side half of the honest-failure law: anything the parser refuses
+    // returns null; it may NOT return a path (a returned-but-dead path is the
+    // exact regression the /app law exists to prevent).
+    expect(parseDeepLinkUrl('phlix://bogus/x')).toBeNull();
+    expect(parseDeepLinkUrl('phlix://media/bad id')).toBeNull();
+    expect(parseDeepLinkUrl('phlix://internal/no/base')).toBeNull();
   });
 });

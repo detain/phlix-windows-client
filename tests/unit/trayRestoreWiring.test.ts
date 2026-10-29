@@ -334,7 +334,10 @@ describe('tray/second-instance restore wiring (M-WINDOWS-03)', () => {
 
     const shown = await handler!(
       {} as unknown,
-      { title: 't', body: 'b', clickAction: '/library' } as unknown
+      // M-WINDOWS-15 law: clickActions must be /app-rooted router paths — the
+      // former '/library' fixture pinned a path the renderer router can never
+      // match (the silent no-op this cure forbids). '/app/settings' is real.
+      { title: 't', body: 'b', clickAction: '/app/settings' } as unknown
     );
     expect(shown).toBe(true);
     const clickHandler = tracks.notificationClickHandlers[tracks.notificationClickHandlers.length - 1];
@@ -343,7 +346,7 @@ describe('tray/second-instance restore wiring (M-WINDOWS-03)', () => {
     clickHandler!();
 
     expect(win.calls).toEqual(['show', 'focus']);
-    expect(tracks.deepLinkSends).toEqual([['deeplink:open', '/library']]);
+    expect(tracks.deepLinkSends).toEqual([['deeplink:open', '/app/settings']]);
   });
 
   it('notification click on a MINIMIZED window restores before show (old show+focus body has no restore arm)', async () => {
@@ -365,7 +368,10 @@ describe('tray/second-instance restore wiring (M-WINDOWS-03)', () => {
     tracks.deepLinkSends.length = 0;
     const handler = tracks.ipcHandlers.get('notification:show');
 
-    await handler!({} as unknown, { title: 't', body: 'b', clickAction: '/tray-survivor' } as unknown);
+    // M-WINDOWS-15: /app-rooted survivor (the old '/tray-survivor' fixture
+    // carried a dead non-/app path — held-and-drained is the law under test,
+    // and the link must be one the parser would actually deliver).
+    await handler!({} as unknown, { title: 't', body: 'b', clickAction: '/app/tray-survivor' } as unknown);
     const clickHandler = tracks.notificationClickHandlers[tracks.notificationClickHandlers.length - 1];
 
     // The old body ran mainWindow?.show() straight — on a destroyed window
@@ -382,7 +388,7 @@ describe('tray/second-instance restore wiring (M-WINDOWS-03)', () => {
     expect(tracks.deepLinkSends).toEqual([]);
     win.state.destroyed = false;
     tracks.ipcOnHandlers.get('deeplink:ready')!({ sender: win.webContents });
-    expect(tracks.deepLinkSends).toEqual([['deeplink:open', '/tray-survivor']]);
+    expect(tracks.deepLinkSends).toEqual([['deeplink:open', '/app/tray-survivor']]);
     tracks.deepLinkSends.length = 0;
   });
 
@@ -395,9 +401,13 @@ describe('tray/second-instance restore wiring (M-WINDOWS-03)', () => {
     // M-WINDOWS-06: warm path — the handshake is live (test above re-armed
     // it), so the shared queue+drain delivers on the same tick.
     tracks.ipcOnHandlers.get('deeplink:ready')!({ sender: win.webContents });
-    handler!({} as unknown, ['phlix://internal/settings'], '/tmp');
+    // M-WINDOWS-15: '/app/search' — a real route, and DISTINCT from the
+    // notification test's '/app/settings' (identical URLs inside the 2s dedupe
+    // window would be suppressed, not delivered). The former bare '/settings'
+    // arm is the dead grammar (zero router records outside the /app base).
+    handler!({} as unknown, ['phlix://internal/app/search'], '/tmp');
 
     expect(win.calls).toEqual(['show', 'focus']);
-    expect(tracks.deepLinkSends).toEqual([['deeplink:open', '/settings']]);
+    expect(tracks.deepLinkSends).toEqual([['deeplink:open', '/app/search']]);
   });
 });
