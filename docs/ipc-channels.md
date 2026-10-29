@@ -18,7 +18,7 @@ pairing test (§ipcChannels.test.ts) asserts against it.
 | `hub:set-config` | invoke | `HubConfigPartial` | `void` | `hubSetConfig` (line 670) | `hubSetConfig` | Not directly called by renderer; preload-only |
 | `app:get-server-url` | invoke | none | `string \| null` | `getServerUrl` (line 677) | `getServerUrl` | `src/renderer/main.ts:141` — `api.getServerUrl()` |
 | `app:set-server-url` | invoke | `string` | `void` | `setServerUrl` (line 681) | `setServerUrl` | `src/renderer/main.ts:139` — `api.setServerUrl(url)` |
-| `app:check-server-version` | invoke | `{ apiBase: string }` | `boolean` | `checkServerVersion` (line 686) | `checkServerVersion` | `src/renderer/main.ts:166` — `api.checkServerVersion(apiBase)` |
+| `app:check-server-version` | invoke | `{ apiBase: string }` | `ServerVersionCheck` | `showServerTooOldDialog` + `checkServerVersion` (line 675) | `checkServerVersion` | `src/renderer/main.ts:253` — `api.checkServerVersion(apiBase)` |
 | `app:get-device-id` | invoke | none | `string` | `getDeviceId` (line 697) | `getDeviceId` | `src/renderer/main.ts:140` — `api.getDeviceId()` |
 | `media-play-pause` | push | none | — | `mainWindow.webContents.send` (lines 388, 537-538, 563) | `onMediaPlayPause` | `src/renderer/electronBridge.ts:105` — `api.onMediaPlayPause()` |
 | `media-stop` | push | none | — | `mainWindow.webContents.send` (lines 538, 564) | `onMediaStop` | `src/renderer/electronBridge.ts:115` — `api.onMediaStop()` |

@@ -56,5 +56,10 @@ export const ja = {
     title: 'Phlix について',
     message: 'Phlix Media Server',
     detail: 'バージョン {version}\n\nご家庭向けの無料メディアサーバー。'
+  },
+  boot: {
+    tooOldTitle: 'サーバーのバージョンが古すぎます',
+    tooOldMessage: 'このアプリが接続した Phlix サーバーは、このバージョンの Phlix for Windows には古すぎます。',
+    tooOldDetail: 'サーバーのバージョン: {serverVersion}\n必要とされる最低バージョン: {minimumVersion}\n\nサーバーの管理者に Phlix Media Server の更新を依頼し、このアプリを再起動してください。'
   }
 } satisfies MainCatalog;

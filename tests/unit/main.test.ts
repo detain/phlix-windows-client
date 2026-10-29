@@ -88,7 +88,7 @@ describe('boot (renderer entry)', () => {
       })),
       getDeviceId: vi.fn(async () => 'device-abc'),
       getServerUrl: vi.fn(async () => null),
-      checkServerVersion: vi.fn(async () => true)
+      checkServerVersion: vi.fn(async () => ({ compatible: true, serverVersion: '2.0.0', minimumVersion: '1.1.0' }))
     };
     setElectronApi(api);
 
@@ -126,6 +126,49 @@ describe('boot (renderer entry)', () => {
     expect(installElectronBridge).toHaveBeenCalledWith(fakeApp);
   });
 
+  // M-WINDOWS-02 (review windows__casualgamer): the pre-fix behavior on a
+  // too-old server was `log.error(...); return;` — the Vue app never mounted
+  // and the user saw the permanently dark window (#1a1a2e) with zero
+  // explanation. The cure must keep blocking the mount (policy unchanged) but
+  // render an explicit, informative screen in its place. Mutation teeth:
+  // revert boot() to the log-only abort and the container stays empty — red.
+  it('renders the incompatible-server screen when the version gate blocks the mount', async () => {
+    const api = {
+      hubGetConfig: vi.fn(async () => ({
+        hubUrl: 'https://hub.example.com',
+        activeServerId: null,
+        connectionMode: 'hub'
+      })),
+      getDeviceId: vi.fn(async () => 'device-abc'),
+      getServerUrl: vi.fn(async () => null),
+      checkServerVersion: vi.fn(async () => ({ compatible: false, serverVersion: '1.0.7', minimumVersion: '1.1.0' }))
+    };
+    setElectronApi(api);
+
+    // Import FIRST: the module's top-level auto-boot is guarded by the
+    // presence of #phlix-app (it isn't in the document yet) — then create the
+    // mount point and drive boot() explicitly.
+    const mod = await import('@/main');
+    const container = document.createElement('div');
+    container.id = 'phlix-app';
+    document.body.appendChild(container);
+    try {
+      await mod.boot();
+
+      expect(api.checkServerVersion).toHaveBeenCalled();
+      // Blocked means blocked: the app itself must NOT mount…
+      expect(createPhlixApp).not.toHaveBeenCalled();
+      expect(mountSpy).not.toHaveBeenCalled();
+      // …but the window must NOT be dark: the explanation is on screen.
+      expect(container.textContent).toContain('1.0.7');
+      expect(container.textContent).toContain('1.1.0');
+      expect(container.textContent).toMatch(/too old/i);
+      expect(container.querySelector('[role="alert"]')).not.toBeNull();
+    } finally {
+      container.remove();
+    }
+  });
+
   it('uses the persisted direct server URL when hub is not configured', async () => {
     const api = {
       hubGetConfig: vi.fn(async () => ({
@@ -135,7 +178,7 @@ describe('boot (renderer entry)', () => {
       })),
       getDeviceId: vi.fn(async () => 'device-xyz'),
       getServerUrl: vi.fn(async () => 'http://my-server:8096'),
-      checkServerVersion: vi.fn(async () => true)
+      checkServerVersion: vi.fn(async () => ({ compatible: true, serverVersion: '2.0.0', minimumVersion: '1.1.0' }))
     };
     setElectronApi(api);
 
@@ -219,7 +262,7 @@ describe('boot (renderer entry)', () => {
       getDeviceId: vi.fn(async () => 'device-1'),
       getServerUrl: vi.fn(async () => null),
       setServerUrl: vi.fn(async () => {}),
-      checkServerVersion: vi.fn(async () => true)
+      checkServerVersion: vi.fn(async () => ({ compatible: true, serverVersion: '2.0.0', minimumVersion: '1.1.0' }))
     };
     setElectronApi(api);
 

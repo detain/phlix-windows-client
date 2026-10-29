@@ -73,7 +73,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getServerUrl: () => ipcRenderer.invoke('app:get-server-url'),
   setServerUrl: (url: string) => ipcRenderer.invoke('app:set-server-url', url),
 
-  // W7.6: runtime server version enforcement (1.1.0 minimum)
+  // W7.6: runtime server version enforcement (1.1.0 minimum). M-WINDOWS-02: resolves to the
+  // structured ServerVersionCheck verdict (src/renderer/types/electron.d.ts), not a bare boolean.
   checkServerVersion: (apiBase: string) => ipcRenderer.invoke('app:check-server-version', { apiBase }),
 
   // Stable device id

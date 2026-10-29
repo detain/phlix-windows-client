@@ -5,13 +5,13 @@
  */
 
 import { app, BrowserWindow, Menu, Tray, ipcMain, shell, nativeImage, dialog, protocol, screen, powerSaveBlocker, Notification } from 'electron';
-import type { ThumbarButton } from 'electron';
+import type { MessageBoxOptions, ThumbarButton } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
 import { isPathSafe } from './pathUtils';
 import { validateExternalUrl } from './urlValidator';
-import { checkMinServerVersion } from './versionCheck';
+import { checkMinServerVersion, type ServerVersionCheck } from './versionCheck';
 import {
   parseDeepLinkUrl,
   extractDeepLinkUrl,
@@ -596,6 +596,37 @@ function showAbout(): void {
   });
 }
 
+/**
+ * M-WINDOWS-02: the explicit, user-facing surface for the version gate's ONE
+ * blocking verdict (server reports a version below the minimum). Before this,
+ * a too-old server produced only an electron-log line and a renderer boot
+ * abort — permanently dark empty window, zero explanation.
+ *
+ * Enforcement policy is UNCHANGED (fail-open everywhere except the explicit
+ * too-low report); this adds the missing explanation, nothing more. The
+ * renderer complements the dialog with a persistent on-screen version
+ * (src/renderer/main.ts renderIncompatibleServerScreen).
+ *
+ * Exported for tests (same seam idiom as setupAppProtocolHandler).
+ */
+export function showServerTooOldDialog(result: ServerVersionCheck): void {
+  const options: MessageBoxOptions = {
+    type: 'error',
+    title: t('boot.tooOldTitle'),
+    message: t('boot.tooOldMessage'),
+    detail: t('boot.tooOldDetail', {
+      serverVersion: result.serverVersion ?? 'unknown',
+      minimumVersion: result.minimumVersion
+    })
+  };
+  const parent = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
+  if (parent) {
+    dialog.showMessageBox(parent, options);
+  } else {
+    dialog.showMessageBox(options);
+  }
+}
+
 // IPC Handlers
 ipcMain.handle('get-app-path', () => app.getPath('userData'));
 
@@ -638,8 +669,15 @@ ipcMain.handle('app:set-server-url', (_, url: string) => {
 });
 
 // W7.6: runtime server version enforcement — verify server meets minimum version before boot completes
-ipcMain.handle('app:check-server-version', async (_, { apiBase }: { apiBase: string }) => {
-  return checkMinServerVersion(apiBase);
+// M-WINDOWS-02: the gate now carries its own explanation — the handler returns the
+// structured verdict (versions included) and raises an explicit error dialog on the
+// sole blocking outcome, instead of the user seeing a permanently dark window.
+ipcMain.handle('app:check-server-version', async (_, { apiBase }: { apiBase: string }): Promise<ServerVersionCheck> => {
+  const result = await checkMinServerVersion(apiBase);
+  if (!result.compatible) {
+    showServerTooOldDialog(result);
+  }
+  return result;
 });
 
 /**

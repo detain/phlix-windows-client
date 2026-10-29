@@ -33,5 +33,12 @@ export const WIN_JA = {
     photos: 'フォト',
     search: '検索',
     settings: '設定'
+  },
+  boot: {
+    incompatibleTitle: 'Phlix サーバーが古すぎます',
+    incompatibleIntro: 'この Phlix サーバーは、このバージョンの Phlix for Windows には古すぎます。',
+    reportedVersion: 'サーバーが報告したバージョン',
+    requiredVersion: 'Phlix for Windows の必要最低バージョン',
+    incompatibleAction: 'Phlix サーバーを更新するか、より新しいサーバーに接続してから、アプリを再起動してください。'
   }
 } satisfies WindowOwnCatalog;

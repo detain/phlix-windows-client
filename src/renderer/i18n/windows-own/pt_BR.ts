@@ -35,5 +35,12 @@ export const WIN_PT_BR = {
     photos: 'Fotos',
     search: 'Pesquisar',
     settings: 'Configurações'
+  },
+  boot: {
+    incompatibleTitle: 'Servidor Phlix antigo demais',
+    incompatibleIntro: 'Este servidor Phlix é antigo demais para esta versão do Phlix para Windows.',
+    reportedVersion: 'O servidor informa a versão',
+    requiredVersion: 'Phlix para Windows exige no mínimo',
+    incompatibleAction: 'Atualize o servidor Phlix ou conecte-se a um mais novo e reinicie o aplicativo.'
   }
 } satisfies WindowOwnCatalog;

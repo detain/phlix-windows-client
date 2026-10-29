@@ -67,122 +67,122 @@ describe('checkMinServerVersion', () => {
     (window as unknown as { fetch: typeof fetch }).fetch = fetch;
   });
 
-  it('returns true (skip check) when apiBase is empty string', async () => {
+  it('returns compatible:true (skip check) when apiBase is empty string', async () => {
     const result = await checkMinServerVersion('');
-    expect(result).toBe(true);
+    expect(result.compatible).toBe(true);
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('returns true when server version is 1.2.3 (above minimum 1.1.0)', async () => {
+  it('returns compatible:true when server version is 1.2.3 (above minimum 1.1.0)', async () => {
     fetchSpy.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ version: '1.2.3' })
     } as Response);
 
     const result = await checkMinServerVersion('http://localhost:8096');
-    expect(result).toBe(true);
+    expect(result.compatible).toBe(true);
   });
 
-  it('returns true when server version is exactly 1.1.0', async () => {
+  it('returns compatible:true when server version is exactly 1.1.0', async () => {
     fetchSpy.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ version: '1.1.0' })
     } as Response);
 
     const result = await checkMinServerVersion('http://localhost:8096');
-    expect(result).toBe(true);
+    expect(result.compatible).toBe(true);
   });
 
-  it('returns false when server version is 0.9.0 (below minimum 1.1.0)', async () => {
+  it('returns compatible:false when server version is 0.9.0 (below minimum 1.1.0)', async () => {
     fetchSpy.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ version: '0.9.0' })
     } as Response);
 
     const result = await checkMinServerVersion('http://localhost:8096');
-    expect(result).toBe(false);
+    expect(result.compatible).toBe(false);
     expect(log.error).toHaveBeenCalledWith(
       '[versionCheck] Server version 0.9.0 is below minimum supported 1.1.0 — blocking boot'
     );
   });
 
-  it('returns false when server version is 1.0.9 (below minimum 1.1.0)', async () => {
+  it('returns compatible:false when server version is 1.0.9 (below minimum 1.1.0)', async () => {
     fetchSpy.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ version: '1.0.9' })
     } as Response);
 
     const result = await checkMinServerVersion('http://localhost:8096');
-    expect(result).toBe(false);
+    expect(result.compatible).toBe(false);
   });
 
-  it('returns true when server version is 2.0.0 (major version above minimum)', async () => {
+  it('returns compatible:true when server version is 2.0.0 (major version above minimum)', async () => {
     fetchSpy.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ version: '2.0.0' })
     } as Response);
 
     const result = await checkMinServerVersion('http://localhost:8096');
-    expect(result).toBe(true);
+    expect(result.compatible).toBe(true);
   });
 
-  it('returns true (fail-open) on network error', async () => {
+  it('returns compatible:true (fail-open) on network error', async () => {
     fetchSpy.mockRejectedValueOnce(new Error('ENOTFOUND'));
 
     const result = await checkMinServerVersion('http://localhost:8096');
-    expect(result).toBe(true);
+    expect(result.compatible).toBe(true);
     expect(log.warn).toHaveBeenCalledWith(
       expect.stringContaining('Could not reach version endpoint')
     );
   });
 
-  it('returns true (fail-open) on HTTP error (404, 500, etc.)', async () => {
+  it('returns compatible:true (fail-open) on HTTP error (404, 500, etc.)', async () => {
     fetchSpy.mockResolvedValueOnce({
       ok: false,
       status: 404
     } as Response);
 
     const result = await checkMinServerVersion('http://localhost:8096');
-    expect(result).toBe(true);
+    expect(result.compatible).toBe(true);
     expect(log.warn).toHaveBeenCalledWith(
       expect.stringContaining('HTTP 404')
     );
   });
 
-  it('returns true (fail-open) when response has no version field', async () => {
+  it('returns compatible:true (fail-open) when response has no version field', async () => {
     fetchSpy.mockResolvedValueOnce({
       ok: true,
       json: async () => ({})
     } as Response);
 
     const result = await checkMinServerVersion('http://localhost:8096');
-    expect(result).toBe(true);
+    expect(result.compatible).toBe(true);
     expect(log.warn).toHaveBeenCalledWith(
       '[versionCheck] Server response missing version field — allowing boot to continue'
     );
   });
 
-  it('returns true (fail-open) when response has malformed JSON', async () => {
+  it('returns compatible:true (fail-open) when response has malformed JSON', async () => {
     fetchSpy.mockResolvedValueOnce({
       ok: true,
       json: async () => { throw new Error('parse error'); }
     } as unknown as Response);
 
     const result = await checkMinServerVersion('http://localhost:8096');
-    expect(result).toBe(true);
+    expect(result.compatible).toBe(true);
     expect(log.warn).toHaveBeenCalledWith(
       '[versionCheck] Server returned non-JSON response for version endpoint — allowing boot to continue'
     );
   });
 
-  it('returns true (fail-open) when version field is empty string', async () => {
+  it('returns compatible:true (fail-open) when version field is empty string', async () => {
     fetchSpy.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ version: '' })
     } as Response);
 
     const result = await checkMinServerVersion('http://localhost:8096');
-    expect(result).toBe(true);
+    expect(result.compatible).toBe(true);
     expect(log.warn).toHaveBeenCalledWith(
       '[versionCheck] Server response missing version field — allowing boot to continue'
     );
@@ -195,7 +195,7 @@ describe('checkMinServerVersion', () => {
     } as Response);
 
     const result = await checkMinServerVersion('http://localhost:8096');
-    expect(result).toBe(true);
+    expect(result.compatible).toBe(true);
   });
 
   it('strips trailing slash from apiBase before building URL', async () => {
@@ -227,7 +227,7 @@ describe('checkMinServerVersion', () => {
     } as Response);
 
     const result = await checkMinServerVersion('http://localhost:8096');
-    expect(result).toBe(true);
+    expect(result.compatible).toBe(true);
     expect(log.info).toHaveBeenCalledWith('[versionCheck] Server reports version: 1.2.3');
   });
 
@@ -235,7 +235,7 @@ describe('checkMinServerVersion', () => {
     fetchSpy.mockRejectedValueOnce(new Error('ETIMEDOUT'));
 
     const result = await checkMinServerVersion('http://localhost:8096');
-    expect(result).toBe(true);
+    expect(result.compatible).toBe(true);
     expect(log.warn).toHaveBeenCalledWith(
       expect.stringContaining('enforcement INACTIVE')
     );
@@ -248,10 +248,54 @@ describe('checkMinServerVersion', () => {
     } as Response);
 
     const result = await checkMinServerVersion('http://localhost:8096');
-    expect(result).toBe(true);
+    expect(result.compatible).toBe(true);
     expect(log.warn).toHaveBeenCalledWith(
       expect.stringContaining('/system/info — min-server-version enforcement INACTIVE')
     );
+  });
+
+  // M-WINDOWS-02: the verdict is a structured ServerVersionCheck so the
+  // user-facing surfaces (main-process dialog + renderer screen) can NAME the
+  // versions behind a block. These toEqual pins prove all three fields ride
+  // from the probe to the IPC boundary; drop any field or leak a wrong value
+  // in src/main/versionCheck.ts and exactly these go red.
+  it('returns the full verdict shape when blocking a too-old server', async () => {
+    fetchSpy.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ version: '0.9.0' })
+    } as Response);
+
+    expect(await checkMinServerVersion('http://localhost:8096'))
+      .toEqual({ compatible: false, serverVersion: '0.9.0', minimumVersion: MIN_SERVER_VERSION });
+  });
+
+  it('returns the fail-open verdict shape (serverVersion null) on HTTP 404', async () => {
+    fetchSpy.mockResolvedValueOnce({ ok: false, status: 404 } as Response);
+
+    expect(await checkMinServerVersion('http://localhost:8096'))
+      .toEqual({ compatible: true, serverVersion: null, minimumVersion: MIN_SERVER_VERSION });
+  });
+
+  it('captures the reported version when the server satisfies the gate', async () => {
+    fetchSpy.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ version: '1.2.3' })
+    } as Response);
+
+    const result = await checkMinServerVersion('http://localhost:8096');
+    expect(result.compatible).toBe(true);
+    expect(result.serverVersion).toBe('1.2.3');
+    expect(result.minimumVersion).toBe(MIN_SERVER_VERSION);
+  });
+
+  it('fails open but keeps the raw string when the version is present yet unparseable', async () => {
+    fetchSpy.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ version: 'v1.2.3' })
+    } as Response);
+
+    expect(await checkMinServerVersion('http://localhost:8096'))
+      .toEqual({ compatible: true, serverVersion: 'v1.2.3', minimumVersion: MIN_SERVER_VERSION });
   });
 
   it('respects the MIN_SERVER_VERSION constant', () => {

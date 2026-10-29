@@ -55,5 +55,10 @@ export const es = {
     title: 'Acerca de Phlix',
     message: 'Phlix Media Server',
     detail: 'Versión {version}\n\nUn servidor de medios gratuito para tu hogar.'
+  },
+  boot: {
+    tooOldTitle: 'Versión del servidor demasiado antigua',
+    tooOldMessage: 'El servidor Phlix al que se conectó esta aplicación es demasiado antiguo para esta versión de Phlix para Windows.',
+    tooOldDetail: 'Versión del servidor: {serverVersion}\nMínimo requerido: {minimumVersion}\n\nPida al propietario del servidor que actualice Phlix Media Server y reinicie esta aplicación.'
   }
 } satisfies MainCatalog;

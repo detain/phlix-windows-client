@@ -3,8 +3,10 @@
  *
  * THE byte-identical-English contract: EVERY value below is copied verbatim from
  * the literals that were hardcoded in src/main/index.ts before the i18n
- * extraction (feat/i18n-wiring). If someone edits a catalog value, this test
- * goes red — which is exactly the point.
+ * extraction (feat/i18n-wiring), except the `boot.*` trio — those strings never
+ * existed as hardcoded literals: they shipped with the too-old-server surface
+ * (M-WINDOWS-02) and are pinned here as born-in-the-catalog additions. Either
+ * way, if someone edits a catalog value, this test goes red — exactly the point.
  *
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
@@ -48,7 +50,14 @@ const ORIGINAL_MAIN_PROCESS_STRINGS: Record<MainMessageKey, string> = {
 
   'about.title': 'About Phlix',
   'about.message': 'Phlix Media Server',
-  'about.detail': 'Version {version}\n\nA free media server for your home.'
+  'about.detail': 'Version {version}\n\nA free media server for your home.',
+
+  // M-WINDOWS-02 additions (born in the catalog, not extracted — see header):
+  // the too-old-server dialog text. The renderer-side screen strings live in
+  // the separate windows-own catalog (src/renderer/i18n/windows-own).
+  'boot.tooOldTitle': 'Server Version Too Old',
+  'boot.tooOldMessage': 'The Phlix server this app connected to is too old for this version of Phlix for Windows.',
+  'boot.tooOldDetail': 'Server version: {serverVersion}\nMinimum required: {minimumVersion}\n\nAsk the server owner to update Phlix Media Server, then restart this app.'
 };
 
 function flattenedCatalogKeys(): MainMessageKey[] {

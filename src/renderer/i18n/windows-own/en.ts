@@ -31,5 +31,16 @@ export const WIN_EN = {
     photos: 'Photos',
     search: 'Search',
     settings: 'Settings'
+  },
+  // M-WINDOWS-02: the too-old-server failure screen (renderIncompatibleServerScreen
+  // in src/renderer/main.ts). Static labels on purpose — this catalog has no
+  // interpolation seam (YAGNI, see en.ts header): the version numbers the gate
+  // carries are rendered as separate label + value elements, never injected.
+  boot: {
+    incompatibleTitle: 'Phlix server too old',
+    incompatibleIntro: 'This Phlix server is too old to use with this version of Phlix for Windows.',
+    reportedVersion: 'Server reports version',
+    requiredVersion: 'Phlix for Windows requires at least',
+    incompatibleAction: 'Update the Phlix server, or connect to a newer one, then restart this app.'
   }
 } as const;

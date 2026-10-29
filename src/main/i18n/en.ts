@@ -53,5 +53,10 @@ export const en = {
     title: 'About Phlix',
     message: 'Phlix Media Server',
     detail: 'Version {version}\n\nA free media server for your home.'
+  },
+  boot: {
+    tooOldTitle: 'Server Version Too Old',
+    tooOldMessage: 'The Phlix server this app connected to is too old for this version of Phlix for Windows.',
+    tooOldDetail: 'Server version: {serverVersion}\nMinimum required: {minimumVersion}\n\nAsk the server owner to update Phlix Media Server, then restart this app.'
   }
 } as const;

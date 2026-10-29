@@ -7,6 +7,36 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed — too-old server explains itself instead of dark window — 2026-10-29
+
+- **Why:** review `windows__casualgamer` M-WINDOWS-02 — when the connected server
+  reported a version below `MIN_SERVER_VERSION` (1.1.0), the renderer boot gate
+  aborted with `log.error(...); return;`: the Vue app never mounted and the user
+  was left staring at the permanently dark `#1a1a2e` window — the only diagnostic
+  was an electron-log line under `%APPDATA%\phlix-windows\logs`. (The separate
+  W7.6 dead-endpoint fail-open theater was already cured by the W2 lane; the
+  blocking verdict itself still had zero user surface.)
+- **What:** the gate verdict is now a structured `ServerVersionCheck`
+  (`compatible` / `serverVersion` / `minimumVersion`) through
+  `src/main/versionCheck.ts` → the `app:check-server-version` IPC → the renderer
+  contract in `src/renderer/types/electron.d.ts`. On the sole blocking outcome,
+  the main-process handler raises `showServerTooOldDialog()` — a type-`error`
+  `dialog.showMessageBox` naming the version found vs required (main i18n
+  catalog ×7 locales, `{serverVersion}`/`{minimumVersion}` interpolated) — and
+  the renderer replaces the dark mount point with a persistent `role="alert"`
+  screen (windows-own catalog ×7 locales; all text via `textContent`, never
+  `innerHTML` — the version string is network input). Fail-open policy is
+  UNCHANGED: only an explicit version below 1.1.0 blocks; every probe-failure
+  path still boots as before (now also carrying `serverVersion: null`). Stale
+  renderer comment citing the nonexistent `/api/v1/server/version` corrected;
+  `docs/ipc-channels.md` return column updated (no new channels). Tests: +8
+  (4 structured-verdict shape pins in `versionCheck.test.ts`, 1 boot-screen
+  render test with log-only-revert mutation tooth in `main.test.ts`, 3
+  dialog/handler-wiring tests in new `serverTooOldDialog.test.ts` incl. static
+  pin killing call-removal); i18n count pins rotated 16→21 (windows-own) and
+  29→32 (main) with the `boot.*` additions honestly marked as born-in-catalog.
+  Suite 36 files/461 tests → 37/469, all green with the two mutations proven red.
+
 ### Fixed — docs: release-hash verification step now actually works — 2026-10-29
 
 - **Why:** review `windows__casualgamer` M-WINDOWS-01 round-1 REWORK (MAJOR-1 teach-fault) —

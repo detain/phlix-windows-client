@@ -12,6 +12,21 @@ interface HubConfig {
   connectionMode: string | null;
 }
 
+/**
+ * Boot-time server-version gate verdict (M-WINDOWS-02). Mirror of the SSOT
+ * declaration in src/main/versionCheck.ts — same pattern as HubConfig above
+ * (the renderer cannot import from the main process, so the shape is
+ * restated here and pinned by tests/unit/main.test.ts consumers).
+ */
+interface ServerVersionCheck {
+  /** False ONLY when the server explicitly reported a version below `minimumVersion`. */
+  compatible: boolean;
+  /** The version string the server reported, or null when no version could be read (fail-open paths). */
+  serverVersion: string | null;
+  /** The minimum supported server version this gate enforces (semver X.Y.Z). */
+  minimumVersion: string;
+}
+
 declare global {
   interface Window {
     electronAPI?: {
@@ -68,8 +83,8 @@ declare global {
       mediaSeekForward: () => Promise<void>;
       /** W4.5: SMTC action handler - seek to position */
       mediaSeekTo: (time: number) => Promise<void>;
-      /** W7.6: runtime server version enforcement — checks server meets minimum 1.1.0 */
-      checkServerVersion: (apiBase: string) => Promise<boolean>;
+      /** W7.6: runtime server version enforcement — checks server meets minimum 1.1.0. M-WINDOWS-02: structured verdict so every blocking outcome carries the versions that decided it (mirrors ServerVersionCheck in src/main/versionCheck.ts). */
+      checkServerVersion: (apiBase: string) => Promise<ServerVersionCheck>;
     };
   }
 }

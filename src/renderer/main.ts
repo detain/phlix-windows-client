@@ -138,6 +138,69 @@ export function buildExtraRoutes(appMode: 'server' | 'hub'): RouteRecordRaw[] {
   ];
 }
 
+/**
+ * The boot-time version gate's verdict, derived from the bridge type itself —
+ * a second hand-written declaration could drift; this cannot (electron.d.ts is
+ * the renderer-side source of truth, mirroring src/main/versionCheck.ts).
+ */
+type ServerVersionCheckResult = Awaited<ReturnType<NonNullable<typeof window.electronAPI>['checkServerVersion']>>;
+
+/**
+ * M-WINDOWS-02: persistent user-facing screen for the version gate's ONE
+ * blocking verdict (server explicitly reports a version below the minimum).
+ * Before this cure the too-old outcome was a log-only boot abort — the window
+ * was already shown, nothing mounted into it, and the user stared at a dark
+ * empty frame forever with zero explanation.
+ *
+ * Every string goes through textContent (NEVER innerHTML): the server-reported
+ * version is network input and must never be parsed as HTML. The windows-own
+ * catalog has no interpolation seam (its documented YAGNI law), so the dynamic
+ * values render as separate label + value rows.
+ */
+function renderIncompatibleServerScreen(result: ServerVersionCheckResult): void {
+  const container = document.getElementById('phlix-app') ?? document.body;
+  document.title = tWin('boot.incompatibleTitle');
+  container.setAttribute('style', [
+    'display:flex', 'align-items:center', 'justify-content:center', 'height:100vh',
+    'padding:24px', 'box-sizing:border-box', 'background:#1a1a2e', 'color:#e8e8f0',
+    'font-family:system-ui,-apple-system,"Segoe UI",sans-serif', 'text-align:center'
+  ].join(';') + ';');
+
+  const box = document.createElement('div');
+  box.setAttribute('role', 'alert');
+
+  const heading = document.createElement('h1');
+  heading.textContent = tWin('boot.incompatibleTitle');
+  heading.setAttribute('style', 'font-size:22px;margin:0 0 12px;');
+
+  const intro = document.createElement('p');
+  intro.textContent = tWin('boot.incompatibleIntro');
+  intro.setAttribute('style', 'font-size:15px;margin:0 0 20px;');
+
+  const action = document.createElement('p');
+  action.textContent = tWin('boot.incompatibleAction');
+  action.setAttribute('style', 'font-size:14px;margin:20px 0 0;opacity:0.85;');
+
+  const versionRow = (label: string, value: string): HTMLParagraphElement => {
+    const row = document.createElement('p');
+    row.setAttribute('style', 'font-size:14px;margin:0 0 6px;');
+    const strong = document.createElement('strong');
+    strong.textContent = label;
+    const span = document.createElement('span');
+    span.textContent = ` ${value}`;
+    row.appendChild(strong);
+    row.appendChild(span);
+    return row;
+  };
+
+  box.appendChild(heading);
+  box.appendChild(intro);
+  box.appendChild(versionRow(`${tWin('boot.reportedVersion')}:`, result.serverVersion ?? 'unknown'));
+  box.appendChild(versionRow(`${tWin('boot.requiredVersion')}:`, result.minimumVersion));
+  box.appendChild(action);
+  container.replaceChildren(box);
+}
+
 export async function boot(): Promise<void> {
   const api = window.electronAPI;
 
@@ -179,16 +242,22 @@ export async function boot(): Promise<void> {
   const { app: appMode, apiBase } = resolveAppConfig({ hub, serverUrl, envUrl });
 
   // W7.6: Enforce minimum server version (1.1.0) before mounting the renderer.
-  // Design decision: fail-open for unknown servers. Pre-1.1.0 servers that don't
-  // implement the /api/v1/server/version endpoint may still work for basic features.
-  // Logging a warning and allowing boot to continue is the pragmatic choice — the
-  // alternative (blocking boot on an unknown server) would break existing deployments.
+  // Design decision, UNCHANGED by M-WINDOWS-02: fail-open for unknown servers.
+  // Pre-1.1.0 servers that don't implement the root /system/info endpoint may
+  // still work for basic features; blocking boot on an unknown server would
+  // break existing deployments. The gate blocks ONLY when the server explicitly
+  // reports a version below the minimum (src/main/versionCheck.ts is the SSOT
+  // for that policy and for the endpoint path — this comment formerly cited a
+  // nonexistent /api/v1/server/version).
   if (api) {
-    const versionOk = await api.checkServerVersion(apiBase);
-    if (!versionOk) {
-      // Server version is too low — the main process has already logged a descriptive error.
-      // Abort the boot rather than showing a broken UI to the user.
-      log.error('[Boot] Server version check failed — aborting boot');
+    const versionCheck = await api.checkServerVersion(apiBase);
+    if (!versionCheck.compatible) {
+      // Too-old server. The main process has already shown the explanatory
+      // error dialog (M-WINDOWS-02); mount the persistent counterpart instead
+      // of aborting into a dark window, then stop the boot — no Vue app over
+      // a server we refuse to talk to.
+      log.error('[Boot] Server version check failed — showing the incompatible-server screen');
+      renderIncompatibleServerScreen(versionCheck);
       return;
     }
   }

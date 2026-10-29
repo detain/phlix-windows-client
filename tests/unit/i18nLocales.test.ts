@@ -18,7 +18,7 @@
  *  B+. FR TYPOGRAPHIC APOSTROPHE law over windows-own + main fr VALUES: no
  *      letter'letter survives (SSOT declares ’); elision-bearing catalogs must
  *      render at least one ’ so the absence law can never pass vacuously.
- *  C. MAIN-PROCESS catalog: 29-key identity per locale, placeholder parity,
+ *  C. MAIN-PROCESS catalog: 32-key identity per locale, placeholder parity,
  *     ja CJK sanity, EN-leak allow-lists both directions, t() switching.
  *  D. RESOLUTION MATRIX: raw tag → picked bundle for all three catalogs
  *     (ui seam via messagesForLocale, windows-own via setWindowLocale/tWin,
@@ -390,20 +390,20 @@ describe.skipIf(!SIBLING_PRESENT)(
 // B. WINDOWS-OWN renderer catalog (nav labels — authored here, every law pinned)
 // ---------------------------------------------------------------------------
 
-describe('windows-own nav catalog — key-set, baseline, leaks', () => {
-  it('every locale table has EXACTLY the 16 English nav keys (both directions)', () => {
+describe('windows-own catalog (nav + boot) — key-set, baseline, leaks', () => {
+  it('every locale table has EXACTLY the 21 English keys — 16 nav + 5 boot (both directions)', () => {
     const reference = keySet(WIN_EN as unknown as Table);
     for (const locale of LOCALES) {
       expect(keySet(WIN_TABLES[locale]), `${locale} key set differs from en`).toBe(reference);
     }
-    expect(EN_WIN.size).toBe(16);
+    expect(EN_WIN.size).toBe(21);
   });
 
   it('the registry carries precisely the catalog files that exist', () => {
     expect([...WINDOW_OWN_CATALOG_TAGS].sort()).toEqual(['de', 'en', 'es', 'fr', 'it', 'ja', 'pt_BR']);
   });
 
-  it('no nav value invents or drops a {placeholder} (none exist today — tripwire)', () => {
+  it('no value invents or drops a {placeholder} (nav+boot carry none — tripwire)', () => {
     for (const locale of LOCALES) {
       const table = flat(WIN_TABLES[locale]);
       for (const [key, value] of table) {
@@ -418,7 +418,7 @@ describe('windows-own nav catalog — key-set, baseline, leaks', () => {
     }
   });
 
-  it('latin nav carries diacritics where the language needs them (it legitimately has none in these 16)', () => {
+  it('latin values carry diacritics where the language needs them (floors across nav+boot; it now has one via boot è)', () => {
     const specs: Record<string, { re: RegExp; min: number }> = {
       es: { re: /[áéíóúüñ]/, min: 2 },
       fr: { re: /[àâäéèêëîïôùûüç]/, min: 3 },
@@ -431,7 +431,7 @@ describe('windows-own nav catalog — key-set, baseline, leaks', () => {
     }
   });
 
-  it('ja nav is 100% CJK (no Latin-word nav labels)', () => {
+  it('ja values are 100% CJK — nav and boot alike (no Latin-word labels)', () => {
     for (const value of flat(WIN_TABLES.ja).values()) {
       expect(value, `ja nav value '${value}' lacks CJK`).toMatch(CJK);
     }
@@ -504,16 +504,16 @@ describe('fr typographic apostrophe law (windows-own + main catalogs)', () => {
 });
 
 // ---------------------------------------------------------------------------
-// C. MAIN-process catalog (29 chrome strings — every law pinned)
+// C. MAIN-process catalog (32 chrome strings — every law pinned)
 // ---------------------------------------------------------------------------
 
 describe('main-process catalog ×6 — key-set, placeholders, sanity', () => {
-  it('every locale carries EXACTLY the 29 English keys (both directions)', () => {
+  it('every locale carries EXACTLY the 32 English keys (both directions)', () => {
     const reference = keySet(MAIN_EN as unknown as Table);
     for (const locale of LOCALES) {
       expect(keySet(MAIN_TABLES[locale]), `${locale} key set differs from en`).toBe(reference);
     }
-    expect(EN_MAIN.size).toBe(29);
+    expect(EN_MAIN.size).toBe(32);
   });
 
   it('the registry carries precisely the catalog files that exist', () => {
