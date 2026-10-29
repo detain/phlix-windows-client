@@ -226,7 +226,7 @@ All screens, navigation, theming, and state live in the shared **`@phlix/ui`** a
 The project uses GitHub Actions for continuous integration:
 
 - **test.yml** - Runs on every push/PR to validate code
-- **build.yml** - Creates releases on tags and publishes packages
+- **build.yml** - Builds NSIS + APPX installers on every master push (publishing them to the rolling `latest` prerelease) and, on `v*.*.*` tags, creates the versioned GitHub Release with checksum and updater-feed files attached
 
 > **Note:** For local development use `npm install`. For automated CI pipelines (including the GitHub Actions workflows above), use `npm ci` — it performs a clean, reproducible install from the lockfile, which is faster and safer than `npm install` in CI environments.
 
@@ -239,10 +239,14 @@ The project uses GitHub Actions for continuous integration:
    git push origin v1.0.0
    ```
 3. GitHub Actions will automatically:
-   - Run ESLint, vue-tsc, tsc -p tsconfig.main.json, vitest, npm audit --audit-level=high, and smoke test before packaging
-   - Build the application
-   - Create GitHub Release
-   - Upload artifacts
+   - Run ESLint, vue-tsc, tsc -p tsconfig.main.json, vitest, smoke tests (Linux + Windows), and the dependency audit allow-list gate (`scripts/audit-gate.mjs`) before packaging
+   - Build the NSIS and APPX packages
+   - Verify the tag version matches `package.json` (drift fails the release)
+   - Create the GitHub Release with `SHA256SUMS.txt`, `latest.yml`, and `latest-windows.yml` attached
+
+> **Note:** The tag-triggered chain was repaired on 2026-10-29 (see CHANGELOG — the
+> release job had two deterministically-failing steps and had never executed, as no
+> `v*` tag exists yet). The first tag push is its end-to-end proving run.
 
 ### Windows Installer
 

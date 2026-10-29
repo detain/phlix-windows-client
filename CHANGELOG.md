@@ -7,6 +7,40 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed — versioned-release chain repair [review windows__devops CRIT-1] — 2026-10-29
+
+- **The tag→GitHub-Release chain in `build.yml` was deterministically broken at
+  two independent steps and had never executed (zero `v*` tags on origin ever —
+  only the rolling `latest`).** Reproduced from HEAD at the bash level before
+  fixing, and the repaired steps re-run clean afterwards under GHA-faithful
+  `bash -e -o pipefail` with mock artifacts on disk.
+- **Leg 1 — `Generate SHA256 checksums` (release job):** the command hashed
+  `nsis/*.exe nsis/*.nupkg appx/*.appx appx/*.nupkg`, but the builder config
+  declares only nsis + appx targets (no squirrel), so no `.nupkg` can exist;
+  the unmatched globs passed literal patterns to `sha256sum`, which exits 1 and
+  killed the step before `Create Release` could ever run. Dropped the nupkg
+  operands (and the two never-matching `artifacts/*/*.nupkg` lines from the
+  `Create Release` files list).
+- **Leg 2 — `Generate latest-windows.yml for APPX`:** the heredoc terminator
+  `YML` was indented two spaces deeper than the block-scalar base, so it
+  materialized at column 2 while `<< YML` demands column 0 — bash died at
+  parse time (exit 2) and the `else` fallback was dead. Dedented the heredoc
+  body + terminator to the block base, mirroring the working `latest.yml`
+  step. (MAJ-1's `sha256`-vs-`sha512` schema conformance is a separate
+  queued item; this lane makes the chain run, not redesign the feed.)
+- **Latent third ghost found by the fix's negative-leg probe:** with the
+  heredoc previously killing the step at parse time, the APPX-absent guard
+  was never exercised — under `-e -o pipefail` the failing `ls` in
+  `APPX=$(ls … | head -1)` propagated through the assignment and aborted the
+  script before the `if`, so the intended "skip latest-windows.yml" fallback
+  was still dead. Added `|| true` inside the substitution; the else branch
+  now prints its skip message and exits 0 (verified).
+- **Docs truth:** README `build.yml` one-liner and the Release Process step 3
+  now describe what the workflows actually do (audit allow-list gate, not
+  bare `npm audit --audit-level=high`; version-drift check; the three feed
+  files), with an honest note that the first `v*` tag push is the chain's
+  end-to-end proving run.
+
 ### Changed — ui re-pin v0.99.9 → v0.99.10 — 2026-10-14
 
 - **Pin advance (release-cascade lane, ui tag v0.99.10).** `@phlix/ui` bumped
