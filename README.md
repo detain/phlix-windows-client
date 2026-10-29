@@ -28,9 +28,67 @@ Phlix Windows provides a full-featured media server client for Windows, enabling
 
 Phlix Windows requires Phlix Media Server **1.1.0** or later. Key features include skip-intro markers, SyncPlay groups, media facets, and schema-driven settings.
 
+## Install (end users)
+
+Phlix for Windows is a standalone app — you do **not** need Node.js, a terminal, or any of
+the build steps below. Download an installer from the releases page and run it:
+
+**Releases:** <https://github.com/detain/phlix-windows-client/releases>
+
+### What is published today
+
+As of 2026-10-29 the releases page carries one rolling build: **“Latest (master)”**, rebuilt
+and replaced on every push to `master`. It wears a *Pre-release* label because no stable
+`v*` release has been cut yet — the label does not mean “broken”; it is the current official
+download. (Publishing the first stable, versioned release is a maintainer release-process
+decision — see *Release Process* below.)
+
+Pick the asset that fits:
+
+| Asset | What it is | Use it if |
+|-------|-----------|-----------|
+| **`Phlix.Setup.1.0.0.exe`** ([direct download](https://github.com/detain/phlix-windows-client/releases/download/latest/Phlix.Setup.1.0.0.exe)) | NSIS desktop installer — per-user, no admin rights needed, lets you choose the install folder | you are almost everyone else |
+| **`Phlix.1.0.0.appx`** | APPX package for Store/sideload distribution | you know why you want this — installing an unsigned `.appx` requires a trusted certificate or Developer Mode; prefer the `.exe` otherwise |
+| **`SHA256SUMS.txt`** | SHA-256 hashes of both installers | you want to verify the download (optional) |
+
+Filenames carry the `package.json` version (currently `1.0.0`) and are re-uploaded on each
+master push, so always take them from the release page rather than bookmarking an old link.
+
+On first launch the app asks for your Phlix server (or Hub) URL — the server must be
+Phlix Media Server **1.1.0 or later** (see *Minimum Server Version* above).
+
+### First run: “Windows protected your PC”
+
+The installers are **not code-signed** — no Authenticode certificate is provisioned for this
+project yet — so SmartScreen shows a blue **“Windows protected your PC”** dialog and reports
+the publisher as **Unknown**. That is the expected behavior of unsigned software, not a sign
+the file is malicious, and there is no “verified publisher” here. To proceed safely:
+
+1. Optional but recommended — verify the download. In PowerShell, from your Downloads folder:
+   ```powershell
+   Get-FileHash .\Phlix.Setup.1.0.0.exe -Algorithm SHA256
+   ```
+   The printed hash must match the installer’s line in the release’s `SHA256SUMS.txt`.
+2. In the SmartScreen dialog, click the small **“More info”** link.
+3. Click **“Run anyway”**.
+
+Once a signing certificate is provisioned this dialog will no longer appear
+(see [`docs/signing.md`](docs/signing.md) for the developer-side story).
+
+### Getting updates
+
+The app includes an update check (Help → *Check for Updates*, plus a background check about
+every 6 hours), but **today it will silently find nothing**: it deliberately ignores
+pre-releases, and only the rolling “Latest (master)” pre-release exists. Until stable
+versioned releases are published, getting a new build means re-downloading the current
+installer from the [releases page](https://github.com/detain/phlix-windows-client/releases)
+and installing over the old one. Release notes for versioned releases appear on that same
+page; the rolling build’s notes name the `master` commit it was built from.
+
 ## Prerequisites
 
-Before setting up the project, ensure you have the following installed:
+These steps are for **developers building from source**. If you just want to use Phlix, see
+*Install (end users)* above. Before setting up the project, ensure you have the following installed:
 
 - **Node.js** >=24.0.0
 - **npm** v9.x or later (comes with Node.js)
@@ -43,7 +101,9 @@ For development:
   - Prettier
   - TypeScript and related tools
 
-## Installation
+## Installation (from source — development)
+
+> End users: use the *Install (end users)* section above; you do not need these steps.
 
 1. **Clone the repository**
    ```bash

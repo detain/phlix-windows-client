@@ -7,6 +7,23 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — docs: end-user download/install story in the README — 2026-10-29
+
+- **Why:** review `windows__casualgamer` M1 — the README's only "Installation" was
+  developer-only (clone/`npm install`); nothing pointed an end user at the actual GitHub
+  Releases, and the unsigned builds' first-run SmartScreen wall had zero documentation.
+- **What:** new *Install (end users)* section mirroring live release state verified 2026-10-29
+  via `gh release view latest`: the rolling **“Latest (master)”** pre-release is today's only
+  publication (no `v*` stable tag exists yet — first stable cut is an owner release-process
+  decision, noted in-product); real asset names (`Phlix.Setup.1.0.0.exe` NSIS installer +
+  `Phlix.1.0.0.appx` + `SHA256SUMS.txt`) with installer-vs-APPX choice guidance; honest
+  unsigned status with the SmartScreen “More info → Run anyway” walk-through and a
+  `Get-FileHash` verification step (no "verified publisher" fiction); update behavior truth —
+  electron-updater ships with `allowPrerelease = false` and finds nothing until a stable
+  release exists, so updates today = re-download from the releases page. The dev section was
+  retitled *Installation (from source — development)* and the Prerequisites intro scoped to
+  developers. README + CHANGELOG only; no code or workflow changes.
+
 ### Changed — dependency security: 22-advisory time-drift sweep clears the audit gate; allow-list retired to EMPTY — 2026-10-29
 
 - **Why:** master CI turned RED solely on the `node scripts/audit-gate.mjs` step at
