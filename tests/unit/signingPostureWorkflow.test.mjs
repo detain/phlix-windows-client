@@ -19,8 +19,10 @@
  * docs/signing.md, and the release-page body stops being silent about the
  * unsigned posture.
  *
- * LAWS (the first five redden at pre-cure 4e95cac; the sixth is a standing
- * tripwire):
+ * LAWS (measured 2026-10-29: five of the seven its redden at pre-cure
+ * 4e95cac — the annotation, name-drift, retired-names, docs-header and
+ * release-body laws; the two NEGATIVE tripwires below are green unless a
+ * lie is planted, which is their whole function):
  *  1. the workflow comment states the inactive posture in plain words;
  *  2. workflow and docs agree on the signing secret names (no drift either
  *     direction — a round-trip equality law);
