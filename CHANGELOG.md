@@ -7,6 +7,38 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Docs — signing posture told honestly: inactive block annotated, one unsigned story across workflow, docs and README (M-WINDOWS-08) — 2026-10-29
+
+- **Why:** review `windows__devops` MAJ-2. The `release` job carried a
+  commented signing sketch ("uncomment and fill in") whose secret names
+  (`WINDOWS_CERT_BASE64`/`SIGNTOOL_PASSWORD`) contradicted the repo's own
+  runbook (`docs/signing.md` prescribes `AUTHENTICODE_CERT*`/
+  `APPX_SIGNING_CERT*`), invoked Windows-only `signtool` inside the
+  `ubuntu-26.04` job where the SDK binary cannot exist, and the rolling
+  "latest" release body stayed silent about every artifact shipping
+  UNSIGNED. No certificate is provisioned (repo-OWNER surface); this change
+  makes the claims true, it does not fabricate certs.
+- **Shipped (docs/comments/CI-body only — zero behavior-file changes):**
+  build.yml signing block rewritten with an INACTIVE/UNSIGNED status banner,
+  canonicalized secret names, the windows-leg requirement, and a truthful
+  future-path sketch (pwsh `[IO.File]::WriteAllBytes` + discovered signtool,
+  no hard-pinned SDK version); rolling-release body now discloses the
+  unsigned posture and points at the README Get-FileHash/SmartScreen walk;
+  `docs/signing.md` opens with a CURRENT STATUS banner, drops every
+  hard-pinned `10.0.22621.0` SDK path for a discovery idiom, aligns its CI
+  sketches to the canonical names + windows leg, and names the real
+  versioned artifact (`Phlix.1.0.0.appx`); README Release Process states
+  the tag chain publishes UNSIGNED installers.
+- **Guard:** `tests/unit/signingPostureWorkflow.test.mjs` (new, 7 tests) —
+  5 cure pins (red at pre-cure 4e95cac) + 2 standing tripwires: no ACTIVE
+  signtool step may appear (uncommenting in place on the ubuntu leg
+  reddens), and no release body may claim signed output; secret names
+  round-trip-pinned between build.yml and docs/signing.md.
+- **Measured:** vitest full serial 43 files/517 tests (parent 42f/510-era;
+  +1 file/+7 exact); `eslint .` silent-clean; `build.yml`/`test.yml`
+  `yaml.safe_load` OK; targeted red→green evidence retained in the test
+  header.
+
 ### Fixed — cold-start deep link is event-driven; the 1000 ms race is dead (M-WINDOWS-06) — 2026-10-29
 
 - **Why:** review `windows__crossfe` M-WINDOWS-06. Cold-start delivery was

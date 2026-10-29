@@ -2,6 +2,22 @@
 
 This document describes how to sign the Phlix Windows client for release builds.
 
+> **CURRENT STATUS (measured 2026-10-29): signing is NOT active — releases
+> ship UNSIGNED.** No certificate secret is provisioned for this repo, no CI
+> step signs anything (the block in `.github/workflows/build.yml` is a
+> commented, inactive sketch pointing back at this file), and every published
+> artifact — the rolling "latest" prerelease and any future tag release — is a
+> bare unsigned `.exe`/`.appx`. Users therefore see SmartScreen's "Windows
+> protected your PC" with publisher **Unknown** on first run; the shipped
+> user-facing posture (verify `SHA256SUMS.txt` with `Get-FileHash`, then More
+> info → Run anyway) lives in README, *"First run: 'Windows protected your
+> PC'"*. README, the build.yml comment, and this file must always tell that
+> one story — a round-trip test pins the secret names shared between build.yml
+> and the CI section below. Provisioning the certificates is a repo-OWNER
+> action; until then, treat everything below this banner as the runbook for a
+> FUTURE state: how to sign once a certificate exists, plus manual signing for
+> internal/local builds.
+
 ## Why Signing Is Required
 
 Code signing authenticates the identity of the application publisher and ensures that executables and packages have not been tampered with since they were signed. Windows SmartScreen, antivirus heuristics, and the Windows Store all check for valid signatures before trusting an application.
@@ -43,10 +59,17 @@ Two types of artifacts are produced by this project:
 
 #### 1. Locate SignTool
 
-If you have the Windows SDK installed:
+If you have the Windows SDK installed (adjust `<version>` to your installed
+SDK — enumerate and pick the newest, do not hard-pin a version):
 
 ```
 C:\Program Files (x86)\Windows Kits\10\bin\<version>\x64\signtool.exe
+```
+
+```powershell
+# PowerShell discovery — the examples below reuse its result as $ST:
+$ST = (Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" |
+  Select-Object -Last 1).FullName
 ```
 
 If not, download the Windows SDK from [developer.microsoft.com/windows/downloads/windows-sdk](https://developer.microsoft.com/windows/downloads/windows-sdk/).
@@ -54,7 +77,7 @@ If not, download the Windows SDK from [developer.microsoft.com/windows/downloads
 #### 2. Sign the Executable
 
 ```powershell
-& "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe" sign \
+& $ST sign \
   /f certificate.pfx \
   /p <certificate-password> \
   /fd SHA256 \
@@ -73,7 +96,7 @@ If not, download the Windows SDK from [developer.microsoft.com/windows/downloads
 #### 3. Verify the Signature
 
 ```powershell
-& "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe" verify /pa /v release\Phlix-1.0.0-setup.exe
+& $ST verify /pa /v release\Phlix-1.0.0-setup.exe
 ```
 
 Expected output: `Successfully verified: release\Phlix-1.0.0-setup.exe`
@@ -83,7 +106,7 @@ Expected output: `Successfully verified: release\Phlix-1.0.0-setup.exe`
 The `/tr` flag in step 2 already handles this. If you are re-signing an existing file:
 
 ```powershell
-& signtool.exe timestamp /t http://timestamp.digicert.com release\Phlix-1.0.0-setup.exe
+& $ST timestamp /t http://timestamp.digicert.com release\Phlix-1.0.0-setup.exe
 ```
 
 ---
@@ -110,24 +133,41 @@ The unsigned `.appx` is output to the `release/` directory.
 #### 2. Sign the APPX
 
 ```powershell
-& "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe" sign \
+& $ST sign \
   /f appx-certificate.pfx \
   /p <certificate-password> \
   /fd SHA256 \
   /tr http://timestamp.digicert.com \
   /td SHA256 \
-  release\Phlix.appx
+  release\Phlix.1.0.0.appx
 ```
+
+(The asset name carries the `package.json` version — e.g. `Phlix.1.0.0.appx`, matching the release page listing; `1.0.0` is today's version.)
 
 #### 3. Verify the Signature
 
 ```powershell
-& signtool.exe verify /pa /v release\Phlix.appx
+& $ST verify /pa /v release\Phlix.1.0.0.appx
 ```
 
 ---
 
 ## CI Signing Configuration (When Ready)
+
+> **Status reminder (measured 2026-10-29): nothing below is active.** The
+> corresponding block in `.github/workflows/build.yml` is a commented,
+> INACTIVE sketch; releases ship UNSIGNED until the repo owner provisions
+> certificates. The secret names below are the canonical ones — build.yml
+> references exactly these, and `tests/unit/signingPostureWorkflow.test.mjs`
+> round-trip-pins both sides, so introducing a new name here requires
+> updating the workflow and the test together.
+>
+> **Runner leg:** `signtool.exe` is a Windows SDK binary. The `release` and
+> `release-latest` jobs run on `ubuntu-26.04` and cannot execute anything
+> here — signing steps belong on a `windows-latest` leg (the `build` job
+> already is one), with the signed artifacts flowing into the release
+> uploads. The snippets assume a `pwsh` shell, which is the GitHub Actions
+> default on Windows runners.
 
 When you are ready to wire CI to automatically sign builds:
 
@@ -137,26 +177,22 @@ When you are ready to wire CI to automatically sign builds:
    - `AUTHENTICODE_CERT` — base64-encoded `.pfx` certificate
    - `AUTHENTICODE_CERT_PASSWORD` — certificate password
 
-2. In `.github/workflows/build.yml`, decode the certificate before the package step:
+2. On the windows build leg, after packaging and before artifact upload:
 
 ```yaml
 - name: Import Authenticode Certificate
   env:
     AUTHENTICODE_CERT: ${{ secrets.AUTHENTICODE_CERT }}
-    AUTHENTICODE_CERT_PASSWORD: ${{ secrets.AUTHENTICODE_CERT_PASSWORD }}
-  run: |
-    echo "$AUTHENTICODE_CERT" | base64 --decode --output cert.pfx
+  run: '[IO.File]::WriteAllBytes("cert.pfx",[Convert]::FromBase64String($env:AUTHENTICODE_CERT))'
 
 - name: Sign NSIS Installer
+  env:
+    AUTHENTICODE_CERT_PASSWORD: ${{ secrets.AUTHENTICODE_CERT_PASSWORD }}
   run: |
-    & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe" sign \
-      /f cert.pfx \
-      /p "$env:AUTHENTICODE_CERT_PASSWORD" \
-      /fd SHA256 \
-      /tr http://timestamp.digicert.com \
-      /td SHA256 \
-      release/Phlix-*.exe
-  working-directory: .
+    $ST = (Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" |
+      Select-Object -Last 1).FullName   # never hard-pin the SDK version — it floats with the image
+    & $ST sign /f cert.pfx /p "$env:AUTHENTICODE_CERT_PASSWORD" /fd SHA256 `
+      /tr http://timestamp.digicert.com /td SHA256 release/Phlix-Setup-*.exe
 ```
 
 ### APPX Signing
@@ -165,7 +201,7 @@ When you are ready to wire CI to automatically sign builds:
    - `APPX_SIGNING_CERT` — base64-encoded `.pfx` certificate
    - `APPX_SIGNING_CERT_PASSWORD` — certificate password
 
-2. In `.github/workflows/build.yml`, after the APPX is built:
+2. On the windows build leg, after the APPX is built (before artifact upload):
 
 ```yaml
 - name: Sign APPX
@@ -173,14 +209,11 @@ When you are ready to wire CI to automatically sign builds:
     APPX_SIGNING_CERT: ${{ secrets.APPX_SIGNING_CERT }}
     APPX_SIGNING_CERT_PASSWORD: ${{ secrets.APPX_SIGNING_CERT_PASSWORD }}
   run: |
-    echo "$APPX_SIGNING_CERT" | base64 --decode --output appx-cert.pfx
-    & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe" sign \
-      /f appx-cert.pfx \
-      /p "$env:APPX_SIGNING_CERT_PASSWORD" \
-      /fd SHA256 \
-      /tr http://timestamp.digicert.com \
-      /td SHA256 \
-      release/Phlix.appx
+    [IO.File]::WriteAllBytes("appx-cert.pfx",[Convert]::FromBase64String($env:APPX_SIGNING_CERT))
+    $ST = (Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" |
+      Select-Object -Last 1).FullName
+    & $ST sign /f appx-cert.pfx /p "$env:APPX_SIGNING_CERT_PASSWORD" /fd SHA256 `
+      /tr http://timestamp.digicert.com /td SHA256 release/Phlix.*.appx
 ```
 
 > **Note**: The APPX `publisher` in `package.json` (`"publisher": "CN=Phlix"`) must match the `CN` field of the signing certificate exactly. If your certificate's CN differs, update `package.json` before signing.

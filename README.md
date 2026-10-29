@@ -320,6 +320,7 @@ The project uses GitHub Actions for continuous integration:
    - Build the NSIS and APPX packages
    - Verify the tag version matches `package.json` (drift fails the release)
    - Create the GitHub Release with the NSIS + APPX installers, `SHA256SUMS.txt`, and — attached verbatim, never hand-written — electron-builder's own `latest.yml` updater feed plus the installer's `.blockmap` (differential downloads)
+   - Publish them **UNSIGNED**: no Authenticode certificate is provisioned for this repo yet (signing in `build.yml` is an annotated inactive sketch; `docs/signing.md` carries the status and the future path). SmartScreen reporting "Unknown Publisher" on downloaded installers is therefore the expected reality — see *First run: "Windows protected your PC"* above
 
 > **Note:** The tag-triggered chain was repaired on 2026-10-29 (see CHANGELOG — the
 > release job had two deterministically-failing steps and had never executed, as no

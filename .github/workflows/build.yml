@@ -343,9 +343,16 @@ jobs:
             Rolling build of the latest `master` commit (${{ github.sha }}).
             Download the raw installer directly — no zip:
             - **`.exe`** — NSIS installer (desktop install)
-            - **`.appx`** — Windows Store / sideload package
+            - **`.appx`** — sideload package (installing an unsigned `.appx`
+              requires a trusted certificate or Developer Mode — prefer the `.exe`)
 
-            **SHA256SUMS.txt** is included for integrity verification.
+            **Unsigned build:** no Authenticode certificate is provisioned for
+            this project yet, so SmartScreen shows "Windows protected your PC"
+            with publisher **Unknown** on first run — expected behavior of
+            unsigned software, not a sign of malware. Verify the download
+            against **SHA256SUMS.txt** and follow the README section *"First
+            run: 'Windows protected your PC'"* (Get-FileHash check, then More
+            info → Run anyway). Signing status and future path: `docs/signing.md`.
           prerelease: true
           make_latest: false
           target_commitish: ${{ github.sha }}
@@ -382,21 +389,46 @@ jobs:
           name: phlix-windows-appx
           path: artifacts/appx
 
-      # ── Signing (W4.10 blocked on WINDOWS_CERT_BASE64 secret) ─────────────────
-      # When the WINDOWS_CERT_BASE64 secret is provisioned, uncomment and fill in:
+      # ── Signing — INACTIVE (W4.10): releases ship UNSIGNED ───────────────────
+      # Measured 2026-10-29: no Authenticode certificate secret is provisioned
+      # for this repo, nothing on any leg signs anything, and every published
+      # artifact — the rolling "latest" prerelease and any future tag release —
+      # ships as a bare UNSIGNED .exe/.appx. That is the documented reality the
+      # README already teaches users to live with ("First run: 'Windows
+      # protected your PC'" — SmartScreen reports Unknown Publisher; verify the
+      # download against SHA256SUMS.txt with Get-FileHash, then More info → Run
+      # anyway). Provisioning certificates is a repo-OWNER action; until then
+      # every trust-adjacent claim in this repo must match the paragraph above.
       #
-      #   - name: Decode certificate
-      #     run: echo "$WINDOWS_CERT_BASE64" | base64 -d > certificate.pfx
-      #     env:
-      #       WINDOWS_CERT_BASE64: ${{ secrets.WINDOWS_CERT_BASE64 }}
+      # The sketch below is the FUTURE signing path, kept commented. Uncomment-
+      # ing is NOT sufficient to enable it:
+      #   • Secret names are canonicalized to docs/signing.md — the single
+      #     source of truth: AUTHENTICODE_CERT / AUTHENTICODE_CERT_PASSWORD
+      #     (NSIS), APPX_SIGNING_CERT / APPX_SIGNING_CERT_PASSWORD (APPX).
+      #     tests/unit/signingPostureWorkflow.test.mjs round-trip-pins the
+      #     names against the docs; the older ad-hoc names this comment used
+      #     to carry contradicted the runbook and are permanently retired.
+      #   • signtool.exe is a Windows SDK binary and does NOT exist on this
+      #     ubuntu-26.04 job — the steps must run on a windows-latest leg (the
+      #     build job already is one) with signed artifacts flowing into the
+      #     release uploads, not in place here.
+      #   • docs/signing.md "CI Signing Configuration" carries the aligned
+      #     PowerShell sketch; land both sides together and re-pin the test's
+      #     tripwires when signing actually goes live.
       #
-      #   - name: Sign NSIS installer
-      #     run: signtool sign /f certificate.pfx /p "$SIGNTOOL_PASSWORD" /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 "artifacts/nsis/*.exe"
+      #   - name: Decode certificate          # windows leg, pwsh shell
+      #     run: '[IO.File]::WriteAllBytes("certificate.pfx",[Convert]::FromBase64String($env:AUTHENTICODE_CERT))'
       #     env:
-      #       SIGNTOOL_PASSWORD: ${{ secrets.SIGNTOOL_PASSWORD }}
+      #       AUTHENTICODE_CERT: ${{ secrets.AUTHENTICODE_CERT }}
+      #       AUTHENTICODE_CERT_PASSWORD: ${{ secrets.AUTHENTICODE_CERT_PASSWORD }}
+      #
+      #   - name: Sign NSIS installer         # signtool path DISCOVERED, not hard-pinned (SDK version floats with the image)
+      #     run: $st = (Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" | Select-Object -Last 1).FullName; & $st sign /f certificate.pfx /p "$env:AUTHENTICODE_CERT_PASSWORD" /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 artifacts/nsis/*.exe
+      #     env:
+      #       AUTHENTICODE_CERT_PASSWORD: ${{ secrets.AUTHENTICODE_CERT_PASSWORD }}
       #
       #   - name: Verify signature
-      #     run: signtool verify /pa /v "artifacts/nsis/*.exe"
+      #     run: $st = (Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" | Select-Object -Last 1).FullName; & $st verify /pa /v artifacts/nsis/*.exe
       # ─────────────────────────────────────────────────────────────────────────
 
       - name: Get version
