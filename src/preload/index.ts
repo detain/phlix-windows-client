@@ -6,8 +6,88 @@
 
 import { contextBridge, ipcRenderer } from 'electron';
 
-// Expose protected methods to renderer
-contextBridge.exposeInMainWorld('electronAPI', {
+/**
+ * M-WINDOWS-10 trust gate — which documents may hold the privileged bridge.
+ *
+ * A preload is tied to the window, not to the URL: this file runs again for
+ * EVERY document the webContents commits. The main window deliberately keeps
+ * an external-navigation posture — `will-navigate`
+ * (src/main/index.ts) allows any https:/http: top-level navigation by design
+ * (in-window OAuth-style flows), blocking only dangerous schemes
+ * (src/main/urlValidator.ts). Before this gate, such a navigation handed the
+ * attacker's page the FULL `electronAPI`: hubSetConfig()/setServerUrl() could
+ * flip the PERSISTED auth endpoint to an attacker origin (next launch the
+ * ApiClient auto-attaches the stored Authorization token to it),
+ * getDeviceId() leaked the stable install identifier, getAppPath() the user
+ * profile path, checkServerVersion() became a main-process SSRF probe, and
+ * tray/GPU/power/always-on-top toggles gave silent window/device
+ * manipulation (review windows__exploiter MAJOR-1).
+ *
+ * Law: the bridge is exposed only for this shell's own boot documents, and
+ * only in the main frame:
+ *   - prod : 'app://-/app/'  (PROD_BOOT_URL,       src/main/index.ts)
+ *   - dev  : 'http://localhost:5173' (vite dev server, strictPort)
+ * Same-origin child frames are NOT trusted either — the SPA never runs
+ * framed, so no framed context has a legitimate need for the OS surface.
+ * A file: origin is deliberately absent: nothing in this shell loads file://
+ * (the only navigation sites are the two loadURL calls), and an unkeyed
+ * file origin is no trust boundary anyway. If a future boot URL is added,
+ * the wiring pins in tests/unit/preloadTrustGate.test.ts redden until it is
+ * listed here (and only then) too.
+ *
+ * The test compares protocol+host on a parsed URL, never `.origin`: for
+ * non-special schemes (app:) the WHATWG origin is engine-opaque — Node
+ * serializes `new URL('app://-/app/').origin` as 'null'. Anything
+ * unparseable or unreadable fails CLOSED (no bridge).
+ */
+export interface PreloadContext {
+  /** The document URL the bridge would attach to (window.location.href). */
+  href: string;
+  /** True only for the webContents' main frame (process.isMainFrame). */
+  isMainFrame: boolean;
+}
+
+/** Boot documents whose origin may hold the privileged bridge. */
+export const TRUSTED_BOOT_TARGETS: ReadonlyArray<{ protocol: string; host: string }> = [
+  { protocol: 'app:', host: '-' },              // prod  (PROD_BOOT_URL 'app://-/app/')
+  { protocol: 'http:', host: 'localhost:5173' } // dev   (vite strictPort 5173)
+];
+
+/**
+ * Pure trust decision: may a document with this context receive electronAPI?
+ * Exported for unit pinning (tests/unit/preloadTrustGate.test.ts); the
+ * module-level gate below is its only production call site.
+ */
+export function isTrustedPreloadContext(context: PreloadContext): boolean {
+  if (!context.isMainFrame) {
+    return false;
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(context.href);
+  } catch {
+    return false; // fail closed: garbage/unreadable location ⇒ no bridge
+  }
+  return TRUSTED_BOOT_TARGETS.some(
+    (target) => target.protocol === parsed.protocol && target.host === parsed.host
+  );
+}
+
+/**
+ * Read the live context this preload script is evaluating into. In a
+ * sandboxed preload, `globalThis.window` is the isolated-world window whose
+ * `location` reflects the committed document, and `process.isMainFrame` is
+ * Electron's frame discriminator. Missing pieces are represented as
+ * untrusted (fail closed) rather than throwing during module evaluation.
+ */
+function readPreloadContext(): PreloadContext {
+  const hostWindow = (globalThis as unknown as { window?: { location?: { href?: string } } }).window;
+  const href = typeof hostWindow?.location?.href === 'string' ? hostWindow.location.href : '';
+  return { href, isMainFrame: process.isMainFrame === true };
+}
+
+// Expose protected methods to renderer — surface unchanged, but gated below.
+const electronApiSurface = {
   // App info
   getAppPath: () => ipcRenderer.invoke('get-app-path'),
   getVersion: () => ipcRenderer.invoke('get-version'),
@@ -131,4 +211,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('update:downloaded', listener);
     return () => ipcRenderer.removeListener('update:downloaded', listener);
   },
-});
+};
+
+// THE gate (M-WINDOWS-10): a document this preload runs in receives the
+// bridge only if it is this shell's own boot page in the main frame. An
+// in-window navigation to any other origin — including every http(s) site
+// the will-navigate posture deliberately permits — gets NO electronAPI.
+if (isTrustedPreloadContext(readPreloadContext())) {
+  contextBridge.exposeInMainWorld('electronAPI', electronApiSurface);
+}

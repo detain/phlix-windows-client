@@ -7,6 +7,48 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Security — the privileged preload bridge is pinned to the app's own boot documents (M-WINDOWS-10) — 2026-10-29
+
+- **Why:** review `windows__exploiter` MAJOR-1. `src/preload/index.ts` called
+  `contextBridge.exposeInMainWorld('electronAPI', …)` at module top level with
+  zero checks on `window.location` or `process.isMainFrame`. A preload is tied
+  to the window, not the URL — and the shell's deliberate external-navigation
+  posture (`will-navigate` accepts every https:/http: top-level URL via
+  `validateExternalUrl`, blocking only dangerous schemes) meant any
+  in-window navigation to an attacker page woke it with the FULL bridge:
+  `hubSetConfig`/`setServerUrl` could flip the persisted auth endpoint
+  (credential-channel hijack on the user's next launch), `getDeviceId`/
+  `getAppPath` leaked installation identity, `checkServerVersion` became a
+  main-process SSRF probe, plus tray/GPU/power/always-on-top manipulation.
+- **Shipped:** a fail-closed trust gate in the preload — the pure predicate
+  `isTrustedPreloadContext({href, isMainFrame})` (exported for pinning) admits
+  ONLY the two documents the main process actually navigates to: prod
+  `app://-` (`PROD_BOOT_URL 'app://-/app/'`) and dev `http://localhost:5173`
+  (vite strictPort), main frame only. Comparison is parsed protocol+host —
+  never `.origin`, which is engine-opaque for the non-special `app:` scheme.
+  Untrusted contexts get NO `electronAPI` at all, which the renderer already
+  tolerates (`electronAPI?` is optional in the type and every consumer is
+  guarded). Single-file addition — the sandboxed preload gains no new
+  `require` (compiled bundle takes exactly one: `electron`), so no bundler
+  posture change was needed.
+- **Complement, not duplicate:** the navigation posture is untouched by
+  design — http(s) in-window navigation (OAuth-style flows) still works; such
+  a page simply no longer holds OS surface. The new wiring pins assert both
+  directions: every boot URL main navigates to is covered by the predicate,
+  and every trusted entry has a boot URL that uses it (stale-list guard).
+- **Preserved:** every existing IPC channel unchanged — the surface literal
+  moved verbatim behind the gate; `ipcChannels.test.ts` channel-parity law
+  still green; boot smoke (real Electron, xvfb) green, proving the trusted
+  prod boot still receives the bridge.
+- **Pins:** new `tests/unit/preloadTrustGate.test.ts` (19 tests: predicate
+  table incl. scheme/port/iframe/file:/data:/about:blank/garbage-href legs,
+  fresh-module-evaluation wiring behavior with a mocked `electron`, main-side
+  posture structure). Mutation teeth measured: gate removed → 5 red;
+  `app://-` dropped from trust list → 3 red; main-frame law stripped → 3 red.
+  Suite 44 files/522 tests → 45/541 exact; vue-tsc (renderer + test configs),
+  tsc main, eslint, audit-gate (0 advisories, empty allow-list held),
+  `npm run build` + `assert-preload` all green.
+
 ### CI — every third-party action is SHA-pinned; the estate supply-chain law reaches this repo (M-WINDOWS-09) — 2026-10-29
 
 - **Why:** review `windows__devops` MAJ-3. All 35 `uses:` steps across
