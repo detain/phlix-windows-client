@@ -22,7 +22,6 @@ Phlix Windows provides a full-featured media server client for Windows, enabling
 - **Authentication** - Secure login with session persistence (handled by `@phlix/ui`)
 - **Shared UI** - Modern Vue 3 interface from `@phlix/ui` with the Nocturne theme
 - **Settings Management** - Configurable preferences including minimize-to-tray behavior
-- **Hub Mode** - Connect to a Phlix Hub to manage multiple servers, with support for direct-LAN and relay connection modes
 
 ## Minimum Server Version
 
@@ -58,7 +57,7 @@ Pick the asset that fits:
 Filenames carry the `package.json` version (currently `1.0.0`) and are re-uploaded on each
 master push, so always take them from the release page rather than bookmarking an old link.
 
-On first launch the app asks for your Phlix server (or Hub) URL — the server must be
+On first launch the app asks for your Phlix server URL — the server must be
 Phlix Media Server **1.1.0 or later** (see *Minimum Server Version* above).
 
 ### First run: “Windows protected your PC”
@@ -132,7 +131,7 @@ For development:
 3. **Configure environment** (optional)
 
    Create a `.env` file in the root directory if you need a custom default server URL (used as the
-   build-time fallback when no server URL is persisted and Hub mode is not configured):
+   build-time fallback when no server URL is persisted):
    ```
    VITE_PHLIX_SERVER_URL=http://localhost:8096
    ```
@@ -158,10 +157,11 @@ restore surfaces, and both fully restore hidden, minimized, and combined states.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `VITE_PHLIX_SERVER_URL` | (none) | Build-time fallback is empty (user must configure a server or Hub URL at first boot) |
+| `VITE_PHLIX_SERVER_URL` | (none) | Build-time fallback is empty (user must configure a server URL at first boot) |
 | `NODE_ENV` | `development` | Runtime environment |
 
-Hub mode is configured at runtime (persisted via `hub:set-config` in electron-store), not via an environment variable — see the Hub Mode section below.
+There is no environment variable for hub mode; its runtime channel (`hub:set-config`) exists in
+the shell but ships no caller today — see *Hub Mode (not yet enterable)* below.
 
 ## Building the App
 
@@ -332,41 +332,38 @@ The build workflow produces:
 - **NSIS Installer** - Traditional `.exe` installer
 - **APPX Package** - For Windows Store distribution
 
-## Hub Mode
+## Hub Mode (not yet enterable)
 
-Hub Mode allows you to connect to a Phlix Hub to manage and access multiple Phlix servers through a single interface. This is useful for users with servers in different locations or network environments.
+**Status, measured at this build:** the shell ships the full hub-mode *machinery* — persisted
+config IPC, the boot-time mode resolver branch, hub navigation, and hub page routes — but there
+is **no in-app way to enter hub mode**: the configuration writer `hub:set-config` has zero
+callers, and every desktop screen (Settings included) is the pinned `@phlix/ui` bundle, which
+ships no hub-connection form and never touches `window.electronAPI`. `tests/unit/hubModeStatus.test.ts`
+pins all of this. Until an upstream connection seam lands, **every launch boots server mode**.
 
-### Features
+Typing a Hub URL into the first-run Connect screen does **not** enter hub mode — the value is
+persisted as a direct `serverUrl` and the app then drives server-mode endpoints against a hub
+API (404s on server-only routes). The hub pages (MyServers, Server Detail, Federation,
+Federation-Shares, Manage-Shares, Shared-With-Me, Invite-Links, Accept-Invite, hub-admin) are
+registered by `buildMenu('hub')` / `buildExtraRoutes('hub')` and stay unreachable with the mode.
 
-- **Hub Authentication** - Sign in to your Phlix Hub account
-- **Server Switcher** - Quickly switch between your claimed servers
-- **Connection Modes**:
-  - **Direct** - Connect directly to servers via LAN for lowest latency
-  - **Relay** - Route traffic through the hub for remote access
-- **Session Persistence** - Hub session persists across app restarts
+What the machinery does once a hub config exists (unit-tested via `tests/unit/resolveConfig.test.ts`
+and the status pins above):
 
-### Configuration
+- `hub:get-config` / `hub:set-config` (`src/main/index.ts`) read/write the persisted config:
+  `hubUrl` under the M-WINDOWS-11 DPAPI custody, `activeServerId` and `connectionMode` as plain
+  electron-store rows (defaults: no hub URL, mode `direct`).
+- `resolveAppConfig` (`src/renderer/resolveConfig.ts`) picks the mode at boot: configured
+  `hubUrl` + `connectionMode` not `direct` → hub mode against the hub URL; otherwise server
+  mode (persisted server URL → build-time env fallback → empty → Connect screen).
+- Hub mode swaps in the hub nav and page routes listed above, mirroring the hub's own web-ui.
 
-Hub configuration is persisted at runtime in electron-store (via the `hub:set-config` IPC) — there is
-no environment variable for it. At boot, `resolveAppConfig` runs the app in **hub mode** (against
-`hub.hubUrl`) whenever a Hub URL is configured and the connection mode is not explicitly `direct`;
-otherwise it runs in **server mode** against the persisted direct server URL.
-
-#### In-App Configuration
-1. Open Settings
-2. Navigate to Hub Mode section
-3. Enter your Hub URL
-4. Sign in with your Hub credentials
-5. Select a server from your claimed servers list
-6. Choose connection mode (Direct or Relay)
-
-### Connection Flow
-
-1. User configures Hub URL and signs in; the choice is persisted via `hub:set-config`
-2. On next boot, `resolveAppConfig` selects hub vs direct server mode and the `apiBase`
-3. App fetches the list of claimed servers from the Hub (via `@phlix/ui`)
-4. API calls route through direct-LAN or hub-relay based on the chosen mode
-5. Active server and connection mode persist across sessions
+**Rider:** entering hub mode needs an `@phlix/ui` connection seam (a hub/server entry form in
+the shared Settings or Connect surface — this repo's thin-consumer law forbids a windows-owned
+settings page). It rides the same upstream v0.99.12 wave as the `tokenStore` seam rider in
+`src/renderer/safeStorageTokenStore.ts`. When the tripwire pins redden because that seam shipped
+or a caller landed, wire `boot()` to the existing `hubSetConfig` channel, restore the enterable
+copy (Features + What Works bullets, how-to steps), and retire the pins together.
 
 ## Troubleshooting
 
@@ -409,14 +406,14 @@ MIT License - see project repository for details.
 - **System tray** — Minimize-to-tray, tray menu with media controls
 - **Native menus** — Full File/Playback/View/Help menu bar with keyboard accelerators
 - **Media keys** — Thumbar buttons and tray/menu keyboard accelerators (Play/Pause, Stop, Rewind/Forward ±10s)
-- **Hub Mode** — Connect to a Phlix Hub; direct-LAN and relay connection modes
 - **Packaging** — NSIS x64 installer and APPX via `electron-builder`
 - **CI pipeline** — ESLint, vue-tsc, tsc -p tsconfig.main.json, vitest, npm audit, smoke test gate on every PR/push
 - **Coverage** — Reports generated and uploaded to Codecov and Codacy on each CI run
 
 ### Known Limitations
 
-- App boots to Connect screen on first launch (no default server URL; user must configure a server or Hub)
+- App boots to Connect screen on first launch (no default server URL; user must configure a server URL)
+- **Hub Mode** — the shipped machinery (config IPC, resolver branch, hub nav + routes) cannot be entered today: `hub:set-config` has zero callers and the pinned `@phlix/ui` bundle ships no hub-connection form — see [Hub Mode (not yet enterable)](#hub-mode-not-yet-enterable)
 - Offline Downloads have no surface in this client — the shared `@phlix/ui` bundle carries no offline/download page
 - Watching with friends (SyncPlay): the shared UI ships the room page and the in-player SyncPlay controls, but the room's live-sync socket dials the *page's own host*, which the desktop app can never satisfy — see [Watching with friends (SyncPlay)](#watching-with-friends-syncplay)
 

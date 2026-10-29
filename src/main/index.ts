@@ -842,6 +842,12 @@ ipcMain.on('tray:set-minimize-to-tray', (_, val: boolean) => store.set('minimize
 // M-WINDOWS-11: hubUrl travels through encrypted custody (auth endpoint);
 // activeServerId (opaque selection pointer) and connectionMode (enum) are
 // not credential-bearing and stay plain store reads.
+// M-WINDOWS-17: `hub:set-config` has zero callers — nothing shipped can enter hub
+// mode (the thin-consumer renderer owns no settings form; the pinned @phlix/ui
+// bundle never touches electronAPI). Machinery is live-tested and inert by design;
+// README "Hub Mode (not yet enterable)" carries the user-facing truth, and the
+// enterability seam is the v0.99.12-wave @phlix/ui rider (same wave as the
+// tokenStore seam rider further down this file). Tripwires: tests/unit/hubModeStatus.test.ts.
 ipcMain.handle('hub:get-config', () => {
   return {
     hubUrl: configCustody.read('hubUrl'),

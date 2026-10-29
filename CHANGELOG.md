@@ -7,6 +7,40 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed — the README-advertised "Hub Mode" cannot be entered; the claim is demoted to shipped truth with tripwired rider (M-WINDOWS-17) — 2026-10-29
+
+- **Why:** review `windows__gameux` MAJOR-6 — "README-advertised 'Hub Mode' cannot be
+  entered: its only config writer has zero callers." Verified at HEAD `b5547cea`: the
+  machinery is real (`hub:get-config`/`hub:set-config` handlers in `src/main/index.ts`,
+  preload `hubGetConfig`/`hubSetConfig`, the resolver's hub branch, the hub nav and the
+  full hub route set) but `hubSetConfig` had zero production callers (grep: only the
+  `electron.d.ts` type and test mocks), the thin-consumer renderer owns no settings form,
+  and the pinned v0.99.10 `@phlix/ui` bundle contains zero `electronAPI` references across
+  all installed chunks — no surface anywhere could reach the writer. Every launch booted
+  server mode while the README promised an enterable mode, complete with fake
+  "Open Settings → Hub Mode section" steps.
+- **Cure (docs-demotion — the estate idiom for a dead advertised feature that cannot be
+  honestly wired in-repo):** building the missing piece (a hub/server entry form) is either
+  a windows-owned settings page — forbidden by this repo's thin-consumer law — or the
+  upstream `@phlix/ui` connection seam, which rides the same v0.99.12 wave as the
+  `tokenStore` rider (`src/renderer/safeStorageTokenStore.ts`). README Features + What
+  Works bullets and every "(or Hub)" affordance claim deleted; the "## Hub Mode" section
+  rewritten as an honest "## Hub Mode (not yet enterable)" status (measured machinery, the
+  Connect-screen hub-URL caution, rider procedure); Known Limitations gains the pointer;
+  the dead writer site gains an `M-WINDOWS-17` rider comment (mirroring this file's
+  v0.99.12-wave tokenStore precedent); `docs/ui-surface.md`'s hub-mode inventory is marked
+  mode-conditional. Zero shipped behavior changed.
+- **Pins:** new `tests/unit/hubModeStatus.test.ts` (8 cases) — fiction-forbidden law (8
+  retired literals must never resurface while entry is impossible; measured red on the
+  parent README), section-scope law ("What Works" must not name Hub Mode, "Known
+  Limitations" must), disposition-marker + in-code-rider presence, machinery truth (the
+  resolver branch, hub nav ids, hub route paths — what the status section claims to
+  describe), and two tripwires with full rider procedures: the zero-caller law and the
+  bundle-touches-no-`electronAPI` law both redden the moment upstream ships an entry seam.
+- **Measured:** vitest FULL serial 50 files 626 → 634 (+8 exact), exit 0; `vue-tsc`
+  `--noEmit` 0; `tsc -p tsconfig.main.json --noEmit` 0; `npm run lint` 0; `npm run build`
+  0 (vite + main + assert-preload). `dist/` is gitignored (CI-built) — nothing to re-vendor.
+
 ### Fixed — the too-old-server screen retries in place; the boot-failure surface is never quit-only (M-WINDOWS-16) — 2026-10-29
 
 - **Why:** review `windows__gameux` MAJOR-5 — "min-server-version enforcement

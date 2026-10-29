@@ -169,4 +169,7 @@ audiobooks, photos, search, settings, admin + 17 admin pages + library/scan
 + parental = 26 OK; parental is UNREACHABLE (no menu link)
 
 **windows-client hub mode:** my-servers, federation, shares, admin + 7 admin pages +
-4 hub extraRoutes = 11 OK; parental is UNREACHABLE (no menu link)
+4 hub extraRoutes = 11 OK; parental is UNREACHABLE (no menu link) — mode-conditional
+inventory: hub mode itself is not enterable in the shipped build (`hub:set-config` has
+zero callers, no upstream connection form), see README *Hub Mode (not yet enterable)*
+and `tests/unit/hubModeStatus.test.ts` [M-WINDOWS-17]
