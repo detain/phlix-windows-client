@@ -7,6 +7,34 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Test — M-WINDOWS-20 guard law: the clone→cd install pairing made runtime-derived and reddens on drift — 2026-10-29
+
+- **Why:** review windows__writer M2 found the first install block broke copy-paste readers —
+  `git clone …phlix-windows-client.git` followed by `cd phlix-windows` (the clone yields
+  `phlix-windows-client/`), with the same wrong name as the Project Structure tree root. The
+  README sweep at 0fac869 cured the text (its commit names M20); this lane makes the fix a LAW.
+  Nothing previously asserted that every README clone is followed by the `cd` for the directory
+  the clone actually creates — the triple (repo slug / clone dir / tree root) could silently
+  re-drift on the next doc edit or rename.
+- **Cure:** NEW `tests/unit/readmeInstallSequence.test.mjs` (updateFeedWorkflow node-env idiom),
+  fully runtime-derived — no directory string is hardcoded: (1) parses every fenced block of
+  README, and each `git clone`'s next command in the same block must be exactly
+  `cd <derived-dir>` (derived-dir = explicit clone dir arg, else the URL's last segment minus
+  `.git`); (2) the Project Structure tree root must be `<build.publish.repo>/` — the same slug
+  updateFeedWorkflow pins as the canonical publish identity; (3) a whole-tree survivor sweep: no
+  markdown law file (root *.md + docs, CHANGELOG.md exempt as the verbatim history record) may
+  carry a `cd phlix-windows…`-shaped command naming a directory no README clone yields. A
+  non-vacuity pin guards the guard.
+- **Proofs (measured):** red-on-parent — with README.md swapped to 0fac869^ bytes, EXACTLY the 3
+  violation pins fail (pairing names `README.md:146 … expected 'phlix-windows' to be
+  'phlix-windows-client'`; tree root names `phlix-windows/`; survivor names README.md), the 2
+  coherence pins pass; restore → 5/5 green. Mutation: planting `cd phlix-windows` in DEVELOPER.md
+  only (README clean) reddens exactly the survivor pin naming DEVELOPER.md; restore → 5/5 green.
+  Docs+test only — src/, electron surfaces and build outputs untouched.
+- **Gates (measured):** vitest FULL serial (`--no-file-parallelism`) **666 passed / 53 files**
+  (661-era + 5 exact, exit 0); vue-tsc 0; `tsc -p tsconfig.main.json --noEmit` 0; `npm run lint`
+  0; `npm run build` 0 + preload assert OK (no rebuild churn — dist/ is gitignored).
+
 ### Fix — M-WINDOWS-16 r2: the boot-surface interactivity law made true by construction — 2026-10-29
 
 - **Why:** review r1 (verdict SHIP, 0 blocking) upheld the retry design but named the docblock claim
