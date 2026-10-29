@@ -34,6 +34,23 @@ const MAX_TOKEN_LENGTH = 256;
 const MAX_INTERNAL_PATH_LENGTH = 1024;
 
 /**
+ * Canonical deep-link host → renderer route table. Every target is an EXISTING
+ * route record: `/app/media/:id` and `/app/player/:id` ship inside the vendored
+ * @phlix/ui router (there is NO `/play/:id` record anywhere), while
+ * `/app/accept-invite/:token` and `/app/server/:id` are this repo's hub-mode
+ * extraRoutes (src/renderer/main.ts). The router base is `/app`, so the old
+ * unprefixed `/${host}` construction matched nothing but the 404 catch-all
+ * (review windows__casualgamer C1 / windows__crossfe C1). Pinned against a
+ * real router by tests/unit/deepLinkRouteContract.test.ts.
+ */
+const ROUTE_BY_HOST: Record<string, string> = {
+  media: '/app/media',
+  play: '/app/player',
+  'accept-invite': '/app/accept-invite',
+  server: '/app/server'
+};
+
+/**
  * Redacts a deep link for logging: keeps scheme + host + path structure but
  * replaces the final path segment with `[redacted]` when the host is
  * `accept-invite` (its segment is a one-time secret). Query strings and
@@ -58,11 +75,12 @@ export function redactDeepLinkUrl(url: string): string {
  * Parses and validates a `phlix://` URL into an internal router path, or null
  * when it must be rejected.
  *
- * Grammar:
- *   phlix://media/{id}             → /media/{id}
- *   phlix://play/{id}              → /play/{id}
- *   phlix://accept-invite/{token}  → /accept-invite/{token}   (base64url, ≤256 chars)
- *   phlix://server/{id}            → /server/{id}
+ * Grammar (every external target is an existing router record — see
+ * ROUTE_BY_HOST; routes all live under the '/app' history base):
+ *   phlix://media/{id}             → /app/media/{id}            (ui route /app/media/:id)
+ *   phlix://play/{id}              → /app/player/{id}           (ui route /app/player/:id)
+ *   phlix://accept-invite/{token}  → /app/accept-invite/{token} (base64url, ≤256 chars; hub-mode route, token fed as prop)
+ *   phlix://server/{id}            → /app/server/{id}           (hub-mode route)
  *   phlix://internal/{route...}    → /{route...}               (gated: no traversal, no null bytes, ≤1024 chars)
  */
 export function parseDeepLinkUrl(url: string): string | null {
@@ -155,9 +173,8 @@ export function parseDeepLinkUrl(url: string): string | null {
       }
     }
 
-    // Build the internal path
-    const routePath = `/${host}/${value}`;
-    return routePath;
+    // Build the internal path against the real route table (ROUTE_BY_HOST).
+    return `${ROUTE_BY_HOST[host]}/${value}`;
   } catch (err) {
     log.warn(`[deeplink] Failed to parse URL: ${redactDeepLinkUrl(url)} — ${err}`);
     return null;

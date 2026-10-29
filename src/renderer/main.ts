@@ -100,8 +100,10 @@ export function buildMenu(appMode: 'server' | 'hub'): MenuItem[] {
  * this includes MyServersPage (`/app/servers`), ServerDetailPage (`/app/server/:id`),
  * FederationPage (`/app/federation`), FederationSharesPage (`/app/federation/shares`),
  * ManageSharesPage (`/app/shares`), SharedWithMePage (`/app/shared`), InviteLinksPage
- * (`/app/invites`), AcceptInvitePage (`/app/accept-invite` — deep-link only, no nav entry),
- * and the hub-admin section. Server mode adds LibraryScanPage.
+ * (`/app/invites`), AcceptInvitePage (`/app/accept-invite/:token` — deep-link
+ * only, no nav entry; the token arrives as a route prop because the vendored
+ * component declares a `token` prop), and the hub-admin section. Server mode
+ * adds LibraryScanPage.
  * Mirrors the server/hub web-uis. Routes carry the full `/app` prefix (history base is '/').
  */
 export function buildExtraRoutes(appMode: 'server' | 'hub'): RouteRecordRaw[] {
@@ -114,7 +116,7 @@ export function buildExtraRoutes(appMode: 'server' | 'hub'): RouteRecordRaw[] {
       { path: '/app/shares', name: 'manage-shares', component: ManageSharesPage },
       { path: '/app/shared', name: 'shared-with-me', component: SharedWithMePage },
       { path: '/app/invites', name: 'invite-links', component: InviteLinksPage },
-      { path: '/app/accept-invite', name: 'accept-invite', component: AcceptInvitePage },
+      { path: '/app/accept-invite/:token', name: 'accept-invite', props: true, component: AcceptInvitePage },
       ...buildHubAdminRoutes()
     ];
   }

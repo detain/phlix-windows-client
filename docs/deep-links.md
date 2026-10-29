@@ -12,10 +12,17 @@ phlix://<host>/<value>
 
 | Host | Internal Route | Example URL | Description |
 |------|---------------|-------------|-------------|
-| `media` | `/media/{id}` | `phlix://media/abc123` | Navigate to a media item |
-| `play` | `/play/{id}` | `phlix://play/abc123` | Start playback of an item |
-| `accept-invite` | `/accept-invite/{token}` | `phlix://accept-invite/abc_123` | Accept an invitation token |
-| `server` | `/server/{id}` | `phlix://server/abc123` | Navigate to a server |
+| `media` | `/app/media/{id}` | `phlix://media/abc123` | Navigate to a media item |
+| `play` | `/app/player/{id}` | `phlix://play/abc123` | Start playback of an item |
+| `accept-invite` | `/app/accept-invite/{token}` | `phlix://accept-invite/abc_123` | Accept an invitation token |
+| `server` | `/app/server/{id}` | `phlix://server/abc123` | Navigate to a server |
+
+> Every target above is a route record that actually exists: `media`/`play`
+> ship inside the vendored `@phlix/ui` router (there is no `/play/:id`
+> record — playback is the player route), `accept-invite`/`server` are
+> hub-mode routes registered by this repo. All app routes live under the
+> `/app` history base; an unprefixed path would only match the 404
+> catch-all. The pin lives in `tests/unit/deepLinkRouteContract.test.ts`.
 
 > **Note:** The `'internal'` host is also accepted by the parser (for notification click-action routing) but is omitted from this table as it is an implementation detail, not a user-facing link type.
 
@@ -51,7 +58,7 @@ On macOS, the `app.on('open-url', ...)` event carries the deep link URL.
 ## IPC Channel
 
 - **Channel**: `deeplink:open` (main → renderer push)
-- **Payload**: Internal route path (e.g., `/media/abc123`)
+- **Payload**: Internal route path (e.g., `/app/media/abc123`)
 
 The renderer queues deep links if the router is not yet ready, then flushes the queue once `router.isReady()` resolves.
 

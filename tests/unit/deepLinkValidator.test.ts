@@ -34,28 +34,28 @@ vi.mock('electron-log', () => ({
 describe('parseDeepLinkUrl', () => {
   describe('valid URLs', () => {
     it('accepts valid media ID', () => {
-      expect(parseDeepLinkUrl('phlix://media/abc123')).toBe('/media/abc123');
+      expect(parseDeepLinkUrl('phlix://media/abc123')).toBe('/app/media/abc123');
     });
 
     it('accepts media ID with dashes', () => {
-      expect(parseDeepLinkUrl('phlix://media/abc-123-def')).toBe('/media/abc-123-def');
+      expect(parseDeepLinkUrl('phlix://media/abc-123-def')).toBe('/app/media/abc-123-def');
     });
 
-    it('accepts valid play ID', () => {
-      expect(parseDeepLinkUrl('phlix://play/episode-456')).toBe('/play/episode-456');
+    it('accepts valid play ID (maps to the ui player route — no /play route exists)', () => {
+      expect(parseDeepLinkUrl('phlix://play/episode-456')).toBe('/app/player/episode-456');
     });
 
     it('accepts valid server ID', () => {
-      expect(parseDeepLinkUrl('phlix://server/my-server')).toBe('/server/my-server');
+      expect(parseDeepLinkUrl('phlix://server/my-server')).toBe('/app/server/my-server');
     });
 
     it('accepts valid accept-invite token', () => {
-      expect(parseDeepLinkUrl('phlix://accept-invite/abc_123')).toBe('/accept-invite/abc_123');
+      expect(parseDeepLinkUrl('phlix://accept-invite/abc_123')).toBe('/app/accept-invite/abc_123');
     });
 
     it('accepts an invite token at exactly the 256-char cap', () => {
       const token = 'a'.repeat(256);
-      expect(parseDeepLinkUrl(`phlix://accept-invite/${token}`)).toBe(`/accept-invite/${token}`);
+      expect(parseDeepLinkUrl(`phlix://accept-invite/${token}`)).toBe(`/app/accept-invite/${token}`);
     });
   });
 

@@ -26,7 +26,7 @@ const DEEP_LINK_ALLOW_LIST: Array<{ pattern: RegExp; reason: string }> = [
   { pattern: /^\/app\/connect$/, reason: 'connect gate for unconfigured clients, not a nav target' },
 
   // AcceptInvitePage: deep-link only from invitation emails
-  { pattern: /^\/app\/accept-invite$/, reason: 'deep-link from invitation emails, never shown in nav' },
+  { pattern: /^\/app\/accept-invite\/:token$/, reason: 'deep-link from invitation emails, never shown in nav' },
 
   // Player: terminal view, navigated to from media items
   { pattern: /^\/app\/player\//, reason: 'terminal player view, reached by clicking media' },
