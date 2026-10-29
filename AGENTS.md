@@ -1,6 +1,6 @@
 # Phlix Windows — Agent Guide
 
-Electron + Vue 3 + TypeScript desktop client for Phlix Media Server. The renderer is a **thin consumer** of the shared `@phlix/ui` Vue app (all screens/stores/routing come from `@phlix/ui`; this repo only owns the Electron shell + the boot/bridge glue). Packaged as NSIS + APPX via `electron-builder`. Repo: `git@github.com:detain/phlix-windows-client.git`.
+Electron + Vue 3 + TypeScript desktop client for Phlix Media Server. The renderer is a **thin consumer** of the shared `@phlix/ui` Vue app — every route renders a vendored page view and all application state lives in the vendored stores — plus enumerated local surfaces: player overlay components, a boot-failure screen, i18n catalogs, and a DPAPI token-store adapter (see Architecture below). Packaged as NSIS + APPX via `electron-builder`. Repo: `git@github.com:detain/phlix-windows-client.git`.
 
 ## Commands
 
@@ -23,20 +23,24 @@ Typecheck: renderer `npx vue-tsc --noEmit`; main/preload `npx tsc -p tsconfig.ma
 
 ## Architecture
 
-Three Electron processes wired by `contextBridge`. The renderer ships no UI of its own — it boots `@phlix/ui`'s `createPhlixApp(config)` (Vue 3 + Pinia + vue-router, all peer deps of `@phlix/ui`) and bridges Electron events into it.
+Three Electron processes wired by `contextBridge`. The renderer boots `@phlix/ui`'s `createPhlixApp(config)` (Vue 3 + Pinia + vue-router, all peer deps of `@phlix/ui`) and bridges Electron events into it — and, beyond that consumer core, ships its own local surfaces: player overlay components, a boot-failure screen, i18n catalogs, media-session handlers, and a DPAPI token-store adapter (see *Renderer layout* below).
 
 - **Main** (`src/main/index.ts`): `BrowserWindow` creation, `Tray`, `Menu` (File/Playback/View/Help), `electron-log` init, `electron-store`. IPC handlers: existing `get-app-path` / `get-version` / `set-always-on-top` / `minimize-to-tray` / `hub:get-config` / `hub:set-config`, **plus** `app:get-server-url` (`store.get('serverUrl', null)`), `app:set-server-url` (`store.set('serverUrl', url)`), `app:get-device-id` (returns persisted `deviceId` or generates+persists `windows-<randomUUID()>`). Sends `media-play-pause` / `media-stop` / `media-rewind` / `media-forward` / `open-settings` to the renderer. Tray/menu/existing IPC unchanged.
 - **Preload** (`src/preload/index.ts`): exposes `window.electronAPI` via `contextBridge.exposeInMainWorld`. Adds `getServerUrl()` / `setServerUrl(url)` / `getDeviceId()` (all `ipcRenderer.invoke`) alongside the existing app-info / window-control / media-event / hub-config members. Listener helpers return cleanup functions.
-- **Renderer** (`src/renderer/`): a thin `@phlix/ui` consumer — no local pages/components/stores. Pinned to `@phlix/ui` (`github:detain/phlix-ui#v0.98.39`) + `@phlix/contracts` (`github:detain/phlix-contracts#v0.4.6`); Vue 3 / Pinia / vue-router are peer deps. Built with Vite + `@vitejs/plugin-vue`.
+- **Renderer** (`src/renderer/`): a thin `@phlix/ui` consumer PLUS enumerated local surfaces (player overlay components + their `overlay.tsx` app entry, boot-failure screen, i18n catalogs, media-session handlers, DPAPI token-store adapter). Pinned to `@phlix/ui` (`github:detain/phlix-ui#v0.99.10`) + `@phlix/contracts` (`github:detain/phlix-contracts#v0.5.3`); Vue 3 / Pinia / vue-router are peer deps. Built with Vite + `@vitejs/plugin-vue`.
 
 ### Renderer layout
 
 | Path | Purpose |
 |------|---------|
-| `src/renderer/main.ts` | Entry. `boot()` reads Electron config (`hubGetConfig`/`getDeviceId`/`getServerUrl`, defensive when `electronAPI` is undefined in a plain browser dev context), resolves app-mode + apiBase via `resolveAppConfig`, builds `deviceHeaders` via `@phlix/contracts` `buildPhlixHeaders`, `createPhlixApp({app, apiBase, deviceHeaders, defaultTheme:'nocturne', branding})`, `mount('#phlix-app')`, then `installElectronBridge(app)`. Exports `boot` for testing; top-level `void boot()` runs at load. |
+| `src/renderer/main.ts` | Entry. `boot()` reads Electron config (`hubGetConfig`/`getDeviceId`/`getServerUrl`, defensive when `electronAPI` is undefined in a plain browser dev context), resolves app-mode + apiBase via `resolveAppConfig`, builds `deviceHeaders` via `@phlix/contracts` `buildPhlixHeaders`, `createPhlixApp({app, apiBase, deviceHeaders, defaultTheme:'nocturne', branding})`, `mount('#phlix-app')`, then `installElectronBridge(app)`. Exports `boot` for testing; top-level `void boot()` runs at load. Also renders the too-old-server boot-failure screen (`renderIncompatibleServerScreen`) with Retry, dynamically imports the `./overlay` entry, and registers local routes via `buildExtraRoutes`. |
+| `src/renderer/overlay.tsx` | Second Vue app entry (dynamically imported by `boot()`): mounts the player overlays on `#player-supplement-root`. |
+| `src/renderer/components/` | Local player overlay components: `PlayerSupplement.tsx` (panel) · `SleepTimer.tsx` · `PiPButton.tsx` (Vue JSX/TSX, not React). |
+| `src/renderer/mediaSession.ts` | `navigator.mediaSession` / SMTC action handlers. |
+| `src/renderer/i18n/` | windows-own catalogs (7 locales) + vendored ui-locale-bundles + `overrides/`. |
 | `src/renderer/resolveConfig.ts` | Pure exported `resolveAppConfig({hub, serverUrl, envUrl})`: returns `{app:'hub', apiBase:hub.hubUrl}` when `hub.hubUrl` set AND `connectionMode !== 'direct'`, else `{app:'server', apiBase}` with serverUrl → envUrl → `http://localhost:8096`. No Electron/DOM deps — unit-testable. |
 | `src/renderer/electronBridge.ts` | `installElectronBridge(app)` pulls `$pinia`/`$router` off `app.config.globalProperties`, resolves `usePlayerStore(pinia)`, delegates to the pure `wireElectronBridge(player, router)`. Maps Electron media/window IPC → the phlix-ui player store + router: play-pause toggles `play()`/`pause()` off `player.playing`; stop → `closePlayer()`; open-settings → `router.push('/app/settings')`. `rewind`/`forward` relative-seek via `player.seekBy(∓10)` (phlix-ui v0.52.0 command bus). No-op outside Electron; returns a single cleanup that unregisters every listener. |
-| `src/renderer/index.html` | Mounts `#phlix-app`, loads `/main.ts`. CSP locked to self + `https: http: blob:` media + `ws:` connect. |
+| `src/renderer/index.html` | Mounts `#phlix-app` + `#player-supplement-root`, loads `/main.ts`. CSP locked to self + `https: http: blob:` media + `ws:` connect. |
 | `src/renderer/types/electron.d.ts` | `window.electronAPI` typings (incl. `HubConfig`, `getServerUrl`/`setServerUrl`/`getDeviceId`, and the M-WINDOWS-11 `vault*` bridge). |
 | `src/renderer/safeStorageTokenStore.ts` | M-WINDOWS-11: `@phlix/ui` `TokenStore` implementation over the DPAPI vault (`window.electronAPI.vault*`); boots into place the moment the upstream tokenStore seam ships. Fail-fast constructor without the bridge. |
 | `src/renderer/test-setup.ts` | `localStorage` mock for jsdom env. |
@@ -45,11 +49,11 @@ Three Electron processes wired by `contextBridge`. The renderer ships no UI of i
 
 ### Routing
 
-Routes are NOT defined here — they come from `createPhlixApp` (`@phlix/ui`'s router). The router base is `/app`; the Electron bridge navigates with full paths such as `router.push('/app/settings')`.
+The page VIEWS and base routing come from `createPhlixApp` (`@phlix/ui`'s router); the windows-side route table itself is authored here — `buildExtraRoutes` (`src/renderer/main.ts`) registers the `/app/*` entries, nav items, and admin gating around the vendored views. The router base is `/app`; the Electron bridge navigates with full paths such as `router.push('/app/settings')`.
 
 ## Conventions
 
-- **Thin consumer**: the renderer owns ZERO UI. All screens, stores, theming, and routing live in `@phlix/ui`. Do not re-add local pages/components/stores — extend `@phlix/ui` upstream and bump the pinned version instead.
+- **Thin consumer, upstream first**: every route renders a vendored `@phlix/ui` page view and application state lives in the vendored stores — do not fork those screens/components/stores locally; extend `@phlix/ui` upstream and bump the pinned version instead. The enumerated local surfaces (player overlays via `overlay.tsx`, the boot-failure screen, i18n catalogs, media-session handlers, the DPAPI token-store adapter, the route wiring) ship here by design — they are NOT cleanup targets. See also `docs/decisions/004` (amended).
 - **Device identity** via `@phlix/contracts` `buildPhlixHeaders({deviceId, deviceName:'Phlix for Windows', deviceType:'windows'})`. No token/sessionId is passed here — `@phlix/ui`'s ApiClient owns `Authorization`/session.
 - **App-mode + apiBase** are resolved once in `resolveAppConfig` (hub vs direct server). Persisted serverUrl comes from `app:get-server-url`; the stable deviceId from `app:get-device-id`.
 - **Electron → player bridge**: Electron IPC events are bridged to `@phlix/ui`'s `usePlayerStore` + router in `electronBridge.ts`, never directly to UI. Add new media commands there.

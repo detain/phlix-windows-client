@@ -39,10 +39,12 @@ Process* below).
 └─────────────────────────────────────────────────────────┘
 ```
 
-The renderer pins `@phlix/ui` (`github:detain/phlix-ui#v0.98.39`) and `@phlix/contracts`
-(`github:detain/phlix-contracts#v0.4.6`). Vue 3, Pinia, and vue-router are peer deps of `@phlix/ui`.
-All screens, navigation, theming, and state come from `@phlix/ui`; this repo owns only the Electron
-shell and the boot/bridge glue.
+The renderer pins `@phlix/ui` (`github:detain/phlix-ui#v0.99.10`) and `@phlix/contracts`
+(`github:detain/phlix-contracts#v0.5.3`). Vue 3, Pinia, and vue-router are peer deps of `@phlix/ui`.
+Vendored page views, navigation, theming, and application state come from `@phlix/ui`; alongside
+that consumer core the repo ships its own local surfaces — player overlay components, a
+boot-failure screen, i18n catalogs, media-session handlers, a DPAPI token-store adapter, and the
+local `/app/*` route wiring (see *Renderer Process* below).
 
 Both are pinned by GitHub tag — upstream master changes are inert until both the tag and the pin move.
 
@@ -315,12 +317,18 @@ webPreferences: {
 
 ### Adding UI / screens / stores / routes
 
-UI, Pinia stores, and routes are NOT defined in this repo — they all live in `@phlix/ui`. To add or
-change a screen, store, or route:
+Page VIEWS, application Pinia stores, and theming are vendored from `@phlix/ui` — never fork them
+into this repo. The windows-owned local surfaces — player overlays (`src/renderer/components/`,
+`overlay.tsx`), the boot-failure screen, i18n catalogs, media-session handlers, the token-store
+adapter, and the `/app/*` route wiring (`buildExtraRoutes`) — live and evolve here. To add or
+change a screen, store, or theme:
 
 1. Implement it upstream in `@phlix/ui`.
 2. Cut a new `@phlix/ui` release and bump the pinned
    `"@phlix/ui": "github:detain/phlix-ui#vX.Y.Z"` in `package.json`.
+
+To place a vendored screen under a new route, or add nav entries / admin gating for one, extend
+`buildExtraRoutes` in `src/renderer/main.ts` — that wiring is authored locally.
 
 If a new screen needs to be driven by an Electron tray/menu event, wire that event into the relevant
 `@phlix/ui` store inside `src/renderer/electronBridge.ts` (and add the IPC per the section above).

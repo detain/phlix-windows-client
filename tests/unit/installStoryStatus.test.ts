@@ -42,6 +42,14 @@
  * |   | pages/components/stores" claim literals, and    | claims while the renderer ships overlays, a     |
  * |   | both enumerate the shipped local surfaces by    | boot-failure screen, catalogs, a token adapter  |
  * |   | name (M-WINDOWS-22)                             | (docs-follow-code, and code-follows-DPAPI)      |
+ * | 10| No zero-ownship SURVIVOR literal in the six    | someone revives an AGENTS/CLAUDE/004/test-      |
+ * |   | law files (scan is whitespace-normalized +      | comment blanket claim the r2 whole-tree sweep   |
+ * |   | lowercase — wrapping/casing cannot dodge)       | cured (M-WINDOWS-22 r2)                         |
+ * | 11| ADR-004 keeps its "Status: Amended" and         | the amendment is un-marked, or the ADR is       |
+ * |   | no-forking-rule markers                         | silently rewritten to the old premise           |
+ * | 12| TRUE nuance statements stay present (negative   | blanket-censoring "fixes" a real claim, or the  |
+ * |   | controls: "no local page views", "owns no       | kept-true nuance itself rots out of the docs    |
+ * |   | settings form", "No localhost guess")           |                                                 |
  *
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
@@ -266,5 +274,72 @@ describe('End-user install story tracks shipped release reality (M-WINDOWS-19)',
         ).toContain(surface);
       }
     }
+  });
+});
+
+describe('M-WINDOWS-22 r2 — zero-ownship survivor family stays dead whole-tree', () => {
+  // The r1 sweep was docs/-scoped and case-sensitive, so this family lived on in
+  // AGENTS.md, CLAUDE.md, the ADR-004 title/body, DEVELOPER.md's wrapped sentence,
+  // and one test docblock. The r2 law scans the WHOLE survivor set, case-INsensitively
+  // and wrap-tolerantly (whitespace-normalized), and names its own dead literals so a
+  // revived claim reddens regardless of how it is re-line-broken or re-cased.
+  const norm = (s: string): string => s.replace(/\s+/g, ' ').toLowerCase();
+  const LAW_FILES: Array<[string, string]> = [
+    ['README.md', norm(readFileSync(join(PROJECT_ROOT, 'README.md'), 'utf-8'))],
+    ['DEVELOPER.md', norm(readFileSync(join(PROJECT_ROOT, 'DEVELOPER.md'), 'utf-8'))],
+    ['AGENTS.md', norm(readFileSync(join(PROJECT_ROOT, 'AGENTS.md'), 'utf-8'))],
+    ['CLAUDE.md', norm(readFileSync(join(PROJECT_ROOT, 'CLAUDE.md'), 'utf-8'))],
+    ['docs/decisions/004-no-local-ui.md',
+      norm(readFileSync(join(PROJECT_ROOT, 'docs', 'decisions', '004-no-local-ui.md'), 'utf-8'))],
+    ['tests/unit/hubModeStatus.test.ts',
+      norm(readFileSync(join(PROJECT_ROOT, 'tests', 'unit', 'hubModeStatus.test.ts'), 'utf-8'))]
+  ];
+  const SURVIVOR_CLAIM_LITERALS: string[] = [
+    'owns zero ui',
+    'ships zero ui',
+    'ships no ui of its own',
+    'the renderer owns no ui',
+    'all screens/stores/routing come from',
+    'all screens, components, stores, and routing come from',
+    'this repo only owns the electron shell',
+    'this repo owns only the electron shell',
+    'local code is limited to the electron shell',
+    'routes are not defined here',
+    'routes are not defined in this repo',
+    'do not re-add local pages',
+    'no local pages/components/stores',
+    'adr-004: no local ui'
+  ];
+  it('no law file revives a zero-ownship survivor claim (r2 whole-tree family)', () => {
+    for (const [name, text] of LAW_FILES) {
+      for (const dead of SURVIVOR_CLAIM_LITERALS) {
+        expect(
+          text,
+          `${name} carries the zero-ownship claim "${dead}" — the M-WINDOWS-22 r2 sweep cured ` +
+          'it to shipped truth: thin consumer PLUS the enumerated local surfaces (player ' +
+          'overlays via overlay.tsx, boot-failure screen, i18n catalogs, media-session, DPAPI ' +
+          'token-store adapter, local route wiring). Scanned normalized+lowercased: casing or ' +
+          'line-wrapping cannot dodge this pin.'
+        ).not.toContain(dead);
+      }
+    }
+  });
+  it('ADR-004 stays marked as amended and keeps the surviving no-forking rule (r2)', () => {
+    const adr = norm(readFileSync(join(PROJECT_ROOT, 'docs', 'decisions', '004-no-local-ui.md'), 'utf-8'));
+    expect(adr, 'ADR-004 lost its amendment marker — an ADR may age only when MARKED, not silently false').toContain('status: amended');
+    expect(adr, 'ADR-004 lost the no-forking rule — the part of the decision that still stands must stay stated').toContain('no-forking rule');
+  });
+  it('the r2 law targets claims, not true statements (negative controls)', () => {
+    // Legit distinct claims that survived the sweep: deleting them (or blanket-censoring
+    // shared words) is overreach and must redden this pin.
+    const developer = norm(readFileSync(join(PROJECT_ROOT, 'DEVELOPER.md'), 'utf-8'));
+    const main = norm(readFileSync(join(PROJECT_ROOT, 'src', 'main', 'index.ts'), 'utf-8'));
+    const hubMode = norm(readFileSync(join(PROJECT_ROOT, 'tests', 'unit', 'hubModeStatus.test.ts'), 'utf-8'));
+    const resolve = norm(readFileSync(join(PROJECT_ROOT, 'tests', 'unit', 'resolveConfig.test.ts'), 'utf-8'));
+    expect(developer, 'TRUE kept nuance: routes render vendored page VIEWS').toContain('no local page views');
+    expect(developer, 'TRUE kept nuance: app state stays in vendored stores').toContain('no local application stores');
+    expect(main, 'TRUE: src/main/index.ts records that the renderer owns no settings FORM (vendored one serves)').toContain('owns no settings form');
+    expect(hubMode, 'TRUE: the M17 docblock still states no local settings form').toContain('owns no settings form');
+    expect(resolve, 'unrelated prose: "No localhost guess" is not a zero-ownship claim').toContain('no localhost guess');
   });
 });

@@ -7,8 +7,9 @@
  * hub:get-config / hub:set-config), the preload surface (`hubGetConfig` /
  * `hubSetConfig`), the resolver's hub branch (`src/renderer/resolveConfig.ts`) and the
  * full hub nav/route set (`buildMenu('hub')` / `buildExtraRoutes('hub')`) all exist —
- * but the renderer owns no settings form (this repo's thin-consumer law: the renderer
- * ships ZERO UI), and the pinned `@phlix/ui` bundle never touches `electronAPI`, so no
+ * but the renderer owns no settings form (this repo's thin-consumer law: Settings UI is
+ * vendored from `@phlix/ui`, never forked locally), and the pinned `@phlix/ui` bundle
+ * never touches `electronAPI`, so no
  * vendored surface can drive the writer either. Every launch boots server mode.
  *
  * Cure: docs-demotion to shipped truth (this repo's own M-WINDOWS-04/SyncPlay template —

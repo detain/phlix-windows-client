@@ -7,6 +7,40 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Docs — M-WINDOWS-22 r2: zero-ownship survivor family swept whole-tree; law extended — 2026-10-29
+
+- **Why:** review r1 REWORK — the six-site cure and pin #9 held, but the mandated survivor sweep had
+  been run docs/-scoped and case-sensitive, so the false zero-ownship family lived on in AGENTS.md
+  (header sentence, "ships no UI of its own", "Routes are NOT defined here", the "owns ZERO UI"
+  contributor rule), its byte-twins in CLAUDE.md, the unmarked ADR-004 ("No Local UI" title +
+  "owns zero UI" decision), DEVELOPER.md's wrapped "owns only the Electron shell" sentence and its
+  "Adding UI / screens / stores / routes" guidance, and one hubModeStatus.test.ts docblock
+  parenthetical ("ships ZERO UI"). Four of those phrasings had also escaped r1's own re-run regex —
+  the r2 case-INsensitive, wrap-tolerant whole-tree re-sweep caught and cured all of them. The r1
+  entry's "the two extra survivors" line (which enumerates THREE) and its "docs/ was clean" row are
+  corrected FORWARD here — r1's entry text stands as recorded, per the measured-forward-only law.
+- **Cure:** every survivor rewritten in the six-site shipped-truth voice — thin consumer PLUS the
+  enumerated local surfaces (player overlays via `overlay.tsx`, boot-failure screen, i18n catalogs,
+  media-session handlers, DPAPI token-store adapter, local `/app/*` route wiring); ADR-004 retitled
+  "No Forking of `@phlix/ui` Screens/Stores" with a "Status: Amended" line (the no-forking rule for
+  ui-OWNED screens/components/stores stands; the zero-ownship premise marked superseded — an ADR may
+  age only when marked); AGENTS/CLAUDE/DEVELOPER stale pin prose (`#v0.98.39`/`#v0.4.6`) corrected to
+  the package.json truth (`#v0.99.10`/`#v0.5.3`); contributor tables gained the missing local-surface
+  rows. Kept-true claims untouched: "no local page VIEWS", "no local application stores", "owns no
+  settings form".
+- **Law:** installStoryStatus.test.ts gained three its — a 14-literal survivor scan over the six law
+  files (README/DEVELOPER/AGENTS/CLAUDE/ADR-004/hubModeStatus docblock) with whitespace-normalized,
+  case-insensitive matching (line-wrapping/casing cannot dodge), an ADR-amendment-marker pin, and a
+  negative-control pin protecting the true statements from blanket censoring (no src/** scan —
+  deliberate non-overreach). Red-on-parent measured per class (single-file swap to 8707b66 bytes):
+  AGENTS 1F, CLAUDE 1F, DEVELOPER 1F, ADR-004 2F (literal + marker), hubModeStatus 1F; every other
+  pin stayed green on each swap; files restored byte-identical.
+- **Gates (measured):** vitest FULL serial (`--no-file-parallelism`) **659 passed** (656-era +3
+  exact, 52 files, no new files; venue note: a sibling-less fresh clone reports 655P|1S for the same
+  tree — the i18nLocales sibling-context describe skips there and runs here; totals equal);
+  vue-tsc 0; `tsc -p tsconfig.main.json --noEmit` 0; `npm run lint` 0; `npm run build` 0. Diff is
+  docs + two test files only — zero src/, build.yml, or package.json changes.
+
 ### Docs — M-WINDOWS-22: "no local components" claims to shipped renderer truth — 2026-10-29
 
 - **Why:** review `windows__writer` M22 — three docs claimed the renderer ships no local
