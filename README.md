@@ -64,11 +64,20 @@ project yet — so SmartScreen shows a blue **“Windows protected your PC”** 
 the publisher as **Unknown**. That is the expected behavior of unsigned software, not a sign
 the file is malicious, and there is no “verified publisher” here. To proceed safely:
 
-1. Optional but recommended — verify the download. In PowerShell, from your Downloads folder:
+1. Optional but recommended — verify the download. Also save `SHA256SUMS.txt` from the
+   release page into the same folder, then run both lines in PowerShell:
+
    ```powershell
-   Get-FileHash .\Phlix.Setup.1.0.0.exe -Algorithm SHA256
+   $expected = (Select-String -Path .\SHA256SUMS.txt -Pattern 'Phlix Setup').Line.Split(' ')[0]
+   (Get-FileHash .\Phlix.Setup.1.0.0.exe -Algorithm SHA256).Hash.ToLower() -eq $expected
    ```
-   The printed hash must match the installer’s line in the release’s `SHA256SUMS.txt`.
+
+   `True` means the bytes match. Comparing by eye instead, mind two format quirks the
+   snippet above absorbs: `Get-FileHash` prints UPPERCASE hex while `SHA256SUMS.txt` is
+   lowercase — the digits must agree, not the case (that is what `.ToLower()` normalizes);
+   and the installer’s line is labelled with its **build-time name**, `nsis/Phlix Setup
+   1.0.0.exe` — spaces and a directory prefix — which is the same asset you downloaded as
+   `Phlix.Setup.1.0.0.exe`. Search the file for “Phlix Setup”, not for the asset name.
 2. In the SmartScreen dialog, click the small **“More info”** link.
 3. Click **“Run anyway”**.
 

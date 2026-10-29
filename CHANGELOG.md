@@ -7,6 +7,22 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed — docs: release-hash verification step now actually works — 2026-10-29
+
+- **Why:** review `windows__casualgamer` M-WINDOWS-01 round-1 REWORK (MAJOR-1 teach-fault) —
+  the taught `Get-FileHash … must match SHA256SUMS.txt` step failed two format collisions:
+  `Get-FileHash` prints UPPERCASE hex against a lowercase sha256sum-style file with no
+  case note, and the file labels the installer by its BUILD-TIME path
+  `nsis/Phlix Setup 1.0.0.exe` (spaces + prefix), so grepping the downloaded asset name
+  `Phlix.Setup.1.0.0.exe` finds nothing.
+- **What:** verification step rewritten as a pasteable two-line PowerShell compare
+  (`Select-String -Pattern 'Phlix Setup'` → `.Line.Split(' ')[0]` → `-eq` against
+  `.Hash.ToLower()`), plus an eye-check sentence bridging the uppercase/lowercase quirk and
+  the build-time label (same asset). Copy validated against the real published
+  `SHA256SUMS.txt` on the rolling `latest` release 2026-10-29: the taught pattern matches
+  exactly one line and its hash equals the GitHub asset digest of `Phlix.Setup.1.0.0.exe`
+  (`c3418e56…`). README + CHANGELOG only; no code or workflow changes.
+
 ### Added — docs: end-user download/install story in the README — 2026-10-29
 
 - **Why:** review `windows__casualgamer` M1 — the README's only "Installation" was
