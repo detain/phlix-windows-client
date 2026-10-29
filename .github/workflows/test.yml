@@ -87,14 +87,16 @@ jobs:
       # coverage and the best-effort uploads always report first.
       #
       # `node scripts/audit-gate.mjs` wraps `npm audit --json --audit-level=high`
-      # with an explicit, justified advisory allow-list (currently only
-      # GHSA-ch52-4w7c-c8xp: http-cache-semantics has no patched release, the
-      # advisory is dev-chain-only via electron-builder, and npm's suggested
-      # fix provably regresses 1 critical + 2 highs). Raw exit code — no
-      # `|| true`, no continue-on-error: the gate fails the job on any other
-      # advisory AND on any neutering vector (unparseable/unknown audit output,
-      # failed spawn, broken audit reporting zero advisories). See the script
-      # header for the upstream-watch removal plan.
+      # with an explicit, justified advisory allow-list. The allow-list is
+      # currently EMPTY (2026-10-29 sweep: the two founding dev-chain entries —
+      # ch52 http-cache-semantics, fixed by taking 4.3.0 in-range, and hp3w
+      # sprintf-js, withdrawn upstream — were both retired, and the 22 fresh
+      # time-drift advisories on vitest/electron/fast-uri/follow-redirects/
+      # undici/vite all cleared by in-parent-range version bumps). Raw exit
+      # code — no `|| true`, no continue-on-error: the gate fails the job on
+      # any advisory AND on any neutering vector (unparseable/unknown audit
+      # output, failed spawn, broken audit reporting zero advisories). See the
+      # script header for the reviewed-decision law on adding entries.
       - name: Security audit
         run: node scripts/audit-gate.mjs
 

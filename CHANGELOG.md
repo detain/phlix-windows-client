@@ -7,6 +7,75 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — dependency security: 22-advisory time-drift sweep clears the audit gate; allow-list retired to EMPTY — 2026-10-29
+
+- **Why:** master CI turned RED solely on the `node scripts/audit-gate.mjs` step at
+  5ab9691 (blocks the entire build → release-latest chain via `needs:`). 22
+  advisories had been disclosed against the advisory DB AFTER the last green lock
+  review — `package.json`/`package-lock.json` were untouched by the commits since.
+  Time drift, not regression. Reproduced locally on the CI-faithful toolchain
+  (node v24.21.0 / npm 12.0.2, `NPM_CONFIG_USERCONFIG=/dev/null`): exit 1, exactly
+  the same 22-id set. Every one of the 22 had a patched target **inside the
+  already-declared parent ranges** — zero allow-list additions were needed.
+- **Advisories cleared (22 ids / 6 packages):**
+  | GHSA | package | via (path) | severity | vulnerable | patched taken |
+  |------|---------|------------|----------|------------|---------------|
+  | GHSA-qxg6-89mg-rqv8, GHSA-xp26-3454-mjgp | @vitest/mocker | exact-pinned by `vitest` (devDep) | moderate ×2 | ≥5.0.0-beta.1 <5.0.3 (∪ rc.2 floor) | 5.0.5 (via vitest bump) |
+  | GHSA-jr5w-w6x2-84p9 | electron | root devDep `^42.1.0` | high | <42.11.16 | 42.11.18 |
+  | GHSA-w74x-v6f9-j3xg, GHSA-wjr9-j795-jxcr, GHSA-xhq7-xmqj-769h, GHSA-333x-w4r6-6crp | fast-uri | `ajv ^3.0.1` (+ root override `^3.1.4`) | moderate ×2, low ×2 | ≥3.0.0 <3.1.9 (∪ ≥3.1.3 floor) | 3.1.9 |
+  | GHSA-q3jh-wrc6-jgq8, GHSA-8r9p-f939-6h3c | follow-redirects | `axios ^1.16.0` (dev via wait-on) | high ×2 | ≥1.16.0 <1.16.1 | 1.16.2 |
+  | GHSA-xjj6-f33q-929c, GHSA-4w7w-5xrc-9h26, GHSA-2m5v-pch6-74hx, GHSA-qrxm-fqhp-jwvm, GHSA-4qv8-2p9j-2685, GHSA-f72v-6w45-q472, GHSA-9fm3-97px-rjf6, GHSA-55wc-3pg8-jfw6 | undici | `@electron/get ^7.24.4` + `jsdom ^7.25.0` (node-gyp's 6.x stream is outside every flagged range — untouched) | high ×4, moderate ×4 | ≥7.0.0 <7.30.1 (per-advisory floors 7.15/7.18) | 7.30.1 |
+  | GHSA-587h-7wmj-h5pm, GHSA-698v-4r3x-3vcv, GHSA-r825-w8mm-5pxw, GHSA-rq7h-c2jc-7f22, GHSA-9jrq-w75r-8gcw | vite | root devDep `^7.3.2` | high, moderate ×3, low | ≥7.0.0 ≤7.3.6 | 7.3.7 |
+  Severity census: 8 high / 11 moderate / 3 low. All six packages are dev-chain;
+  nothing shipped to users moves. The vite advisory range tops out AT the then
+  installed 7.3.6 — 7.3.7 (published upstream) is the fix and sits inside the
+  declared caret.
+- **How:** `npm update electron vite fast-uri follow-redirects undici` moved the
+  five transitive/dev nodes in-range, lock diff 15+/15−, `package.json` byte-
+  identical. `@vitest/mocker` could NOT be cleared that way: vitest EXACT-pins it
+  (`"@vitest/mocker": "5.0.0"`) and `@vitest/coverage-v8` exact-pins vitest's
+  peer, so `npm update` legitimately reports "up to date" — the subtree only
+  moves together. `npm install vitest@5.0.5 @vitest/coverage-v8@5.0.5` advanced
+  it (mocker, spy, chai, magic-string, std-env, tinybench, tinyexec, tinyrainbow,
+  obug, why-is-node-running, ast-v8-to-istanbul, @vitest/istanbul-*; siginfo +
+  stackback dropped by vitest 5.0.5 — 0 additions, 2 removals). **The ONLY
+  package.json change** is the two devDep floors `vitest`/`@vitest/coverage-v8`
+  `^5.0.0`→`^5.0.5` (plus npm's own alphabetical fix for the pre-existing
+  `@playwright/test` mis-sort): raising the floor is the security-relevant part —
+  `^5.0.0` would let any fresh resolver land back on the vulnerable 5.0.0–5.0.2;
+  same house doctrine as the js-yaml floor pin (2026-09-29) and the fast-uri
+  override floor `^3.1.4`. Lock idempotency proven: the install run twice and the
+  update pass re-run — md5 `c20b0850…` stable across all three passes (the
+  d991d74 churn hazard did not fire).
+- **Allow-list retired to EMPTY (`scripts/audit-gate.mjs`):** the sole survivor
+  GHSA-hp3w-g68c-fv3c (sprintf-js) was **WITHDRAWN by the GitHub Advisory
+  Database on 2026-10-22** ("it is the responsibility of an application to handle
+  exceptions appropriately") — npm no longer names it against any lock, and
+  `npm view sprintf-js versions` still ends at 1.1.3 (2023; patched: none —
+  there is nothing to take). A dormant justification for a never-again-reported
+  advisory is documentation rot; the documented reviewed-removal doctrine (ch52
+  precedent: entry + fixtures rotate out when the premise dies) applies. The
+  gate stays STRICTER than the bare step it replaced: the subset law, the
+  anti-neutering exit codes (1 violation / 2 structural) and every fail-loud
+  vector are untouched; `decide()` gained an `allowList` injection parameter
+  (default = the module map, production path unchanged) so the subset and
+  case-insensitivity laws stay guarded WITHOUT shipping a live entry. The retired
+  ch52 test became a loop covering both founding ids — if either is ever named
+  again (lock regression, or GitHub un-withdrawing hp3w) the empty list reddens
+  the gate; the exact-set integrity pin flipped `[hp3w]` → `[]` (fail-loud on any
+  unreviewed addition). Header + both workflow audit-step comments carry the new
+  truth (the test.yml prose naming ch52 as "current" was itself stale since
+  d991d74).
+- **Gates (local, CI-faithful `NPM_CONFIG_USERCONFIG=/dev/null`):**
+  `node scripts/audit-gate.mjs` → PASS, 0 advisories, exit 0; `npx vitest run
+  --no-file-parallelism` → 461/461 (36 files, 0 fail — +7 over the 454-era
+  baseline is deepLinkRouteContract.test.ts landed by 667ab70, suite-file count
+  35→36 likewise; CI-form adds the pre-existing sibling-clone i18n skip;
+  audit-gate.test.mjs holds its 21 tests), vue-tsc renderer 0, tsc main 0,
+  vue-tsc tests 0, eslint 0, build 0 + preload assert OK, `xvfb-run npm run
+  smoke` → 1 passed on the new Electron 42.11.18 binary (the 633863a content-
+  assert boot guards stay green).
+
 ### Fixed — versioned-release chain repair [review windows__devops CRIT-1] — 2026-10-29
 
 - **The tag→GitHub-Release chain in `build.yml` was deterministically broken at

@@ -160,11 +160,12 @@ jobs:
       # Allow-list gate (same contract as test.yml's Security audit step): raw
       # exit code, no `|| true`. Passes only while every reported advisory id is
       # explicitly justified in scripts/audit-gate.mjs's ALLOWED_ADVISORIES —
-      # today just GHSA-ch52-4w7c-c8xp (http-cache-semantics: no patched release
-      # exists, dev-chain-only reach via electron-builder, suggested downgrade
-      # provably regresses 1 critical + 2 highs). Any other advisory — or any
-      # unread/failed audit — reddens this job, which blocks the build →
-      # release-latest/release chain below by `needs:`.
+      # currently EMPTY (the two founding dev-chain entries ch52/hp3w were
+      # retired 2026-10-29: ch52 fixed by taking http-cache-semantics 4.3.0 in
+      # its parent's declared range, hp3w-withdrawn-by-GitHub; the 22 fresh
+      # time-drift advisories all cleared by in-parent-range bumps). Any other
+      # advisory — or any unread/failed audit — reddens this job, which blocks
+      # the build → release-latest/release chain below by `needs:`.
       - name: Run npm audit
         run: node scripts/audit-gate.mjs
 

@@ -2,19 +2,23 @@
  * @vitest-environment node
  *
  * Guard tests for scripts/audit-gate.mjs — the npm-audit allow-list gate wired
- * into .github/workflows/test.yml + build.yml. The gate exists because the dev
- * toolchain reports GHSA-hp3w-g68c-fv3c (sprintf-js), an advisory with NO
- * patched release, reachable only through the electron-builder optional-dep
- * chain — and being moderate severity, the bare --audit-level=high step would
- * swallow it silently. It may pass ONLY while every reported advisory id is
- * explicitly allow-listed, and it must fail LOUD on every neutering vector:
- * unparseable JSON, unknown report shape, a failed spawn, or a nonzero audit
- * exit reporting zero advisories.
+ * into .github/workflows/test.yml + build.yml. The gate is STRICTER than the
+ * bare `npm audit --audit-level=high` step it replaces: it may pass ONLY while
+ * every reported advisory id is explicitly allow-listed (at any severity), and
+ * it must fail LOUD on every neutering vector: unparseable JSON, unknown
+ * report shape, a failed spawn, or a nonzero audit exit reporting zero
+ * advisories.
  *
  * HISTORY: the founding entry was GHSA-ch52-4w7c-c8xp (http-cache-semantics);
  * upstream 4.3.0 landed 2026-10-04 inside the declared ^4.0.0 range and the
- * documented removal plan executed 2026-10-08 — the entry and its fixtures were
- * deleted, and every "live reported advisory" role below is carried by hp3w.
+ * documented removal plan executed 2026-10-08. The surviving entry,
+ * GHSA-hp3w-g68c-fv3c (sprintf-js, no patched release ever published), was
+ * WITHDRAWN by the GitHub Advisory Database on 2026-10-22 — npm no longer
+ * names it — and the 2026-10-29 time-drift sweep cleared the remaining 22
+ * live advisories entirely with in-parent-range bumps. ALLOWED_ADVISORIES is
+ * now EMPTY (maximum strictness); both retired ids keep must-stay-gone
+ * fail-loud tests below, and the subset/case-insensitivity laws are exercised
+ * through decide()'s injected allowList parameter rather than a shipped entry.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -29,6 +33,7 @@ import {
 } from '../../scripts/audit-gate.mjs';
 
 const HP3W = 'GHSA-hp3w-g68c-fv3c';
+const SYNTH = 'GHSA-synth-etst-0001';
 
 /** v3 npm-audit advisory object for an arbitrary GHSA (url carries the id). */
 function advisory(ghsa, name = 'some-package', severity = 'high') {
@@ -56,9 +61,10 @@ const json = (report) => JSON.stringify(report);
 
 describe('collectAdvisoryIds', () => {
   it('dedupes the eight affected electron-builder-chain packages down to the single real advisory', () => {
-    // Condensed from the live `npm audit --json` on master after http-cache-semantics
-    // 4.3.0 cleared ch52: npm counts 8 vulnerable PACKAGES but the advisory set is
-    // exactly one GHSA (hp3w), reached through the optional global-agent → roarr arm.
+    // HISTORICAL reading (hp3w era, pre-2026-10-22 withdrawal): npm counted 8
+    // vulnerable PACKAGES but the advisory set was exactly one GHSA, reached
+    // through the optional global-agent → roarr arm. The dedupe-by-id law this
+    // fixture guards is load-bearing for the empty-list strictness of today.
     const report = v3Report({
       '@electron/get': ['global-agent'],
       'app-builder-lib': ['@electron/get', 'dmg-builder', 'electron-builder-squirrel-windows'],
@@ -111,35 +117,40 @@ describe('decide — pass verdicts', () => {
     expect(verdict.allowed).toEqual([]);
   });
 
-  it('passes the live hp3w-only state with its documented escape analysis', () => {
-    // The real master reading: npm exits 0 (moderate < --audit-level=high) while
-    // the JSON still names hp3w — the subset law allows it, `clean` stays false.
+  it('passes an allowed-only report through the subset law (injected synthetic map; the production list is EMPTY)', () => {
+    // The pre-2026-10-29 live reading: npm exited 0 while the JSON still named a
+    // moderate sub-threshold advisory — the subset law allowed it, `clean` stayed
+    // false. Today no id may ride the production list; the law itself is guarded
+    // with an injected map so strictness never rots back into silent tolerance.
+    const allowList = new Map([[SYNTH, { package: 'some-package', justification: 'synthetic' }]]);
     const verdict = decide({
       exitCode: 0,
-      stdout: json(v3Report({ 'sprintf-js': [advisory(HP3W, 'sprintf-js', 'moderate')] })),
+      allowList,
+      stdout: json(v3Report({ 'some-package': [advisory(SYNTH, 'some-package', 'moderate')] })),
     });
     expect(verdict.code).toBe(EXIT_OK);
     expect(verdict.clean).toBe(false);
-    expect(verdict.allowed).toEqual([HP3W]);
-    const hp3w = ALLOWED_ADVISORIES.get(HP3W);
-    expect(hp3w.package).toBe('sprintf-js');
-    expect(hp3w.justification).toMatch(/optional/i);
-    expect(hp3w.justification).toMatch(/no patched release exists/);
-    expect(hp3w.justification).toMatch(/UPSTREAM WATCH/);
-    expect(hp3w.justification).toMatch(/Re-verify advisory status by 2027-01-03/);
+    expect(verdict.allowed).toEqual([SYNTH]);
   });
 
   it('matches allow-list entries case-insensitively (GHSA ids are case-insensitive by spec)', () => {
-    const verdict = decide({ exitCode: 1, stdout: json(v3Report({ a: [advisory(HP3W.toUpperCase(), 'a')] })) });
+    const allowList = new Map([[SYNTH, { package: 'a', justification: 'synthetic' }]]);
+    const verdict = decide({
+      exitCode: 1,
+      allowList,
+      stdout: json(v3Report({ a: [advisory(SYNTH.toUpperCase(), 'a')] })),
+    });
     expect(verdict.code).toBe(EXIT_OK);
-    expect(verdict.allowed).toEqual([HP3W]); // canonical key form surfaces downstream
+    expect(verdict.allowed).toEqual([SYNTH]); // canonical key form surfaces downstream
   });
 });
 
 describe('decide — fail-loud verdicts', () => {
-  it('reddens when hp3w is joined by ANY new advisory — an id NOT on the one-entry allow-list exits 1', () => {
+  it('reddens when an allowed advisory is joined by ANY new id — a non-allow-listed id exits 1 (injected map)', () => {
+    const allowList = new Map([[HP3W, { package: 'sprintf-js', justification: 'synthetic' }]]);
     const verdict = decide({
       exitCode: 1,
+      allowList,
       stdout: json(v3Report({
         'sprintf-js': [advisory(HP3W, 'sprintf-js', 'moderate')],
         evil: [advisory('GHSA-dead-beef-cafe', 'evil')],
@@ -151,16 +162,24 @@ describe('decide — fail-loud verdicts', () => {
     expect(verdict.allowed).toEqual([HP3W]); // still reported for context
   });
 
-  it('rejects the cleared founding advisory too — re-adding ch52 to the report reddens the gate', () => {
-    // http-cache-semantics <=4.2.0 was fixed by taking 4.3.0 in-lockstep with this
-    // allow-list rotation; if the lock ever regresses and npm names ch52 again,
-    // the one-entry allow-list must NOT cover it.
-    const verdict = decide({
-      exitCode: 1,
-      stdout: json(v3Report({ 'http-cache-semantics': [advisory('GHSA-ch52-4w7c-c8xp', 'http-cache-semantics')] })),
-    });
-    expect(verdict.code).toBe(EXIT_VIOLATION);
-    expect(verdict.unknown).toEqual(['GHSA-ch52-4w7c-c8xp']);
+  it('rejects BOTH retired founding advisories — ch52 (cleared by 4.3.0) and hp3w (withdrawn upstream) must never ride the empty production list', () => {
+    // ch52: http-cache-semantics <=4.2.0 was fixed by taking 4.3.0 in-lockstep
+    // with the 2026-10-08 allow-list rotation. hp3w: GitHub WITHDREW the
+    // sprintf-js advisory on 2026-10-22 (never any patched release — 1.1.3 is
+    // still the last version ever published). If the lock ever regresses, or
+    // GitHub ever un-withdraws, and npm names either id again, the now-empty
+    // production allow-list must NOT cover it.
+    for (const [ghsa, pkg] of [
+      ['GHSA-ch52-4w7c-c8xp', 'http-cache-semantics'],
+      [HP3W, 'sprintf-js'],
+    ]) {
+      const verdict = decide({
+        exitCode: 1,
+        stdout: json(v3Report({ [pkg]: [advisory(ghsa, pkg)] })),
+      });
+      expect(verdict.code, ghsa).toBe(EXIT_VIOLATION);
+      expect(verdict.unknown, ghsa).toEqual([ghsa]);
+    }
   });
 
   it('reddens even when npm itself exits 0 below its --audit-level threshold (stricter than the bare step)', () => {
@@ -202,8 +221,8 @@ describe('decide — fail-loud verdicts', () => {
 });
 
 describe('allow-list integrity', () => {
-  it('contains EXACTLY the one justified entry (hp3w) — ch52 is removed for good, additions/removals must be a reviewed decision', () => {
-    expect([...ALLOWED_ADVISORIES.keys()]).toEqual([HP3W]);
+  it('is EMPTY since the 2026-10-29 sweep — both founding entries retired for good; any addition must be a reviewed decision', () => {
+    expect([...ALLOWED_ADVISORIES.keys()]).toEqual([]);
   });
 
   it('keys every entry in the canonical npm-reported GHSA form', () => {

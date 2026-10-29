@@ -2,40 +2,35 @@
  * audit-gate — npm-audit wrapper with an explicit, justified advisory allow-list.
  *
  * WHY THIS EXISTS:
- * The dev toolchain reports GHSA-hp3w-g68c-fv3c (sprintf-js). It has NO patched
- * target — every published release (<=1.1.3, the LAST version ever published,
- * 2023) is flagged — so no bump can clear it, and npm's own suggested fix
- * (downgrading the electron-builder toolchain) was adversarially PROVEN to
- * regress criticals in the founding ch52 era. Being moderate severity, the bare
- * `npm audit --audit-level=high` step this gate replaces exits 0 WITHOUT even
- * naming it. The gate is stricter: the audit passes only while the reported
- * advisory-id set is a subset of ALLOWED_ADVISORIES below, and turns red the
- * moment ANY other advisory appears — at any severity.
+ * The bare `npm audit --audit-level=high` step this gate replaces hides every
+ * sub-high advisory and treats a broken audit as a green one. The gate is
+ * stricter: the audit passes only while the reported advisory-id set is a
+ * subset of ALLOWED_ADVISORIES below, and turns red the moment ANY advisory
+ * not explicitly allow-listed appears — at any severity.
  *
  * HISTORY: the gate was founded 2026-10-03 for GHSA-ch52-4w7c-c8xp
  * (http-cache-semantics <=4.2.0, no patched release then). Upstream published
  * 4.3.0 on 2026-10-04 — inside cacheable-request's declared `^4.0.0` range —
  * and the documented removal plan ran on 2026-10-08: the lock took 4.3.0, the
- * ch52 entry was deleted, its fixtures rotated. hp3w is the sole survivor.
+ * ch52 entry was deleted, its fixtures rotated. The surviving entry,
+ * GHSA-hp3w-g68c-fv3c (sprintf-js — no patched release ever: 1.1.3, published
+ * 2023, is still the LAST version), was WITHDRAWN by the GitHub Advisory
+ * Database on 2026-10-22 ("it is the responsibility of an application to
+ * handle exceptions appropriately"), so npm no longer names it against any
+ * lock. The 2026-10-29 time-drift sweep cleared 22 newly-disclosed advisories
+ * (vitest/@vitest/mocker, electron, fast-uri, follow-redirects, undici, vite)
+ * entirely with in-parent-range bumps — see the CHANGELOG entry this empty
+ * allow-list rides with. ALLOWED_ADVISORIES is now EMPTY: the gate is at
+ * maximum strictness. Both founding advisories keep dedicated fail-loud tests
+ * in tests/unit/audit-gate.test.mjs proving a reappearing report id reddens the
+ * gate — if the lock ever regresses (or GitHub un-withdraws hp3w), CI halts;
+ * nothing dormant is silently tolerated.
  *
- * REACH (why the hp3w advisory is acceptable): dev-chain-only, reached solely
- * through an OPTIONAL dependency: electron-builder → app-builder-lib →
- * @electron/get → global-agent? → roarr → sprintf-js. The shipped app bundles
- * none of it (package.json keeps electron-builder in devDependencies; `npm
- * audit --json` metadata reports zero prod-path hits). The 8 "vulnerabilities"
- * in npm's human output are 8 affected PACKAGES traced to this ONE advisory id
- * — the JSON-parse below dedupes by id.
- *
- * UPSTREAM WATCH (the hp3w removal plan):
- * app-builder-lib declares @electron/get ^3.0.0 at the newest v26 tag (26.17.0);
- * @electron/get 5.1.0 dropped global-agent entirely, and roarr >=3.2.0 drops
- * sprintf-js (unreachable from global-agent 3.0.0's range). The moment
- * app-builder-lib declares @electron/get >=5 (or roarr >=3.2 becomes reachable):
- *     npm update && node scripts/audit-gate.mjs
- * then DELETE this allow-list entry, its justification, and the hp3w fixtures in
- * tests/unit/audit-gate.test.mjs (which pin the entry's existence and flip red
- * when it is removed while the advisory still reports).
- * Re-verify status by 2027-01-03: https://github.com/advisories/GHSA-hp3w-g68c-fv3c
+ * ADDING AN ENTRY (the reviewed-decision law): only for an advisory that is
+ * LIVE in the reported set, has no fix inside any declared parent range, and
+ * is dev-chain-justified — with GHSA id, patched-version-absence evidence
+ * (`npm view <pkg> versions` cited), and a re-verify-by date. Every entry
+ * must carry a mirror fixture proving the exact set stays pinned.
  *
  * ANTI-NEUTERING LAW:
  * A silent gate is worse than no gate. The script distinguishes "audit clean"
@@ -56,34 +51,10 @@ export const EXIT_STRUCTURE_ERROR = 2;
 
 // Exact GHSA ids the gate tolerates, each with the justification CI prints on
 // every run. Subset semantics: ANY advisory id missing here reddens the gate.
-export const ALLOWED_ADVISORIES = new Map([
-  [
-    'GHSA-hp3w-g68c-fv3c',
-    {
-      package: 'sprintf-js',
-      justification:
-        'dev-chain-only, reached solely through an OPTIONAL dependency (electron-builder -> ' +
-        'app-builder-lib -> @electron/get -> global-agent? -> roarr -> sprintf-js; @electron/get ' +
-        'declares global-agent as optionalDependencies ^3.0.0, npm installs it, nothing shipped ' +
-        'to users — zero prod parents); no patched release exists — every published version ' +
-        '<=1.1.3 is flagged and 1.1.3 is the LAST release ever published (2023), so no bump can ' +
-        'clear it; roarr >=3.2.0 drops the sprintf-js dependency entirely but is unreachable ' +
-        'from global-agent 3.0.0\'s declared range, and npm audit fix --force downgrades the ' +
-        'electron-builder toolchain (same regression class as the historical ch52/' +
-        'http-cache-semantics downgrade fix — proven to regress criticals — rejected). ' +
-        'The other advisories surfaced alongside it on the ubuntu-26.04 audit (shell-quote ' +
-        'CRITICAL GHSA-pqg4, source-map-js + @vue/server-renderer HIGH, postcss-selector-parser ' +
-        'MODERATE) ALL had patched targets and were cleared in-range by npm update — see the ' +
-        'lockfile commit this entry rides with; only this one has no escape but documentation. ' +
-        'UPSTREAM WATCH (the removal plan): app-builder-lib still declares @electron/get ' +
-        '^3.0.0 at the newest v26 tag (26.17.0); @electron/get 5.1.0 dropped global-agent ' +
-        'entirely. The moment app-builder-lib declares @electron/get >=5 (or roarr >=3.2 becomes ' +
-        'reachable): `npm update && node scripts/audit-gate.mjs`, then REMOVE this entry, its ' +
-        'justification, and the hp3w fixtures in tests/unit/audit-gate.test.mjs. Re-verify ' +
-        'advisory status by 2027-01-03: https://github.com/advisories/GHSA-hp3w-g68c-fv3c',
-    },
-  ],
-]);
+// EMPTY since 2026-10-29 — both founding entries retired for good (ch52: 4.3.0
+// taken in-range 2026-10-08; hp3w: WITHDRAWN upstream 2026-10-22, never
+// reported again). Additions are reviewed decisions per the header law above.
+export const ALLOWED_ADVISORIES = new Map([]);
 
 const AUDIT_ARGS = ['audit', '--json', '--audit-level=high'];
 const MAX_BUFFER_BYTES = 64 * 1024 * 1024;
@@ -166,9 +137,12 @@ export function collectAdvisoryIds(stdout) {
 
 /**
  * Pure decision: audit-run facts in, gate verdict out.
+ * `allowList` defaults to the module-level reviewed set; tests inject synthetic
+ * maps to exercise the subset/case-insensitivity laws without shipping a live
+ * allow-list entry (the production entry point, main(), never overrides it).
  * Returns { code, clean, allowed[], unknown[], problems[] }.
  */
-export function decide({ exitCode, stdout, spawnError = null }) {
+export function decide({ exitCode, stdout, spawnError = null, allowList = ALLOWED_ADVISORIES }) {
   if (spawnError) {
     return {
       code: EXIT_STRUCTURE_ERROR,
@@ -192,7 +166,7 @@ export function decide({ exitCode, stdout, spawnError = null }) {
     };
   }
 
-  const canonicalKeyByLowerId = new Map([...ALLOWED_ADVISORIES.keys()].map((key) => [key.toLowerCase(), key]));
+  const canonicalKeyByLowerId = new Map([...allowList.keys()].map((key) => [key.toLowerCase(), key]));
   const allowed = [...ids]
     .filter((id) => canonicalKeyByLowerId.has(id.toLowerCase()))
     .map((id) => canonicalKeyByLowerId.get(id.toLowerCase()))
