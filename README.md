@@ -57,8 +57,9 @@ Pick the asset that fits:
 Filenames carry the `package.json` version (currently `1.0.0`) and are re-uploaded on each
 master push, so always take them from the release page rather than bookmarking an old link.
 
-On first launch the app asks for your Phlix server URL — the server must be
-Phlix Media Server **1.1.0 or later** (see *Minimum Server Version* above).
+**Running the installer:** double-click the downloaded `.exe` and follow the wizard — it
+installs inside your Windows profile (no admin prompt; you choose the folder) and adds a
+**Phlix** entry to the Start menu. The first time you run it, SmartScreen wants a word:
 
 ### First run: “Windows protected your PC”
 
@@ -86,6 +87,23 @@ the file is malicious, and there is no “verified publisher” here. To proceed
 
 Once a signing certificate is provisioned this dialog will no longer appear
 (see [`docs/signing.md`](docs/signing.md) for the developer-side story).
+
+### First launch: connecting to a server
+
+On first launch the app shows a **Connect** screen asking for your Phlix server URL —
+there is no default server baked in, so type (or paste) the address of the Phlix Media
+Server you use, then sign in with an account on that server.
+
+The server must be **Phlix Media Server 1.1.0 or later** (see *Minimum Server Version*
+above). The app checks the server's version at every launch. If it is too old, you will
+not be left staring at a blank window: an error dialog names both versions, and the window
+shows a persistent **"Phlix server too old"** screen with the reported and required
+versions and a **Try again** button. Update the server (or correct the URL via the
+in-app connection screen) and press Try again — the check re-runs in place and, once the
+server passes, the app boots straight through with no quit-and-relaunch ceremony.
+
+After a successful connect, your server URL and login persist, so later launches go
+directly to your library.
 
 ### Getting updates
 

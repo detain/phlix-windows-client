@@ -7,6 +7,42 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Docs — M-WINDOWS-19: the end-user install story completed to shipped release reality — 2026-10-29
+
+- **Why:** review `windows__writer` MAJOR-1 — "No end-user install story; the actual
+  download path is undocumented." The headline was already largely cured on disk by the
+  post-review chain `3360d41` (real rolling-`latest` asset table, honest SmartScreen) and
+  `df19e3f` (working `Get-FileHash` walkthrough) before this lane opened; what was missing
+  was the chronological tail: no "run the installer" step between picking an asset and
+  SmartScreen, and the server-too-old boot-failure surface shipped by `b5547ce` (M-WINDOWS-16)
+  was promised nowhere in the end-user story. Nothing pinned README's version-embedded asset
+  names, so any future `package.json` bump would silently rot them.
+- **Cure (docs-truth, completion not duplication):** `Install (end users)` now runs
+  published → **Running the installer** (per-user wizard, no admin prompt, Start-menu entry —
+  all true of the shipped `nsis` config) → SmartScreen (existing section, heading untouched
+  because `build.yml`'s release body cross-references it) → **First launch: connecting to a
+  server** (Connect screen, no baked-in default, the every-launch ≥ 1.1.0 gate including its
+  fail-open-for-unreported-truth, and the `b5547ce` surface: error dialog naming both
+  versions + the persistent "Phlix server too old" screen + **Try again** booting in place,
+  no quit-and-relaunch ceremony) → Getting updates (existing prerelease-blind silent-no-op
+  disclosure verified against `autoUpdater.allowPrerelease = false` and the 6-hour timer;
+  left as-is). The reviewer-era "Deployment is addressed to CI maintainers" dead rows at the
+  old :222-251 are already swept by `e5e29b1`/`fd273cb`/`3360d41` — re-verified line by line
+  against `build.yml` reality, nothing stale found; workflows untouched (read-only authority).
+- **Pins:** new `tests/unit/installStoryStatus.test.ts` (6 cases) — README asset names derived
+  from `package.json` (`build.nsis.artifactName` template × `productName` × `version`, plus
+  the appx name observed on the live `latest` release), a stale-literal sweep catching any
+  half-bumped `Phlix-Setup-*/Phlix.*/currently` copy, a `release-latest` job slice asserting
+  the three upload globs and its pointer to the README SmartScreen section still exist,
+  section chronology, catalog-literal sync (the too-old screen's title and **Try again**
+  string come from `src/renderer/i18n/windows-own/en.ts`), and an `allowPrerelease = false`
+  tripwire forcing the "Getting updates" rewrite into the same commit as any flip. Mutation
+  probes: version bump 1.0.0→1.0.1 reddens exactly pins 1–2; flipping `allowPrerelease`
+  reddens exactly pin 6; both reverted, tree clean.
+- **Measured:** vitest FULL serial 51 files 634 → 640 (+6 exact), exit 0; `vue-tsc --noEmit`
+  0; `tsc -p tsconfig.main.json --noEmit` 0; `npm run lint` 0. Docs + one test file; zero
+  shipped behavior change; no new wire codes.
+
 ### Docs — follow-up to 7709e31: docs mirror swept (M-WINDOWS-17 r2) — 2026-10-29
 
 - `docs/deep-links.md` (grammar note + Examples arms) and the README hub-status sentence now state that the `accept-invite`/`server` deep-link arms are hub-mode-only and 404-view in every shipped launch — the demoted truth of the parent commit mirrored to its surviving docs (review r1 must-fix); docs-only, zero behavior change, no new pins (unpinned ui-surface.md rider precedent).
