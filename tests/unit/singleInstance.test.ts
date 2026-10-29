@@ -104,6 +104,8 @@ vi.mock('electron', () => ({
         on: vi.fn()
       },
       isMinimized: vi.fn(() => false),
+      isDestroyed: vi.fn(() => false),
+      isVisible: vi.fn(() => false),
       restore: vi.fn(),
       focus: vi.fn()
     };
@@ -152,11 +154,13 @@ describe('single-instance lock', () => {
     expect(tracks.secondInstanceHandlers.length).toBeGreaterThan(0);
   });
 
-  it('second-instance handler focuses the main window when it exists', () => {
+  it('second-instance handler drives the restore path without throwing', () => {
     const handler = tracks.secondInstanceHandlers[0];
     expect(handler).toBeDefined();
 
-    // mainWindow is null in the test environment — no-op path
+    // mainWindow may be null or the boot-created fake depending on microtask
+    // timing here; either way restoreWindow's guards must keep the handler
+    // crash-free. Behavioral pins: tests/unit/trayRestoreWiring.test.ts.
     expect(() => handler!({} as unknown, [] as unknown, '/tmp')).not.toThrow();
   });
 });

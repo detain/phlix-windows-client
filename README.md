@@ -142,9 +142,13 @@ The application stores configuration in the user's app data directory:
 
 | Setting (electron-store key) | Default | Description |
 |---------|---------|-------------|
-| `minimizeToTray` | `true` | Minimize to system tray instead of closing |
+| `minimizeToTray` | `true` | Closing the window hides it to the tray instead of quitting. To bring it back: click or double-click the tray icon, use the tray menu's **Show** entry, or launch the app again — the single-instance lock routes the launch to the running window and restores it |
 | `serverUrl` | (none) | Persisted direct media server URL (`app:get/set-server-url`) |
 | `deviceId` | Auto-generated | Stable per-install device id `windows-<uuid>` (`app:get-device-id`) |
+
+While hidden there is no taskbar button, and Windows (unlike macOS) emits no
+restore event for a hidden app — the tray icon and the relaunch handoff are the
+restore surfaces, and both fully restore hidden, minimized, and combined states.
 
 ### Environment Variables
 

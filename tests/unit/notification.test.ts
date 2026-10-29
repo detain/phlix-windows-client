@@ -28,9 +28,13 @@ describe('notification IPC', () => {
     expect(mainSource).toMatch(/new Notification\(\{ title, body \}\)/);
   });
 
-  it('notification onClick focuses mainWindow', () => {
-    expect(mainSource).toMatch(/mainWindow\?\.show\(\)/);
-    expect(mainSource).toMatch(/mainWindow\?\.focus\(\)/);
+  it('notification onClick restores mainWindow (M-WINDOWS-03: canonical restoreWindow, not raw show/focus)', () => {
+    // The pre-M-WINDOWS-03 body was raw `mainWindow?.show();
+    // mainWindow?.focus();` — no minimized arm, no destroyed guard. All five
+    // re-entry surfaces now delegate to restoreWindow(); behavioral coverage
+    // lives in tests/unit/trayRestoreWiring.test.ts (live fake window) and
+    // tests/unit/windowRestore.test.ts (state sequences).
+    expect(mainSource).toMatch(/restoreWindow\(mainWindow\)/);
   });
 
   it('notification click routes via handleDeepLinkUrl with phlix://internal prefix', () => {

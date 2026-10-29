@@ -19,6 +19,7 @@ import {
   createDeepLinkDeduper
 } from './deepLinkValidator';
 import { getMainLocale, setMainLocale, t } from './i18n';
+import { restoreWindow } from './windowRestore';
 import log from 'electron-log';
 import Store from 'electron-store';
 import { autoUpdater } from 'electron-updater';
@@ -107,13 +108,12 @@ if (!gotLock) {
 }
 
 app.on('second-instance', (_event, argv, _workingDirectory) => {
-  // Restore and focus the existing window
-  if (mainWindow) {
-    if (mainWindow.isMinimized()) {
-      mainWindow.restore();
-    }
-    mainWindow.focus();
-  }
+  // M-WINDOWS-03: the lock keeps this the only live process, so clicking the
+  // app icon while hidden-to-tray lands HERE. The previous body called
+  // focus() on a hidden window — focus() does not un-hide (BrowserWindow
+  // docs: show() is what "shows and gives focus"), which is exactly why the
+  // icon click did nothing. restoreWindow() covers minimized/hidden/destroyed.
+  restoreWindow(mainWindow);
   // Handle deep link from second-instance (warm start on Windows)
   const url = extractDeepLinkUrl(argv);
   if (url) {
@@ -480,7 +480,7 @@ export function createTray(): void {
   tray = new Tray(icon.resize({ width: 16, height: 16 }));
 
   const contextMenu = Menu.buildFromTemplate([
-    { label: t('tray.show'), click: () => mainWindow?.show() },
+    { label: t('tray.show'), click: () => restoreWindow(mainWindow) },
     { type: 'separator' },
     { label: t('tray.playPause'), click: () => mainWindow?.webContents.send('media-play-pause') },
     { label: t('tray.stop'), click: () => mainWindow?.webContents.send('media-stop') },
@@ -497,8 +497,19 @@ export function createTray(): void {
   tray.setToolTip(t('tray.tooltip'));
   tray.setContextMenu(contextMenu);
 
+  // M-WINDOWS-03: while the window is hidden there is NO taskbar button to
+  // click — Windows emits no restore event of its own (the macOS 'activate'
+  // equivalent does not exist here), so the tray icon is the primary re-entry
+  // surface and it must work. Double-click is the Windows tray idiom
+  // (docs/api/tray.md: 'double-click' *macOS* *Windows*); single-click
+  // restores too because most users try it first. A real double-click fires
+  // click+click+double-click in burst; restoreWindow() is idempotent for a
+  // live window (visible+focused → focus() only), so the burst is safe.
   tray.on('click', () => {
-    mainWindow?.show();
+    restoreWindow(mainWindow);
+  });
+  tray.on('double-click', () => {
+    restoreWindow(mainWindow);
   });
 }
 
@@ -733,8 +744,9 @@ ipcMain.handle('notification:show', (_event, { title, body, clickAction }: { tit
   }
   const notification = new Notification({ title, body });
   notification.on('click', () => {
-    mainWindow?.show();
-    mainWindow?.focus();
+    // M-WINDOWS-03: a notification click is a re-entry surface too — the
+    // window may be hidden-to-tray or minimized, not merely unfocused.
+    restoreWindow(mainWindow);
     if (clickAction) {
       handleDeepLinkUrl(`phlix://internal${clickAction}`);
     }

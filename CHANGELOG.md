@@ -7,6 +7,41 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed — clicking the app after close-to-tray restores the window — 2026-10-29
+
+- **Why:** review `windows__casualgamer` M-WINDOWS-03 — close-to-tray is the
+  default (`minimizeToTray: true`), and it hides the window (`win.hide()`),
+  which removes the taskbar button entirely. Every re-entry surface then
+  failed the same way: the second-instance handler (the path a fresh icon
+  click takes under the single-instance lock) called `focus()` on the hidden
+  window — `focus()` does not un-hide; the Electron docs assign that to
+  `show()` ("Shows and gives focus to the window") — and the tray click plus
+  the tray menu "Show" called `show()` with no `focus()`. Users clicked the
+  app and saw nothing.
+- **What:** new `src/main/windowRestore.ts` — one pure, canonical
+  `restoreWindow()`: destroyed-guard first (touching a destroyed window
+  throws "Object has been destroyed" per the `win.webContents` docs note),
+  then `restore()` gated on `isMinimized()` (restore's documented contract is
+  the minimized state only — blanket restore-before-show on a merely hidden
+  window is the trap this closes), then `show()` gated on `!isVisible()`,
+  then unconditional `focus()` (the app docs define the second-instance
+  response as "making their primary window focused and non-minimized"). All
+  five re-entry surfaces now delegate: `second-instance`, tray `click`, tray
+  `double-click` (new registration — the Windows tray idiom; the click burst
+  is safe because the sequence is idempotent), tray menu "Show", and the
+  `notification:show` click. README documents the surfaces; the tray icon is
+  the primary one because Windows emits no restore event for a hidden app.
+- **Tests:** `tests/unit/windowRestore.test.ts` (6 — exact call-order
+  sequences per state: hidden → `show,focus` never `restore`; minimized →
+  `restore,show,focus`; visible → `focus` only; destroyed → no-op not crash;
+  null-safe; idempotent burst) + `tests/unit/trayRestoreWiring.test.ts` (10 —
+  every surface drives the real helper against the booted window fake, deep
+  link delivery preserved after restore). Mutation-killed: reverting tray
+  click (2 red), reverting second-instance to focus-only (3 red), dropping
+  the double-click registration (1 red), stripping the destroyed guard
+  (2 red), blanket restore without the `isMinimized` gate (9 red), reverting
+  menu "Show" (1 red), reverting the notification body (2 red).
+
 ### Fixed — too-old server explains itself instead of dark window — 2026-10-29
 
 - **Why:** review `windows__casualgamer` M-WINDOWS-02 — when the connected server
