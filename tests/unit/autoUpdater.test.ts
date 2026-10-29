@@ -125,7 +125,9 @@ vi.mock('electron', () => ({
   powerSaveBlocker: { start: vi.fn(), stop: vi.fn(), isStarted: vi.fn().mockReturnValue(false) },
   Notification: class {
     static isSupported = vi.fn().mockReturnValue(true);
-    constructor() { mockNotification(); }
+    // M-WINDOWS-12: capture the constructor options so payload copy can be
+    // asserted byte-for-byte (previously only "a Notification was built").
+    constructor(options: { title: string; body: string }) { mockNotification(options); }
     on = vi.fn();
     show = vi.fn();
   }
@@ -134,6 +136,11 @@ vi.mock('electron', () => ({
 // Import main AFTER all mocks are configured — this triggers app.whenReady()
 // which synchronously calls setupAutoUpdater() and registers autoUpdater handlers.
 import '../../src/main/index';
+// The mocked electron + pure main-process i18n module: handlers registered via
+// ipcMain.handle / Menu.buildFromTemplate are recovered from the mock call
+// logs, and menu labels are resolved through the SAME t() the app used.
+import { ipcMain, Menu } from 'electron';
+import { t as tMain } from '../../src/main/i18n';
 
 describe('autoUpdater state machine', () => {
   // Note: `handlers` is sourced from vi.hoisted() — do NOT redeclare here.
@@ -228,5 +235,135 @@ describe('autoUpdater state machine', () => {
       // Verify Notification was constructed (clickAction wires to quitAndInstall)
       expect(mockNotification).toHaveBeenCalled();
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// M-WINDOWS-12 [review windows__gameux M1]: the 'update-not-available' arm.
+// Without it the FIRST "no updates" result — the steady state of every boot —
+// jammed updateState at 'checking' forever: the menu guard and the 6-hour
+// periodic check both early-return on checking/downloading, so "Check for
+// updates" was a permanent silent no-op after first launch. Each test below
+// drives REAL handler emissions captured at module load (handlers[]), the
+// registered ipcMain handlers, and the actual menu click closure — red on the
+// parent commit, where handlers['update-not-available'] does not exist.
+// ---------------------------------------------------------------------------
+type MenuItemLike = {
+  label?: string;
+  submenu?: MenuItemLike[];
+  click?: (...args: unknown[]) => void;
+};
+
+function ipcHandler(channel: string): (...args: unknown[]) => unknown {
+  const calls = (ipcMain.handle as unknown as ReturnType<typeof vi.fn>).mock.calls;
+  const entry = calls.find((c: unknown[]) => c[0] === channel);
+  if (!entry) throw new Error(`no ipcMain.handle registration for ${channel}`);
+  return entry[1] as (...args: unknown[]) => unknown;
+}
+
+function getUpdateStatus(): Record<string, unknown> {
+  return ipcHandler('update:get-status')() as Record<string, unknown>;
+}
+
+function clickMenuCheckForUpdates(): void {
+  const templates = (Menu.buildFromTemplate as unknown as ReturnType<typeof vi.fn>).mock.calls
+    .map((c: unknown[]) => c[0])
+    .filter(Array.isArray) as MenuItemLike[][];
+  const help = templates.flat().find((item) => item.label === tMain('menu.help'));
+  const check = help?.submenu?.find((item) => item.label === tMain('menu.checkForUpdates'));
+  if (!check?.click) throw new Error('menu "Check for updates" entry not found');
+  check.click();
+}
+
+describe('M-WINDOWS-12: update-not-available arm', () => {
+  // Mirrors the vendor emit order (AppUpdater.doCheckForUpdates):
+  // checking-for-update, then the terminal update-not-available result.
+  const noUpdateCheck = async () => {
+    handlers['checking-for-update']();
+    handlers['update-not-available']({ version: '1.0.0', releaseDate: '2026-01-01' });
+  };
+
+  it('registers the update-not-available handler (the previously missing arm)', () => {
+    expect(mockAutoUpdater.on).toHaveBeenCalledWith('update-not-available', expect.any(Function));
+    expect(typeof handlers['update-not-available']).toBe('function');
+  });
+
+  it('un-sticks a checking status back to idle — the guard precondition the menu and the 6h periodic check need to stay alive', () => {
+    handlers['checking-for-update']();
+    expect(getUpdateStatus().status).toBe('checking');
+    handlers['update-not-available']({ version: '1.0.0' });
+    expect(getUpdateStatus().status).toBe('idle');
+  });
+
+  it('menu "Check for updates" with no new release answers with the up-to-date notification (payload copy truth, current version)', () => {
+    mockNotification.mockClear();
+    mockAutoUpdater.checkForUpdates.mockImplementation(noUpdateCheck);
+
+    clickMenuCheckForUpdates();
+
+    expect(mockNotification).toHaveBeenCalledTimes(1);
+    expect(mockNotification).toHaveBeenCalledWith({
+      title: "You're on the latest version",
+      body: 'Phlix 1.0.0 is already the latest version.'
+    });
+    expect(getUpdateStatus().status).toBe('idle');
+  });
+
+  it('update:check-for-updates IPC answers honestly (idle, no stale version) and toasts once', async () => {
+    mockNotification.mockClear();
+    mockAutoUpdater.checkForUpdates.mockImplementation(noUpdateCheck);
+
+    const result = await ipcHandler('update:check-for-updates')();
+
+    expect(result).toEqual({ status: 'idle', version: undefined });
+    expect(mockNotification).toHaveBeenCalledTimes(1);
+    expect(mockNotification).toHaveBeenCalledWith({
+      title: "You're on the latest version",
+      body: 'Phlix 1.0.0 is already the latest version.'
+    });
+  });
+
+  it('automatic checks (boot / 6h periodic) stay SILENT on not-available — W4.9 no-noise doctrine', () => {
+    mockNotification.mockClear();
+
+    handlers['checking-for-update']();
+    handlers['update-not-available']({ version: '1.0.0' });
+
+    expect(mockNotification).not.toHaveBeenCalled();
+    expect(getUpdateStatus().status).toBe('idle');
+  });
+
+  it('a manual request consumed by an error cannot leak into a later automatic toast', async () => {
+    mockNotification.mockClear();
+    mockAutoUpdater.checkForUpdates.mockImplementation(async () => {
+      handlers['checking-for-update']();
+      handlers['error'](new Error('signature verification failed'));
+    });
+
+    const result = await ipcHandler('update:check-for-updates')();
+    expect(result).toEqual(expect.objectContaining({ status: 'error' }));
+
+    // Later automatic cycle: the consumed flag must not revive the reply.
+    handlers['update-not-available']({ version: '1.0.0' });
+    expect(mockNotification).not.toHaveBeenCalled();
+  });
+
+  it('an available update during a manual check consumes the request — only the real "Update Available" toast fires', async () => {
+    mockNotification.mockClear();
+    mockAutoUpdater.checkForUpdates.mockImplementation(async () => {
+      handlers['checking-for-update']();
+      handlers['update-available']({ version: '2.0.0', releaseDate: '2026-06-01' });
+    });
+
+    await ipcHandler('update:check-for-updates')();
+    expect(mockNotification).toHaveBeenCalledTimes(1);
+    expect(mockNotification).toHaveBeenCalledWith({
+      title: 'Update Available',
+      body: 'Phlix 2.0.0 is available. Click to download.'
+    });
+
+    // A subsequent automatic not-available cycle stays silent (flag consumed).
+    handlers['update-not-available']({ version: '2.0.0' });
+    expect(mockNotification).toHaveBeenCalledTimes(1);
   });
 });

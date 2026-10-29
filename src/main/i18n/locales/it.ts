@@ -50,6 +50,8 @@ export const it = {
   updater: {
     availableTitle: 'Aggiornamento disponibile',
     availableBody: 'Phlix {version} è disponibile. Fai clic per scaricare.',
+    notAvailableTitle: 'Stai usando la versione più recente',
+    notAvailableBody: 'Phlix {version} è già la versione più recente.',
     readyTitle: 'Aggiornamento pronto',
     readyBody: 'Phlix {version} è stato scaricato. Riavvia per applicare.'
   },

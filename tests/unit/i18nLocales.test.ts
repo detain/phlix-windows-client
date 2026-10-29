@@ -18,7 +18,7 @@
  *  B+. FR TYPOGRAPHIC APOSTROPHE law over windows-own + main fr VALUES: no
  *      letter'letter survives (SSOT declares ’); elision-bearing catalogs must
  *      render at least one ’ so the absence law can never pass vacuously.
- *  C. MAIN-PROCESS catalog: 32-key identity per locale, placeholder parity,
+ *  C. MAIN-PROCESS catalog: 34-key identity per locale, placeholder parity,
  *     ja CJK sanity, EN-leak allow-lists both directions, t() switching.
  *  D. RESOLUTION MATRIX: raw tag → picked bundle for all three catalogs
  *     (ui seam via messagesForLocale, windows-own via setWindowLocale/tWin,
@@ -504,16 +504,16 @@ describe('fr typographic apostrophe law (windows-own + main catalogs)', () => {
 });
 
 // ---------------------------------------------------------------------------
-// C. MAIN-process catalog (32 chrome strings — every law pinned)
+// C. MAIN-process catalog (34 chrome strings — every law pinned)
 // ---------------------------------------------------------------------------
 
 describe('main-process catalog ×6 — key-set, placeholders, sanity', () => {
-  it('every locale carries EXACTLY the 32 English keys (both directions)', () => {
+  it('every locale carries EXACTLY the 34 English keys (both directions)', () => {
     const reference = keySet(MAIN_EN as unknown as Table);
     for (const locale of LOCALES) {
       expect(keySet(MAIN_TABLES[locale]), `${locale} key set differs from en`).toBe(reference);
     }
-    expect(EN_MAIN.size).toBe(32);
+    expect(EN_MAIN.size).toBe(34);
   });
 
   it('the registry carries precisely the catalog files that exist', () => {

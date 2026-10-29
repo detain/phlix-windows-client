@@ -46,6 +46,8 @@ export const en = {
   updater: {
     availableTitle: 'Update Available',
     availableBody: 'Phlix {version} is available. Click to download.',
+    notAvailableTitle: "You're on the latest version",
+    notAvailableBody: 'Phlix {version} is already the latest version.',
     readyTitle: 'Update Ready',
     readyBody: 'Phlix {version} has been downloaded. Restart to apply.'
   },

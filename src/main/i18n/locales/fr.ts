@@ -49,6 +49,8 @@ export const fr = {
   updater: {
     availableTitle: 'Mise à jour disponible',
     availableBody: 'Phlix {version} est disponible. Cliquez pour télécharger.',
+    notAvailableTitle: 'Vous utilisez la dernière version',
+    notAvailableBody: 'Phlix {version} est déjà la dernière version.',
     readyTitle: 'Mise à jour prête',
     readyBody: 'Phlix {version} a été téléchargée. Redémarrez pour appliquer.'
   },

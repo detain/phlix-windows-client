@@ -7,6 +7,63 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed — the auto-updater no longer deadlocks at `checking`: `update-not-available` wired, manual checks answer visibly (M-WINDOWS-12) — 2026-10-29
+
+- **Why:** review `windows__gameux` MAJOR-1. `setupAutoUpdater()` registered
+  `checking-for-update`, `update-available`, `download-progress`,
+  `update-downloaded`, and `error` — but not `update-not-available`, the
+  **terminal result of every check that finds nothing new** (the steady state
+  of essentially every boot). The status set by `checking-for-update` never
+  left `checking` for the life of the process, and three hard guards key off
+  it: the menu "Check for updates" click early-returns on
+  `checking|downloading`, the 6-hour periodic interval only checks from
+  `idle|error`, and the `update:check-for-updates` IPC echoes the stuck
+  status. Consequence shipped: after the first launch the user's explicit
+  action was a **permanent silent no-op** and all periodic checking stopped.
+  Handler census at this commit re-verified: `update-not-available` was the
+  sole missing arm of electron-updater's six-event set.
+- **Shipped:** the missing arm now resets the state machine
+  (`status → idle`, clearing `version`/`progress`/`error`) — which revives the
+  menu guard and the periodic ladder by construction — and, when the check was
+  **user-requested** (menu click or the `update:check-for-updates` IPC, tracked
+  by a `manualUpdateCheckPending` flag set at exactly those two entry points),
+  answers with a visible main-process Notification: title "You're on the
+  latest version", body "Phlix {version} is already the latest version." with
+  the **running** app version (the emitted `UpdateInfo` describes the feed's
+  latest release, which on a downgrade refusal may be older). The delivered
+  answer surface is the same direct `new Notification({ title, body })` idiom
+  the `update-available`/`update-downloaded` arms already use — no renderer
+  IPC channel added (the pinned channel sets stay exact), no vendored-ui
+  surface, no v0.99.12 rider. The flag is consumed by ANY terminal updater
+  event (available / not-available / error) so a failed manual check can
+  never leak a stale "up to date" toast into a later automatic cycle; boot
+  and 6-hour automatic checks never set it and stay silent on success
+  (W4.9 no-user-facing-noise doctrine preserved).
+- **Behavior NOT touched (per brief):** `autoUpdater.autoDownload = false` and
+  `allowPrerelease = false` unchanged; the T+5s initial check and the 6-hour
+  `idle|error`-guarded periodic interval keep their exact semantics — this fix
+  makes them reachable again, it does not redefine them.
+- **i18n:** `updater.notAvailableTitle` + `updater.notAvailableBody` added to
+  the main-process catalog (32 → 34 keys, all seven locales; en/es/fr/de/it/
+  pt_BR/ja), born-in-the-catalog per the `boot.*` M-WINDOWS-02 precedent. The
+  fr pair is elision-free (typographic-apostrophe law); `{version}`
+  placeholder parity, key-set identity, and the EN-leak allow-lists re-pinned
+  green; `mainI18n.test.ts` byte-identical registry and
+  `i18nLocales.test.ts` 34-count floors rotated with the addition.
+- **Tests:** `tests/unit/autoUpdater.test.ts` 11 → 18 (+7: arm registration;
+  `checking → idle` un-stick via the live `update:get-status` handler; menu
+  click answers with the exact copy; IPC answers `{status:'idle',
+  version:undefined}` + one toast; automatic cycle stays silent;
+  error-consumed flag cannot leak a later toast; `update-available` consumes
+  the request). All 7 are red on the parent (stashed-diff probe) while the 11
+  pre-existing stay green — per-arm attribution. Notification mock now
+  captures constructor options for payload copy truth.
+- **Gates:** vitest FULL serial `--no-file-parallelism` 49 files / **594**
+  tests, 0 fail (parent 587 + 7 measured); `vue-tsc --noEmit` 0;
+  `tsc -p tsconfig.main.json --noEmit` 0; `eslint .` 0;
+  `scripts/audit-gate.mjs` PASS (0 advisories); `npm run build` 0.
+  `.github/workflows` untouched (WIN-05/09 territory).
+
 ### Security — persisted secrets move to safeStorage/DPAPI custody; a vault bridge for renderer tokens (M-WINDOWS-11) — 2026-10-29
 
 - **Why:** review `windows__exploiter` MAJOR-11. `grep -rn safeStorage src/`

@@ -3,10 +3,12 @@
  *
  * THE byte-identical-English contract: EVERY value below is copied verbatim from
  * the literals that were hardcoded in src/main/index.ts before the i18n
- * extraction (feat/i18n-wiring), except the `boot.*` trio — those strings never
- * existed as hardcoded literals: they shipped with the too-old-server surface
- * (M-WINDOWS-02) and are pinned here as born-in-the-catalog additions. Either
- * way, if someone edits a catalog value, this test goes red — exactly the point.
+ * extraction (feat/i18n-wiring), except the `boot.*` trio and the
+ * `updater.notAvailable*` pair — those strings never existed as hardcoded
+ * literals: they shipped with the too-old-server surface (M-WINDOWS-02) and the
+ * update-not-available reply (M-WINDOWS-12) and are pinned here as
+ * born-in-the-catalog additions. Either way, if someone edits a catalog value,
+ * this test goes red — exactly the point.
  *
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
@@ -45,6 +47,10 @@ const ORIGINAL_MAIN_PROCESS_STRINGS: Record<MainMessageKey, string> = {
 
   'updater.availableTitle': 'Update Available',
   'updater.availableBody': 'Phlix {version} is available. Click to download.',
+  // M-WINDOWS-12 additions (born in the catalog, not extracted — see header):
+  // the "update-not-available" reply for a user-requested check.
+  'updater.notAvailableTitle': "You're on the latest version",
+  'updater.notAvailableBody': 'Phlix {version} is already the latest version.',
   'updater.readyTitle': 'Update Ready',
   'updater.readyBody': 'Phlix {version} has been downloaded. Restart to apply.',
 

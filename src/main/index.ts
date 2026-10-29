@@ -233,6 +233,14 @@ interface UpdateState {
 const updateState: UpdateState = { status: 'idle' };
 let _updateCheckTimer: NodeJS.Timeout | null = null;
 
+// M-WINDOWS-12 [review windows__gameux M1]: a user-initiated check (menu
+// "Check for updates" / the update:check-for-updates IPC) must ANSWER, even
+// when the answer is "nothing new". The boot and 6-hour periodic checks never
+// set this flag, so their success stays silent (W4.9 no-user-facing-noise
+// doctrine for automatic paths). Any terminal updater event —
+// update-available, update-not-available, or error — consumes it exactly once.
+let manualUpdateCheckPending = false;
+
 const isDev = process.env.NODE_ENV === 'development' || (!app.isPackaged && !process.env.PHLIX_FORCE_PRODUCTION);
 
 log.initialize();
@@ -478,6 +486,11 @@ function setupAutoUpdater(): void {
   autoUpdater.on('update-available', (info) => {
     updateState.status = 'available';
     updateState.version = info.version;
+    // M-WINDOWS-12: this arm's own "Update Available" toast IS the answer to
+    // a manual request — consume the pending flag so the following
+    // download-progress/update-downloaded cycle (or a later automatic
+    // not-available) cannot fire a second "you're up to date" reply.
+    manualUpdateCheckPending = false;
     log.info(`[updater] Update available: ${info.version}`);
 
     // Notify renderer so it can show UI if needed
@@ -494,6 +507,37 @@ function setupAutoUpdater(): void {
         updateState.status = 'downloading';
       });
       notification.show();
+    }
+  });
+
+  // M-WINDOWS-12 [review windows__gameux M1]: the previously-missing arm.
+  // "No updates" is the steady state of EVERY check, and without this handler
+  // the status set by 'checking-for-update' never left 'checking' for the life
+  // of the process: the menu guard and the 6-hour periodic check (both keyed
+  // on idle/error) early-returned forever, making "Check for updates" a
+  // permanent silent no-op after the first launch. Resetting to idle here
+  // un-jams both paths; a user-requested check additionally gets the visible
+  // reply below, delivered through the same main-process Notification surface
+  // the update-available/update-downloaded arms already use (no renderer
+  // channel, no new UI surface). The version shown is the one running — the
+  // emitted UpdateInfo describes the latest feed release, which on a
+  // downgrade-refusal may be older than current.
+  autoUpdater.on('update-not-available', () => {
+    updateState.status = 'idle';
+    updateState.version = undefined;
+    updateState.progress = undefined;
+    updateState.error = undefined;
+    log.info('[updater] No update available — already on the latest version');
+
+    if (manualUpdateCheckPending) {
+      manualUpdateCheckPending = false;
+      if (Notification.isSupported()) {
+        const notification = new Notification({
+          title: t('updater.notAvailableTitle'),
+          body: t('updater.notAvailableBody', { version: app.getVersion() })
+        });
+        notification.show();
+      }
     }
   });
 
@@ -526,6 +570,10 @@ function setupAutoUpdater(): void {
   });
 
   autoUpdater.on('error', (err) => {
+    // M-WINDOWS-12: an error terminates the in-flight check; consume any
+    // pending manual request so it cannot leak into a later automatic
+    // not-available and fabricate a "you're up to date" toast.
+    manualUpdateCheckPending = false;
     // W4.9: Handle offline and rate-limited cases quietly — no user-facing noise
     const message = err.message ?? String(err);
     if (
@@ -664,9 +712,13 @@ function createMenu(): void {
         { type: 'separator' },
         { label: t('menu.checkForUpdates'), click: () => {
           if (updateState.status === 'downloading' || updateState.status === 'checking') return;
+          // M-WINDOWS-12: remember the user asked — the check's terminal
+          // updater event answers (not-available → "latest version" toast).
+          manualUpdateCheckPending = true;
           updateState.status = 'checking';
           autoUpdater.checkForUpdates().catch((err) => {
             log.warn(`[updater] Menu check error: ${err.message}`);
+            manualUpdateCheckPending = false;
             updateState.status = 'idle';
           });
         }}
@@ -1005,12 +1057,16 @@ ipcMain.handle('update:check-for-updates', async () => {
     return { status: updateState.status, version: updateState.version };
   }
   try {
+    // M-WINDOWS-12: renderer-initiated checks are user-initiated too — the
+    // not-available arm answers with the visible "latest version" toast.
+    manualUpdateCheckPending = true;
     updateState.status = 'checking';
     await autoUpdater.checkForUpdates();
     return { status: updateState.status, version: updateState.version };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.warn(`[updater] Manual check error: ${message}`);
+    manualUpdateCheckPending = false;
     updateState.status = 'idle';
     return { status: 'idle', error: undefined };
   }
