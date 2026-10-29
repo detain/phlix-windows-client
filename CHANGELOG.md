@@ -7,6 +7,53 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed — friend-watch (SyncPlay) docs end their civil war; desktop truth pinned — 2026-10-29
+
+- **Why:** review `windows__casualgamer` M-WINDOWS-04 (M4). Four sources told three
+  different stories about SyncPlay on Windows: the README's Minimum-Server-Version
+  line advertised "SyncPlay groups", the README's Known Limitations declared the
+  "realtime SyncPlay UIs … temporarily dropped", the routeReachability carve-out
+  rationalized "SyncPlay UI removed in W2 — route defunct", and both `buildMenu`
+  test titles listed SyncPlay as a nav entry the menu never contains — while the
+  vendored `@phlix/ui` v0.99.10 bundle in fact ships the whole surface: the shell
+  registers `/app/syncplay`, the player imports `SyncPlayModal`, and i18n carries
+  the room vocabulary.
+- **Bundle truth (measured, not asserted):** the room page and the room REST calls
+  (list/create/join via `api/syncplay.ts` against the configured `apiBase`) work,
+  but the live-playback WebSocket is built from `window.location.hostname` plus a
+  hardcoded `:8097` — the same-origin assumption of the server-hosted web player.
+  This renderer is served from the internal `app://-/` origin (hostname `-`,
+  enforced in `src/main/index.ts`), so a packaged build's room socket can never
+  dial a remote server: parties never go live on Windows. Surfacing the page in
+  the nav would advertise that dead end, so the honest cure is docs + pins, and
+  the nav entry rides the re-pin that carries the `__PHLIX__.wsUrl` socket seam
+  (upstream `phlix-ui 94579936`, R12-02 — absent from the installed bundle today).
+- **What:** README's Minimum-Server-Version sentence re-attributed (the four-item
+  "key features" list split into what this client actually drives vs. the server's
+  SyncPlay endpoints); the false "temporarily dropped" limitation replaced with
+  the two truths it conflated (Offline Downloads: genuinely no surface; SyncPlay:
+  ships-but-inert, linked); a new "Watching with friends (SyncPlay)" section tells
+  users what works today (the server-hosted web player) and why the desktop app
+  does not; `docs/ui-surface.md` SyncPlayPage rows updated from the v0.98.39-era
+  inventory to v0.99.10 reality (admin row annotated REST-only, i.e. genuinely
+  working); `routeReachability.test.ts` carve-out reason rewritten from the false
+  "removed in W2" story to the honest withheld-because-inert rationale; the two
+  `main.test.ts` menu titles stop listing a SyncPlay entry that was never asserted;
+  and two dead W2-era ghosts in test files are excised — the `ipcChannels.test.ts`
+  docstring exemplar quoting the nonexistent `syncplay:connect` channel (replaced
+  with the live `notification:show` multiline invoke it was explaining) and the
+  assert-free `onSyncPlayMessage` key in the `electronBridge.test.ts` mock.
+- **New law:** `tests/unit/syncplayDesktopStatus.test.ts` (4 tests) pins the four
+  measured facts as tripwires — the route registers, the same-origin `:8097` dial
+  idiom is present, the `wsUrl`/`wsPath` seam is absent, and no nav entry exists —
+  so the exact moment the installed bundle gains the capability, the suite reddens
+  and names the rider this entry defers.
+- **Measured:** vitest serial 40 files / 494 tests → 41 / 498 (+4 exact);
+  vue-tsc (renderer + tests) and tsc (main) exit 0; eslint exit 0; `npm run build`
+  exit 0; `scripts/audit-gate.mjs` PASS (0 advisories). No menu or deep-link
+  surface was added, so the smoke leg is out of scope; zero vendored bytes and
+  zero shipped-code behavior touched (docs, docs-adjacent test prose, new test file).
+
 ### Fixed — stop fabricating the update feed: electron-builder's authentic latest.yml + blockmaps ride the release — 2026-10-29
 
 - **Why:** review `windows__crossfe` M-WINDOWS-05 (M1). The release job in

@@ -26,7 +26,11 @@ Phlix Windows provides a full-featured media server client for Windows, enabling
 
 ## Minimum Server Version
 
-Phlix Windows requires Phlix Media Server **1.1.0** or later. Key features include skip-intro markers, SyncPlay groups, media facets, and schema-driven settings.
+Phlix Windows requires Phlix Media Server **1.1.0** or later — the first server release
+where the capabilities this client drives are stable: skip-intro markers, media facets,
+and schema-driven settings. (Servers ≥ 1.1.0 also expose SyncPlay group endpoints; those
+power the **web player your server hosts**, not this desktop app — see
+[Watching with friends (SyncPlay)](#watching-with-friends-syncplay) for why.)
 
 ## Install (end users)
 
@@ -412,7 +416,38 @@ MIT License - see project repository for details.
 ### Known Limitations
 
 - App boots to Connect screen on first launch (no default server URL; user must configure a server or Hub)
-- Offline Downloads and realtime SyncPlay UIs are temporarily dropped (to be re-added as shared `@phlix/ui` seams)
+- Offline Downloads have no surface in this client — the shared `@phlix/ui` bundle carries no offline/download page
+- Watching with friends (SyncPlay): the shared UI ships the room page and the in-player SyncPlay controls, but the room's live-sync socket dials the *page's own host*, which the desktop app can never satisfy — see [Watching with friends (SyncPlay)](#watching-with-friends-syncplay)
+
+## Watching with friends (SyncPlay)
+
+**Today, watch with friends from the web player your server serves** — open your Phlix
+server's URL in a browser and use its player; SyncPlay rooms are fully live there. The
+Phlix Windows app is not yet a usable SyncPlay client.
+
+What is true about SyncPlay inside this desktop app, measured against the exact shared
+UI bundle it ships (`@phlix/ui`, see `package.json`):
+
+- **The surface exists.** The `SyncPlay` page (`/app/syncplay`) is registered by the
+  shared shell, and the video player carries SyncPlay controls (create/join room).
+  Room listing, create and join ride ordinary REST calls to your server, which work.
+- **The party never goes live.** Playback sync runs over a WebSocket whose address is
+  derived from the page's *own* host and port `8097` — an assumption made for the web
+  player your server hosts itself. This app is served from an internal desktop origin,
+  so from a packaged build that socket can only ever dial a machine named `-`: rooms
+  still list, create and join over REST, but the connection that makes a party watch
+  together never comes up.
+- **That is why there is no SyncPlay entry in the navigation bar.** The page and the
+  player's SyncPlay button do render — but surfacing a destination whose core promise
+  fails from this origin would just be the next broken promise, so the nav omits it and
+  the limitations above say so plainly.
+
+The cure has a known shape: the shared UI has gained a host-configurable socket
+endpoint (upstream `phlix-ui` commit `94579936`), so a future release of this app can
+point the room socket at your configured server and add the nav entry for real. That
+re-pin is tracked as the **M-WINDOWS-04 rider**; this repo's test suite
+(`tests/unit/syncplayDesktopStatus.test.ts`) reddens on purpose the moment the
+installed bundle gains the capability, so the docs above cannot silently go stale.
 
 ## Support
 

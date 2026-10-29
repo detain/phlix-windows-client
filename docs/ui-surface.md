@@ -64,7 +64,7 @@ in the reference web-ui (`phlix-server/web-ui`), and which are wired in this rep
 | SettingsPage | `/app/settings` | OK (menu) | OK (buildMenu) |
 | SharedWithMePage | `/app/shared` | MISSING | MISSING |
 | SignupPage | `/app/signup` | UNREACHABLE | UNREACHABLE |
-| SyncPlayPage | `/app/syncplay` | UNREACHABLE | MISSING |
+| SyncPlayPage | `/app/syncplay` | UNREACHABLE | Registered (v0.99.10 shell) but no nav entry — room socket dials the page host, inert from the desktop origin; status pinned by `tests/unit/syncplayDesktopStatus.test.ts`, story in README "Watching with friends (SyncPlay)" [M-WINDOWS-04] |
 | WatchHistoryPage | `/app/history` | UNREACHABLE | MISSING |
 
 ---
@@ -114,7 +114,7 @@ All admin pages are registered at `/app/admin/{path}` via `buildAdminRoutes()` /
 | RequestsPage | admin-requests | OK | OK (buildAdminRoutes & buildHubAdminRoutes) |
 | ServicesPage | admin-services | OK | OK |
 | SettingsPage | admin-settings | OK | OK |
-| SyncPlayPage | admin-syncplay | OK | OK |
+| SyncPlayPage | admin-syncplay | OK | OK (REST-only AdminSyncPlayApi — works from the desktop; unaffected by the room-socket limitation) |
 | TranscodingSettingsPage | admin-transcoding | OK | OK |
 | UsersPage | admin-users | OK | OK |
 | WebhooksPage | admin-webhooks | OK | OK |
@@ -149,7 +149,7 @@ No navigation link exists for any of them:
 | WatchHistoryPage | `/app/history` | UNREACHABLE | `createPhlixApp.ts:280` |
 | ExplorePage | `/app/explore` | UNREACHABLE | `createPhlixApp.ts:286` |
 | RecommendationsPage | `/app/recommendations` | UNREACHABLE | `createPhlixApp.ts:292` |
-| SyncPlayPage | `/app/syncplay` | UNREACHABLE | `createPhlixApp.ts:298` |
+| SyncPlayPage | `/app/syncplay` | UNREACHABLE | registered in hub mode too, but hub-mode rooms need the relay-aware socket that the pinned bundle lacks — withheld with the same M-WINDOWS-04 rider; see `syncplayDesktopStatus.test.ts` |
 
 ---
 

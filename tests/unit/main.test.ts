@@ -282,7 +282,7 @@ describe('boot (renderer entry)', () => {
 });
 
 describe('buildMenu', () => {
-  it('server mode: Browse, Music, Books, Audiobooks, Photos, Search, Watch History, Explore, Recommendations, SyncPlay, Settings, Admin', async () => {
+  it('server mode: Browse, Music, Books, Audiobooks, Photos, Search, Watch History, Explore, Recommendations, Settings, Admin', async () => {
     const { buildMenu, buildExtraRoutes } = await import('@/main');
     const menu = buildMenu('server');
     const menuIds = menu.map((m) => m.id);
@@ -330,7 +330,7 @@ describe('buildMenu', () => {
     expect(admin).toMatchObject({ to: '/app/admin/dashboard', requiresAdmin: true });
   });
 
-  it('hub mode: My Servers, Federation, Shares, Watch History, Explore, Recommendations, SyncPlay, admin-gated Admin', async () => {
+  it('hub mode: My Servers, Federation, Shares, Watch History, Explore, Recommendations, admin-gated Admin', async () => {
     const { buildMenu, buildExtraRoutes } = await import('@/main');
     const menu = buildMenu('hub');
     const menuIds = menu.map((m) => m.id);

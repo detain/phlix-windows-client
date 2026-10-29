@@ -93,8 +93,15 @@ const DEEP_LINK_ALLOW_LIST: Array<{ pattern: RegExp; reason: string }> = [
   // The root /app path is the browse page - in hub mode home is /app/servers
   { pattern: /^\/app$/, reason: 'browse page root, hub uses /app/servers as home instead' },
 
-  // SyncPlay: removed in W2 — route may still exist in @phlix/ui but UI was deleted
-  { pattern: /^\/app\/syncplay$/, reason: 'SyncPlay UI removed in W2 — route defunct but may exist in @phlix/ui' },
+  // SyncPlay (M-WINDOWS-04): the vendored shell genuinely registers /app/syncplay and
+  // ships the room page + player modal — the W2 "UI removed" story this carve-out used
+  // to tell was false. It stays nav-less for a real reason: the room socket dials
+  // window.location.hostname + :8097 (the same-origin assumption of the server-hosted
+  // web player), which from this app:// desktop origin can never reach a remote server,
+  // so surfacing the page would advertise rooms that never go live. Withheld until the
+  // installed bundle carries the __PHLIX__.wsUrl socket seam (phlix-ui 94579936); the
+  // whole status is pinned by tests/unit/syncplayDesktopStatus.test.ts.
+  { pattern: /^\/app\/syncplay$/, reason: 'registered by the vendored shell but inert on desktop until the wsUrl seam ships — see syncplayDesktopStatus.test.ts' },
 ];
 
 /**

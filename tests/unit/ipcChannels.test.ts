@@ -28,8 +28,8 @@ const PROJECT_ROOT = resolve(__dirname, '../..');
  *
  * Uses dotAll mode (`s` flag) because some invoke calls span multiple lines:
  * ```
- * syncPlayConnect: (roomId, serverUrl, token) =>
- *   ipcRenderer.invoke('syncplay:connect', { roomId, serverUrl, token }),
+ * showNotification: (title: string, body: string, clickAction?: string) =>
+ *   ipcRenderer.invoke('notification:show', { title, body, clickAction }),
  * ```
  */
 function extractInvokeChannels(content: string): string[] {

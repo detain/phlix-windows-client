@@ -49,7 +49,6 @@ interface FakeElectronAPI {
   onMediaPrevious: ReturnType<typeof vi.fn>;
   onMediaNext: ReturnType<typeof vi.fn>;
   onOpenSettings: ReturnType<typeof vi.fn>;
-  onSyncPlayMessage: ReturnType<typeof vi.fn>;
   mediaPlay: ReturnType<typeof vi.fn>;
   mediaPause: ReturnType<typeof vi.fn>;
   mediaPrevious: ReturnType<typeof vi.fn>;
@@ -84,7 +83,6 @@ function makeFakeApi(): FakeElectronAPI {
     onMediaPrevious: register('media-previous'),
     onMediaNext: register('media-next'),
     onOpenSettings: register('open-settings'),
-    onSyncPlayMessage: register('syncplay-message'),
     mediaPlay: vi.fn(),
     mediaPause: vi.fn(),
     mediaPrevious: vi.fn(),
