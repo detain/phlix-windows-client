@@ -7,6 +7,10 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Docs — follow-up to 7709e31: docs mirror swept (M-WINDOWS-17 r2) — 2026-10-29
+
+- `docs/deep-links.md` (grammar note + Examples arms) and the README hub-status sentence now state that the `accept-invite`/`server` deep-link arms are hub-mode-only and 404-view in every shipped launch — the demoted truth of the parent commit mirrored to its surviving docs (review r1 must-fix); docs-only, zero behavior change, no new pins (unpinned ui-surface.md rider precedent).
+
 ### Fixed — the README-advertised "Hub Mode" cannot be entered; the claim is demoted to shipped truth with tripwired rider (M-WINDOWS-17) — 2026-10-29
 
 - **Why:** review `windows__gameux` MAJOR-6 — "README-advertised 'Hub Mode' cannot be

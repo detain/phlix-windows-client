@@ -20,9 +20,17 @@ phlix://<host>/<value>
 > Every target above is a route record that actually exists: `media`/`play`
 > ship inside the vendored `@phlix/ui` router (there is no `/play/:id`
 > record — playback is the player route), `accept-invite`/`server` are
-> hub-mode routes registered by this repo. All app routes live under the
-> `/app` history base; an unprefixed path would only match the 404
-> catch-all. The pin lives in `tests/unit/deepLinkRouteContract.test.ts`.
+> hub-mode routes registered by this repo — but they register only while
+> hub mode runs, and hub mode is not enterable in the shipped build
+> (`hub:set-config` has zero callers, no upstream connection form; see
+> README *Hub Mode (not yet enterable)* and `tests/unit/hubModeStatus.test.ts`)
+> [M-WINDOWS-17]. Every launch today boots server mode, so those two arms
+> parse fine yet resolve to the `/app/:pathMatch(.*)*` 404 view for every
+> real user; they become live user-facing targets with the v0.99.12
+> connection-seam rider. All app routes live under the `/app` history
+> base; an unprefixed path would only match the 404 catch-all. The
+> parser ↔ route-record pin (built over the hub route set) lives in
+> `tests/unit/deepLinkRouteContract.test.ts`.
 
 > **Note:** The `'internal'` host is also accepted by the parser (for notification click-action routing) but is omitted from this table as it is an implementation detail, not a user-facing link type.
 
@@ -71,10 +79,10 @@ phlix://media/my-media-id
 # Start playback
 phlix://play/episode-123
 
-# Accept an invitation
+# Accept an invitation — hub-mode arm: 404-views today (see note above)
 phlix://accept-invite/invite_token_here
 
-# View server details
+# View server details — hub-mode arm: 404-views today (see note above)
 phlix://server/server-456
 ```
 

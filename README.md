@@ -345,7 +345,9 @@ Typing a Hub URL into the first-run Connect screen does **not** enter hub mode â
 persisted as a direct `serverUrl` and the app then drives server-mode endpoints against a hub
 API (404s on server-only routes). The hub pages (MyServers, Server Detail, Federation,
 Federation-Shares, Manage-Shares, Shared-With-Me, Invite-Links, Accept-Invite, hub-admin) are
-registered by `buildMenu('hub')` / `buildExtraRoutes('hub')` and stay unreachable with the mode.
+registered by `buildMenu('hub')` / `buildExtraRoutes('hub')` and stay unreachable with the mode â€”
+as do the `phlix://accept-invite` and `phlix://server` deep-link arms documented in
+`docs/deep-links.md`, which today parse, resolve to the same 404 view, and re-live with the rider.
 
 What the machinery does once a hub config exists (unit-tested via `tests/unit/resolveConfig.test.ts`
 and the status pins above):
