@@ -6,16 +6,31 @@
 
 import { usePlayerStore } from '@phlix/ui';
 import type { App as VueApp } from 'vue';
-import { updateMeta } from './mediaSession';
+import { watch } from 'vue';
 import log from 'electron-log';
 
 // Minimal structural types for the pieces of the phlix-ui player store and the
 // vue-router instance that the bridge actually touches. Keeping them local makes
 // the wiring helper trivially unit-testable with fakes.
+//
+// M-WINDOWS-14 note: the optional `title`/`artist`/`album`/`artwork` fields
+// this interface once declared do NOT exist on the real store
+// (node_modules/@phlix/ui/dist/usePlayerStore-D8A_gb_c.js setup-store return) —
+// they were the type-level fiction that let the old updateMeta helper
+// fabricate a `{ title: 'Phlix' }` SMTC stub. The store itself feeds rich
+// metadata via `setCurrent`; removed, and no code path may re-read
+// metadata off the store.
 export interface BridgePlayer {
   playing: boolean;
   position: number;
   duration: number;
+  /**
+   * Loaded media (`current` in the vendored store — a media object or null).
+   * The OS mirror only reads its null/non-null identity: `closePlayer()`
+   * clears it while leaving position/duration stale, so "no media" is the
+   * one fact that must come from `current` and never from the numbers.
+   */
+  current?: { id?: string; name?: string } | null;
   play: () => void;
   pause: () => void;
   closePlayer: () => void;
@@ -23,14 +38,6 @@ export interface BridgePlayer {
   seekBy: (delta: number) => void;
   /** Absolute seek to position in seconds. */
   seekTo: (position: number) => void;
-  /** Track title for SMTC metadata. */
-  title?: string;
-  /** Track artist for SMTC metadata. */
-  artist?: string;
-  /** Album name for SMTC metadata. */
-  album?: string;
-  /** Album artwork for SMTC metadata. */
-  artwork?: { src: string }[];
 }
 
 export interface BridgeRouter {
@@ -51,6 +58,96 @@ function playerCanControl(player: BridgePlayer): boolean {
     return false;
   }
   return true;
+}
+
+/**
+ * The three renderer→main send channels for the OS feedback surfaces this
+ * shell owns (a subset of `window.electronAPI`). Every method is optional by
+ * the bridge's long-standing `?.`-call law: the same wiring runs against
+ * plain fakes in unit tests and against a missing bridge in a browser dev
+ * context, and must stay inert (never throw) in both.
+ */
+interface OsSurfaceSenders {
+  updateThumbar?: (state: { playing: boolean }) => void;
+  setPlaybackProgress?: (current: number, total: number) => void;
+  updatePowerBlocker?: (playing: boolean) => void;
+}
+
+/**
+ * M-WINDOWS-14 (review windows__gameux MAJOR-3): mirrors the REACTIVE player
+ * store onto every OS feedback surface this shell owns, so they arm on the
+ * normal in-app playback path instead of only when the shell itself drove
+ * the transport.
+ *
+ * The seam: all three playback drivers — the vendored `@phlix/ui` player
+ * engine (in-app clicks; its play/pause ARE the store's own actions,
+ * `usePlayerStore-D8A_gb_c.js` `U()`/`W()`), the tray/menu/SMTC IPC handlers
+ * below, and the global keydown relay — mutate the SAME pinia store. Its
+ * `playing` / `position` / `duration` / `current` fields are refs, so a
+ * `watch` sees every transition from every path. The store is the single
+ * source of truth; this mirror never reads intent, only post-mutation state.
+ *
+ * Surface law:
+ * - transitions → `thumbar:update` (tooltip) + `power:update`
+ *   (display-sleep blocker; main's `ensurePowerBlocker` is start-once/idempotent).
+ * - ticks → `playback:progress` deduped to whole seconds — the ui feeds the
+ *   store from `timeupdate` (~4 Hz) while the taskbar overlay is far coarser.
+ *   `{0, 0}` is main's documented clear (setProgressBar(-1)); it is sent
+ *   whenever `current` is null, which is what makes `closePlayer()` — it
+ *   resets playing/current but NOT position/duration — release the blocker,
+ *   repaint the thumbar and wipe the stale bar without any stop-specific
+ *   calls in the handlers.
+ *
+ * Shell-driven toggles therefore land a second (identical-value) send from
+ * the mirror after the handler's own synchronous send; main's handlers are
+ * idempotent by law (button rebuild / isStarted guard / absolute set), and
+ * the synchronous sends stay because they arm the surfaces in the same tick
+ * as the user action (W4.5 pins in tests/unit/thumbar.test.ts +
+ * tests/unit/powerSaveBlocker.test.ts keep that source law).
+ *
+ * SMTC metadata / playbackState / positionState are deliberately NOT mirrored:
+ * the vendored store already feeds them itself on every transition (the very
+ * `U()`/`W()`/`setCurrent` actions), for both paths.
+ *
+ * Returns a cleanup stopping both watchers; `wireElectronBridge` folds it into
+ * its single teardown, so navigation/unmount-style re-install can never leak
+ * a duplicate mirror.
+ */
+function installOsPlaybackMirror(player: BridgePlayer, api: OsSurfaceSenders): () => void {
+  const stopTransitions = watch(
+    () => player.playing,
+    (playing) => {
+      api.updateThumbar?.({ playing });
+      api.updatePowerBlocker?.(playing);
+    }
+  );
+
+  let lastWholePosition = -1;
+  let lastWholeDuration = -1;
+  const stopProgress = watch(
+    // `playing` participates so the very start of playback lands the
+    // `{0, total}` indeterminate arm without waiting for the first tick.
+    () => [player.current, player.playing, player.position, player.duration] as const,
+    ([current, , position, duration]) => {
+      if (!current) {
+        lastWholePosition = -1;
+        lastWholeDuration = -1;
+        api.setPlaybackProgress?.(0, 0);
+        return;
+      }
+      const wholePosition = Math.floor(position);
+      const wholeDuration = Math.floor(duration);
+      if (wholePosition === lastWholePosition && wholeDuration === lastWholeDuration) return;
+      lastWholePosition = wholePosition;
+      lastWholeDuration = wholeDuration;
+      api.setPlaybackProgress?.(wholePosition, wholeDuration);
+    }
+  );
+
+  return () => {
+    stopTransitions();
+    stopProgress();
+  };
 }
 
 /** Module-level cleanup references for idempotency. */
@@ -168,9 +265,11 @@ export function installFocusGuard(player: BridgePlayer): () => void {
 
 /**
  * Pure wiring helper: registers the Electron main-process media/window events
- * against a player store + router and returns a single cleanup function that
- * unregisters every listener. Accepts the dependencies as params so it can be
- * exercised in tests without a real Vue app or Electron preload bridge.
+ * and the reactive OS-surface mirror (M-WINDOWS-14,
+ * `installOsPlaybackMirror`) against a player store + router and returns a
+ * single cleanup function that unregisters every listener and watcher.
+ * Accepts the dependencies as params so it can be exercised in tests without
+ * a real Vue app or Electron preload bridge.
  */
 export function wireElectronBridge(player: BridgePlayer, router: BridgeRouter): () => void {
   const api = window.electronAPI;
@@ -193,12 +292,19 @@ export function wireElectronBridge(player: BridgePlayer, router: BridgeRouter): 
       api.setPlaybackProgress?.(player.position, player.duration);
       // W4.6: block display sleep when playing
       api.updatePowerBlocker?.(willBePlaying);
-      // W4.5: update SMTC metadata
-      updateMeta(player);
+      // M-WINDOWS-14: the old SMTC `updateMeta` call here was removed —
+      // the fields it read do not exist on the real store, so every shell
+      // toggle overwrote the vendored store's rich SMTC metadata with a
+      // fabricated `{ title: 'Phlix' }` stub. SMTC is the store's own feed.
     })
   );
 
   cleanups.push(
+    // M-WINDOWS-14: no explicit surface teardown needed on stop — closePlayer()
+    // flips playing→false and current→null, and the mirror below turns exactly
+    // those into updateThumbar(pause) + updatePowerBlocker(false) + a
+    // {0,0} progress clear. (Parent code armed nothing here: the blocker ran
+    // until window close.)
     api.onMediaStop(() => {
       player.closePlayer();
     })
@@ -249,6 +355,13 @@ export function wireElectronBridge(player: BridgePlayer, router: BridgeRouter): 
       log.info('[electronBridge] media-next received (no-op: playlist in @phlix/ui)');
     })
   );
+
+  // M-WINDOWS-14: the in-app transport never enters any handler above — the
+  // vendored player drives the store directly. Mirror the store's reactive
+  // state onto the thumbar / display-sleep blocker / taskbar progress so all
+  // three arm on the normal playback path too. Teardown rides this function's
+  // single cleanup, like every other registration here.
+  cleanups.push(installOsPlaybackMirror(player, api));
 
   return () => {
     for (const cleanup of cleanups) {

@@ -8,6 +8,7 @@ import {
   type BridgeRouter
 } from '@/electronBridge';
 import type { App as VueApp } from 'vue';
+import { reactive, nextTick } from 'vue';
 
 // Mock the @/main module to expose playbackMenuTemplate for accelerator testing
 vi.mock('@/main', () => ({
@@ -57,6 +58,10 @@ interface FakeElectronAPI {
   mediaNext: ReturnType<typeof vi.fn>;
   mediaSeekBackward: ReturnType<typeof vi.fn>;
   mediaSeekForward: ReturnType<typeof vi.fn>;
+  // M-WINDOWS-14: the three OS-surface senders the reactive mirror drives.
+  updateThumbar: ReturnType<typeof vi.fn>;
+  setPlaybackProgress: ReturnType<typeof vi.fn>;
+  updatePowerBlocker: ReturnType<typeof vi.fn>;
 }
 
 function makeFakeApi(): FakeElectronAPI {
@@ -90,7 +95,10 @@ function makeFakeApi(): FakeElectronAPI {
     mediaPrevious: vi.fn(),
     mediaNext: vi.fn(),
     mediaSeekBackward: vi.fn(),
-    mediaSeekForward: vi.fn()
+    mediaSeekForward: vi.fn(),
+    updateThumbar: vi.fn(),
+    setPlaybackProgress: vi.fn(),
+    updatePowerBlocker: vi.fn()
   };
 }
 
@@ -656,3 +664,158 @@ describe('installFocusGuard defers to the vendored ui player engine (M-WINDOWS-1
 });
 
 
+
+/**
+ * M-WINDOWS-14 (review windows__gameux MAJOR-3): OS feedback surfaces must
+ * arm on the IN-APP playback path. The normal path never fires any
+ * `media-*` IPC event — the vendored @phlix/ui player drives the reactive
+ * pinia store directly (its transport actions ARE the store's own
+ * play/pause/updateProgress in
+ * node_modules/@phlix/ui/dist/usePlayerStore-D8A_gb_c.js). Every test here
+ * therefore mutates ONLY a reactive fake store and never calls `api.fire`:
+ * red on the parent commit because no watcher existed — the three surface
+ * senders received zero calls for the entire in-app session.
+ */
+describe('OS playback mirror (M-WINDOWS-14)', () => {
+  let api: FakeElectronAPI;
+
+  /** Reactive stand-in for the vendored setup-store's public fields. */
+  function makeReactivePlayer() {
+    return reactive({
+      playing: false,
+      position: 0,
+      duration: 0,
+      current: null as { id?: string; name?: string } | null,
+      play: vi.fn(),
+      pause: vi.fn(),
+      closePlayer: vi.fn(),
+      seekBy: vi.fn(),
+      seekTo: vi.fn()
+    });
+  }
+
+  beforeEach(() => {
+    api = makeFakeApi();
+    (globalThis as unknown as { window: { electronAPI: unknown } }).window = {
+      electronAPI: api
+    };
+  });
+
+  afterEach(() => {
+    delete (globalThis as unknown as { window?: unknown }).window;
+  });
+
+  it('in-app play arms thumbar + display-sleep blocker with zero IPC events (red on parent)', async () => {
+    const player = makeReactivePlayer();
+    const cleanup = wireElectronBridge(player, { push: vi.fn() });
+    try {
+      // What the store's own U() action does when play is pressed in-app:
+      // flip `playing`. No IPC fired — on the parent, nothing armed.
+      player.playing = true;
+      await nextTick();
+      expect(api.updateThumbar).toHaveBeenCalledWith({ playing: true });
+      expect(api.updatePowerBlocker).toHaveBeenCalledWith(true);
+      // The progress watcher fires in the same batch; with no media loaded
+      // it sends main's documented clear ({0,0}) instead of a ratio.
+      expect(api.setPlaybackProgress).toHaveBeenCalledWith(0, 0);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('in-app pause releases the blocker and repaints the thumbar (red on parent)', async () => {
+    const player = makeReactivePlayer();
+    player.duration = 100;
+    player.current = { id: 'm1' };
+    const cleanup = wireElectronBridge(player, { push: vi.fn() });
+    try {
+      player.playing = true;
+      await nextTick();
+      api.updatePowerBlocker.mockClear();
+      player.playing = false;
+      await nextTick();
+      expect(api.updateThumbar).toHaveBeenLastCalledWith({ playing: false });
+      expect(api.updatePowerBlocker).toHaveBeenCalledTimes(1);
+      expect(api.updatePowerBlocker).toHaveBeenCalledWith(false);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('in-app progress ticks drive the taskbar bar, deduped to whole seconds (red on parent)', async () => {
+    const player = makeReactivePlayer();
+    const cleanup = wireElectronBridge(player, { push: vi.fn() });
+    try {
+      // Media load: setCurrent lands current+duration BEFORE the transport.
+      player.current = { id: 'm1', name: 'Big Buck Bunny' };
+      player.duration = 100;
+      await nextTick();
+      expect(api.setPlaybackProgress).toHaveBeenLastCalledWith(0, 100);
+      // timeupdate-era ticks (~4 Hz): sub-second motion must collapse.
+      player.position = 0.25;
+      await nextTick();
+      player.position = 0.5;
+      await nextTick();
+      expect(api.setPlaybackProgress).toHaveBeenCalledTimes(1);
+      player.position = 1.4;
+      await nextTick();
+      expect(api.setPlaybackProgress).toHaveBeenLastCalledWith(1, 100);
+      player.position = 1.9;
+      await nextTick(); // same whole second — deduped
+      expect(api.setPlaybackProgress).toHaveBeenCalledTimes(2);
+      player.position = 2.3;
+      await nextTick();
+      expect(api.setPlaybackProgress).toHaveBeenLastCalledWith(2, 100);
+      expect(api.setPlaybackProgress).toHaveBeenCalledTimes(3);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('closePlayer self-heals every surface although the store keeps position/duration stale (red on parent)', async () => {
+    const player = makeReactivePlayer();
+    player.current = { id: 'm1' };
+    player.duration = 100;
+    player.position = 42.7;
+    player.playing = true;
+    const cleanup = wireElectronBridge(player, { push: vi.fn() });
+    await nextTick(); // baseline before the close — no pre-close assertions needed
+    // Exactly the vendored re() reset: playing→false, current→null, while
+    // position/duration KEEP their stale values. On the parent the blocker
+    // stayed armed until window close and the bar stayed half-full.
+    player.playing = false;
+    player.current = null;
+    await nextTick();
+    expect(api.updatePowerBlocker).toHaveBeenLastCalledWith(false);
+    expect(api.updateThumbar).toHaveBeenLastCalledWith({ playing: false });
+    expect(api.setPlaybackProgress).toHaveBeenLastCalledWith(0, 0); // main: setProgressBar(-1)
+    cleanup();
+  });
+
+  it('the bridge cleanup stops the mirror — post-teardown transitions arm nothing', async () => {
+    const player = makeReactivePlayer();
+    const cleanup = wireElectronBridge(player, { push: vi.fn() });
+    cleanup();
+    player.playing = true;
+    player.current = { id: 'm1' };
+    player.duration = 10;
+    await nextTick();
+    expect(api.updateThumbar).not.toHaveBeenCalled();
+    expect(api.updatePowerBlocker).not.toHaveBeenCalled();
+    expect(api.setPlaybackProgress).not.toHaveBeenCalled();
+  });
+
+  it('law: the bridge no longer fabricates SMTC stub metadata (updateMeta is gone)', () => {
+    // The parent's play/pause path called updateMeta(player) reading
+    // title/artist/album/artwork fields that do not exist on the real store,
+    // overwriting the vendored store's rich SMTC feed with a
+    // `{ title: 'Phlix' }` stub on every shell toggle. SMTC state must come
+    // from the store's own actions only — no bridge-side metadata writer.
+    const bridgeSource = readFileSync(
+      resolve(__dirname, '../../src/renderer/electronBridge.ts'),
+      'utf8'
+    );
+    expect(bridgeSource).not.toMatch(/updateMeta\s*\(/);
+    expect(bridgeSource).not.toMatch(/from\s+['"]\.\/mediaSession['"]/);
+  });
+});

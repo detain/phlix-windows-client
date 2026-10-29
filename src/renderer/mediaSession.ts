@@ -4,37 +4,15 @@
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
 
-/**
- * Media metadata for SMTC display.
- */
-export interface MediaSessionMetadata {
-  title?: string;
-  artist?: string;
-  album?: string;
-  artwork?: { src: string }[];
-}
-
-/**
- * Updates navigator.mediaSession.metadata for Windows SMTC integration.
- * Allows hardware media keys and the Windows System Media Transport Controls to work.
- */
-export function updateMeta(player: { playing: boolean; title?: string; artist?: string; album?: string; artwork?: { src: string }[] }): void {
-  if (typeof navigator === 'undefined' || !navigator.mediaSession) {
-    return;
-  }
-
-  if (!player.playing) {
-    navigator.mediaSession.metadata = null;
-    return;
-  }
-
-  navigator.mediaSession.metadata = new MediaMetadata({
-    title: player.title || 'Phlix',
-    artist: player.artist || '',
-    album: player.album || '',
-    artwork: player.artwork?.map(a => ({ src: a.src, sizes: '512x512', type: 'image/png' })) || [],
-  });
-}
+// M-WINDOWS-14: this module used to also export `updateMeta()` (plus a
+// MediaSessionMetadata interface) for the shell's play/pause path. It read
+// `title`/`artist`/`album`/`artwork` fields that do not exist on the real
+// `usePlayerStore`, so every call overwrote the vendored ui store's rich
+// SMTC metadata (`setCurrent` feeds `navigator.mediaSession.metadata`
+// itself) with a fabricated `{ title: 'Phlix' }` stub — and its
+// "null metadata while paused" behavior never matched the store's. The call
+// site in electronBridge.ts was removed; the zero-caller function went with
+// it (estate dead-code law). SMTC metadata is the store's own feed.
 
 /**
  * Sets up navigator.mediaSession for Windows SMTC integration.

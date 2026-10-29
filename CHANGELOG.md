@@ -7,6 +7,76 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed — OS feedback surfaces (thumbar, display-sleep blocker, taskbar progress) now arm on the normal in-app playback path, not only when the shell drove the transport (M-WINDOWS-14) — 2026-10-29
+
+- **Why:** review `windows__gameux` MAJOR-3. The only senders of
+  `thumbar:update`, `playback:progress`, `power:update` (and the SMTC
+  metadata writer) lived inside the `media-play-pause` / rewind / forward /
+  seek-to IPC handler closures (`src/renderer/electronBridge.ts`). Clicking
+  play inside the vendored `@phlix/ui` PlayerPage — the overwhelmingly
+  common path — notifies the Electron shell of *nothing*: main's
+  `ensurePowerBlocker(true)` (`src/main/index.ts`) never ran, so
+  "prevent display sleep during playback" was theater unless the user
+  happened to toggle via tray/menu/SMTC; the thumbar tooltip and the
+  taskbar progress bar went stale/dark on every in-app play, pause, seek
+  and position advance — while the ui bundle fed SMTC itself, so the lock
+  screen showed live progress and the app's own taskbar button showed
+  none. The shell `onMediaStop` path was asymmetric too: after tray "Stop"
+  the blocker stayed armed until window close (`main.on('close')` was the
+  only release).
+- **The seam (verified at HEAD, no upstream change needed):** all three
+  transport drivers — the vendored player engine (in-app), the shell IPC
+  handlers, and the M13 keydown relay — actuate the SAME pinia store
+  (`@phlix/ui` `usePlayerStore-D8A_gb_c.js`: `U()`/`W()` flip the `playing`
+  ref, `z()`/`updateProgress` the `position`/`duration` refs, `re()`/
+  `closePlayer` nulls `current`), and those are reactive setup-store refs.
+  The renderer glue can therefore mirror the store instead of chasing
+  per-driver senders. No `ipcChannels.test.ts` contract moved: the mirror
+  reuses the existing `thumbar:update` / `playback:progress` /
+  `power:update` send channels only.
+- **Cure:** new `installOsPlaybackMirror(player, api)` in
+  `src/renderer/electronBridge.ts`, registered inside
+  `wireElectronBridge` and folded into its single cleanup (idempotent
+  re-install, no leaked duplicate mirror). One watcher on `playing` →
+  `updateThumbar({playing})` + `updatePowerBlocker(playing)`; one on
+  `[current, playing, position, duration]` → `setPlaybackProgress`
+  deduped to whole seconds (the ui ticks from `timeupdate` at ~4 Hz;
+  the Windows taskbar overlay is far coarser). `current` participates so
+  `closePlayer()` — which resets playing/current but leaves
+  position/duration stale — still lands main's documented `{0, 0}` clear
+  (`setProgressBar(-1)`) and the blocker release: the stop-path asymmetry
+  self-heals with zero stop-specific code in the handlers. Shell-driven
+  toggles now land a second, identical-value send from the mirror after
+  the handler's own synchronous send; main's handlers are idempotent by
+  law (button rebuild / `isStarted` guard / absolute set), and the
+  synchronous same-tick sends stay (their W4.5 source pins in
+  `tests/unit/thumbar.test.ts` + `tests/unit/powerSaveBlocker.test.ts`
+  held unmodified).
+- **Fabricated-metadata removal:** the shell play/pause path's
+  `updateMeta(player)` call and the now zero-caller `updateMeta` function
+  + `MediaSessionMetadata` interface in `src/renderer/mediaSession.ts`
+  are deleted. The fields it read (`title`/`artist`/`album`/`artwork`) do
+  not exist on the real store — every shell toggle overwrote the vendored
+  store's rich SMTC feed with a fabricated `{ title: 'Phlix' }` stub, and
+  its null-metadata-while-paused behavior never matched the store's.
+  SMTC metadata/`playbackState`/`positionState` are the store's own feed
+  on every path; `BridgePlayer` lost the four fiction fields. Behavior
+  delta (intentional, parity): pausing via the shell no longer wipes the
+  lock-screen card — exactly what the in-app path has always done, and
+  standard desktop media behavior.
+- **Tests:** +6 new (`OS playback mirror (M-WINDOWS-14)` in
+  `tests/unit/electronBridge.test.ts`), all driving a `reactive()` fake
+  with ZERO IPC fires — 5 of 6 verified red on the parent commit (the
+  teardown-stop test is vacuously green on parent; its purpose is leak
+  prevention). Fake api extended with the three surface senders.
+  Full suite `--no-file-parallelism`: 49 files, 610/610 pass (0 failed,
+  0 pending) — exactly the 604-test parent baseline + 6. Coverage 71.48%
+  lines vs the 54% CI floor. `vue-tsc --noEmit` 0, `tsc -p
+  tsconfig.main.json --noEmit` 0, `npm run lint` 0, `npm run build`
+  green; xvfb smoke skipped per the WIN-12/13 precedent (renderer-glue
+  only — no boot-surface change; main-process side untouched and
+  unchanged).
+
 ### Fixed — the global keydown relay no longer fights the vendored ui player engine: single Space toggle, honest ±5 seeks, native button activation survives (M-WINDOWS-13) — 2026-10-29
 
 - **Why:** review `windows__gameux` MAJOR-2. `installFocusGuard()`
