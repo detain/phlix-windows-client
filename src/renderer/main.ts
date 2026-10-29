@@ -152,12 +152,23 @@ type ServerVersionCheckResult = Awaited<ReturnType<NonNullable<typeof window.ele
  * was already shown, nothing mounted into it, and the user stared at a dark
  * empty frame forever with zero explanation.
  *
+ * M-WINDOWS-16 (review windows__gameux): completes that cure's missing arm —
+ * the screen was dialog + copy + versions but the only remediation was the
+ * copy's "restart this app" ceremony. The Retry button re-runs the SAME check
+ * (the gate verdict/policy is untouched — this is rendering, not enforcement)
+ * and either resumes the boot in place when the server was updated meanwhile,
+ * or re-renders with the freshest verdict. The surface can never strand into
+ * blankness or a dead button: every outcome leaves it interactive.
+ *
  * Every string goes through textContent (NEVER innerHTML): the server-reported
  * version is network input and must never be parsed as HTML. The windows-own
  * catalog has no interpolation seam (its documented YAGNI law), so the dynamic
  * values render as separate label + value rows.
  */
-function renderIncompatibleServerScreen(result: ServerVersionCheckResult): void {
+function renderIncompatibleServerScreen(
+  result: ServerVersionCheckResult,
+  retryCheck: () => Promise<ServerVersionCheckResult>
+): void {
   const container = document.getElementById('phlix-app') ?? document.body;
   document.title = tWin('boot.incompatibleTitle');
   container.setAttribute('style', [
@@ -198,6 +209,45 @@ function renderIncompatibleServerScreen(result: ServerVersionCheckResult): void 
   box.appendChild(versionRow(`${tWin('boot.reportedVersion')}:`, result.serverVersion ?? 'unknown'));
   box.appendChild(versionRow(`${tWin('boot.requiredVersion')}:`, result.minimumVersion));
   box.appendChild(action);
+
+  const retryButton = document.createElement('button');
+  retryButton.type = 'button';
+  retryButton.textContent = tWin('boot.incompatibleRetry');
+  retryButton.setAttribute('style', [
+    'margin:24px auto 0', 'display:inline-block', 'padding:10px 22px',
+    'font-size:14px', 'font-family:inherit', 'color:#e8e8f0', 'background:#26264a',
+    'border:1px solid #3a3a5e', 'border-radius:6px', 'cursor:pointer'
+  ].join(';') + ';');
+  retryButton.addEventListener('click', () => {
+    // One attempt in flight at a time; the re-render path re-arms a fresh button.
+    retryButton.disabled = true;
+    void retryCheck().then(
+      (next) => {
+        if (next.compatible) {
+          // The gate opened while the screen was up (server updated, URL
+          // corrected). The aborted boot installed NOTHING — no Vue app, no
+          // bridge, no deeplink listener — so re-running boot() from scratch
+          // is safe: it re-reads config, re-checks (passes now) and mounts
+          // into the same #phlix-app container, replacing this screen.
+          void boot();
+        } else {
+          // Still too old: re-render with the freshest verdict. The new
+          // screen carries its own Retry — no quit-and-relaunch ceremony.
+          renderIncompatibleServerScreen(next, retryCheck);
+        }
+      },
+      (err: unknown) => {
+        // The main-process check catches every failure mode itself (all
+        // network paths return fail-open verdicts), so this arm fires only
+        // if the IPC transport itself breaks. Re-arm the button rather than
+        // strand the surface disabled — the window must never dead-end.
+        log.error('[Boot] Retry could not run:', err);
+        retryButton.disabled = false;
+      }
+    );
+  });
+  box.appendChild(retryButton);
+
   container.replaceChildren(box);
 }
 
@@ -250,14 +300,19 @@ export async function boot(): Promise<void> {
   // for that policy and for the endpoint path — this comment formerly cited a
   // nonexistent /api/v1/server/version).
   if (api) {
-    const versionCheck = await api.checkServerVersion(apiBase);
+    // M-WINDOWS-16: the SAME closure serves the initial gate and every Retry
+    // click — one check, one policy (src/main/versionCheck.ts stays the SSOT;
+    // retry changes rendering, never verdicts).
+    const checkVersion = (): Promise<ServerVersionCheckResult> => api.checkServerVersion(apiBase);
+    const versionCheck = await checkVersion();
     if (!versionCheck.compatible) {
       // Too-old server. The main process has already shown the explanatory
       // error dialog (M-WINDOWS-02); mount the persistent counterpart instead
       // of aborting into a dark window, then stop the boot — no Vue app over
-      // a server we refuse to talk to.
+      // a server we refuse to talk to. The screen carries a Retry button so
+      // the user is never quit-only (M-WINDOWS-16).
       log.error('[Boot] Server version check failed — showing the incompatible-server screen');
-      renderIncompatibleServerScreen(versionCheck);
+      renderIncompatibleServerScreen(versionCheck, checkVersion);
       return;
     }
   }

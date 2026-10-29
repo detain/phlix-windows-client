@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { readFileSync } from 'fs';
+import * as path from 'path';
 import log from 'electron-log';
 
 // --- Module mocks -----------------------------------------------------------
@@ -164,9 +166,144 @@ describe('boot (renderer entry)', () => {
       expect(container.textContent).toContain('1.1.0');
       expect(container.textContent).toMatch(/too old/i);
       expect(container.querySelector('[role="alert"]')).not.toBeNull();
+      // M-WINDOWS-16: the surface carries the in-place Retry affordance —
+      // no quit-and-relaunch-only path.
+      const retry = container.querySelector('button');
+      expect(retry, 'boot-failure surface must offer a Retry button').not.toBeNull();
+      expect(retry?.textContent).toBe('Try again');
     } finally {
       container.remove();
     }
+  });
+
+  // ---------------------------------------------------------------------------
+  // M-WINDOWS-16 (review windows__gameux MAJOR-5): 2aac4ec cured the dark
+  // window itself (dialog + persistent screen), but left the review's third
+  // complaint standing — "no retry": the only remediation path was the copy's
+  // restart-the-app ceremony. These pins cover the completion: an in-place
+  // Retry that re-runs the SAME gate (policy untouched — same check, same
+  // verdicts) and either resumes the boot or re-renders, plus the silent-
+  // abort census and the failure surface's data-hygiene laws.
+  // ---------------------------------------------------------------------------
+
+  const TOO_OLD = { compatible: false, serverVersion: '1.0.7', minimumVersion: '1.1.0' };
+  const OK_VERDICT = { compatible: true, serverVersion: '2.0.0', minimumVersion: '1.1.0' };
+
+  /** api mock whose checkServerVersion walks a scripted verdict queue. */
+  function makeGateApi(verdicts: Array<typeof TOO_OLD | typeof OK_VERDICT | { compatible: boolean; serverVersion: string | null; minimumVersion: string }>) {
+    const queue = [...verdicts];
+    return {
+      hubGetConfig: vi.fn(async () => ({
+        hubUrl: 'https://hub.example.com',
+        activeServerId: null,
+        connectionMode: 'hub'
+      })),
+      getDeviceId: vi.fn(async () => 'device-abc'),
+      getServerUrl: vi.fn(async () => null),
+      checkServerVersion: vi.fn(async () => {
+        const next = queue.shift();
+        if (!next) throw new Error('unexpected extra checkServerVersion call');
+        return next;
+      })
+    };
+  }
+
+  /** Import first (top-level auto-boot is guarded out), mount point after, drive boot(). */
+  async function bootIntoFailureScreen() {
+    const mod = await import('@/main');
+    const container = document.createElement('div');
+    container.id = 'phlix-app';
+    document.body.appendChild(container);
+    await mod.boot();
+    return container;
+  }
+
+  it('retry re-runs the gate in place and, once the server passes, completes the boot without a restart', async () => {
+    const api = makeGateApi([TOO_OLD, OK_VERDICT, OK_VERDICT]);
+    setElectronApi(api);
+    const container = await bootIntoFailureScreen();
+    try {
+      expect(api.checkServerVersion).toHaveBeenCalledTimes(1);
+      expect(mountSpy).not.toHaveBeenCalled();
+
+      container.querySelector('button')!.click();
+
+      // Same closure, same SSOT endpoint verdict path: gate + retry click +
+      // the resumed boot()'s own check must all run through the gate.
+      await vi.waitFor(() => expect(mountSpy).toHaveBeenCalledWith('#phlix-app'));
+      expect(api.checkServerVersion).toHaveBeenCalledTimes(3);
+      expect(createPhlixApp).toHaveBeenCalled();
+    } finally {
+      container.remove();
+    }
+  });
+
+  it('retry against a still-too-old server re-renders a fresh interactive screen — never blank, never quit-only', async () => {
+    const api = makeGateApi([TOO_OLD, TOO_OLD, TOO_OLD]);
+    setElectronApi(api);
+    const container = await bootIntoFailureScreen();
+    try {
+      container.querySelector('button')!.click();
+      await vi.waitFor(() => expect(api.checkServerVersion).toHaveBeenCalledTimes(2));
+
+      expect(mountSpy).not.toHaveBeenCalled();
+      expect(createPhlixApp).not.toHaveBeenCalled();
+      const alert = container.querySelector('[role="alert"]');
+      expect(alert).not.toBeNull();
+      // Fresh button, enabled, on the replacement screen (the clicked one is
+      // gone with the old render) — the surface cannot dead-end.
+      const second = alert!.querySelector('button');
+      expect(second).not.toBeNull();
+      expect(second!.disabled).toBe(false);
+      expect(second!.textContent).toBe('Try again');
+
+      second!.click();
+      await vi.waitFor(() => expect(api.checkServerVersion).toHaveBeenCalledTimes(3));
+      expect(mountSpy).not.toHaveBeenCalled();
+    } finally {
+      container.remove();
+    }
+  });
+
+  it('failure surface renders a hostile reported version as text only and echoes no credentials', async () => {
+    const hostile = { ...TOO_OLD, serverVersion: '<img src=x onerror="steal(document.tokens)">' };
+    const api = makeGateApi([hostile]);
+    setElectronApi(api);
+    const tokenStub = 'tok-SUPERSECRET-8f2c1d';
+    localStorage.setItem('phlix.token', tokenStub);
+    const container = await bootIntoFailureScreen();
+    try {
+      // Network input is never parsed as HTML…
+      expect(container.querySelector('img')).toBeNull();
+      // …but is shown verbatim, so the operator can see exactly what the
+      // server reported.
+      expect(container.textContent).toContain('onerror');
+      // No credential reaches the surface, and the gate call carries ONLY
+      // the base URL — no token, no header.
+      expect(container.textContent).not.toContain(tokenStub);
+      expect(container.innerHTML).not.toContain(tokenStub);
+      expect(api.checkServerVersion.mock.calls[0]).toEqual(['https://hub.example.com']);
+    } finally {
+      container.remove();
+      localStorage.removeItem('phlix.token');
+    }
+  });
+
+  it('census: the version gate leaves no silent pre-mount abort path (static shape pin)', () => {
+    const source = readFileSync(path.resolve(__dirname, '../../src/renderer/main.ts'), 'utf8');
+    // The pre-fix arm logged 'aborting boot' and returned into the dark
+    // window — that wording is the permanent regression tripwire.
+    expect(source).not.toContain('aborting boot');
+    const gate = source.match(/if \(!versionCheck\.compatible\) \{([\s\S]*?)\n {4}\}/);
+    expect(gate, 'version-gate block not found — boot() changed shape; re-run the silent-abort census').not.toBeNull();
+    // The only pre-mount return on this path must be preceded by rendering.
+    expect(gate![1]).toContain('renderIncompatibleServerScreen(versionCheck');
+    expect(gate![1]).toMatch(/return;/);
+    // boot()'s other pre-mount early exit is the browser-dev-context guard
+    // (`if (api)` skips the gate entirely and mounts); every remaining path
+    // to mount is straight-line. Restated: NO silent-return arm exists
+    // outside the rendered one — the retry-failure branch above cannot
+    // return early either (it re-renders or re-runs boot()).
   });
 
   it('uses the persisted direct server URL when hub is not configured', async () => {

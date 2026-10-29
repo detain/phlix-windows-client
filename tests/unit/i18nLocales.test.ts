@@ -391,12 +391,12 @@ describe.skipIf(!SIBLING_PRESENT)(
 // ---------------------------------------------------------------------------
 
 describe('windows-own catalog (nav + boot) — key-set, baseline, leaks', () => {
-  it('every locale table has EXACTLY the 21 English keys — 16 nav + 5 boot (both directions)', () => {
+  it('every locale table has EXACTLY the 22 English keys — 16 nav + 6 boot (both directions)', () => {
     const reference = keySet(WIN_EN as unknown as Table);
     for (const locale of LOCALES) {
       expect(keySet(WIN_TABLES[locale]), `${locale} key set differs from en`).toBe(reference);
     }
-    expect(EN_WIN.size).toBe(21);
+    expect(EN_WIN.size).toBe(22);
   });
 
   it('the registry carries precisely the catalog files that exist', () => {

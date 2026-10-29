@@ -41,6 +41,7 @@ export const WIN_EN = {
     incompatibleIntro: 'This Phlix server is too old to use with this version of Phlix for Windows.',
     reportedVersion: 'Server reports version',
     requiredVersion: 'Phlix for Windows requires at least',
-    incompatibleAction: 'Update the Phlix server, or connect to a newer one, then restart this app.'
+    incompatibleAction: 'Update the Phlix server, or connect to a newer one, then restart this app.',
+    incompatibleRetry: 'Try again'
   }
 } as const;

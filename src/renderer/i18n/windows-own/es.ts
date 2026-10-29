@@ -38,6 +38,7 @@ export const WIN_ES = {
     incompatibleIntro: 'Este servidor Phlix es demasiado antiguo para esta versión de Phlix para Windows.',
     reportedVersion: 'El servidor informa de la versión',
     requiredVersion: 'Phlix para Windows requiere como mínimo',
-    incompatibleAction: 'Actualiza el servidor Phlix o conéctate a uno más nuevo, y reinicia la app.'
+    incompatibleAction: 'Actualiza el servidor Phlix o conéctate a uno más nuevo, y reinicia la app.',
+    incompatibleRetry: 'Volver a intentarlo'
   }
 } satisfies WindowOwnCatalog;

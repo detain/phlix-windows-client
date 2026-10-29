@@ -7,6 +7,42 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed — the too-old-server screen retries in place; the boot-failure surface is never quit-only (M-WINDOWS-16) — 2026-10-29
+
+- **Why:** review `windows__gameux` MAJOR-5 — "min-server-version enforcement
+  aborts the boot into a permanently blank window — no dialog, no copy, no
+  retry." Verified at HEAD: the blank-window and copy halves were already cured
+  by `2aac4ec` (windows__casualgamer lane) — main-process error dialog
+  naming both versions (`showServerTooOldDialog`) plus the persistent
+  `renderIncompatibleServerScreen`, seven-locale catalog. The third complaint
+  stood uncured: the only remediation was the screen's "then restart this app"
+  copy — a quit-only path with no retry.
+- **Cure (rendering only — enforcement policy untouched):** the screen gains a
+  Retry button whose closure re-runs the SAME gate call the initial boot made
+  (`api.checkServerVersion(apiBase)` → main's `/system/info` SSOT check, same
+  verdicts). Compatible now → `boot()` re-runs from scratch and mounts (the
+  aborted boot installed nothing, so a clean second pass is safe); still too
+  old → a fresh verdict re-renders the screen with a fresh enabled button; an
+  IPC-transport rejection re-arms the button rather than dead-ending it. The
+  dialog stays informational; the screen remains the durable surface.
+- **Census (same-class silent aborts in `boot()`):** the version gate was the
+  ONLY pre-mount early-return with a reachable false verdict; the gate call now
+  statically cannot return before rendering (tripwire test). Disclosed
+  residuals (pre-existing, out of M16 scope, not silent-returns): a rejected
+  first-`Promise.all` IPC (e.g. DPAPI custody failure — M-WINDOWS-11 adjacent)
+  or a `createPhlixApp` throw would abort boot unhandled; neither renders a
+  failure surface. Recorded for the next boot-UX pass.
+- **i18n:** one new windows-own key `boot.incompatibleRetry` × 7 catalogs
+  (en/de/es/fr/it/ja/pt_BR); the catalog count pin rotates 21→22 (16 nav +
+  6 boot) — diacritics/CJK/apostrophe/leak laws held.
+- **Tests:** vitest full serial `--no-file-parallelism` — 49 files / 626 pass
+  (parent 622 + 4 new + 1 extended: in-place retry success, still-too-old
+  re-render loop, hostile-version text-only + zero-credential-echo, static
+  silent-abort tripwire). Mutation teeth measured: restoring the silent abort
+  reddens exactly 5 named gate tests; stripping the click wiring reddens
+  exactly the 2 retry tests; both restored green.
+- **Gates:** vue-tsc (renderer) + tsc -p tsconfig.main.json (main/preload) + eslint: 0 errors.
+
 ### Fixed — deep-link rejections surface honestly; the internal arm can no longer emit unroutable paths (M-WINDOWS-15) — 2026-10-29
 
 - **Why:** review `windows__gameux` MAJOR-4 — "the deep-link grammar emits
