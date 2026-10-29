@@ -141,6 +141,17 @@ vi.mock('electron', () => {
       tracks.windows.push(win);
       return win;
     }),
+    // M-WINDOWS-11: safeStorage stub (see autoUpdater.test.ts note) — the SUT
+    // destructures it at module-eval; unavailable ⇒ disclosed plaintext fallback.
+    safeStorage: {
+      isEncryptionAvailable: () => false,
+      encryptString: () => {
+        throw new Error('mock safeStorage');
+      },
+      decryptString: () => {
+        throw new Error('mock safeStorage');
+      }
+    },
     ipcMain: {
       handle: vi.fn((channel: string, handler: (...args: unknown[]) => unknown) => {
         tracks.ipcHandlers.set(channel, handler);

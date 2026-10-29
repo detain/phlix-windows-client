@@ -84,6 +84,17 @@ vi.mock('electron', () => ({
       }
     };
   }),
+  // M-WINDOWS-11: safeStorage stub (see autoUpdater.test.ts note) — the SUT
+  // destructures it at module-eval; unavailable ⇒ disclosed plaintext fallback.
+  safeStorage: {
+    isEncryptionAvailable: () => false,
+    encryptString: () => {
+      throw new Error('mock safeStorage');
+    },
+    decryptString: () => {
+      throw new Error('mock safeStorage');
+    }
+  },
   ipcMain: {
     handle: vi.fn(),
     on: vi.fn()

@@ -7,6 +7,54 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Security — persisted secrets move to safeStorage/DPAPI custody; a vault bridge for renderer tokens (M-WINDOWS-11) — 2026-10-29
+
+- **Why:** review `windows__exploiter` MAJOR-11. `grep -rn safeStorage src/`
+  hit ZERO across main, preload, and renderer: everything the app persisted
+  sat plaintext on disk. Main side: `config.json` (electron-store) held the
+  stable install identifier (`deviceId`, echoed wire-wide as
+  `X-Phlix-Device-ID`) and the auth endpoints (`serverUrl`/`hubUrl`, which
+  the ApiClient auto-attaches bearer tokens to) raw. Renderer side: the
+  vendored `@phlix/ui` `LocalStorageTokenStore` keeps access/refresh tokens
+  + user plaintext in `app://` localStorage — UI-source territory, edited
+  nowhere here (thin-consumer law).
+- **Shipped (windows-owned half):** `src/main/secretStore.ts` — a pure
+  custody protocol (DI'd `SafeStorageLike` + settings sink): writes seal to
+  a `dpapi:v1:` + base64 envelope, legacy plaintext rows migrate on read
+  with verify-after-write and rollback (never orphan), an undecryptable
+  envelope is KEPT and reported missing rather than destroyed, unavailable
+  OS encryption degrades to plaintext with exactly ONE disclosed warning per
+  custody instance (values never appear in any log line, keys are
+  guard-restricted to `^[A-Za-z0-9._-]{1,64}$` and never echoed when
+  rejected). Wired: `deviceId`/`serverUrl`/`hubUrl` custody through
+  `config.json`, plus a renderer token vault — `secrets.json` behind four
+  `vault:*` sendSync channels (sync by the ui `TokenStore` contract,
+  sender-pinned to the current main window behind the M-WINDOWS-10 gate)
+  exposed through the preload bridge and typed in `electron.d.ts`.
+  `src/renderer/safeStorageTokenStore.ts` implements the ui `TokenStore`
+  over that bridge (fail-fast constructor without it).
+- **Scope law:** non-secret preferences (windowBounds, tray/GPU/power/
+  notification toggles, `connectionMode`, `activeServerId`) deliberately
+  stay plaintext, pinned both ways so a future change is conscious.
+- **Rider (not fabricated here):** `createPhlixApp` v0.99.10 hardcodes
+  `LocalStorageTokenStore` — no `tokenStore` seam in `PhlixAppConfig` yet.
+  Tokens flip to DPAPI custody with a one-line `boot()` change the moment
+  the upstream seam ships: recorded as a v0.99.12-wave rider in the
+  M-WINDOWS-11 fixlog.
+- **Pins:** +4 files / +46 tests exact (suite 45/541 → 49/587 measured at
+  tip): `secretStore.test.ts` (20, pure protocol incl. never-orphan
+  rollback and once-only disclosure), `mainSecretCustody.test.ts` (10, REAL
+  electron-store bytes in a temp dir — envelope on disk, zero plaintext,
+  vault round-trip, sender refusal, guard fail-closes), `preloadVault.test.ts`
+  (6, exact channel/payload shapes), `safeStorageTokenStore.test.ts` (7);
+  `ipcChannels.test.ts` extended for the sendSync protocol (+3, inventory
+  pins rotated 7→11 main-on). Red-on-parent measured: 15 named reds against
+  the tip sources (9 wiring + 6 preload bridge — parent persisted the
+  plaintext deviceId and registered no vault). Mutation teeth measured:
+  encryption stripped at the wiring → 7 red incl. every on-disk-plaintext
+  assertion. vue-tsc (renderer + test configs), tsc main, eslint 0,
+  `npm run build` + `assert-preload` all green.
+
 ### Security — the privileged preload bridge is pinned to the app's own boot documents (M-WINDOWS-10) — 2026-10-29
 
 - **Why:** review `windows__exploiter` MAJOR-1. `src/preload/index.ts` called

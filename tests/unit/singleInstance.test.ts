@@ -110,6 +110,17 @@ vi.mock('electron', () => ({
       focus: vi.fn()
     };
   }),
+  // M-WINDOWS-11: safeStorage stub — SUT destructures at module-eval; unavailable
+  // ⇒ disclosed plaintext fallback, so the {get,set} store stub below still sees plain values.
+  safeStorage: {
+    isEncryptionAvailable: () => false,
+    encryptString: () => {
+      throw new Error('mock safeStorage');
+    },
+    decryptString: () => {
+      throw new Error('mock safeStorage');
+    }
+  },
   ipcMain: { handle: vi.fn(), on: vi.fn() },
   protocol: { handle: vi.fn(), registerSchemesAsPrivileged: vi.fn() },
   shell: { openExternal: vi.fn() },

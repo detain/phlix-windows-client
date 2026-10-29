@@ -59,6 +59,22 @@ function extractSendChannels(content: string): string[] {
 }
 
 /**
+ * Extracts all `ipcRenderer.sendSync('...')` channel strings from a file.
+ * M-WINDOWS-11: the token vault uses the synchronous protocol because
+ * @phlix/ui's TokenStore contract is sync — these channels pair with
+ * ipcMain.on handlers that answer via event.returnValue.
+ */
+function extractSendSyncChannels(content: string): string[] {
+  const channels: string[] = [];
+  const regex = /ipcRenderer\.sendSync\s*\(\s*['"]([^'"]+)['"]/gs;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(content)) !== null) {
+    channels.push(match[1]);
+  }
+  return channels;
+}
+
+/**
  * Extracts all `ipcMain.handle('...')` channel strings from a file.
  */
 function extractHandleChannels(content: string): string[] {
@@ -126,6 +142,7 @@ const mainSource = readFileSync(resolve(PROJECT_ROOT, 'src/main/index.ts'), 'utf
 
 const preloadInvoke = extractInvokeChannels(preloadSource);
 const preloadSend = extractSendChannels(preloadSource);
+const preloadSendSync = extractSendSyncChannels(preloadSource);
 const mainHandle = extractHandleChannels(mainSource);
 const mainOn = extractOnChannels(mainSource);
 const mainWebContentsSend = extractWebContentsSendChannels(mainSource);
@@ -160,6 +177,7 @@ describe('doc vs code alignment', () => {
 
   const docInvokeChannels = extractDocChannels(docContent, 'invoke');
   const docSendChannels = extractDocChannels(docContent, 'send');
+  const docSendSyncChannels = extractDocChannels(docContent, 'sendSync');
   const docPushChannels = extractDocChannels(docContent, 'push');
 
   it('every invoke channel in the doc appears in the preload', () => {
@@ -169,6 +187,11 @@ describe('doc vs code alignment', () => {
 
   it('every send channel in the doc appears in the preload', () => {
     const missing = docSendChannels.filter((ch) => !preloadSend.includes(ch));
+    expect(missing).toHaveLength(0);
+  });
+
+  it('every sendSync channel in the doc appears in the preload', () => {
+    const missing = docSendSyncChannels.filter((ch) => !preloadSendSync.includes(ch));
     expect(missing).toHaveLength(0);
   });
 
@@ -193,6 +216,13 @@ describe('IPC channel pairing', () => {
     });
   });
 
+  describe('preload sendSync channels (M-WINDOWS-11 vault)', () => {
+    it('every preload ipcRenderer.sendSync channel has a matching ipcMain.on', () => {
+      const missing = preloadSendSync.filter((ch) => !mainOn.includes(ch));
+      expect(missing).toHaveLength(0);
+    });
+  });
+
   describe('main handle channels', () => {
     it('every ipcMain.handle channel is exposed by the preload via ipcRenderer.invoke', () => {
       const orphan = mainHandle.filter((ch) => !preloadInvoke.includes(ch));
@@ -201,8 +231,11 @@ describe('IPC channel pairing', () => {
   });
 
   describe('main on channels', () => {
-    it('every ipcMain.on channel is used by the preload via ipcRenderer.send', () => {
-      const orphan = mainOn.filter((ch) => !preloadSend.includes(ch));
+    it('every ipcMain.on channel is used by the preload via ipcRenderer.send or ipcRenderer.sendSync', () => {
+      // M-WINDOWS-11: the vault on-channels are consumed with the SYNCHRONOUS
+      // protocol (event.returnValue) — sendSync is a legitimate consumer shape;
+      // fire-and-forget send is the other. Anything else is an orphan.
+      const orphan = mainOn.filter((ch) => !preloadSend.includes(ch) && !preloadSendSync.includes(ch));
       expect(orphan).toHaveLength(0);
     });
   });
@@ -280,8 +313,12 @@ describe('IPC channel pairing', () => {
       expect(preloadSend.sort()).toEqual(['minimize-to-tray', 'set-always-on-top', 'tray:set-minimize-to-tray', 'thumbar:update', 'playback:progress', 'power:update', 'deeplink:ready'].sort());
     });
 
-    it('main process has exactly seven on channels matching the preload send channels — W4.5 + M-WINDOWS-06', () => {
-      expect(mainOn.sort()).toEqual(['minimize-to-tray', 'set-always-on-top', 'tray:set-minimize-to-tray', 'thumbar:update', 'playback:progress', 'power:update', 'deeplink:ready'].sort());
+    it('preload uses exactly four sendSync channels — the M-WINDOWS-11 vault surface', () => {
+      expect(preloadSendSync.sort()).toEqual(['vault:get', 'vault:set', 'vault:delete', 'vault:is-available'].sort());
+    });
+
+    it('main process has exactly eleven on channels — seven send + four sendSync (M-WINDOWS-11 vault) — W4.5 + M-WINDOWS-06', () => {
+      expect(mainOn.sort()).toEqual(['minimize-to-tray', 'set-always-on-top', 'tray:set-minimize-to-tray', 'thumbar:update', 'playback:progress', 'power:update', 'deeplink:ready', 'vault:get', 'vault:set', 'vault:delete', 'vault:is-available'].sort());
     });
 
     it('main process sends exactly twelve distinct push channels to renderer', () => {

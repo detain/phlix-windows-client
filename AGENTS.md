@@ -37,7 +37,8 @@ Three Electron processes wired by `contextBridge`. The renderer ships no UI of i
 | `src/renderer/resolveConfig.ts` | Pure exported `resolveAppConfig({hub, serverUrl, envUrl})`: returns `{app:'hub', apiBase:hub.hubUrl}` when `hub.hubUrl` set AND `connectionMode !== 'direct'`, else `{app:'server', apiBase}` with serverUrl → envUrl → `http://localhost:8096`. No Electron/DOM deps — unit-testable. |
 | `src/renderer/electronBridge.ts` | `installElectronBridge(app)` pulls `$pinia`/`$router` off `app.config.globalProperties`, resolves `usePlayerStore(pinia)`, delegates to the pure `wireElectronBridge(player, router)`. Maps Electron media/window IPC → the phlix-ui player store + router: play-pause toggles `play()`/`pause()` off `player.playing`; stop → `closePlayer()`; open-settings → `router.push('/app/settings')`. `rewind`/`forward` relative-seek via `player.seekBy(∓10)` (phlix-ui v0.52.0 command bus). No-op outside Electron; returns a single cleanup that unregisters every listener. |
 | `src/renderer/index.html` | Mounts `#phlix-app`, loads `/main.ts`. CSP locked to self + `https: http: blob:` media + `ws:` connect. |
-| `src/renderer/types/electron.d.ts` | `window.electronAPI` typings (incl. `HubConfig`, `getServerUrl`/`setServerUrl`/`getDeviceId`). |
+| `src/renderer/types/electron.d.ts` | `window.electronAPI` typings (incl. `HubConfig`, `getServerUrl`/`setServerUrl`/`getDeviceId`, and the M-WINDOWS-11 `vault*` bridge). |
+| `src/renderer/safeStorageTokenStore.ts` | M-WINDOWS-11: `@phlix/ui` `TokenStore` implementation over the DPAPI vault (`window.electronAPI.vault*`); boots into place the moment the upstream tokenStore seam ships. Fail-fast constructor without the bridge. |
 | `src/renderer/test-setup.ts` | `localStorage` mock for jsdom env. |
 | `src/renderer/vite-env.d.ts` | Vite client types; `VITE_PHLIX_SERVER_URL` optional. |
 
@@ -56,6 +57,7 @@ Routes are NOT defined here — they come from `createPhlixApp` (`@phlix/ui`'s r
 - **`console.*`**: `no-console` is warn in the renderer; **off** in `src/main`/`src/preload` (Electron legitimately logs).
 - **Unused args**: prefix `_`; rule `argsIgnorePattern: '^_'`.
 - **IPC**: never use `ipcRenderer` directly in the renderer — extend `window.electronAPI` via `src/preload/index.ts` and type it in `src/renderer/types/electron.d.ts`.
+- **Secret custody (M-WINDOWS-11)**: persisted quasi-secrets — `deviceId`, `serverUrl`, `hubUrl` in `config.json`, plus the renderer token vault (`secrets.json`, reached via the four `vault:*` sendSync channels) — are sealed through `src/main/secretStore.ts`: safeStorage/DPAPI `dpapi:v1:` envelopes on disk, legacy plaintext rows migrated on read with verify-after-write (never orphaned), and a once-disclosed plaintext fallback only where OS encryption is unavailable. Non-secret preferences (bounds, tray/GPU/power/notification toggles, `connectionMode`, `activeServerId`) deliberately stay plaintext. `src/renderer/safeStorageTokenStore.ts` implements `@phlix/ui`'s `TokenStore` over the vault bridge; it ships UNUSED until the upstream `createPhlixApp` tokenStore seam (v0.99.12-wave rider) lets `boot()` pass it — never edit the vendored store itself.
 - **CSP** in `src/renderer/index.html` allows `https: http: blob:` for media and `ws:` for connect — preserve when adding sources.
 
 > Offline Downloads and realtime SyncPlay UIs were removed in the migration and are TEMPORARILY DROPPED, to be re-added later as shared `@phlix/ui` seams (tray Rewind/Forward now relative-seek via v0.52.0's player command bus).

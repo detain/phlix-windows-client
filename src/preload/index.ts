@@ -161,6 +161,17 @@ const electronApiSurface = {
   /** Returns a persistent, per-install device identifier. See main process handler for details. */
   getDeviceId: () => ipcRenderer.invoke('app:get-device-id'),
 
+  // M-WINDOWS-11: DPAPI token vault (secrets.json, main-side safeStorage custody).
+  // SYNCHRONOUS by design — @phlix/ui's TokenStore contract is sync; the async
+  // alternative (invoke) would force an upstream interface change. Senders other
+  // than the current main window are refused in main (defense in depth behind
+  // the M-WINDOWS-10 trust gate); every method here is therefore inert-but-safe
+  // on documents the gate already excludes. See src/renderer/safeStorageTokenStore.ts.
+  vaultGet: (key: string): string | null => ipcRenderer.sendSync('vault:get', { key }) as string | null,
+  vaultSet: (key: string, value: string): boolean => ipcRenderer.sendSync('vault:set', { key, value }) as boolean,
+  vaultDelete: (key: string): boolean => ipcRenderer.sendSync('vault:delete', { key }) as boolean,
+  vaultIsAvailable: (): boolean => ipcRenderer.sendSync('vault:is-available') as boolean,
+
   // Deep links (W4.4)
   onDeeplink: (callback: (path: string) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, path: string) => callback(path);

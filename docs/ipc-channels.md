@@ -41,18 +41,25 @@ pairing test (§ipcChannels.test.ts) asserts against it.
 | `playback:progress` | send | `{ current: number; total: number }` | — | `playback:progress` (line 712) | `setPlaybackProgress` | `src/renderer/electronBridge.ts:117,133,141` — `api.setPlaybackProgress?.(player.position, player.duration)` |
 | `power:update` | send | `{ playing: boolean }` | — | `power:update` (line 727) | `updatePowerBlocker` | `src/renderer/electronBridge.ts:119` — `api.updatePowerBlocker?.(willBePlaying)` |
 | `deeplink:ready` | send | none | — | `deeplink:ready` (line 170) | `notifyDeeplinkReady` | `src/renderer/main.ts:364` — `api.notifyDeeplinkReady()` (M-WINDOWS-06: fires only after `onDeeplink` subscribed; main drains its pending-deeplink queue on it) |
+| `vault:get` | sendSync | `{ key: string }` | `string \| null` | `vault:get` (line 849) | `vaultGet` | `src/renderer/safeStorageTokenStore.ts` — M-WINDOWS-11 DPAPI token vault (sync by @phlix/ui TokenStore contract; sender-pinned to the current main window) |
+| `vault:set` | sendSync | `{ key: string; value: string }` | `boolean` | `vault:set` (line 863) | `vaultSet` | `src/renderer/safeStorageTokenStore.ts` — M-WINDOWS-11 |
+| `vault:delete` | sendSync | `{ key: string }` | `boolean` | `vault:delete` (line 882) | `vaultDelete` | `src/renderer/safeStorageTokenStore.ts` — M-WINDOWS-11 |
+| `vault:is-available` | sendSync | none | `boolean` | `vault:is-available` (line 901) | `vaultIsAvailable` | `src/renderer/safeStorageTokenStore.ts` — M-WINDOWS-11 |
 
 ## Behavioral Tests
 
 The pairing test (`tests/unit/ipcChannels.test.ts`) enforces bidirectional contract
-correctness for all 31 channels (preload invoke → main handle, preload send → main on,
-main webContents.send → preload on).
+correctness for all 35 channels (preload invoke → main handle, preload send → main on,
+preload sendSync → main on, main webContents.send → preload on).
 
 The `describe('behavioral round-trips')` block covers actual round-trip IPC behavior for
 the 9 invoke channels (Promise-based `ipcRenderer.invoke` / `ipcMain.handle`), verifying
 correct channel + payload dispatch. The 7 send channels are fire-and-forget
 (`ipcRenderer.send` / `ipcMain.on`) and cannot produce a round-trip response — they are
-verified by the pairing test. The 6 push channels (main→renderer via `webContents.send`)
+verified by the pairing test. The 4 sendSync channels (M-WINDOWS-11 vault,
+`ipcRenderer.sendSync` / `ipcMain.on` + `event.returnValue`) are round-trip by protocol;
+their behavior is pinned in `tests/unit/mainSecretCustody.test.ts` against the real
+main-process handlers. The 6 push channels (main→renderer via `webContents.send`)
 are verified by the pairing test; listener registration is tested for 3 of them in the
 `push channels` block. The `deeplink:open` channel is verified by the pairing test only.
 
@@ -65,5 +72,6 @@ are verified by the pairing test; listener registration is tested for 3 of them 
 - Preload bridge methods return cleanup functions for `on*` listeners (returns `() => void`).
 - All 19 invoke channels have matching main-process `ipcMain.handle` handlers.
 - All 7 send channels have matching main-process `ipcMain.on` handlers.
+- All 4 sendSync channels (M-WINDOWS-11 vault) have matching main-process `ipcMain.on` handlers answering via `event.returnValue`.
 - All 6 push channels have matching preload `ipcRenderer.on` listeners.
 - No `any` payload types exist in any channel definitions.

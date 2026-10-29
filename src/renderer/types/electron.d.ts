@@ -53,6 +53,18 @@ declare global {
       setServerUrl: (url: string) => Promise<void>;
       /** Returns a stable, per-install device identifier. Generated once and persisted to electron-store. */
       getDeviceId: () => Promise<string>;
+      /**
+       * M-WINDOWS-11: read a decrypted value from the main-process DPAPI vault
+       * (secrets.json). Null when absent, undecryptable, or rejected. Sync by
+       * contract — mirrors @phlix/ui's synchronous TokenStore.
+       */
+      vaultGet: (key: string) => string | null;
+      /** M-WINDOWS-11: seal and persist a vault entry; false on guard rejection. */
+      vaultSet: (key: string, value: string) => boolean;
+      /** M-WINDOWS-11: remove a vault entry; false on guard rejection. */
+      vaultDelete: (key: string) => boolean;
+      /** M-WINDOWS-11: whether OS encryption (safeStorage/DPAPI) backs the vault right now. */
+      vaultIsAvailable: () => boolean;
       /** Receives deep link paths from the main process (W4.4). Returns cleanup function. */
       onDeeplink: (callback: (path: string) => void) => () => void;
       /** M-WINDOWS-06: tells main this renderer's deeplink listener is subscribed, so it may drain its pending queue (see src/preload/index.ts). */

@@ -51,6 +51,17 @@ vi.mock('electron', () => ({
     buildFromTemplate: vi.fn(() => ({}))
   },
   BrowserWindow: vi.fn(),
+  // M-WINDOWS-11: safeStorage stub (see singleInstance.test.ts note) — SUT
+  // destructures it at module-eval; unavailable ⇒ disclosed plaintext fallback.
+  safeStorage: {
+    isEncryptionAvailable: () => false,
+    encryptString: () => {
+      throw new Error('mock safeStorage');
+    },
+    decryptString: () => {
+      throw new Error('mock safeStorage');
+    }
+  },
   ipcMain: { handle: vi.fn(), on: vi.fn() },
   shell: { openExternal: vi.fn() },
   dialog: { showMessageBox: vi.fn() },

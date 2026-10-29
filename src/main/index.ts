@@ -4,7 +4,7 @@
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
 
-import { app, BrowserWindow, Menu, Tray, ipcMain, shell, nativeImage, dialog, protocol, screen, powerSaveBlocker, Notification } from 'electron';
+import { app, BrowserWindow, Menu, Tray, ipcMain, shell, nativeImage, dialog, protocol, screen, powerSaveBlocker, Notification, safeStorage } from 'electron';
 import type { MessageBoxOptions, ThumbarButton } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -20,6 +20,8 @@ import {
 } from './deepLinkValidator';
 import { getMainLocale, setMainLocale, t } from './i18n';
 import { restoreWindow } from './windowRestore';
+import { createSecretCustody } from './secretStore';
+import type { SettingsSink } from './secretStore';
 import log from 'electron-log';
 import Store from 'electron-store';
 import { autoUpdater } from 'electron-updater';
@@ -190,6 +192,29 @@ const store = new Store<{
   deviceId?: string;
   notificationsEnabled?: boolean;
 }>();
+
+// M-WINDOWS-11: safeStorage (DPAPI) custody for the persisted quasi-secrets.
+// `deviceId` is the stable installation identifier echoed on the wire as
+// X-Phlix-Device-ID; `serverUrl`/`hubUrl` are the auth endpoints the @phlix/ui
+// ApiClient auto-attaches bearer tokens to. Before this fix all three lived
+// PLAINTEXT in config.json (review windows__exploiter MAJOR-11). They now go
+// through src/main/secretStore.ts: envelope values on disk, legacy plaintext
+// rows migrated on first read (verify-after-write, never-orphan), and a
+// DISCLOSED plaintext fallback only where OS encryption is unavailable.
+// Non-secret preferences (minimizeToTray, windowBounds, GPU/power/notification
+// toggles, connectionMode, activeServerId) deliberately stay plaintext.
+// The custody key argument is confined by this compile-time whitelist — the
+// casts in the sink adapter below do not widen it.
+type ConfigSecretKey = 'deviceId' | 'serverUrl' | 'hubUrl';
+
+const configCustody = createSecretCustody({
+  safeStorage,
+  settings: {
+    get: (key: string) => store.get(key as ConfigSecretKey),
+    set: (key: string, value: unknown) => store.set(key as ConfigSecretKey, value as string | null),
+    delete: (key: string) => store.delete(key as ConfigSecretKey)
+  } satisfies SettingsSink
+});
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
@@ -725,27 +750,30 @@ ipcMain.handle('tray:get-minimize-to-tray', () => store.get('minimizeToTray', tr
 ipcMain.on('tray:set-minimize-to-tray', (_, val: boolean) => store.set('minimizeToTray', val));
 
 // Hub configuration handlers
+// M-WINDOWS-11: hubUrl travels through encrypted custody (auth endpoint);
+// activeServerId (opaque selection pointer) and connectionMode (enum) are
+// not credential-bearing and stay plain store reads.
 ipcMain.handle('hub:get-config', () => {
   return {
-    hubUrl: store.get('hubUrl', null),
+    hubUrl: configCustody.read('hubUrl'),
     activeServerId: store.get('activeServerId', null),
     connectionMode: store.get('connectionMode', 'direct')
   };
 });
 
 ipcMain.handle('hub:set-config', (_, config: { hubUrl?: string; activeServerId?: string; connectionMode?: string }) => {
-  if (config.hubUrl !== undefined) store.set('hubUrl', config.hubUrl);
+  if (config.hubUrl !== undefined) configCustody.write('hubUrl', config.hubUrl);
   if (config.activeServerId !== undefined) store.set('activeServerId', config.activeServerId);
   if (config.connectionMode !== undefined) store.set('connectionMode', config.connectionMode);
 });
 
-// Direct server URL handlers
+// Direct server URL handlers — M-WINDOWS-11: custody-sealed (see hubUrl above).
 ipcMain.handle('app:get-server-url', () => {
-  return store.get('serverUrl', null);
+  return configCustody.read('serverUrl');
 });
 
 ipcMain.handle('app:set-server-url', (_, url: string) => {
-  store.set('serverUrl', url);
+  configCustody.write('serverUrl', url);
 });
 
 // W7.6: runtime server version enforcement — verify server meets minimum version before boot completes
@@ -763,17 +791,120 @@ ipcMain.handle('app:check-server-version', async (_, { apiBase }: { apiBase: str
 /**
  * Returns a stable, per-installation device identifier.
  *
- * On first call a UUID-based ID is generated and persisted to electron-store.
+ * On first call a UUID-based ID is generated and persisted through the
+ * M-WINDOWS-11 encrypted custody (safeStorage/DPAPI-sealed envelope in
+ * config.json; legacy plaintext rows migrate transparently on read).
  * Subsequent calls return the same ID for the lifetime of the installation.
  * The ID is sent to the server as `X-Phlix-Device-ID` via `buildPhlixHeaders`.
  */
 ipcMain.handle('app:get-device-id', () => {
-  let deviceId = store.get('deviceId');
+  let deviceId = configCustody.read('deviceId');
   if (!deviceId) {
     deviceId = `windows-${randomUUID()}`;
-    store.set('deviceId', deviceId);
+    configCustody.write('deviceId', deviceId);
   }
   return deviceId;
+});
+
+// ---------------------------------------------------------------------------
+// M-WINDOWS-11 — renderer token vault (secrets.json, DPAPI-sealed).
+//
+// The auth tokens themselves are minted and READ BY THE RENDERER via the
+// vendored @phlix/ui, which today still uses localStorage custody — the
+// upstream half (a tokenStore seam in createPhlixApp) is the v0.99.12-wave
+// rider recorded in the M-WINDOWS-11 fixlog. This vault is the windows-side
+// endpoint that rider plugs into: src/renderer/safeStorageTokenStore.ts
+// implements @phlix/ui's TokenStore over exactly these four channels, so
+// when the seam lands the tokens move from renderer localStorage to
+// main-process safeStorage custody with a one-line boot() change.
+//
+// Protocol law:
+//   - sendSync, not invoke: the ui TokenStore contract is synchronous, and
+//     the main side of every handler here is pure in-memory crypto — no I/O
+//     stall beyond electron-store's own (already synchronous) writes.
+//   - a sender check mirrors the 'deeplink:ready' precedent: only the
+//     CURRENT main window's webContents may open the vault (defense in
+//     depth behind the M-WINDOWS-10 preload trust gate).
+//   - keys/values are guarded by src/main/secretStore.ts; a rejected shape
+//     answers null/false and never echoes the offending input to the log.
+//   - separate file from config.json: renderer-minted rows never interleave
+//     with main-owned settings, and a corrupt vault cannot take the shell's
+//     own preferences down with it.
+// ---------------------------------------------------------------------------
+const secretsStore = new Store<Record<string, string>>({ name: 'secrets' });
+
+const vaultCustody = createSecretCustody({
+  safeStorage,
+  settings: {
+    get: (key: string) => secretsStore.get(key),
+    set: (key: string, value: unknown) => secretsStore.set(key, value as string),
+    delete: (key: string) => secretsStore.delete(key)
+  } satisfies SettingsSink
+});
+
+function vaultSenderTrusted(event: Electron.IpcMainEvent): boolean {
+  return mainWindow !== null && !mainWindow.isDestroyed() && event.sender === mainWindow.webContents;
+}
+
+ipcMain.on('vault:get', (event, payload: { key?: unknown }) => {
+  if (!vaultSenderTrusted(event)) {
+    log.warn('[vault] get refused — sender is not the current main window');
+    event.returnValue = null;
+    return;
+  }
+  try {
+    event.returnValue = typeof payload?.key === 'string' ? vaultCustody.read(payload.key) : null;
+  } catch {
+    log.warn('[vault] get rejected by the key guard');
+    event.returnValue = null;
+  }
+});
+
+ipcMain.on('vault:set', (event, payload: { key?: unknown; value?: unknown }) => {
+  if (!vaultSenderTrusted(event)) {
+    log.warn('[vault] set refused — sender is not the current main window');
+    event.returnValue = false;
+    return;
+  }
+  if (typeof payload?.key !== 'string' || typeof payload?.value !== 'string') {
+    event.returnValue = false; // invalid shapes fail closed — never coerced, never persisted
+    return;
+  }
+  try {
+    vaultCustody.write(payload.key, payload.value);
+    event.returnValue = true;
+  } catch {
+    log.warn('[vault] set rejected by the key/value guards');
+    event.returnValue = false;
+  }
+});
+
+ipcMain.on('vault:delete', (event, payload: { key?: unknown }) => {
+  if (!vaultSenderTrusted(event)) {
+    log.warn('[vault] delete refused — sender is not the current main window');
+    event.returnValue = false;
+    return;
+  }
+  try {
+    if (typeof payload?.key !== 'string') {
+      event.returnValue = false;
+      return;
+    }
+    vaultCustody.remove(payload.key);
+    event.returnValue = true;
+  } catch {
+    log.warn('[vault] delete rejected by the key guard');
+    event.returnValue = false;
+  }
+});
+
+ipcMain.on('vault:is-available', (event) => {
+  if (!vaultSenderTrusted(event)) {
+    log.warn('[vault] is-available refused — sender is not the current main window');
+    event.returnValue = false;
+    return;
+  }
+  event.returnValue = vaultCustody.isEncryptionAvailable();
 });
 
 // W4.5: thumbar buttons — renderer sends updated play state to refresh play/pause icon

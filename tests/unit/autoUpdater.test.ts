@@ -100,6 +100,18 @@ vi.mock('electron', () => ({
       on: vi.fn()
     };
   }),
+  // M-WINDOWS-11: src/main/index.ts destructures electron.safeStorage at module-eval
+  // time (custody wiring). Stub = encryption unavailable → the disclosed plaintext
+  // fallback path, which leaves the store-mock interactions these tests pin unchanged.
+  safeStorage: {
+    isEncryptionAvailable: () => false,
+    encryptString: () => {
+      throw new Error('mock safeStorage');
+    },
+    decryptString: () => {
+      throw new Error('mock safeStorage');
+    }
+  },
   ipcMain: {
     handle: vi.fn(),
     on: vi.fn(),
