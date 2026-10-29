@@ -355,6 +355,13 @@ export async function boot(): Promise<void> {
         deeplinkQueue.push(path);
       }
     });
+    // M-WINDOWS-06: the listener is live only NOW — announce readiness so the
+    // main process drains its pending-deeplink queue (cold-start links wait
+    // there until this point, instead of racing a fixed timer). Links
+    // arriving after the announce but before router.isReady() resolve are
+    // caught by this file's own deeplinkQueue above. The browser dev-context
+    // path (no electronAPI) has nothing to drain and never announces.
+    api.notifyDeeplinkReady();
   }
 
   // Mount Vue overlay for P3-S4 player UX features (skip/sleep/PiP)

@@ -220,10 +220,41 @@ describe('src/main/index.ts deep-link wiring (regression shields)', () => {
 
   it('dispatches the cold-start deep link exactly once (W-low a)', () => {
     const dispatches = mainSource.match(/handleDeepLinkUrl\(coldStartUrl\)/g) ?? [];
-    expect(dispatches.length).toBe(1);
+    expect(dispatches).toHaveLength(1);
   });
 
   it('routes every delivery through the dedupe once-guard', () => {
     expect(mainSource).toMatch(/deepLinkDeduper\.suppresses\(url\)/);
+  });
+
+  // M-WINDOWS-06: delivery is event-driven, never time-driven. The former
+  // cold-start arm (app.once('browser-window-created') + setTimeout(1000))
+  // raced the renderer's late ipcRenderer.on subscription and silently
+  // dropped links. These shields keep the cure from rotting back.
+  it('has no browser-window-created timed dispatch arm left (M-WINDOWS-06)', () => {
+    // Code-shape check (event registration), not prose: the word may occur
+    // in history docblocks; only an actual listener arm would revive the race.
+    expect(mainSource).not.toMatch(/\.(?:once|on)\(\s*['"]browser-window-created['"]/);
+  });
+
+  it('has no setTimeout anywhere on a deep-link dispatch path (M-WINDOWS-06)', () => {
+    // The old shape was setTimeout(() => { handleDeepLinkUrl(...) }, 1000).
+    expect(mainSource).not.toMatch(/setTimeout\([\s\S]{0,80}handleDeepLinkUrl/);
+    expect(mainSource).not.toMatch(/setTimeout\([\s\S]{0,80}drainPendingDeepLinks/);
+  });
+
+  it('drains only on the renderer deeplink:ready handshake, with sender identity checked (M-WINDOWS-06)', () => {
+    expect(mainSource).toMatch(/ipcMain\.on\(\s*'deeplink:ready',\s*\(event\)/);
+    expect(mainSource).toMatch(/event\.sender\s*!==\s*mainWindow\.webContents/);
+  });
+
+  it('drops the webContents.send("deeplink:open") to a single delivery point (M-WINDOWS-06)', () => {
+    const sends = mainSource.match(/webContents\.send\(\s*'deeplink:open'/g) ?? [];
+    expect(sends).toHaveLength(1);
+  });
+
+  it('re-arms (drops) readiness on every navigation so reloads cannot drop queued links (M-WINDOWS-06)', () => {
+    expect(mainSource).toMatch(/'did-start-loading'[\s\S]{0,120}deepLinkReceiverReady = false/);
+    expect(mainSource).toMatch(/'closed',\s*\(\)\s*=>\s*\{[\s\S]{0,400}deepLinkReceiverReady = false/);
   });
 });

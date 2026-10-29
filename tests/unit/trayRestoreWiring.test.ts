@@ -32,6 +32,10 @@ const tracks = vi.hoisted(() => {
     trayRegistrations: [] as Array<{ instance: number; event: string; handler: () => void }>,
     menuTemplates: [] as Array<Array<Record<string, unknown>>>,
     ipcHandlers: new Map<string, (...args: unknown[]) => unknown>(),
+    // M-WINDOWS-06: the deeplink:ready handshake listener is recorded so
+    // delivery-path tests can announce the renderer receiver, exactly as a
+    // booted renderer does.
+    ipcOnHandlers: new Map<string, (...args: unknown[]) => unknown>(),
     notificationClickHandlers: [] as Array<() => void>,
     deepLinkSends: [] as unknown[][]
   };
@@ -141,7 +145,9 @@ vi.mock('electron', () => {
       handle: vi.fn((channel: string, handler: (...args: unknown[]) => unknown) => {
         tracks.ipcHandlers.set(channel, handler);
       }),
-      on: vi.fn()
+      on: vi.fn((channel: string, handler: (...args: unknown[]) => unknown) => {
+        tracks.ipcOnHandlers.set(channel, handler);
+      })
     },
     protocol: { handle: vi.fn(), registerSchemesAsPrivileged: vi.fn() },
     shell: { openExternal: vi.fn() },
@@ -307,6 +313,14 @@ describe('tray/second-instance restore wiring (M-WINDOWS-03)', () => {
     const handler = tracks.ipcHandlers.get('notification:show');
     expect(handler).toBeDefined();
 
+    // M-WINDOWS-06: delivery requires the renderer-receiver handshake. This
+    // is the WARM path — announced before the click, so the queue drains
+    // synchronously inside handleDeepLinkUrl (same helper every surface
+    // shares; no second timer).
+    const ready = tracks.ipcOnHandlers.get('deeplink:ready');
+    expect(ready).toBeDefined();
+    ready!({ sender: win.webContents });
+
     const shown = await handler!(
       {} as unknown,
       { title: 't', body: 'b', clickAction: '/library' } as unknown
@@ -340,7 +354,7 @@ describe('tray/second-instance restore wiring (M-WINDOWS-03)', () => {
     tracks.deepLinkSends.length = 0;
     const handler = tracks.ipcHandlers.get('notification:show');
 
-    await handler!({} as unknown, { title: 't', body: 'b', clickAction: '/library' } as unknown);
+    await handler!({} as unknown, { title: 't', body: 'b', clickAction: '/tray-survivor' } as unknown);
     const clickHandler = tracks.notificationClickHandlers[tracks.notificationClickHandlers.length - 1];
 
     // The old body ran mainWindow?.show() straight — on a destroyed window
@@ -349,6 +363,16 @@ describe('tray/second-instance restore wiring (M-WINDOWS-03)', () => {
     // send path safe, the restore part did not.
     expect(() => clickHandler!()).not.toThrow();
     expect(win.calls).toEqual([]);
+
+    // M-WINDOWS-06: the queued link was HELD (drain saw the destroyed window
+    // and reset readiness), never sent, never lost. When a receiver returns,
+    // its handshake drains the survivor exactly once. In production this is
+    // 'closed' → activate → createWindow → boot() → deeplink:ready.
+    expect(tracks.deepLinkSends).toEqual([]);
+    win.state.destroyed = false;
+    tracks.ipcOnHandlers.get('deeplink:ready')!({ sender: win.webContents });
+    expect(tracks.deepLinkSends).toEqual([['deeplink:open', '/tray-survivor']]);
+    tracks.deepLinkSends.length = 0;
   });
 
   it('second-instance still delivers its deep link after raising the window', () => {
@@ -357,6 +381,9 @@ describe('tray/second-instance restore wiring (M-WINDOWS-03)', () => {
     tracks.deepLinkSends.length = 0;
     const handler = tracks.appHandlers.get('second-instance')?.[0];
 
+    // M-WINDOWS-06: warm path — the handshake is live (test above re-armed
+    // it), so the shared queue+drain delivers on the same tick.
+    tracks.ipcOnHandlers.get('deeplink:ready')!({ sender: win.webContents });
     handler!({} as unknown, ['phlix://internal/settings'], '/tmp');
 
     expect(win.calls).toEqual(['show', 'focus']);

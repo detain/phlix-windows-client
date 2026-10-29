@@ -87,6 +87,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('deeplink:open', listener);
     return () => ipcRenderer.removeListener('deeplink:open', listener);
   },
+  // M-WINDOWS-06: announce that the listener above is live, so the main
+  // process drains its pending-deeplink queue to THIS renderer. Call only
+  // after onDeeplink() has subscribed; a subscription-less announce would
+  // deliver into a dropped message.
+  notifyDeeplinkReady: () => ipcRenderer.send('deeplink:ready'),
 
   // W4.5: taskbar thumbnail button state (play/pause icon refresh)
   updateThumbar: (state: { playing: boolean }) => ipcRenderer.send('thumbar:update', state),

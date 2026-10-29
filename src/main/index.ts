@@ -56,19 +56,56 @@ export { parseDeepLinkUrl, extractDeepLinkUrl };
 const DEEPLINK_DEDUPE_WINDOW_MS = 2000;
 const deepLinkDeduper = createDeepLinkDeduper(DEEPLINK_DEDUPE_WINDOW_MS);
 
+// M-WINDOWS-06: pending-deeplink queue + renderer-receiver handshake.
+// History: cold-start delivery was a fixed `setTimeout(…, 1000)` armed on
+// 'browser-window-created'. That was a race, not a contract: the renderer
+// subscribes to 'deeplink:open' only inside boot(), AFTER three IPC
+// round-trips and an HTTP server-version check (src/renderer/main.ts), so a
+// slow boot pushed the subscription past the 1000ms mark and Electron
+// silently dropped the message — the link was lost with no error and no
+// retry. Delivery is now event-driven: EVERY deep-link surface enqueues here
+// and the drain runs only when the renderer announces (via the
+// 'deeplink:ready' handshake) that its listener is actually live.
+const pendingDeepLinks: string[] = [];
+let deepLinkReceiverReady = false;
+
+/**
+ * The single entry point for every deep link the app receives (cold start,
+ * second-instance argv, macOS open-url, notification click). Enqueue, then
+ * attempt the drain: a warm, subscribed renderer receives the link on the
+ * same tick; anything earlier waits in the queue for the handshake.
+ */
 function handleDeepLinkUrl(url: string): void {
-  if (deepLinkDeduper.suppresses(url)) {
-    log.info(`[deeplink] Duplicate delivery suppressed within ${DEEPLINK_DEDUPE_WINDOW_MS}ms: ${redactDeepLinkUrl(url)}`);
+  pendingDeepLinks.push(url);
+  drainPendingDeepLinks();
+}
+
+/**
+ * Deliver every queued link, FIFO, exactly once (drain-once semantics via
+ * explicit state): each URL leaves the queue BEFORE its dispatch, so a
+ * re-entrant or repeated handshake can never deliver it twice, and an
+ * unparsable entry cannot poison the loop. Readiness is held only by the
+ * renderer's 'deeplink:ready' handshake — load failures never announce it,
+ * so the queue survives them and the next successful load's handshake
+ * delivers (re-drain path per the did-start-loading re-arm in createWindow).
+ */
+function drainPendingDeepLinks(): void {
+  if (!deepLinkReceiverReady) return; // the handshake will drain later
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    // Stale announcement (window replaced or destroyed since): keep the
+    // queue, wait for a live window's handshake instead of dropping.
+    deepLinkReceiverReady = false;
     return;
   }
-
-  const path = parseDeepLinkUrl(url);
-  if (!path) return;
-
-  if (mainWindow && !mainWindow.isDestroyed()) {
+  while (pendingDeepLinks.length > 0) {
+    const url = pendingDeepLinks.shift()!;
+    if (deepLinkDeduper.suppresses(url)) {
+      log.info(`[deeplink] Duplicate delivery suppressed within ${DEEPLINK_DEDUPE_WINDOW_MS}ms: ${redactDeepLinkUrl(url)}`);
+      continue;
+    }
+    const path = parseDeepLinkUrl(url);
+    if (!path) continue; // the parser already logged the rejection (redacted)
     mainWindow.webContents.send('deeplink:open', path);
-  } else {
-    log.warn('[deeplink] mainWindow not available, cannot send deep link');
   }
 }
 
@@ -87,17 +124,13 @@ const coldStartUrl = extractDeepLinkUrl(process.argv);
 if (coldStartUrl) {
   // W3: never log a raw cold-start URL — it may carry a one-time invite token.
   log.info(`[deeplink] Cold start URL detected: ${redactDeepLinkUrl(coldStartUrl)}`);
-  // Queue for delivery once the window is ready. This is the ONLY cold-start
-  // dispatch (W-low a): an earlier revision also sent from the whenReady
-  // callback, double-dispatching every cold start — and that immediate arm
-  // fired before the renderer bridge subscribed, so the delayed arm below is
-  // the one that reliably delivers.
-  app.once('browser-window-created', () => {
-    // Use setTimeout to ensure window webContents is fully initialized
-    setTimeout(() => {
-      handleDeepLinkUrl(coldStartUrl);
-    }, 1000);
-  });
+  // This is the ONLY cold-start dispatch (W-low(a) law stands: the whenReady
+  // callback must never add a second one). M-WINDOWS-06 replaced the former
+  // 'browser-window-created' + setTimeout(1000) arm — a fixed delay racing
+  // the renderer's late IPC subscription — with the pendingDeepLinks queue:
+  // the link waits here until the renderer's 'deeplink:ready' handshake
+  // drains it. Nothing time-driven remains on this path.
+  handleDeepLinkUrl(coldStartUrl);
 }
 
 // Single-instance lock — ensures only one app window exists at a time.
@@ -114,11 +147,33 @@ app.on('second-instance', (_event, argv, _workingDirectory) => {
   // docs: show() is what "shows and gives focus"), which is exactly why the
   // icon click did nothing. restoreWindow() covers minimized/hidden/destroyed.
   restoreWindow(mainWindow);
-  // Handle deep link from second-instance (warm start on Windows)
+  // Handle deep link from second-instance (warm start on Windows).
+  // M-WINDOWS-06: same queue + drain helper as every other surface — no
+  // second bespoke timer. On a warm, subscribed app the drain delivers on
+  // this very call; in the rare early window (renderer still booting) the
+  // link waits for the handshake instead of being dropped.
   const url = extractDeepLinkUrl(argv);
   if (url) {
     handleDeepLinkUrl(url);
   }
+});
+
+// M-WINDOWS-06: the renderer's readiness handshake for deep-link delivery.
+// boot() sends 'deeplink:ready' only AFTER api.onDeeplink(...) has actually
+// subscribed to 'deeplink:open' (src/renderer/main.ts) — the one signal that
+// matches when the receiver is live. did-finish-load/dom-ready were rejected
+// as the drain trigger on purpose: they fire long before that subscription
+// (boot awaits three IPC round-trips plus an HTTP version check), so draining
+// on them would re-create the drop-the-message race with a new name.
+// The sender must be the current main window's webContents: a stale signal
+// from a replaced or destroyed webContents may not drain the queue anywhere.
+ipcMain.on('deeplink:ready', (event) => {
+  if (!mainWindow || mainWindow.isDestroyed() || event.sender !== mainWindow.webContents) {
+    log.warn('[deeplink] Ignored deeplink:ready from a non-current webContents');
+    return;
+  }
+  deepLinkReceiverReady = true;
+  drainPendingDeepLinks();
 });
 
 // W-low(d): every key touched via store.get/set is declared here — previously
@@ -231,6 +286,16 @@ function createWindow(): void {
   }
 
   // Load content
+  // M-WINDOWS-06: any navigation swaps the document, and the previous
+  // document's 'deeplink:open' subscription dies with it — drop readiness
+  // immediately so links arriving across the navigation wait in the queue
+  // instead of being sent into a listener-less renderer. A failed load never
+  // announces readiness, so this same re-arm is what keeps the queue alive
+  // across did-fail-load retries until the next successful document's
+  // 'deeplink:ready' handshake drains it.
+  mainWindow.webContents.on('did-start-loading', () => {
+    deepLinkReceiverReady = false;
+  });
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
@@ -270,6 +335,10 @@ function createWindow(): void {
 
   mainWindow.on('closed', () => {
     mainWindow = null;
+    // M-WINDOWS-06: a dead window is not a receiver. Reset readiness; the
+    // pending queue survives for a future window's 'deeplink:ready' drain
+    // (createWindow on activate).
+    deepLinkReceiverReady = false;
   });
 
   // Debounced resize/move handlers for live bounds persistence
@@ -986,8 +1055,8 @@ app.whenReady().then(() => {
   createTray();
   setupAutoUpdater();
 
-  // W-low(a): cold start deep links are dispatched exactly once, from the
-  // browser-window-created arm above — do not add a second dispatch here.
+  // W-low(a): cold start deep links are dispatched exactly once, through the
+  // pendingDeepLinks queue (M-WINDOWS-06) — do not add a second dispatch here.
 });
 
 // Handle open-url event on macOS

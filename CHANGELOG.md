@@ -7,6 +7,62 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed — cold-start deep link is event-driven; the 1000 ms race is dead (M-WINDOWS-06) — 2026-10-29
+
+- **Why:** review `windows__crossfe` M-WINDOWS-06. Cold-start delivery was
+  `app.once('browser-window-created')` → `setTimeout(handleDeepLinkUrl, 1000)`
+  — fire-and-forget against an arbitrary deadline. The renderer subscribes to
+  `deeplink:open` only inside `boot()`, after three IPC round-trips plus an
+  HTTP server-version check (`src/renderer/main.ts`), so any boot slower than
+  1000 ms sent into a listener-less renderer: Chromium drops it silently —
+  no error, no retry, link lost (worst case: a one-time invite consumed
+  server-side while the accept screen never opened).
+- **What:** one pending queue (`pendingDeepLinks`) + a renderer-receiver
+  handshake. Every surface — cold-start argv, `second-instance`, `open-url`,
+  notification click — funnels through `handleDeepLinkUrl` = enqueue +
+  `drainPendingDeepLinks()`; exactly one `webContents.send('deeplink:open')`
+  call-site remains. The drain runs only when the renderer sends the new
+  `deeplink:ready` ipc (`preload.notifyDeeplinkReady()`, fired by
+  `boot()` immediately after `api.onDeeplink` subscribes), sender-checked
+  against the live main window's `webContents`. `did-finish-load`/`dom-ready`
+  were deliberately NOT the trigger — they fire long before the
+  subscription and would re-create the drop with a new name. (a) survival:
+  `did-start-loading` drops readiness on every navigation and the `closed`
+  handler resets it; a failed load never announces, so the queue persists
+  and the next successful document's handshake (or a replacement window via
+  `activate`) drains it. (b) single delivery: entries shift before dispatch
+  (drain-once, explicit state), repeat handshakes drain an empty queue, and
+  the W-low(a) 2000 ms dedupe guard stays at the delivery point. (c) redaction:
+  every new log line routes through `redactDeepLinkUrl`; a test scans all
+  recorded main-process log args for a planted raw token. (d) warm path
+  unchanged-or-improved: second-instance shares the same drain helper on the
+  same tick (no second bespoke timer).
+- **Tests:** baseline (measured from HEAD `69c28d2` in a clean worktree,
+  path-environment adjusted): 41 files / 498 cases → now 42 files / 510
+  cases, FULL serial (`--no-file-parallelism`) 510 passed, 0 failed. New
+  `tests/unit/deepLinkDrain.test.ts` (7): real timers — a cold-start link
+  planted in `process.argv` at module eval waits PAST the old 1000 ms mark
+  (1100 ms real wait) with zero sends, delivers exactly once on the late
+  handshake, never on `did-finish-load`/`dom-ready`, survives a destroyed
+  window and drains via the replacement window's handshake, foreign-sender
+  announces refused, unparsable entry consumed without poisoning the queue,
+  duplicate-URL single delivery with log redaction asserted. 5 new source
+  shields in `deepLinkValidator.test.ts` (no `.once('browser-window-created'`
+  arm, no `setTimeout` within reach of dispatch, handshake + sender check,
+  single `deeplink:open` call-site, navigation/closed re-arms).
+  `ipcChannels.test.ts` inventories rotated 6→7 send/on channels
+  (`deeplink:ready`); `docs/ipc-channels.md` carries the row.
+  `trayRestoreWiring.test.ts` adapted: delivery tests fire the handshake
+  (warm path) and pin the destroyed-window survivor drain.
+- **Teeth (mutation-proven, source restored after):** reviving the
+  setTimeout-1000 arm reddens exactly the 3 named tests (hold-past-deadline
+  + both shields); stripping the sender-identity check reddens exactly the
+  foreign-announce test.
+- **Gates:** vue-tsc (×2: default + `-p tsconfig.test.json`) 0, tsc
+  `-p tsconfig.main.json` 0, eslint 0, audit-gate PASS (0 advisories).
+  Renderer/main/preload behavior files ship; no electron rebuild was needed
+  for the unit gates (build + xvfb smoke ride CI's `build.yml`).
+
 ### Fixed — update-feed workflow guard gets real structural teeth (M-WINDOWS-05 r2) — 2026-10-29
 
 - **Why:** review `windows__crossfe` M-WINDOWS-05 round 1 (finding M1, major). The

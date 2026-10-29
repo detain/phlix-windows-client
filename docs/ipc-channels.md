@@ -40,6 +40,7 @@ pairing test (§ipcChannels.test.ts) asserts against it.
 | `thumbar:update` | send | `{ playing: boolean }` | — | `thumbar:update` (line 707) | `updateThumbar` | `src/renderer/electronBridge.ts:116` — `api.updateThumbar?.({ playing: willBePlaying })` |
 | `playback:progress` | send | `{ current: number; total: number }` | — | `playback:progress` (line 712) | `setPlaybackProgress` | `src/renderer/electronBridge.ts:117,133,141` — `api.setPlaybackProgress?.(player.position, player.duration)` |
 | `power:update` | send | `{ playing: boolean }` | — | `power:update` (line 727) | `updatePowerBlocker` | `src/renderer/electronBridge.ts:119` — `api.updatePowerBlocker?.(willBePlaying)` |
+| `deeplink:ready` | send | none | — | `deeplink:ready` (line 170) | `notifyDeeplinkReady` | `src/renderer/main.ts:364` — `api.notifyDeeplinkReady()` (M-WINDOWS-06: fires only after `onDeeplink` subscribed; main drains its pending-deeplink queue on it) |
 
 ## Behavioral Tests
 
@@ -49,7 +50,7 @@ main webContents.send → preload on).
 
 The `describe('behavioral round-trips')` block covers actual round-trip IPC behavior for
 the 9 invoke channels (Promise-based `ipcRenderer.invoke` / `ipcMain.handle`), verifying
-correct channel + payload dispatch. The 6 send channels are fire-and-forget
+correct channel + payload dispatch. The 7 send channels are fire-and-forget
 (`ipcRenderer.send` / `ipcMain.on`) and cannot produce a round-trip response — they are
 verified by the pairing test. The 6 push channels (main→renderer via `webContents.send`)
 are verified by the pairing test; listener registration is tested for 3 of them in the
@@ -63,6 +64,6 @@ are verified by the pairing test; listener registration is tested for 3 of them 
 - Push channels (main→renderer) use `webContents.send` in main and `ipcRenderer.on` in preload.
 - Preload bridge methods return cleanup functions for `on*` listeners (returns `() => void`).
 - All 19 invoke channels have matching main-process `ipcMain.handle` handlers.
-- All 6 send channels have matching main-process `ipcMain.on` handlers.
+- All 7 send channels have matching main-process `ipcMain.on` handlers.
 - All 6 push channels have matching preload `ipcRenderer.on` listeners.
 - No `any` payload types exist in any channel definitions.

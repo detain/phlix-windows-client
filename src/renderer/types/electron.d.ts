@@ -55,6 +55,8 @@ declare global {
       getDeviceId: () => Promise<string>;
       /** Receives deep link paths from the main process (W4.4). Returns cleanup function. */
       onDeeplink: (callback: (path: string) => void) => () => void;
+      /** M-WINDOWS-06: tells main this renderer's deeplink listener is subscribed, so it may drain its pending queue (see src/preload/index.ts). */
+      notifyDeeplinkReady: () => void;
       /** W4.5: refreshes the taskbar thumbnail play/pause button tooltip */
       updateThumbar: (state: { playing: boolean }) => void;
       /** W4.5: sets the taskbar progress bar (current/total). Pass total=0 to clear. */
