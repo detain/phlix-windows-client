@@ -143,7 +143,7 @@ For development:
 1. **Clone the repository**
    ```bash
     git clone https://github.com/detain/phlix-windows-client.git
-   cd phlix-windows
+   cd phlix-windows-client
    ```
 
 2. **Install dependencies**
@@ -269,7 +269,7 @@ npx tsc -p tsconfig.main.json --noEmit
 ## Project Structure
 
 ```
-phlix-windows/
+phlix-windows-client/
 ├── src/
 │   ├── main/           # Electron main process
 │   │   └── index.ts    # Main entry point, window management, IPC, tray

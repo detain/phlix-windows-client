@@ -7,6 +7,20 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Docs — M-WINDOWS-20: clone+cd install sequence to real repo dir + dir-name sweep — 2026-10-29
+
+- **Why:** review `windows__writer` M2 — the from-source install sequence failed when
+  followed literally: `git clone https://github.com/detain/phlix-windows-client.git`
+  materializes `phlix-windows-client/` (origin slug, `git remote -v`-verified), but the very
+  next line said `cd phlix-windows` — an error for any reader copying the block.
+- **Cure:** README clone→cd sequence fixed to `cd phlix-windows-client`; the Project
+  Structure tree label `phlix-windows/` fixed to `phlix-windows-client/` (the review's
+  ":172" coordinate, re-anchored to `:272` post-WIN-19 rewrite). Whole-README/docs sweep
+  (every `git clone`, `cd`, `.git`, badge/release URL, and `phlix-windows*` literal) found no
+  further false occurrences; the `%APPDATA%\phlix-windows` lines (README ×2, DEVELOPER.md ×1)
+  are the **Electron app-data namespace** (package.json root `name: "phlix-windows"`) — a
+  different, true namespace, deliberately untouched. Zero README-pinned test literals change.
+
 ### Docs — M-WINDOWS-18 (b, fresh disk-only lane): signing posture to vendor-proven truth — forceCodeSigning gated on WIN-08 certs — 2026-10-29
 
 - **Why:** the queue item flagged `build.win` as signing-bare, but r1 adjudicated the prior
