@@ -7,6 +7,42 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### CI — every third-party action is SHA-pinned; the estate supply-chain law reaches this repo (M-WINDOWS-09) — 2026-10-29
+
+- **Why:** review `windows__devops` MAJ-3. All 35 `uses:` steps across
+  `test.yml` (10), `build.yml` (22) and `codeql.yml` (3) floated on mutable
+  major tags — an upstream tag re-point would silently change what CI runs,
+  including inside the two `permissions: contents: write` jobs that publish
+  the installers behind the auto-update feed. The estate cured this class
+  repo-wide in the ubuntu-26.04 migration era; this repo was the outlier.
+- **Shipped:** each ref frozen to the full 40-hex commit its floating major
+  resolved to at cure time (behavior-neutral by construction), every pin
+  line carrying a ` # vX.Y.Z` comment: `actions/checkout@d23441a4… # v6.1.0`
+  and `codacy/codacy-coverage-reporter-action@89d6c85c… # v1.3.0` copied
+  byte-identical from the estate precedent (hub `ci.yml`/`docker.yml`; 25 +
+  22 pinned uses), `codecov/codecov-action@fb8b3582… # v6.0.2` equal to the
+  peel the estate recorded for its codecov-v6 bump; `setup-node@24997072…
+  # v6.5.0`, `upload-artifact@cf430e03… # v7.0.2`, `download-artifact@
+  9000827c… # v8.0.2`, `softprops/action-gh-release@efb35369… # v3.0.3`,
+  `github/codeql-action/{init,analyze}@4bfa242a… # v3.39.1` resolved live via
+  `gh api …/git/ref/tags/{major}` (peeled). Honest note: the console/mobile
+  freezes for upload/download-artifact and action-gh-release (v7.0.1/v8.0.1/
+  v3.0.2) predate current upstream patches — this lane follows each float's
+  live target rather than back-pinning to a sibling's older freeze.
+- **Guard:** NEW `tests/unit/actionPinLaw.test.mjs` (5 laws) — full-SHA law,
+  semver-comment law, ledger equality (commit AND version per repo, bump
+  drift reddens by name), and a raw-line vs YAML-parse census agreement so
+  no step dodges the law. Red-on-parent measured at fd273cb-era workflows
+  (2 laws failed); mutation probe: re-floating `upload-artifact@v7` reddened
+  the named laws, restore returned 5/5 green.
+- **Scope adjudication:** pin-only per the queue item. The review's
+  workflow-level `permissions:` least-privilege ask is its MIN-1 (separate
+  minor-phase item; no Windows major covers it), and the WIN-08 signing
+  annotation stayed untouched — zero edits to that block.
+- **Measured:** vitest full serial 43 files/517 tests → 44/522 (+this file,
+  +5 exact); vue-tsc renderer + tests, tsc main, eslint, audit-gate, and all
+  three YAML parses green at head.
+
 ### Docs — signing posture told honestly: inactive block annotated, one unsigned story across workflow, docs and README (M-WINDOWS-08) — 2026-10-29
 
 - **Why:** review `windows__devops` MAJ-2. The `release` job carried a
