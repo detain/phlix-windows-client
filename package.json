@@ -70,6 +70,14 @@
     "asar": true,
     "npmRebuild": false
   },
+  "signingPosture": {
+    "status": "unsigned",
+    "forceCodeSigning": false,
+    "certificatesProvisioned": false,
+    "note": "Machine-readable build-signing policy. Pinned by tests/unit/signingPosturePolicy.test.mjs; human-facing twin in docs/signing.md. Sits at package.json ROOT because electron-builder validates the build object against app-builder-lib's scheme.json, whose root (Configuration) sets additionalProperties:false — an unknown key inside build or build.win is a hard InvalidConfigurationError on every electron-builder run.",
+    "why": "With no certificate configured, app-builder-lib's windowsSignToolManager.signFile logs 'no code signing certificate configured, signing is skipped' and returns false; winPackager._sign then throws InvalidConfigurationError (\"App is not signed and 'forceCodeSigning' is set to true\") — so enabling forceCodeSigning before certificates exist fails every electron-builder leg, not just signing.",
+    "flipGate": "Set build.win.forceCodeSigning true only together with WIN-08 certificate provisioning — repo secrets AUTHENTICODE_CERT / AUTHENTICODE_CERT_PASSWORD (win leg) and APPX_SIGNING_CERT / APPX_SIGNING_CERT_PASSWORD (appx leg) — with signing on a windows-leg runner per docs/signing.md 'CI Signing Configuration', and update this block plus docs/signing.md and the law test in the same change."
+  },
   "dependencies": {
     "@phlix/contracts": "github:detain/phlix-contracts#v0.5.3",
     "@phlix/ui": "github:detain/phlix-ui#v0.99.10",

@@ -152,6 +152,49 @@ The unsigned `.appx` is output to the `release/` directory.
 
 ---
 
+## forceCodeSigning: Why It Stays `false` (Vendor-Proven)
+
+`forceCodeSigning` is **not** a cosmetic label — against the locked
+`electron-builder` (app-builder-lib, installed version under
+`node_modules/app-builder-lib`), turning it on without a certificate
+**fails every build**:
+
+1. `out/codeSign/windowsSignToolManager.js` — `signFile` resolves the
+   certificate info (`signtoolOptions.certificateFile`, else
+   `WIN_CSC_LINK`); with neither configured it logs
+   `"no code signing certificate configured, signing is skipped"` and
+   **returns `false`**.
+2. `out/winPackager.js` — `_sign` takes that as `didSignSuccessfully =
+   false`, and with `forceCodeSigning` true it **throws
+   `InvalidConfigurationError`** (`App is not signed and
+   "forceCodeSigning" is set to true…`). A second throw guards
+   `signAndEditExecutable: false` the same way.
+
+So the flag's only honest pre-cert state is `false`, and `build.win`
+carries no `forceCodeSigning`, `certificateFile`, `certificateSubject`,
+`signtoolOptions` or `azureSignOptions` at all — it is exactly
+`{target, icon}`.
+
+**Where the policy lives:** `package.json` root key `signingPosture`
+(status `unsigned`, `forceCodeSigning: false`, `flipGate`). It cannot
+live inside `build` or `build.win`: `app-builder-lib/scheme.json` sets
+`additionalProperties: false` on both the root `Configuration` and
+`WindowsConfiguration`, so an unknown key there is a hard configuration
+error on every electron-builder run.
+
+**Flip gate (the only legal enablement):** WIN-08 cert provisioning —
+secrets `AUTHENTICODE_CERT` / `AUTHENTICODE_CERT_PASSWORD` (win leg) and
+`APPX_SIGNING_CERT` / `APPX_SIGNING_CERT_PASSWORD` (appx leg), signing on
+a `windows-latest` leg per the section below — and only then set
+`build.win.forceCodeSigning: true` (the per-platform knob;
+`out/platformPackager.js`'s getter prefers `platformSpecificBuildOptions.forceCodeSigning`
+over the top-level one) **in the same change** as this doc, the root
+`signingPosture` block, and `tests/unit/signingPosturePolicy.test.mjs`,
+which fails loudly on any posture/config/doc drift — including the
+misconfiguration this section exists to forbid: the flag on, no certs.
+
+---
+
 ## CI Signing Configuration (When Ready)
 
 > **Status reminder (measured 2026-10-29): nothing below is active.** The

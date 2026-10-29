@@ -7,6 +7,47 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Docs — M-WINDOWS-18 (b, fresh disk-only lane): signing posture to vendor-proven truth — forceCodeSigning gated on WIN-08 certs — 2026-10-29
+
+- **Why:** the queue item flagged `build.win` as signing-bare, but r1 adjudicated the prior
+  "fix" a PHANTOM (never landed; no `forceCodeSigning` in any tip file) and the naive cure —
+  flip `forceCodeSigning: true` — impossible against the locked builder: with no certificate
+  configured, app-builder-lib 26.17.0 `out/codeSign/windowsSignToolManager.js` `signFile`
+  logs "no code signing certificate configured, signing is skipped" and **returns false**, and
+  `out/winPackager.js` `_sign` then **throws** `InvalidConfigurationError` — enabling the flag
+  before WIN-08 certs exist reddens every electron-builder leg. Certificates are an owner
+  action (WIN-08); the WIN-05 feed law and WIN-08 workflow-posture tests already ship green —
+  what was missing is the config↔docs↔vendor triangle.
+- **Cure (policy-with-proof):** `package.json` gains a ROOT-level `signingPosture` block
+  (status `unsigned`, `forceCodeSigning: false`, `certificatesProvisioned: false`, `why`,
+  `flipGate`). ROOT placement is a vendor necessity, not style: `app-builder-lib/scheme.json`
+  sets `additionalProperties: false` on the Configuration root, so an unknown key inside
+  `build`/`build.win` is a hard configuration error — proven live:
+  `validateSchema(scheme, {...build, signingPosture})` throws "unknown property
+  'signingPosture'" while the real build object with the root key passes, and an
+  `electron-builder --win` live run loaded the config with the key fully inert.
+  `docs/signing.md` gains "forceCodeSigning: Why It Stays false (Vendor-Proven)" — both vendor
+  path names, the throw, the schema law, and the WIN-08 flip gate as a same-change protocol.
+  New `tests/unit/signingPosturePolicy.test.mjs` (12 laws): posture constants, the
+  flag-without-certs TRIPWIRE across every validated subtree, flag↔posture sync, placement,
+  the shipped-scheme + 3 vendor-source byte pins (refactor-red, not doc-lie), docs mirror,
+  README honesty, and a structural law that no ACTIVE updater-feed step claims signatures
+  (integrity ≠ authenticity).
+- **Updater trust story cross-read (b):** zero overclaims at tip — README "Getting updates"
+  states the fail-silent prerelease reality; build.yml says only "verifies downloads against
+  its sha512" (electron-updater's actual, integrity-level job); docs/README pair SmartScreen +
+  Get-FileHash/SHA256SUMS verification with the explicit "not code-signed". Nothing to fix;
+  recorded as verified and now pinned by law 8.
+- **Measured:** vitest FULL serial parent **51 files / 641 tests** → cure **52 / 653**
+  (+1 file / +12 tests, the new file only; `signingPostureWorkflow` 16 and `updateFeedWorkflow`
+  9 pins byte-unmodified, green). typecheck×3 + eslint + audit-gate + `npm run build` exit 0.
+  electron-builder live run: config accepted, real skip-path log emitted twice
+  ("no code signing certificate configured, signing is skipped" — the vendor behavior this
+  doc quotes, observed), then pre-existing `makensis` Linux venue failure — byte-identical at
+  parent, zero delta. Mutation teeth: planted `build.win.forceCodeSigning: true` (no certs)
+  → exactly 2 red (tripwire + sync); posture key moved inside `build` → exactly 1 red
+  (placement); `status: "signed"` lie → exactly 1 red (truth constants); all restored green.
+
 ### Docs — M-WINDOWS-19 r2: the too-old screen's remediation made literally followable + fail-open truth surfaced — 2026-10-29
 
 - **Why:** r1 review verdict REWORK (2 asks). Ask #1: the first-launch copy said "(or
