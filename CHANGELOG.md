@@ -7,6 +7,35 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Docs — M-WINDOWS-22: "no local components" claims to shipped renderer truth — 2026-10-29
+
+- **Why:** review `windows__writer` M22 — three docs claimed the renderer ships no local
+  pages/components/stores (README's tree line + "This repo does not define its own pages,
+  components, or stores." + DEVELOPER.md's header claim and Renderer-Process line). The claims
+  were authored at 1dd04a2 (2026-06-26, genuinely thin migration) and rotted as surfaces shipped:
+  player overlay components `src/renderer/components/{PlayerSupplement,SleepTimer,PiPButton}.tsx`
+  mounted by the second app entry `src/renderer/overlay.tsx` (P3-S4 era), the DOM-rendered
+  too-old-server boot-failure screen `renderIncompatibleServerScreen` with Retry in
+  `src/renderer/main.ts` (2aac4ec + b5547ce), the DPAPI-backed `SafeStorageTokenStore` adapter
+  `src/renderer/safeStorageTokenStore.ts` (dc36c0b; ships unused awaiting the ui tokenStore seam —
+  stated honestly), `src/renderer/mediaSession.ts` SMTC handlers, `src/renderer/i18n/` catalogs,
+  and locally-authored route registration/nav/admin-gating (`buildExtraRoutes`).
+- **Cure:** docs truth pass — every site now reads thin consumer PLUS an enumeration of the local
+  surfaces; both tree blocks (README Project Structure, DEVELOPER Renderer Process) gained the
+  five missing entries. Family sweep (`no local|does not define its own|thin consumer|no local UI
+  ownship|does not ship its own pages` over README/DEVELOPER/docs/) found SIX sites, not three —
+  the two extra survivors (README's Renderer-process bullet, README Status "no local UI ownship",
+  DEVELOPER header) cured too; docs/ was clean. Kept-true nuance: no local Pinia app stores and no
+  local page VIEWS (routes render vendored components) — the cure says exactly that, no more.
+- **Pin #9 (red-on-parent, measured):** `installStoryStatus.test.ts` gained two `it`s — the five
+  blanket-claim literals must stay dead in both docs, and both docs must name the six shipped
+  surfaces (`overlay.tsx`, `PlayerSupplement`, `SleepTimer`, `PiPButton`, `safeStorageTokenStore`,
+  `i18n`). On parent doc bytes it reddened exactly 2 (8 prior pins held green, stash-probed via
+  `git show a8e61b0:` swap); at head 10/10 in-file.
+- **Gates:** vitest FULL serial (`--no-file-parallelism`) **656 passed** (654-era + 2 exact, no new
+  files); `vue-tsc --noEmit` 0; `tsc -p tsconfig.main.json --noEmit` 0; eslint on the touched test
+  0. Build N/A (docs + test only).
+
 ### Docs — M-WINDOWS-21: troubleshooting Node floor to engines truth + stale-version sweep — 2026-10-29
 
 - **Why:** review `windows__writer` M21 — the "App doesn't start" troubleshooting list

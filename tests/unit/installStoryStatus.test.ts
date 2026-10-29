@@ -38,6 +38,10 @@
  * | 8 | Troubleshooting's "Ensure Node.js X+ is        | README's advice OR package.json engines.node    |
  * |   | installed" bullet matches the MAJOR derived    | drifts apart — a doc-following dev would land   |
  * |   | from package.json engines.node (M-WINDOWS-21)  | on a version the repo itself rejects            |
+ * | 9 | Neither doc revives the blanket "no local      | someone re-authors the pre-P3-S4 zero-ownship   |
+ * |   | pages/components/stores" claim literals, and    | claims while the renderer ships overlays, a     |
+ * |   | both enumerate the shipped local surfaces by    | boot-failure screen, catalogs, a token adapter  |
+ * |   | name (M-WINDOWS-22)                             | (docs-follow-code, and code-follows-DPAPI)      |
  *
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
@@ -48,6 +52,7 @@ import { describe, it, expect } from 'vitest';
 
 const PROJECT_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const README = readFileSync(join(PROJECT_ROOT, 'README.md'), 'utf-8');
+const DEVELOPER = readFileSync(join(PROJECT_ROOT, 'DEVELOPER.md'), 'utf-8');
 const PKG = JSON.parse(readFileSync(join(PROJECT_ROOT, 'package.json'), 'utf-8')) as {
   version: string;
   engines: { node: string };
@@ -218,5 +223,48 @@ describe('End-user install story tracks shipped release reality (M-WINDOWS-19)',
       `README troubleshooting advises Node ${bullet?.[1]}+ but package.json engines.node ` +
       `requires ${PKG.engines.node} — the doc sends devs to a version the repo rejects.`
     ).toBe(enginesMajor);
+  });
+
+  // -- 9. Zero-ownship claims stay dead; local surfaces stay named (M-WINDOWS-22) --
+  const LOCAL_SURFACES_DOCS: Array<[string, string]> = [
+    ['README.md', README],
+    ['DEVELOPER.md', DEVELOPER]
+  ];
+  const DEAD_CLAIM_LITERALS: string[] = [
+    '(no local pages/components/stores)',
+    'does not define its own pages, components, or stores',
+    'there are no local pages, components, or stores',
+    'no local UI ownship',
+    'does not ship its own pages'
+  ];
+  it('neither doc revives the blanket "no local surfaces" claims it cured (M-WINDOWS-22)', () => {
+    for (const [name, text] of LOCAL_SURFACES_DOCS) {
+      for (const dead of DEAD_CLAIM_LITERALS) {
+        expect(
+          text,
+          `${name} carries the zero-ownship claim "${dead}" — FALSE since the P3-S4 era: ` +
+          'the renderer ships overlay components, a boot-failure screen, i18n catalogs and ' +
+          'a DPAPI token-store adapter. Docs must say thin consumer PLUS enumerate them.'
+        ).not.toContain(dead);
+      }
+    }
+  });
+  it('both docs enumerate the shipped local renderer surfaces by name (M-WINDOWS-22)', () => {
+    for (const [name, text] of LOCAL_SURFACES_DOCS) {
+      for (const surface of [
+        'overlay.tsx',
+        'PlayerSupplement',
+        'SleepTimer',
+        'PiPButton',
+        'safeStorageTokenStore',
+        'i18n'
+      ]) {
+        expect(
+          text,
+          `${name} no longer names the shipped local surface "${surface}" — the tree/prose ` +
+          'enumeration from the M-WINDOWS-22 docs-truth pass must be kept in sync with code.'
+        ).toContain(surface);
+      }
+    }
   });
 });

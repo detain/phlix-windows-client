@@ -5,8 +5,11 @@ This document provides detailed information for developers working on the Phlix 
 ## Architecture Overview
 
 The Phlix Windows app follows the standard Electron architecture with three distinct processes. The
-renderer is a **thin consumer** of the shared `@phlix/ui` Vue app — it does not ship its own pages,
-components, or stores. It boots `createPhlixApp(config)` and bridges Electron events into it.
+renderer is a **thin consumer** of the shared `@phlix/ui` Vue app: every route renders a vendored page
+view and all application state lives in the vendored stores. It boots `createPhlixApp(config)`, bridges
+Electron events into it, and — beyond that core — ships its own local surfaces: player overlay
+components, a boot-failure screen, i18n catalogs, and a DPAPI token-store adapter (see *Renderer
+Process* below).
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -113,14 +116,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
 ### Renderer Process (`src/renderer/`)
 
-The renderer is a thin consumer of `@phlix/ui` — there are no local pages, components, or stores.
+The renderer is a thin consumer of `@phlix/ui` — no local page views (every route renders a vendored component) and no local application stores (state stays in the vendored Pinia stores) — but it is no longer zero-ownship: it ships the local surfaces listed in the tree below (player overlay components, a boot-failure screen, i18n catalogs, a DPAPI token-store adapter, media-session handlers).
 
 ```
 src/renderer/
-├── main.ts            # Entry: boot() builds config and mounts @phlix/ui, then installs the bridge
+├── main.ts            # Entry: boot() builds config and mounts @phlix/ui, then installs the bridge; also renders the too-old-server boot-failure screen (renderIncompatibleServerScreen) with Retry
+├── overlay.tsx        # Second Vue app entry (dynamically imported by boot): mounts the player overlays on #player-supplement-root
+├── components/        # Local player overlay components: PlayerSupplement.tsx (panel) · SleepTimer.tsx · PiPButton.tsx
+├── mediaSession.ts    # navigator.mediaSession / SMTC action handlers
+├── safeStorageTokenStore.ts # DPAPI-backed TokenStore adapter over the vault IPC (ships unused until the ui tokenStore seam lands)
+├── i18n/              # windows-own catalogs (7 locales) + vendored ui-locale-bundles + overrides
 ├── resolveConfig.ts   # Pure app-mode + apiBase resolution (hub vs direct server)
 ├── electronBridge.ts  # Maps Electron media/window IPC → @phlix/ui player store + router
-├── index.html         # Mounts #phlix-app, loads /main.ts
+├── index.html         # Mounts #phlix-app + #player-supplement-root, loads /main.ts
 ├── test-setup.ts      # jsdom localStorage mock
 ├── vite-env.d.ts      # Vite client types (VITE_PHLIX_SERVER_URL optional)
 └── types/electron.d.ts  # window.electronAPI typings (HubConfig + new IPC methods)
