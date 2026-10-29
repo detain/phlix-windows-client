@@ -7,6 +7,61 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed — the global keydown relay no longer fights the vendored ui player engine: single Space toggle, honest ±5 seeks, native button activation survives (M-WINDOWS-13) — 2026-10-29
+
+- **Why:** review `windows__gameux` MAJOR-2. `installFocusGuard()`
+  (`src/renderer/electronBridge.ts:82-115`) relays document-level Space /
+  ArrowLeft / ArrowRight to the player store (`SEEK_STEP_SECONDS = 10`, `:41`)
+  — but the pinned `@phlix/ui#v0.99.10` bundle owns exactly those keys on its
+  player page: its shortcuts engine (`b()` at
+  `node_modules/@phlix/ui/dist/shortcuts-Ck2yBFUB.js:316-324`, dispatch `y()`
+  `:277-311` — Space → `playPause` `:279`, ArrowLeft/Right → `seekBy(∓5)`
+  `:282-283`) installs its OWN document-level keydown listener while
+  PlayerPage is mounted (sole installer call site
+  `dist/PlayerPage-BAxWiTto.js:2740-2767`, route
+  `${routerBase || "/app"}/player/:id` per `dist/phlix-ui.js`). Two
+  document-level bubble listeners cannot see each other, so on the player
+  page one physical Space toggled play→pause→play (stuttered no-op) and each
+  Arrow moved a net ∓15 s (relay 10 + engine 5) against the ui's own help
+  table advertising ±5. Worse app-wide: the relay `preventDefault()`-ed Space
+  with only an INPUT/TEXTAREA/contentEditable exemption, while the engine
+  additionally exempts focused buttons/links (`_()` `:263-267`) — a focused
+  "Login"/"Connect" button lost native Space activation to a transport
+  toggle. The Playback menu items ship `registerAccelerator: false`
+  (`src/main/index.ts:662-671`) by design, so the relay is the only keyboard
+  path OUTSIDE the player page — it could not be deleted wholesale.
+- **Shipped (defer, don't duplicate):** the relay now early-returns on
+  `/app/player/` (`PLAYER_ROUTE_PREFIX`, single constant) — inside the player
+  route the vendored engine is the SOLE keyboard authority, including its
+  deliberately inert states (the engine's `enabled()` gate disarms during its
+  shortcut-help overlay/modals; the relay stays silent there too rather than
+  resurrecting half the keymap). Outside that route the engine is unmounted
+  and the relay keeps its global-shortcut purpose unchanged, ±10 s intact.
+  Off-route guards moved to ENGINE PARITY: text exemption widened from
+  INPUT/TEXTAREA/contentEditable to mirror the engine's `v()` (`:269-276`) —
+  now also SELECT and ARIA `textbox`/`searchbox` roles — and Space is no
+  longer consumed when the focused element is `button`/`a`/`role="button"`
+  (mirrors `_()`; Space arm only, exactly like the engine). The route is read
+  via the `location` global, never the `window` binding (unit suites and
+  browser-dev contexts reshape `window` freely). No vendored file touched;
+  no IPC channels, menu items, or wire surface moved.
+- **Tests:** `tests/unit/electronBridge.test.ts` 22 → 32 (+10). 8 are
+  red-on-parent defect detectors: both-layers Space with a faithful
+  mini-replica of the engine's installed arms (expect EXACTLY 1 actuation;
+  parent actuates 2), player-route ArrowRight seeking once not a net 15 s,
+  per-key player-route deferral (incl. no foreign `preventDefault`), and
+  four engine-parity guard tests (focused button / link / role=button keep
+  native Space; SELECT / role=searchbox keep their arrows) plus the
+  off-route regression pin. The other 2 pass on the parent by construction:
+  one tripwire pins the route prefix against the vendored bundle bytes
+  (reddens if a future re-pin moves the player route out of lockstep), one
+  proves the relay still owns the keys outside the player. All 22
+  pre-existing tests held UNMODIFIED.
+- **Gates:** vitest FULL serial `--no-file-parallelism` 49 files / **604**
+  tests, 0 fail (parent 594 + 10 measured); `vue-tsc --noEmit` 0;
+  `tsc -p tsconfig.main.json --noEmit` 0; `eslint .` 0; `npm run build` 0
+  (`dist/` is gitignored in this repo — nothing to commit).
+
 ### Fixed — the auto-updater no longer deadlocks at `checking`: `update-not-available` wired, manual checks answer visibly (M-WINDOWS-12) — 2026-10-29
 
 - **Why:** review `windows__gameux` MAJOR-1. `setupAutoUpdater()` registered

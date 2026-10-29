@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   wireElectronBridge,
@@ -440,6 +442,216 @@ describe('playbackMenuTemplate accelerators', () => {
     expect(spaceItem?.registerAccelerator).toBe(false);
     expect(leftItem?.registerAccelerator).toBe(false);
     expect(rightItem?.registerAccelerator).toBe(false);
+  });
+});
+
+/**
+ * M-WINDOWS-13: the relay must DEFER inside the vendored ui player route.
+ * The parent defect: the relay (document keydown) and @phlix/ui v0.99.10's
+ * shortcuts engine (also document keydown, mounted only while PlayerPage is
+ * live at `${routerBase || '/app'}/player/:id`) both actuated the same
+ * keypress — Space toggled twice (net no-op), Arrows sought a net ∓15s
+ * against the engine's advertised ±5, and Space was preventDefault()-ed app-
+ * wide over focused buttons. These tests pin the cure from both sides:
+ * per-key deferral on the player route, actuation counts with BOTH layers
+ * installed (a faithful mini-replica of the vendored `y()` arms), and the
+ * engine-parity guards (button/`a`/`select`/role-textbox) off-route.
+ */
+describe('installFocusGuard defers to the vendored ui player engine (M-WINDOWS-13)', () => {
+  const PLAYER_PATH = '/app/player/42';
+  const NON_PLAYER_PATH = '/app/browse';
+
+  function makeGuardPlayer(playing = false) {
+    return {
+      playing,
+      play: vi.fn(),
+      pause: vi.fn(),
+      closePlayer: vi.fn(),
+      seekBy: vi.fn(),
+      duration: 100,
+      position: 10
+    } as any;
+  }
+
+  function dispatchKey(code: string, key: string): KeyboardEvent {
+    const event = new KeyboardEvent('keydown', { code, key, bubbles: true, cancelable: true });
+    document.dispatchEvent(event);
+    return event;
+  }
+
+  beforeEach(() => {
+    document.body.innerHTML = `
+      <button id="login-btn">Login</button>
+      <a id="nav-link" href="#x">Library</a>
+      <div id="role-button" role="button">Play item</div>
+      <select id="quality-picker"><option>a</option><option>b</option></select>
+      <div id="faux-search" role="searchbox"></div>
+      <div id="plain-div"></div>
+    `;
+    history.pushState({}, '', NON_PLAYER_PATH);
+  });
+
+  afterEach(() => {
+    // Never leak route state or listeners across tests/files.
+    history.pushState({}, '', '/');
+    document.body.innerHTML = '';
+  });
+
+  it('pins the player route prefix to the vendored bundle reality', () => {
+    // Tripwire: if a future ui re-pin ever moves the player route, this fails
+    // and the relay's deferral constant must be re-anchored in lockstep.
+    const uiBundle = readFileSync(
+      resolve(__dirname, '../../node_modules/@phlix/ui/dist/phlix-ui.js'),
+      'utf8'
+    );
+    expect(uiBundle).toContain('`${t}/player/:id`');
+    expect(uiBundle).toContain('let t = e.routerBase || "/app"');
+  });
+
+  it('Space inside the player route actuates EXACTLY ONE handler (both layers installed)', () => {
+    // Faithful replica of the vendored engine's installed arms for the keys
+    // the relay mirrors (dist/shortcuts-Ck2yBFUB.js y():277-311 —
+    // Space→playPause :279, ArrowLeft/Right→seekBy(∓5) :282-283), attached at
+    // document level exactly like the real installer `b()` (:316-324).
+    const engine = { playPause: vi.fn(), seekBy: vi.fn() };
+    const engineKeydown = (ev: Event) => {
+      const e = ev as KeyboardEvent;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === ' ') {
+        engine.playPause();
+        e.preventDefault();
+      } else if (e.key === 'ArrowLeft') {
+        engine.seekBy(-5);
+        e.preventDefault();
+      } else if (e.key === 'ArrowRight') {
+        engine.seekBy(5);
+        e.preventDefault();
+      }
+    };
+    const relay = makeGuardPlayer(false);
+    history.pushState({}, '', PLAYER_PATH);
+    const cleanup = installFocusGuard(relay);
+    document.addEventListener('keydown', engineKeydown);
+    try {
+      dispatchKey('Space', ' ');
+      // On the buggy parent BOTH layers fired (net play→pause→play stutter);
+      // after the cure only the vendored engine actuates.
+      expect(engine.playPause).toHaveBeenCalledTimes(1);
+      expect(relay.play).not.toHaveBeenCalled();
+      expect(relay.pause).not.toHaveBeenCalled();
+      const totalActuations =
+        engine.playPause.mock.calls.length + relay.play.mock.calls.length + relay.pause.mock.calls.length;
+      expect(totalActuations).toBe(1);
+    } finally {
+      document.removeEventListener('keydown', engineKeydown);
+      cleanup();
+    }
+  });
+
+  it('ArrowRight inside the player route seeks once (engine ∓5), not a net 15s', () => {
+    const engine = { playPause: vi.fn(), seekBy: vi.fn() };
+    const engineKeydown = (ev: Event) => {
+      const e = ev as KeyboardEvent;
+      if (e.key === 'ArrowRight') {
+        engine.seekBy(5);
+        e.preventDefault();
+      }
+    };
+    const relay = makeGuardPlayer(true);
+    history.pushState({}, '', PLAYER_PATH);
+    const cleanup = installFocusGuard(relay);
+    document.addEventListener('keydown', engineKeydown);
+    try {
+      dispatchKey('ArrowRight', 'ArrowRight');
+      expect(engine.seekBy).toHaveBeenCalledTimes(1);
+      expect(engine.seekBy).toHaveBeenCalledWith(5);
+      // On the buggy parent the relay added a second seekBy(10) → net +15s.
+      expect(relay.seekBy).not.toHaveBeenCalled();
+    } finally {
+      document.removeEventListener('keydown', engineKeydown);
+      cleanup();
+    }
+  });
+
+  it('defers Space and both Arrows while on the player route', () => {
+    const player = makeGuardPlayer(false);
+    history.pushState({}, '', PLAYER_PATH);
+    const cleanup = installFocusGuard(player);
+    const spaceEvent = dispatchKey('Space', ' ');
+    dispatchKey('ArrowLeft', 'ArrowLeft');
+    dispatchKey('ArrowRight', 'ArrowRight');
+    expect(player.play).not.toHaveBeenCalled();
+    expect(player.pause).not.toHaveBeenCalled();
+    expect(player.seekBy).not.toHaveBeenCalled();
+    // The relay must not even preventDefault there — that is the engine's call.
+    expect(spaceEvent.defaultPrevented).toBe(false);
+    cleanup();
+  });
+
+  it('outside the player route the relay still owns the keys (global shortcut purpose)', () => {
+    const player = makeGuardPlayer(false);
+    history.pushState({}, '', NON_PLAYER_PATH);
+    const cleanup = installFocusGuard(player);
+    dispatchKey('Space', ' ');
+    dispatchKey('ArrowLeft', 'ArrowLeft');
+    dispatchKey('ArrowRight', 'ArrowRight');
+    expect(player.play).toHaveBeenCalledTimes(1);
+    expect(player.seekBy).toHaveBeenNthCalledWith(1, -10);
+    expect(player.seekBy).toHaveBeenNthCalledWith(2, 10);
+    cleanup();
+  });
+
+  it('Space on a focused button keeps native activation (engine _() parity)', () => {
+    const player = makeGuardPlayer(false);
+    const cleanup = installFocusGuard(player);
+    (document.getElementById('login-btn') as HTMLElement).focus();
+    const event = dispatchKey('Space', ' ');
+    expect(player.play).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(false);
+    cleanup();
+  });
+
+  it('Space on a focused link keeps native activation (engine _() parity)', () => {
+    const player = makeGuardPlayer(false);
+    const cleanup = installFocusGuard(player);
+    (document.getElementById('nav-link') as HTMLElement).focus();
+    const event = dispatchKey('Space', ' ');
+    expect(player.play).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(false);
+    cleanup();
+  });
+
+  it('Space on a focused role=button element keeps native activation', () => {
+    const player = makeGuardPlayer(false);
+    const cleanup = installFocusGuard(player);
+    const roleButton = document.getElementById('role-button') as HTMLElement;
+    roleButton.tabIndex = 0;
+    roleButton.focus();
+    const event = dispatchKey('Space', ' ');
+    expect(player.play).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(false);
+    cleanup();
+  });
+
+  it('Arrows on a focused select do not seek (engine v() parity)', () => {
+    const player = makeGuardPlayer(true);
+    const cleanup = installFocusGuard(player);
+    (document.getElementById('quality-picker') as HTMLSelectElement).focus();
+    dispatchKey('ArrowLeft', 'ArrowLeft');
+    dispatchKey('ArrowRight', 'ArrowRight');
+    expect(player.seekBy).not.toHaveBeenCalled();
+    cleanup();
+  });
+
+  it('Arrows on a focused ARIA searchbox do not seek (engine v() parity)', () => {
+    const player = makeGuardPlayer(true);
+    const cleanup = installFocusGuard(player);
+    const searchbox = document.getElementById('faux-search') as HTMLElement;
+    searchbox.tabIndex = 0;
+    searchbox.focus();
+    dispatchKey('ArrowLeft', 'ArrowLeft');
+    expect(player.seekBy).not.toHaveBeenCalled();
+    cleanup();
   });
 });
 

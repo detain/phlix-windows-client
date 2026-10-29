@@ -58,12 +58,26 @@ let _cleanupBridge: (() => void) | null = null;
 let _cleanupFocusGuard: (() => void) | null = null;
 
 /**
+ * Path prefix of the vendored ui player route. The @phlix/ui router table
+ * builds it as `${routerBase || "/app"}/player/:id` (v0.99.10
+ * dist/phlix-ui.js route "player"); this app never overrides routerBase and
+ * its history base is '/', so the live pathname mirrors the route path.
+ */
+const PLAYER_ROUTE_PREFIX = '/app/player/';
+
+/**
  * Returns true when the given element is a text-entry control that should
- * consume keydown events without relaying them to the media-bridge.
+ * consume keydown events without relaying them to the media-bridge. Mirrors
+ * the vendored engine's text guard (`v()`, @phlix/ui v0.99.10
+ * dist/shortcuts-Ck2yBFUB.js:269-276): INPUT/TEXTAREA/SELECT, contentEditable,
+ * and ARIA textbox/searchbox roles all keep their own arrow/space typing.
  */
 function isTextInput(el: Element | null): boolean {
   if (!el) return false;
-  if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') return true;
+  const tag = el.tagName.toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
+  const role = el.getAttribute('role');
+  if (role === 'textbox' || role === 'searchbox') return true;
   // contentEditable is 'true' when explicitly set; 'inherit' means the
   // element inherits from its parent (and is not in edit mode by default).
   const ce = (el as HTMLElement).contentEditable;
@@ -71,10 +85,39 @@ function isTextInput(el: Element | null): boolean {
 }
 
 /**
+ * Returns true when Space on the focused element must keep its NATIVE
+ * activation behavior instead of becoming a transport toggle. Mirrors the
+ * vendored engine's button guard (`_()`, dist/shortcuts-Ck2yBFUB.js:263-267:
+ * `button`, `a`, or `role="button"` skip the Space arm) — without it, a
+ * focused "Login"/"Connect" button would be preventDefault()-ed into playing
+ * media instead of activating. Applied to Space only, exactly like the engine.
+ */
+function isButtonActivation(el: Element | null): boolean {
+  if (!el) return false;
+  const tag = el.tagName.toLowerCase();
+  return tag === 'button' || tag === 'a' || el.getAttribute('role') === 'button';
+}
+
+/**
  * Installs a document-wide keydown listener that bridges Space / Left / Right
- * to the player only when no text-entry element has focus. This restores the
- * media controls that were removed from the Electron menu (registerAccelerator: false)
- * while ensuring typing a space in a URL field no longer triggers Play/Pause.
+ * to the player for GLOBAL shortcuts — the Playback menu ships those keys with
+ * `registerAccelerator: false` by design, so this relay is the only keyboard
+ * path outside the player page.
+ *
+ * Trust boundary (M-WINDOWS-13): the vendored @phlix/ui bundle owns these keys
+ * on its own player page. Its engine installs a second document-level keydown
+ * listener while PlayerPage is mounted (v0.99.10 dist/PlayerPage-BAxWiTto.js
+ * :2740-2767 → installer `b()`, dist/shortcuts-Ck2yBFUB.js:316-324; dispatch
+ * `y()` :277-311 — Space → playPause :279, ArrowLeft/Right → seekBy(∓5)
+ * :282-283). Both listeners fire on the same event (document-level bubble
+ * listeners cannot see each other), so inside the player route one physical
+ * keypress would actuate both: Space toggles play→pause→play (stuttered
+ * no-op) and Arrows seek a net ∓15s (relay ∓10 + engine ∓5) against a help
+ * table that advertises ±5. Inside `/app/player/*` the vendored engine is
+ * therefore the SOLE keyboard authority and this relay defers entirely —
+ * including while the engine deliberately disarms its own keys (shortcut-help
+ * overlay / modals gate its `enabled()`); outside that route the engine is
+ * unmounted and the relay acts.
  *
  * Idempotent: calling again before cleaning up removes the previous registration first.
  * Returns a cleanup function that removes the listener.
@@ -87,10 +130,19 @@ export function installFocusGuard(player: BridgePlayer): () => void {
   }
 
   function handleKeyDown(e: KeyboardEvent): void {
+    // Inside the ui player route its vendored keyboard engine acts on these
+    // exact keys; relaying too is the M2 double-dispatch defect. Defer first.
+    // (Bare `location`, not `window.location`: the route is a global-level
+    // fact and must not depend on the `window` binding, which unit tests and
+    // dev/browser contexts reshape freely.)
+    if (location.pathname.startsWith(PLAYER_ROUTE_PREFIX)) return;
+
     if (isTextInput(document.activeElement)) return;
 
     switch (e.code) {
       case 'Space':
+        // Focused button/link keeps native Space activation (engine parity).
+        if (isButtonActivation(document.activeElement)) return;
         e.preventDefault();
         if (player.playing) {
           player.pause();
