@@ -31,6 +31,10 @@
  * | 6 | Tripwire: updater stays allowPrerelease=false  | prerelease-flip ships → "Getting updates" must   |
  * |   | while only pre-releases exist, matching the    | be rewritten BEFORE either side moves            |
  * |   | README's silent-no-op disclosure               |                                                 |
+ * | 7 | First-launch copy keeps the fail-open          | versionCheck.ts design decision docblock        |
+ * |   | sentence AND its docblock literal still        | moves (policy flips) OR README drops the        |
+ * |   | names the gate as blocking ONLY explicit       | end-user truth it mirrors - rewrite the         |
+ * |   | below-min reports; unreported servers boot     | copy in the same commit (docs-follow-producers) |
  *
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
@@ -48,6 +52,7 @@ const PKG = JSON.parse(readFileSync(join(PROJECT_ROOT, 'package.json'), 'utf-8')
 const WORKFLOW = readFileSync(join(PROJECT_ROOT, '.github', 'workflows', 'build.yml'), 'utf-8');
 const MAIN_SOURCE = readFileSync(join(PROJECT_ROOT, 'src', 'main', 'index.ts'), 'utf-8');
 const WIN_EN = readFileSync(join(PROJECT_ROOT, 'src', 'renderer', 'i18n', 'windows-own', 'en.ts'), 'utf-8');
+const VERSION_CHECK = readFileSync(join(PROJECT_ROOT, 'src', 'main', 'versionCheck.ts'), 'utf-8');
 
 /** The exact NSIS asset name CI publishes: package.json's own template, rendered. */
 function renderedNsisAssetName(): string {
@@ -166,5 +171,26 @@ describe('End-user install story tracks shipped release reality (M-WINDOWS-19)',
     ).toContain('autoUpdater.allowPrerelease = false');
     const updates = readmeSection('### Getting updates', '## Prerequisites');
     expect(updates, '"Getting updates" stopped disclosing the prerelease-blind posture').toContain('pre-release');
+  });
+
+  // -- 7. Fail-open truth: README mirrors the versionCheck design decision ----
+  it('first-launch copy documents the fail-open-for-unreported truth the gate ships', () => {
+    expect(
+      VERSION_CHECK,
+      'versionCheck.ts no longer carries its "fail-open for unknown servers" design-decision ' +
+      'docblock — the policy flipped. Re-write the README first-launch sentence in the SAME ' +
+      'commit (docs follow producers); right now it tells users the gate stops ONLY an ' +
+      'explicit below-minimum report.'
+    ).toContain('fail-open for unknown servers');
+    const launch = readmeSection('### First launch:', '### Getting updates');
+    // Whitespace-normalized: the pin guards the TRUTH's presence, not README's wrap column.
+    const launchFlat = launch.replace(/\s+/g, ' ');
+    expect(
+      launchFlat,
+      'the first-launch story dropped the fail-open disclosure (r2/M19 ask #2): end users ' +
+      'must know the gate blocks ONLY servers that explicitly report below 1.1.0, and a ' +
+      'pre-1.1.0 server without the version endpoint boots a degraded app instead of ' +
+      'showing the too-old screen.'
+    ).toContain('fails open');
   });
 });

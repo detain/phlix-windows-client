@@ -95,12 +95,17 @@ there is no default server baked in, so type (or paste) the address of the Phlix
 Server you use, then sign in with an account on that server.
 
 The server must be **Phlix Media Server 1.1.0 or later** (see *Minimum Server Version*
-above). The app checks the server's version at every launch. If it is too old, you will
-not be left staring at a blank window: an error dialog names both versions, and the window
-shows a persistent **"Phlix server too old"** screen with the reported and required
-versions and a **Try again** button. Update the server (or correct the URL via the
-in-app connection screen) and press Try again — the check re-runs in place and, once the
-server passes, the app boots straight through with no quit-and-relaunch ceremony.
+above). The app checks the server's version at every launch, and the gate is precise
+about what it blocks: it stops only a server that *explicitly reports* a version below
+the minimum — an older server that does not implement the version endpoint at all fails
+open, booting you into a possibly-degraded app instead of showing the screen described
+here. When a server is stopped, you will not be left staring at a blank window: an error
+dialog names both versions, and the window shows a persistent **"Phlix server too old"**
+screen with the reported and required versions and a **Try again** button. Recover by
+fixing the server, then press Try again — the check re-runs in place and, once the server
+passes, the app boots straight through with no quit-and-relaunch ceremony. While that
+screen is up the app's normal interface is not running, so there is no in-app way to
+point it at a different server from here; the correction has to happen server-side.
 
 After a successful connect, your server URL and login persist, so later launches go
 directly to your library.

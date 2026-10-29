@@ -7,6 +7,30 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Docs — M-WINDOWS-19 r2: the too-old screen's remediation made literally followable + fail-open truth surfaced — 2026-10-29
+
+- **Why:** r1 review verdict REWORK (2 asks). Ask #1: the first-launch copy said "(or
+  correct the URL via the in-app connection screen)" while the too-old screen is up — the
+  instruction fails when followed literally: that screen is mounted by the boot gate BEFORE
+  `createPhlixApp`, so no Vue app, no bridge, no Connect screen exists in that state (the
+  Connect screen renders only when no server URL is stored at all). Ask #2: the entry below
+  claims the section documents "its fail-open-for-unreported truth", but the README said
+  nothing of it.
+- **Cure (docs-truth, README + this log + one pin):** the phantom affordance is deleted —
+  the remediation now names only what IS reachable in that state (fix the server, press
+  **Try again**), plus an explicit honest note that no in-app URL correction exists while
+  the screen is up. The fail-open truth moved from CHANGELOG-claim to end-user prose: the
+  gate blocks ONLY a server that explicitly reports below 1.1.0; an older server without
+  the version endpoint fails open into a possibly-degraded app. New pin 7 in
+  `tests/unit/installStoryStatus.test.ts` (docs-follow-producers tripwire): the first-launch
+  copy keeps the "fails open" sentence AND `src/main/versionCheck.ts` keeps its
+  "fail-open for unknown servers" design-decision docblock — either side moving alone
+  reddens. Red-on-parent measured at 71b9221 (parent README has no fail-open sentence);
+  dropping the sentence from the tip reddens exactly pin 7. Suite 640 → 641 (+1 exact).
+  Ask #1's cure is a deletion — no negative pin (r1: "no new pin needed").
+  `build.yml`/workflows/`package.json` untouched; updater posture (WIN-01 disclosure,
+  prerelease-flip owner reel) unchanged.
+
 ### Docs — M-WINDOWS-19: the end-user install story completed to shipped release reality — 2026-10-29
 
 - **Why:** review `windows__writer` MAJOR-1 — "No end-user install story; the actual
