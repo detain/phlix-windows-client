@@ -157,8 +157,11 @@ type ServerVersionCheckResult = Awaited<ReturnType<NonNullable<typeof window.ele
  * copy's "restart this app" ceremony. The Retry button re-runs the SAME check
  * (the gate verdict/policy is untouched — this is rendering, not enforcement)
  * and either resumes the boot in place when the server was updated meanwhile,
- * or re-renders with the freshest verdict. The surface can never strand into
- * blankness or a dead button: every outcome leaves it interactive.
+ * or re-renders with the freshest verdict. r1 noted that claim as unsupported
+ * for a fourth outcome (a resumed boot() rejecting left the clicked button
+ * disabled forever); r2 caught it — so the law now holds by construction:
+ * every outcome that leaves this screen visible leaves its Retry live, and
+ * every outcome that replaces the screen replaces it with a working surface.
  *
  * Every string goes through textContent (NEVER innerHTML): the server-reported
  * version is network input and must never be parsed as HTML. The windows-own
@@ -229,7 +232,24 @@ function renderIncompatibleServerScreen(
           // bridge, no deeplink listener — so re-running boot() from scratch
           // is safe: it re-reads config, re-checks (passes now) and mounts
           // into the same #phlix-app container, replacing this screen.
-          void boot();
+          //
+          // M-WINDOWS-16 r2 (review windows__gameux MINOR-1): that resumed
+          // boot() can itself reject BEFORE it owns the window — its fail-fast
+          // config IPC (a DPAPI custody failure, say) throws out of the
+          // awaiting boot(). Discarded with `void`, the rejection stranded
+          // this clicked button permanently disabled on a stale screen.
+          // Catching and re-arming makes the surface law true by construction.
+          boot().catch((err: unknown) => {
+            log.error('[Boot] Resumed boot failed:', err);
+            // Only a surface still in the document can be re-armed: once
+            // boot() reached mounting, the app owns the window even if the
+            // mount then threw, and this off-document button is no longer the
+            // user's reality (a stale "too old" re-render would be a lie —
+            // the verdict in hand is compatible).
+            if (retryButton.isConnected) {
+              retryButton.disabled = false;
+            }
+          });
         } else {
           // Still too old: re-render with the freshest verdict. The new
           // screen carries its own Retry — no quit-and-relaunch ceremony.

@@ -265,6 +265,107 @@ describe('boot (renderer entry)', () => {
     }
   });
 
+  // ---------------------------------------------------------------------------
+  // M-WINDOWS-16 r2 (review windows__gameux MINOR-1): r1 upheld the retry
+  // design but caught the docblock claim "every outcome leaves it interactive"
+  // as unsupported for a fourth outcome — a resumed boot() that REJECTS before
+  // it owns the window (its fail-fast config IPC throws: DPAPI custody
+  // failure class) was discarded via `void boot()`, leaving the clicked button
+  // disabled forever on a stale screen. Cure: catch, log, re-arm a still
+  // connected surface. Red on parent for each pin below (parent strands the
+  // button AND swallows the rejection unlogged/unhandled).
+  // ---------------------------------------------------------------------------
+
+  it('a resumed boot that rejects before it owns the window re-arms the live screen instead of stranding a dead button', async () => {
+    // Four gate verdicts: initial boot, retry #1 (resumed boot() dies at its
+    // own config IPC), retry #2 (resumed boot() runs whole).
+    const api = makeGateApi([TOO_OLD, OK_VERDICT, OK_VERDICT, OK_VERDICT]);
+    // One-shot config outage on the SECOND boot() — the resumed one. The
+    // initial boot's config (call 1) and the third boot's (call 3) succeed.
+    let configCalls = 0;
+    api.hubGetConfig = vi.fn(async () => {
+      configCalls += 1;
+      if (configCalls === 2) throw new Error('DPAPI custody unavailable');
+      return {
+        hubUrl: 'https://hub.example.com',
+        activeServerId: null,
+        connectionMode: 'hub'
+      };
+    });
+    const errorSpy = vi.spyOn(log, 'error').mockImplementation(() => {});
+    setElectronApi(api);
+    const container = await bootIntoFailureScreen();
+    try {
+      expect(container.querySelector('button')).not.toBeNull();
+      container.querySelector('button')!.click();
+      // Retry check passed, resumed boot() re-checked the gate and then died
+      // at its own config IPC before ever mounting.
+      await vi.waitFor(() => expect(configCalls).toBe(2));
+      expect(api.checkServerVersion).toHaveBeenCalledTimes(2);
+      expect(mountSpy).not.toHaveBeenCalled();
+      // The failure is loud, not swallowed…
+      await vi.waitFor(() =>
+        expect(errorSpy).toHaveBeenCalledWith(
+          '[Boot] Resumed boot failed:',
+          expect.objectContaining({ message: 'DPAPI custody unavailable' })
+        )
+      );
+      // …and the surface stays live: same button, back in the document,
+      // re-armed. On parent this assertion is the strand: disabled forever.
+      const button = container.querySelector('button')!;
+      await vi.waitFor(() => expect(button.disabled).toBe(false));
+      expect(button.isConnected).toBe(true);
+      expect(container.querySelector('[role="alert"]')).not.toBeNull();
+      // Genuinely interactive: a second click drives the boot to the mount.
+      button.click();
+      await vi.waitFor(() => expect(mountSpy).toHaveBeenCalledWith('#phlix-app'));
+      expect(api.checkServerVersion).toHaveBeenCalledTimes(4);
+    } finally {
+      errorSpy.mockRestore();
+      container.remove();
+    }
+  });
+
+  it('a resumed boot that fails only after the mount leaves the app-owned DOM untouched and never resurrects the stale screen', async () => {
+    const api = makeGateApi([TOO_OLD, OK_VERDICT, OK_VERDICT]);
+    const errorSpy = vi.spyOn(log, 'error').mockImplementation(() => {});
+    setElectronApi(api);
+    const container = await bootIntoFailureScreen();
+    try {
+      const button = container.querySelector('button')!;
+      // The pre-existing "mount threw" residual class: the mount takes the
+      // container and THEN fails. The app owns the window from that moment —
+      // the catch must log without repainting a stale screen over it, and the
+      // isConnected guard must never re-arm an off-document button.
+      mountSpy.mockImplementationOnce(() => {
+        container.replaceChildren();
+        const owned = document.createElement('div');
+        owned.id = 'app-owned-after-throw';
+        container.appendChild(owned);
+        throw new Error('overlay init failed after mount');
+      });
+      button.click();
+      await vi.waitFor(() => expect(mountSpy).toHaveBeenCalledWith('#phlix-app'));
+      await vi.waitFor(() =>
+        expect(errorSpy).toHaveBeenCalledWith(
+          '[Boot] Resumed boot failed:',
+          expect.objectContaining({ message: 'overlay init failed after mount' })
+        )
+      );
+      // App DOM survives; no boot-failure screen resurrected over it.
+      expect(container.querySelector('#app-owned-after-throw')).not.toBeNull();
+      expect(container.querySelector('[role="alert"]')).toBeNull();
+      // Guard teeth (mutation M-r2b, stripping isConnected): an off-document
+      // button is left exactly as it was, not silently re-armed.
+      expect(button.isConnected).toBe(false);
+      expect(button.disabled).toBe(true);
+    } finally {
+      errorSpy.mockRestore();
+      container.remove();
+      mountSpy.mockReset();
+    }
+  });
+
   it('failure surface renders a hostile reported version as text only and echoes no credentials', async () => {
     const hostile = { ...TOO_OLD, serverVersion: '<img src=x onerror="steal(document.tokens)">' };
     const api = makeGateApi([hostile]);

@@ -7,6 +7,35 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fix — M-WINDOWS-16 r2: the boot-surface interactivity law made true by construction — 2026-10-29
+
+- **Why:** review r1 (verdict SHIP, 0 blocking) upheld the retry design but named the docblock claim
+  "The surface can never strand into blankness or a dead button: every outcome leaves it interactive"
+  as unsupported for a fourth outcome (its MINOR-1): the compatible arm ran `void boot()`, so a
+  RESUMED boot() rejecting before it owns the window — its fail-fast config IPC throws, e.g. the
+  disclosed DPAPI custody-failure class — was an unhandled rejection leaving the clicked button
+  permanently disabled on a stale screen. The forward-fix the reviewer proposed for the next
+  boot-UX pass ships here.
+- **Cure:** `src/renderer/main.ts` retry compatible-arm: `void boot()` → `boot().catch(...)` — the
+  rejection is logged (`[Boot] Resumed boot failed:`) and the surface re-armed for another attempt,
+  guarded by `retryButton.isConnected` so a post-mount throw (the app already owns the window) never
+  touches off-document DOM nor resurrects a stale "too old" screen over a live verdict. The
+  function docblock now states the law the code actually guarantees: every outcome that leaves the
+  screen visible leaves its Retry live; outcomes that replace the screen replace it with a working
+  surface. Rendering only — gate verdicts, policy (src/main/versionCheck.ts), preload/IPC surface,
+  i18n catalogs and wire codes all untouched.
+- **Tests:** two new pins in tests/unit/main.test.ts — (1) a resumed boot that rejects at its own
+  config IPC logs loudly, re-arms the still-connected button, and a second click drives the boot to
+  the mount; (2) a resumed boot that fails only AFTER the mount leaves the app-owned DOM untouched,
+  resurrects nothing, and never re-arms the off-document button. Red-on-parent measured: EXACTLY the
+  2 new tests fail on 75d57a5 bytes (parent additionally surfaced both rejections unhandled — the
+  silent-swallow r1 named). Mutations: M-r2a restore parent's `void boot()` → 2 red; M-r2b strip the
+  isConnected guard → exactly 1 red (the post-mount pin). Restore → 18/18 green.
+- **Gates (measured):** vitest FULL serial (`--no-file-parallelism`) **661 passed** (659-era + 2
+  exact, 52 files, exit 0; venue note: a sibling-less fresh clone reports 660P|1S for the same tree —
+  the i18nLocales sibling-context describe skips there and runs here; totals equal); vue-tsc 0;
+  `tsc -p tsconfig.main.json --noEmit` 0; `npm run lint` 0; `npm run build` 0 + preload assert OK.
+
 ### Docs — M-WINDOWS-22 r2: zero-ownship survivor family swept whole-tree; law extended — 2026-10-29
 
 - **Why:** review r1 REWORK — the six-site cure and pin #9 held, but the mandated survivor sweep had
