@@ -27,27 +27,64 @@
  * literally one and the same string. The space-free upload path is proven by
  * the identically-named `SHA256SUMS.txt` asset, served verbatim.
  *
- * These are source-of-truth text pins (the repo's established workflow-guard
- * idiom — see audit-gate.test.mjs for the scripts-level precedent); the
- * verification step's own greps do the runtime enforcement on CI. Every law
- * below reddens on the pre-cure build.yml at parent 1fa7694.
+ * The NEGATIVE clauses are whole-file text pins (the repo's established
+ * workflow-guard idiom — see audit-gate.test.mjs for the scripts-level
+ * precedent): a fabricated feed must simply not exist anywhere. The POSITIVE
+ * carry-through clauses (upload list, attachment list) are structural —
+ * the workflow YAML is parsed and each claim asserts ELEMENT EQUALITY on the
+ * upload step's `with.path` / the Create Release step's `with.files` list.
+ * M-WINDOWS-05 r2: whole-file toContain was comment-masked (deleting the
+ * latest.yml entry from the release job's files: list left the law green via
+ * the SHA256-step comment and the verify step's prose), so list membership is
+ * read from the parsed structure, not from raw text. The verification step's
+ * own greps keep the runtime enforcement on CI. Every law below reddens on
+ * the pre-cure build.yml at parent 1fa7694.
  */
 
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { load } from 'js-yaml';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, '..', '..');
 const buildYml = readFileSync(path.join(repoRoot, '.github', 'workflows', 'build.yml'), 'utf8');
 const pkg = JSON.parse(readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
 
-/** The `files: |` block of the versioned release's Create Release step. */
-function releaseJobText() {
-  const start = buildYml.indexOf('\n  release:');
-  expect(start, 'release job exists in build.yml').toBeGreaterThan(-1);
-  return buildYml.slice(start);
+/** Parsed workflow document, memoized (parse fails loudly as a test error). */
+let parsedWorkflow;
+function workflow() {
+  if (!parsedWorkflow) parsedWorkflow = load(buildYml);
+  return parsedWorkflow;
+}
+
+/** All steps of a named job, or a descriptive throw. */
+function jobSteps(jobId) {
+  const steps = workflow()?.jobs?.[jobId]?.steps;
+  if (!Array.isArray(steps)) {
+    throw new Error(`build.yml must define a '${jobId}' job with a steps list`);
+  }
+  return steps;
+}
+
+/** The single step of `jobId` matching a `uses:` prefix (and optional name). */
+function findStep(jobId, usesPrefix, stepName) {
+  const step = jobSteps(jobId).find(
+    (s) => String(s.uses ?? '').startsWith(usesPrefix) && (stepName === undefined || s.name === stepName)
+  );
+  if (!step) {
+    throw new Error(`${jobId} job has no step using '${usesPrefix}'${stepName ? ` named '${stepName}'` : ''}`);
+  }
+  return step;
+}
+
+/** A YAML block-scalar list (upload `path:` / release `files:`) → entries. */
+function listEntries(value, label) {
+  if (typeof value !== 'string' || value.trim() === '') {
+    throw new Error(`${label} must be a non-empty block-scalar list of paths`);
+  }
+  return value.split(/\r?\n/).map((line) => line.trim()).filter((line) => line !== '');
 }
 
 describe('release job never hand-writes the updater feed', () => {
@@ -74,15 +111,26 @@ describe('release job never hand-writes the updater feed', () => {
 
 describe('the authentic electron-builder feed + blockmap ride the pipeline', () => {
   it("build job uploads builder's own latest.yml and *.blockmap from release/", () => {
-    expect(buildYml).toContain('release/latest.yml');
-    expect(buildYml).toContain('release/*.blockmap');
+    // Structural, not prose: the entries must be members of the upload
+    // step's parsed `with.path` list — a comment mentioning the path can
+    // never satisfy this again.
+    const upload = findStep('build', 'actions/upload-artifact@');
+    const paths = listEntries(upload.with?.path, "build job upload-artifact step's with.path");
+    expect(paths, 'upload path list carries builder-owned latest.yml').toContain('release/latest.yml');
+    expect(paths, 'upload path list carries the installer blockmap').toContain('release/*.blockmap');
   });
 
   it('versioned release attaches the feed, the installer blockmap, and the installer', () => {
-    const releaseJob = releaseJobText();
-    expect(releaseJob).toContain('artifacts/nsis/latest.yml');
-    expect(releaseJob).toContain('artifacts/nsis/*.exe.blockmap');
-    expect(releaseJob).toContain('artifacts/nsis/*.exe');
+    // Element equality on the Create Release step's parsed `with.files`
+    // list (M-WINDOWS-05 r2: deleting an entry from the list must redden
+    // this law, which the old whole-slice toContain let walk free).
+    const create = findStep('release', 'softprops/action-gh-release@', 'Create Release');
+    const files = listEntries(create.with?.files, "release job Create Release step's with.files");
+    expect(files, "release attaches electron-builder's own nsis feed").toContain('artifacts/nsis/latest.yml');
+    expect(files, 'release attaches the installer').toContain('artifacts/nsis/*.exe');
+    const blockmaps = files.filter((entry) => entry.endsWith('.exe.blockmap'));
+    expect(blockmaps.length, 'release attaches at least one installer blockmap').toBeGreaterThanOrEqual(1);
+    expect(blockmaps, 'the blockmap entry is the nsis artifact dir').toContain('artifacts/nsis/*.exe.blockmap');
   });
 
   it('release job fails loud when the feed is missing or fabricated (verification step)', () => {

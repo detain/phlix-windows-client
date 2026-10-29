@@ -7,6 +7,34 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed — update-feed workflow guard gets real structural teeth (M-WINDOWS-05 r2) — 2026-10-29
+
+- **Why:** review `windows__crossfe` M-WINDOWS-05 round 1 (finding M1, major). The
+  feed carry-through laws of `tests/unit/updateFeedWorkflow.test.mjs` were whole-file
+  `toContain` substring checks: deleting `artifacts/nsis/latest.yml` (or
+  `artifacts/nsis/*.exe.blockmap`) from the Create Release `files:` list — or
+  `release/latest.yml` from the build job's upload `path:` list — left all 9 laws green,
+  because the path strings also occur in step comments and the verify step's greps
+  (build.yml :252/:416/:429/:443-444). Attachment removal would upload a release
+  without the updater feed — electron-updater 404s `latest.yml`, auto-update silently
+  dead — with zero CI red. Exactly the silent-regression class the guard exists to stop.
+- **What:** the two carry-through laws now parse `.github/workflows/build.yml` with
+  js-yaml (already a devDependency) and assert ELEMENT EQUALITY on the parsed
+  `with.path` list of the build job's `actions/upload-artifact` step and the
+  `with.files` list of the versioned release's `Create Release` step
+  (`softprops/action-gh-release`), with fail-loud throws when either step or list is
+  absent. Laws 1-3/6-9 untouched (the negatives are whole-file pins by design).
+- **Teeth (mutation-proven in a scratch copy; the workflow itself untouched):**
+  deleting the release `files:` latest.yml entry → 1 red (the attachment law);
+  deleting the `*.exe.blockmap` entry → 1 red; deleting the upload `release/latest.yml`
+  path → 1 red (the old :252/:429 prose false-green is dead). Parent blob pair
+  (1fa7694 build.yml + package.json) stays exactly 7 failed / 2 passed (laws 7/9 pass
+  by design as config-contract guards).
+- **Pins:** vitest full serial `--no-file-parallelism`: 41 files / 498 passed / 0 failed
+  / 0 skipped (test count unchanged by this edit: 9 laws before, 9 after);
+  vue-tsc renderer + tests, tsc main, eslint, build, audit-gate all 0.
+
+
 ### Fixed — friend-watch (SyncPlay) docs end their civil war; desktop truth pinned — 2026-10-29
 
 - **Why:** review `windows__casualgamer` M-WINDOWS-04 (M4). Four sources told three
