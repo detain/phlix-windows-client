@@ -91,18 +91,21 @@ describe('createToastThrottle (M-WINDOWS-33)', () => {
   });
 });
 
-describe('notification:show handler wiring (M-WINDOWS-33)', () => {
-  const handlerBlock = mainSource.slice(
-    mainSource.indexOf("ipcMain.handle('notification:show'"),
-    mainSource.indexOf('notification.show();', mainSource.indexOf("ipcMain.handle('notification:show'")) + 20
-  );
+describe('notifyUser pipeline (M-WINDOWS-33 law, M-WINDOWS-40 consolidation)', () => {
+  // M-WINDOWS-40 moved the construction path into the single notifyUser
+  // gate (the three autoUpdater arms previously bypassed the pref). The
+  // guard-before-construction law is unchanged — only its location moved —
+  // so these anchors re-seat on `function notifyUser` and the delegation
+  // pin below proves the renderer IPC still routes through it.
+  const fnStart = mainSource.indexOf('function notifyUser(');
+  const handlerBlock = mainSource.slice(fnStart, mainSource.indexOf('notification.show();', fnStart) + 20);
 
-  it('the handler consults the payload guard before constructing the Notification', () => {
+  it('the pipeline consults the payload guard before constructing the Notification', () => {
     expect(handlerBlock).toMatch(/validateNotificationText\(/);
     expect(handlerBlock.indexOf('validateNotificationText(')).toBeLessThan(handlerBlock.indexOf('new Notification('));
   });
 
-  it('the handler consults the throttle before constructing the Notification', () => {
+  it('the pipeline consults the throttle before constructing the Notification', () => {
     expect(handlerBlock).toMatch(/allowNotificationToast\(/);
     expect(handlerBlock.indexOf('allowNotificationToast(')).toBeLessThan(handlerBlock.indexOf('new Notification('));
   });
@@ -113,5 +116,27 @@ describe('notification:show handler wiring (M-WINDOWS-33)', () => {
     // isSupported + notificationsEnabled already contributed 2 pre-existing bails;
     // the two new guards add 2 more.
     expect(bails.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('the notification:show handler delegates to notifyUser with the renderer throttle on', () => {
+    const handlerStart = mainSource.indexOf("ipcMain.handle('notification:show'");
+    expect(handlerStart).toBeGreaterThan(-1);
+    const handlerSlice = mainSource.slice(handlerStart, handlerStart + 900);
+    expect(handlerSlice).toMatch(/return notifyUser\(raw\?\.title, raw\?\.body, \{\s*throttle: true,/);
+    // The click extras stay handler-local (the deep-link prefix contract).
+    expect(handlerSlice).toMatch(/handleDeepLinkUrl\(`phlix:\/\/internal\$\{clickAction\}`\)/);
+  });
+
+  it('every autoUpdater arm routes through notifyUser, unthrottled but pref-gated', () => {
+    const updaterArms = mainSource.slice(
+      mainSource.indexOf("autoUpdater.on('update-available'"),
+      mainSource.indexOf("autoUpdater.on('error'")
+    );
+    const calls = updaterArms.match(/notifyUser\(/g) || [];
+    expect(calls.length).toBe(3);
+    // No raw construction survives in any updater arm (M-WINDOWS-40).
+    expect(updaterArms).not.toMatch(/new Notification\(/);
+    // Trusted low-rate origins must not share the renderer flood budget.
+    expect((updaterArms.match(/throttle: false/g) || []).length).toBe(3);
   });
 });

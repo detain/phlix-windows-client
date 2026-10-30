@@ -614,18 +614,15 @@ function setupAutoUpdater(): void {
     // Notify renderer so it can show UI if needed
     mainWindow?.webContents.send('update:available', { version: info.version });
 
-    // Offer to download via notification
-    if (Notification.isSupported()) {
-      const notification = new Notification({
-        title: t('updater.availableTitle'),
-        body: t('updater.availableBody', { version: info.version })
-      });
-      notification.on('click', () => {
+    // M-WINDOWS-40: through notifyUser, so the notificationsEnabled opt-out
+    // (and payload law) govern this origin too. Unthrottled: trusted, rare.
+    notifyUser(t('updater.availableTitle'), t('updater.availableBody', { version: info.version }), {
+      throttle: false,
+      onClick: () => {
         autoUpdater.downloadUpdate();
         updateState.status = 'downloading';
-      });
-      notification.show();
-    }
+      }
+    });
   });
 
   // M-WINDOWS-12 [review windows__gameux M1]: the previously-missing arm.
@@ -649,13 +646,10 @@ function setupAutoUpdater(): void {
 
     if (manualUpdateCheckPending) {
       manualUpdateCheckPending = false;
-      if (Notification.isSupported()) {
-        const notification = new Notification({
-          title: t('updater.notAvailableTitle'),
-          body: t('updater.notAvailableBody', { version: app.getVersion() })
-        });
-        notification.show();
-      }
+      // M-WINDOWS-40: pref-gated like every other origin (unthrottled reply).
+      notifyUser(t('updater.notAvailableTitle'), t('updater.notAvailableBody', { version: app.getVersion() }), {
+        throttle: false
+      });
     }
   });
 
@@ -673,18 +667,15 @@ function setupAutoUpdater(): void {
     // W4.9: Notify renderer — do NOT auto-restart silently
     mainWindow?.webContents.send('update:downloaded', { version: info.version });
 
-    // W4.7: Wire to notification system — user chooses when to restart
-    if (Notification.isSupported()) {
-      const notification = new Notification({
-        title: t('updater.readyTitle'),
-        body: t('updater.readyBody', { version: info.version })
-      });
-      notification.on('click', () => {
+    // W4.7/M-WINDOWS-40: pref-gated install prompt — user chooses when to
+    // restart; the click wiring rides through notifyUser's onClick option.
+    notifyUser(t('updater.readyTitle'), t('updater.readyBody', { version: info.version }), {
+      throttle: false,
+      onClick: () => {
         isQuitting = true;
         autoUpdater.quitAndInstall(false, false);
-      });
-      notification.show();
-    }
+      }
+    });
   });
 
   autoUpdater.on('error', (err) => {
@@ -1147,7 +1138,29 @@ ipcMain.on('power:update', (_event, { playing }: { playing: boolean }) => {
 // collapses a sustained hostile stream. The clock is injected (Date.now here,
 // a fake in tests) so the window edges are unit-deterministic.
 const allowNotificationToast = createToastThrottle({ limit: 8, windowMs: 60_000 });
-ipcMain.handle('notification:show', (_event, raw: { title?: unknown; body?: unknown; clickAction?: string } | null | undefined) => {
+
+/**
+ * M-WINDOWS-40 (review windows__gameux m6): the single toast surface this
+ * process may raise. Before this, the three autoUpdater arms fired raw
+ * `new Notification(...)` guarded only by Notification.isSupported(),
+ * bypassing the notificationsEnabled preference — an explicit user opt-out
+ * was silently ignored by exactly the loudest messages the app sends.
+ * Every origin now funnels through the same gate order:
+ *   platform support -> user preference -> payload validation (M-WINDOWS-33
+ *   reject-not-truncate caps) -> rate limit (renderer path only) -> show.
+ *
+ * The throttle deliberately guards only the renderer-facing IPC path: the
+ * updater arms are trusted, low-rate origins, and a malicious renderer
+ * cannot drive autoUpdater events, so cross-talk starvation is not a
+ * vector. Payloads are `unknown` at this boundary for the same reason the
+ * M-WINDOWS-33 law exists: callers are boundaries, not authorities.
+ * Returns whether the toast was shown (the notification:show contract).
+ */
+function notifyUser(
+  title: unknown,
+  body: unknown,
+  options: { onClick?: () => void; throttle: boolean }
+): boolean {
   if (!Notification.isSupported()) {
     log.warn('[notification] Notifications not supported on this platform');
     return false;
@@ -1156,35 +1169,44 @@ ipcMain.handle('notification:show', (_event, raw: { title?: unknown; body?: unkn
     log.info('[notification] Notifications disabled by user preference');
     return false;
   }
-  // M-WINDOWS-33 (review windows__exploiter MINOR-5): the renderer is a
-  // boundary, not an authority. Payload text is type-checked and length-capped
-  // HERE — over-cap payloads are rejected, never truncated (an attacker that
-  // controlled the shell's cut point controlled the surviving sentence) — and
-  // the toast stream is rate-limited, closing the desktop-spam/phishing vector
-  // a malicious server could otherwise drive through the UI's notification
-  // flows behind the user's back.
-  const text = validateNotificationText(raw?.title, raw?.body);
+  const text = validateNotificationText(title, body);
   if (!text.ok) {
     log.warn(`[notification] Rejected payload: ${text.reason}`);
     return false;
   }
-  if (!allowNotificationToast(Date.now())) {
+  if (options.throttle && !allowNotificationToast(Date.now())) {
     log.warn('[notification] Toast rate limit reached — dropped');
     return false;
   }
-  const { title, body } = text;
+  // The inner block shadows the `title`/`body` parameter names on purpose:
+  // the validated narrowing destructures to them so the construction line
+  // keeps its byte-pinned shape (`new Notification({ title, body })`).
+  {
+    const { title, body } = text;
+    const notification = new Notification({ title, body });
+    if (options.onClick) {
+      notification.on('click', options.onClick);
+    }
+    notification.show();
+  }
+  return true;
+}
+ipcMain.handle('notification:show', (_event, raw: { title?: unknown; body?: unknown; clickAction?: string } | null | undefined) => {
+  // M-WINDOWS-33/40: support, preference, payload caps and the toast rate
+  // limit all live in notifyUser — the handler is the renderer-facing
+  // delegation plus the click-routing extras.
   const { clickAction } = raw ?? {};
-  const notification = new Notification({ title, body });
-  notification.on('click', () => {
-    // M-WINDOWS-03: a notification click is a re-entry surface too — the
-    // window may be hidden-to-tray or minimized, not merely unfocused.
-    restoreWindow(mainWindow);
-    if (clickAction) {
-      handleDeepLinkUrl(`phlix://internal${clickAction}`);
+  return notifyUser(raw?.title, raw?.body, {
+    throttle: true,
+    onClick: () => {
+      // M-WINDOWS-03: a notification click is a re-entry surface too — the
+      // window may be hidden-to-tray or minimized, not merely unfocused.
+      restoreWindow(mainWindow);
+      if (clickAction) {
+        handleDeepLinkUrl(`phlix://internal${clickAction}`);
+      }
     }
   });
-  notification.show();
-  return true;
 });
 
 // W4.12: GPU escape hatch — get/set disableHardwareAcceleration preference

@@ -335,6 +335,21 @@ export async function boot(): Promise<void> {
       // of aborting into a dark window, then stop the boot — no Vue app over
       // a server we refuse to talk to. The screen carries a Retry button so
       // the user is never quit-only (M-WINDOWS-16).
+      //
+      // M-WINDOWS-39: the rejection ALSO rides the native notification
+      // surface. The incompatible screen renders into a window that at cold
+      // start may be hidden-to-tray — a banner nobody sees is not a reply.
+      // showNotification is pref-gated, payload-capped and rate-limited
+      // main-side (M-WINDOWS-33/40); this boot path is its consumer, which
+      // is exactly the orphan-class answer this batch's inventory pins.
+      // The regular setWindowLocale below never runs on this early-return
+      // path, so pin the locale here before tWin reads it.
+      setWindowLocale(resolveLocale());
+      try {
+        void api.showNotification?.(tWin('boot.incompatibleTitle'), tWin('boot.incompatibleIntro'));
+      } catch (err) {
+        log.warn('[Boot] Native notification unavailable:', err);
+      }
       log.error('[Boot] Server version check failed — showing the incompatible-server screen');
       renderIncompatibleServerScreen(versionCheck, checkVersion);
       return;

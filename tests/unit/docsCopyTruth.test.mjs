@@ -135,3 +135,44 @@ describe('close-to-tray exposure is documented (M-WINDOWS-45)', () => {
     expect(sec).toMatch(/Quit/i);
   });
 });
+
+describe('ci-baseline holds no fabricated data (M-WINDOWS-26)', () => {
+  const doc = read('docs/ci-baseline.md');
+  it('the August synthetic run-id block is gone', () => {
+    expect(doc).not.toMatch(/10876543/);
+    expect(doc).not.toMatch(/illustrative, not real/);
+  });
+  it('a real dated snapshot replaced it', () => {
+    expect(doc).toMatch(/Recent CI Snapshot/);
+    expect(doc).toMatch(/fetched 2026-10-30T19:16Z/);
+    // cancel-in-progress cadence is explained, not presented as failure.
+    expect(doc).toMatch(/cancel-in-progress/);
+  });
+});
+
+describe('ADR-002 records the SHIPPED CSP (M-WINDOWS-42)', () => {
+  const adr = read('docs/decisions/002-csp-directives.md');
+  const html = read('src/renderer/index.html');
+  it('the Decision block is byte-identical to the meta tag content', () => {
+    const shipped = html.match(/http-equiv="Content-Security-Policy" content="([^"]+)"/)[1].trim();
+    const fenced = adr.match(/## Decision[\s\S]*?```\n([^\n]+)\n```/)[1].trim();
+    expect(fenced).toBe(shipped);
+  });
+  it('the ws: grant carries its direct-mode rationale', () => {
+    expect(adr).toMatch(/`ws:` in `connect-src`/);
+    expect(adr).toMatch(/SyncPlay websocket/);
+    expect(adr).toMatch(/Revision 2026-10-31/);
+  });
+});
+
+describe('the IPC doc states the real enforcement law (M-WINDOWS-39/51)', () => {
+  const doc = read('docs/ipc-channels.md');
+  it('the five-leg truth: the no-consumer set is a named inventory, not prose', () => {
+    expect(doc).toMatch(/PRELOAD_SHELL_ONLY/);
+    // The blanket 'renderer call sites' column claim is scoped by the law note.
+    expect(doc).toMatch(/A fifth leg/);
+  });
+  it('the revived notification consumer is cited on its row', () => {
+    expect(doc).toMatch(/`notification:show`.*incompatible-server boot reply/s);
+  });
+});

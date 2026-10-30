@@ -7,6 +7,43 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Toast Pref Honesty, Baseline Truth & Consumer Inventory — W-min205 minors cluster (M-WINDOWS-26/39/40/42/51 cured) — 2026-10-31
+
+- **notificationsEnabled now gates EVERY toast (M-WINDOWS-40):** the three
+  autoUpdater arms fired raw `new Notification` past the user's explicit
+  opt-out. One gate now serves every origin — `notifyUser()` — applying
+  platform support, the preference, the M-WINDOWS-33 payload caps, and (for
+  the renderer IPC path) the rate limit, in that order. Updater arms are
+  deliberately unthrottled (trusted, low-rate; a renderer cannot drive
+  autoUpdater events). New behavior suite `notificationPrefHonored.test.ts`
+  (6) proves opt-out silence per arm and that the click→install wiring
+  survives the gate; the M-33 wiring pins re-seated onto the pipeline with
+  an added "no raw construction survives" arm scan.
+- **The IPC surface's third leg (M-WINDOWS-39 + M-51 residual):** main↔preload
+  and doc↔code were pinned; WHO CALLS was never asked — 16 preload wrappers
+  ran consumer-less (vendored @phlix/ui references no electronAPI:
+  bundle-verified). `ipcChannels.test.ts` gained a `PRELOAD_SHELL_ONLY`
+  named inventory (15 methods, each with its retention rationale — new
+  silent orphans redden), the `showNotification` orphan REVIVED as the
+  incompatible-server boot reply (its notification rides the pref-gated
+  channel; the locale is pinned before `tWin` on that early-return path),
+  and the doc's completeness header now states the real five-leg law. The
+  writer's "missing rows" premise was disproven at tip — the update:* rows
+  exist; the claim/enforcement gap was the live part.
+- **docs/ci-baseline.md fabricated data retired (M-WINDOWS-26):** the August
+  audit's synthetic 20-run table (invented run IDs, all-green theater) is
+  replaced by a REAL dated `gh run list` snapshot fetched 2026-10-30T19:16Z,
+  with the honest reading: `cancel-in-progress` concurrency means rapid
+  batch pushes CANCEL superseded runs — cancelled rows are cadence, not
+  failures. `docsCopyTruth` pins zero synthetic IDs remain.
+- **ADR-002 made true (M-WINDOWS-42):** the recorded CSP policy never matched
+  the shipped meta tag (no `app:`/`ws:`/`child-src` in the ADR; `default-src
+  'none'` that would block every cold boot). The Decision now carries the
+  shipped string byte-for-byte (test-pinned equal to index.html) with
+  per-origin rationale, incl the `ws:` direct-mode SyncPlay law (:8097 +
+  `?token=` on user-chosen plain-HTTP LAN servers) and why tightening it is
+  an owner-class change, not a minors fix. No runtime policy changed.
+
 ### Token Posture, SMTC Depth & Least-Privilege CI — W-min204 minors cluster (M-WINDOWS-15/22/24/31/45 cured) — 2026-10-31
 
 - **Confirm-before-consume (M-WINDOWS-31):** `phlix://accept-invite/{token}` links were

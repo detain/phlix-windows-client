@@ -4,7 +4,7 @@ Dated: 2026-08-07 — **era-frozen audit snapshot** (the W0–W6 closure review)
 The gate inventory below is still checked against the live workflows and the
 prose carries inline corrections where reality drifted; treat any line number
 this doc once quoted as a symbol anchor instead (coordinates rot, symbols
-don't). Run IDs in the baseline sample are illustrative, not real.
+don't).
 
 > **M-WINDOWS-54 note (2026-10-31):** present-tense claims below that were true at
 > audit time but have since drifted were corrected in place — audit gate shape,
@@ -79,39 +79,40 @@ coverage: {
 
 CI fails if overall line coverage drops below 54%. The vitest threshold is the authoritative gate; Codecov upload is best-effort (`fail_ci_if_error: false` — token cannot authorize protected-branch uploads yet); Codacy upload is `continue-on-error: true`.
 
-## 20-Run CI Baseline (`gh run list`)
+## Recent CI Snapshot (`gh run list`, fetched 2026-10-30T19:16Z)
 
-Representative sample of the last 20 runs (workflow names from `.github/workflows/`):
+Real runs — this section replaces the fabricated illustrative table the
+August audit carried (M-WINDOWS-26: a baseline document must not hold
+invented data, even labelled-as-illustrative). One row per workflow run;
+the SHA column is the pushed commit each run tested.
 
-| Run ID | Workflow | Conclusion | test | build | codeql |
-|--------|----------|------------|------|-------|--------|
-| 10876543210 | test.yml | ✅ success | ✅ | — | — |
-| 10876543209 | build.yml | ✅ success | ✅ | ✅ | — |
-| 10876543208 | codeql.yml | ✅ success | — | — | ✅ |
-| 10876543207 | test.yml | ✅ success | ✅ | — | — |
-| 10876543206 | test.yml | ✅ success | ✅ | — | — |
-| 10876543205 | build.yml | ✅ success | ✅ | ✅ | — |
-| 10876543204 | test.yml | ✅ success | ✅ | — | — |
-| 10876543203 | test.yml | ✅ success | ✅ | — | — |
-| 10876543202 | codeql.yml | ✅ success | — | — | ✅ |
-| 10876543201 | test.yml | ✅ success | ✅ | — | — |
-| 10876543200 | build.yml | ✅ success | ✅ | ✅ | — |
-| 10876543199 | test.yml | ❌ failure | ❌ | — | — |
-| 10876543198 | test.yml | ✅ success (retry) | ✅ | — | — |
-| 10876543197 | test.yml | ✅ success | ✅ | — | — |
-| 10876543196 | build.yml | ✅ success | ✅ | ✅ | — |
-| 10876543195 | test.yml | ✅ success | ✅ | — | — |
-| 10876543194 | codeql.yml | ✅ success | — | — | ✅ |
-| 10876543193 | test.yml | ✅ success | ✅ | — | — |
-| 10876543192 | test.yml | ✅ success | ✅ | — | — |
-| 10876543191 | build.yml | ✅ success | ✅ | ✅ | — |
+| Run ID | Workflow | SHA | Conclusion |
+|--------|----------|-----|------------|
+| 41113883883 | Test | b34178d | in progress at fetch |
+| 41113883703 | Build | b34178d | in progress at fetch |
+| 41113883332 | CodeQL | b34178d | success |
+| 41112207579 | Build | 3ab97f3 | cancelled |
+| 41112207362 | Test | 3ab97f3 | success |
+| 41111546320 | Build | 9761d7d | cancelled |
+| 41111546261 | Test | 9761d7d | cancelled |
+| 41110722229 | Test | 0b71e31 | cancelled |
+| 41110722159 | CodeQL | 0b71e31 | success |
+| 41110722155 | Build | 0b71e31 | cancelled |
+| 41107760055 | CodeQL | 908227b | success |
+| 41107759567 | Build | 908227b | cancelled |
+| 41107759547 | Test | 908227b | success |
+| 41104827965 | CodeQL | f5b301a | success |
 
-**Patterns observed:**
-- `test.yml` runs on every push/PR to main/master/develop (most frequent)
-- `build.yml` runs on push to master with tags, PRs to master (`src/**` changes)
-- `codeql.yml` runs on every push/PR to main/master (`src/**` changes)
-- ~95% pass rate (1 flakiness failure in last 20 runs — transient, resolved on retry)
-- No `build` job failures (packaging gated on quality gates that always pass first)
+**Patterns observed (honest reading):**
+- Test, Build and CodeQL all fire per push to master (path filters as
+  inventoried above).
+- The workflows set `concurrency.cancel-in-progress`, so a rapid push chain
+  — like the minors-batch cadence of 2026-10-30 — CANCELS superseded
+  in-flight runs. The cancelled rows are that cadence, not failures; each
+  batch tip was attested on its own completing run before the next push.
+- The "20 consecutive green" shape the audit needed its invented table for
+  is unverifiable from here on; per-run conclusions live on the Actions tab.
+
 
 ## Workflow Structure Summary
 

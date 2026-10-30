@@ -14,7 +14,7 @@
  */
 
 import { describe, it, expect, type Mock } from 'vitest';
-import { readFileSync } from 'fs';
+import { readFileSync, readdirSync, statSync } from 'fs';
 import { resolve } from 'path';
 
 const PROJECT_ROOT = resolve(__dirname, '../..');
@@ -312,6 +312,80 @@ describe('doc currency (R-WINDOWS-03)', () => {
       else if (Number(m[1]) !== truth) offenders.push(`${rx.source}: doc says ${m[1]}, truth is ${truth}`);
     }
     expect(offenders).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The third leg (M-WINDOWS-39, review windows__gameux m5): the existing pins
+// pair main<->preload and doc<->code, but NEVER asked who in the renderer
+// calls a preload wrapper. Sixteen wrappers were silently consumer-less;
+// this describe makes that class visible and pins the disclosed remainder.
+// ---------------------------------------------------------------------------
+describe('preload consumer inventory (M-WINDOWS-39)', () => {
+  function preloadSurfaceMethods(source: string): string[] {
+    const start = source.indexOf('const electronApiSurface = {');
+    if (start === -1) throw new Error('preload: electronApiSurface declaration not found');
+    const end = source.indexOf('\n};', start);
+    if (end === -1) throw new Error('preload: electronApiSurface block unterminated');
+    const names: string[] = [];
+    for (const line of source.slice(start, end).split('\n')) {
+      const m = line.match(/^ {2}([A-Za-z][\w]*)\s*:/);
+      if (m) names.push(m[1]);
+    }
+    return [...new Set(names)].sort();
+  }
+
+  function rendererSources(): string[] {
+    const out: string[] = [];
+    const walk = (dir: string): void => {
+      for (const entry of readdirSync(dir)) {
+        const p = resolve(dir, entry);
+        if (statSync(p).isDirectory()) { walk(p); continue; }
+        // Declaration files mirror the API shape without calling it — they
+        // are not consumers and never were.
+        if (!/\.(ts|tsx)$/.test(entry) || /\.d\.ts$/.test(entry)) continue;
+        out.push(readFileSync(p, 'utf-8'));
+      }
+    };
+    walk(resolve(PROJECT_ROOT, 'src/renderer'));
+    return out;
+  }
+
+  // Every no-consumer wrapper, named, with why its surface is intentionally
+  // retained. Retiring a wrapper means deleting its row here in the same
+  // commit; NEW silent orphans outside this list redden the pin.
+  const PRELOAD_SHELL_ONLY: Record<string, string> = {
+    getAppPath: 'diagnostic wrapper (W4.9 built the API "if-needed"); no about/diagnostics view was ever written in this shell.',
+    getVersion: 'same W4.9 diagnostic class — renderer reads version through ui/server paths instead.',
+    setAlwaysOnTop: 'the window-manager behaviour is main-driven (menu View toggle); no in-app surface exists.',
+    minimizeToTray: 'tray policy lives in main (close handler + menu); a renderer trigger would bypass the single owner.',
+    getMinimizeToTray: 'paired read of the above; no settings UI consumes it yet (deferred with the toggle surface).',
+    setMinimizeToTray: 'same deferred settings surface as getMinimizeToTray.',
+    hubSetConfig: 'hub config is seeded by main/resolve paths; a hub-switcher UI is not implemented (read side hubGetConfig HAS a consumer).',
+    getDisableHardwareAcceleration: 'GPU settings UI never written (W4.12 pre-built the IPC); control today = env escape hatch + startup store arm (M-WINDOWS-15 law).',
+    setDisableHardwareAcceleration: 'same deferred GPU settings surface.',
+    getGpuFeatureStatus: 'same deferred GPU diagnostics surface.',
+    checkForUpdates: 'updater UX is main-driven (menu item + native toasts); no renderer update UI at v0.99.10 pin (@phlix/ui references no electronAPI — bundle-verified).',
+    getUpdateStatus: 'same deferred updater-UI class as checkForUpdates.',
+    onUpdateAvailable: 'push subscription kept with the update:* trio for the same deferred-UI reason.',
+    onUpdateProgress: 'same deferred updater-UI class.',
+    onUpdateDownloaded: 'same deferred updater-UI class.'
+  };
+
+  it('the no-consumer preload set is exactly the disclosed inventory', () => {
+    const files = rendererSources();
+    const dead = preloadSurfaceMethods(preloadSource).filter(
+      (name) => !files.some((src) => src.includes(`.${name}`))
+    );
+    expect(dead).toEqual(Object.keys(PRELOAD_SHELL_ONLY).sort());
+  });
+
+  it('the revived showNotification wrapper has its boot-gate consumer', () => {
+    // M-WINDOWS-39's cure leg: the incompatible-server path must still route
+    // the rejection through notification:show (pref-gated main-side).
+    expect(preloadSurfaceMethods(preloadSource)).toContain('showNotification');
+    const boot = readFileSync(resolve(PROJECT_ROOT, 'src/renderer/main.ts'), 'utf-8');
+    expect(boot).toMatch(/api\.showNotification\?\.\(tWin\('boot\.incompatible/);
   });
 });
 
