@@ -7,6 +7,24 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Version-Check Docblock Coordinates Re-anchored to Live Server/Hub Source — R-WINDOWS-20 (review riders W20) — 2026-10-30
+
+- **Comments-only, zero behavior change (R-WINDOWS-20):** the W2-era docblock
+  in `src/main/versionCheck.ts` cited `phlix-server` `Application.php`
+  :245/:253/:368-372 and `phlix-hub` `src/Application.php`:339. Read live at
+  server master 20d37f53 and hub master fad2d5f2, the `/system/info`
+  registration is :256, its `version` => `Version::STRING` line :264, the
+  `/api/v1` discovery `endpoints` block :386-390, and the hub's root `/health`
+  registration :438 — all four coords re-anchored, with the anchor-tip shas
+  named in the prose so the next drift is measurable. The mirrored stale
+  coords in `tests/unit/versionCheck.test.ts` (:245, and its ":245-256"
+  payload-shape claim) were carried with them; the payload comment now states
+  the current `{server, version}` handler shape honestly and names the
+  fixture's extra keys as a deliberate old-generation superset (parser
+  tolerance). No route, wire or dependency touched; hub still serves no
+  `/system/info` (grep-proven at fad2d5f2), so the hub-mode fail-open law
+  stands.
+
 ### Getting-updates Copy Stops Under-claiming the Manual Check — R-WINDOWS-19 (review riders W19) — 2026-10-30
 
 - **Docs-only truth pass, zero behavior change (R-WINDOWS-19):** README's

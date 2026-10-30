@@ -207,15 +207,19 @@ describe('checkMinServerVersion', () => {
     await checkMinServerVersion('http://localhost:8096/');
     expect(fetchSpy).toHaveBeenCalledWith(
       // W2: re-targeted from the nonexistent /api/v1/server/version to the
-      // real root endpoint (phlix-server/src/Server/Core/Application.php:245).
+      // real root endpoint (phlix-server/src/Server/Core/Application.php:256).
       'http://localhost:8096/system/info',
       expect.objectContaining({ method: 'GET' })
     );
   });
 
   it('reads the top-level version field of the real /system/info payload', async () => {
-    // Exact shape served by phlix-server Application.php:245-256 (server is a
-    // NAME string; version is top-level).
+    // Shape served by phlix-server Application.php:256-266 (server is a NAME
+    // string; version is top-level). The handler at master 20d37f53 serves
+    // exactly {server, version} — the php_version/workerman_version keys here
+    // are the 9a805a66-era superset (since dropped for stack-fingerprint
+    // reasons), kept deliberately: the parser must tolerate unknown
+    // top-level keys.
     fetchSpy.mockResolvedValueOnce({
       ok: true,
       json: async () => ({

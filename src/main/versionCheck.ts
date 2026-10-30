@@ -119,14 +119,16 @@ export async function checkMinServerVersion(apiBase: string): Promise<ServerVers
   const base = apiBase.endsWith('/') ? apiBase.slice(0, -1) : apiBase;
   // W2: the real server metadata endpoint is GET /system/info at the ROOT —
   // NOT /api/v1/... and there is no /api/v1/server/version anywhere on server
-  // or hub (the previous target made this gate inert). Verified against
-  // server source: phlix-server/src/Server/Core/Application.php:245 registers
+  // or hub (the previous target made this gate inert). Coordinates verified
+  // live and re-anchored 2026-10-30 (R-WINDOWS-20) at phlix-server master
+  // 20d37f53: src/Server/Core/Application.php:256 registers
   // `$this->router->get('/system/info', ...)` and its JSON carries a TOP-LEVEL
-  // `version` string (Application.php:253, Version::STRING); the /api/v1
+  // `version` string (Application.php:264, Version::STRING); the /api/v1
   // discovery route confirms the root paths
-  // ('endpoints' => '/health, /system/info', Application.php:368-372).
-  // The hub exposes only root /health (phlix-hub/src/Application.php:339),
-  // so hub-mode bases fail open through the warn paths below.
+  // ('endpoints' => '/health, /system/info', Application.php:386-390).
+  // The hub (phlix-hub master fad2d5f2) exposes only root /health
+  // (src/Application.php:438), so hub-mode bases fail open through the warn
+  // paths below.
   const versionUrl = `${base}/system/info`;
 
   try {
