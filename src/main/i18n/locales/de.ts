@@ -6,8 +6,10 @@
  * Language decisions (flagged for review):
  * - "Sie" register, matching Windows de desktop conventions; Einstellungen /
  *   Nach Updates suchen mirror the de ui bundle + Windows shell wording.
- * - Brand kept verbatim: 'Phlix', 'Phlix Media Server' (tray.tooltip,
- *   about.message); '{version}' placeholders untouched.
+ * - Brand kept verbatim: 'Phlix' (tray.tooltip — brand-only since
+ *   M-WINDOWS-02 retired the client-as-server misname) and 'Phlix for
+ *   Windows' (about.message); the server product name survives only where it
+ *   actually names the server (boot.tooOldDetail).
  * - 'Pause' is the standard German media label (thumbar.pause equals the English
  *   word legitimately — pinned in the no-English-leak allow-list).
  * - Tray uses the Windows de term 'Infobereich' (system tray).
@@ -24,7 +26,8 @@ export const de = {
     stop: 'Stopp',
     minimizeToTray: 'In den Infobereich minimieren',
     quit: 'Beenden',
-    tooltip: 'Phlix Media Server'
+    tooltip: 'Phlix',
+    tooltipPlaying: 'Phlix — Wiedergabe läuft'
   },
   menu: {
     file: 'Datei',
@@ -56,8 +59,8 @@ export const de = {
   },
   about: {
     title: 'Über Phlix',
-    message: 'Phlix Media Server',
-    detail: 'Version {version}\n\nEin kostenloser Medienserver für Ihr Zuhause.'
+    message: 'Phlix for Windows',
+    detail: 'Version {version}\n\nEin kostenloser Media-Client für Ihren Phlix-Server.'
   },
   boot: {
     tooOldTitle: 'Server-Version zu alt',

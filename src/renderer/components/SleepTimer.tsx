@@ -9,6 +9,7 @@
 
 import { defineComponent, ref, watch, onUnmounted, computed } from 'vue';
 import { usePlayerStore } from '@phlix/ui';
+import { tWin } from '../i18n/windows-own';
 
 const PRESETS_MINUTES = [15, 30, 45, 60, 90, 120];
 
@@ -213,7 +214,7 @@ const SleepTimer = defineComponent({
               </span>
               <button
                 onClick={cancelTimer}
-                aria-label="Cancel sleep timer"
+                aria-label={tWin('overlay.cancelSleepTimer')}
                 style={{
                   background: 'none',
                   border: 'none',
@@ -239,7 +240,7 @@ const SleepTimer = defineComponent({
                 fontSize: '13px',
               }}
             >
-              Sleep timer expired — playback stopped
+              {tWin('overlay.expiredNotice')}
             </div>
           )}
 
@@ -247,9 +248,9 @@ const SleepTimer = defineComponent({
           <button
             class="sleep-timer-trigger"
             onClick={() => (showMenu.value = !showMenu.value)}
-            aria-label="Sleep timer"
+            aria-label={tWin('overlay.sleepTimer')}
             aria-expanded={showMenu.value}
-            title="Sleep timer"
+            title={tWin('overlay.sleepTimer')}
             style={{
               background: 'rgba(0,0,0,0.5)',
               border: '1px solid rgba(255,255,255,0.15)',
@@ -292,7 +293,7 @@ const SleepTimer = defineComponent({
                   textTransform: 'uppercase',
                 }}
               >
-                Sleep Timer
+                {tWin('overlay.menuHeading')}
               </div>
               {PRESETS_MINUTES.map((min) => (
                 <button
@@ -313,7 +314,7 @@ const SleepTimer = defineComponent({
                   onMouseover={handleMouseOver}
                   onMouseout={handleMouseOut}
                 >
-                  {min < 60 ? `${min} min` : `${min / 60} hr${min > 60 ? 's' : ''}`}
+                  {min < 60 ? `${min} ${tWin('overlay.unitMin')}` : `${min / 60} ${min > 60 ? tWin('overlay.unitHrs') : tWin('overlay.unitHr')}`}
                 </button>
               ))}
               {state.value.endTime && (
@@ -334,7 +335,7 @@ const SleepTimer = defineComponent({
                     borderTop: '1px solid rgba(255,255,255,0.06)',
                   }}
                 >
-                  Cancel timer
+                  {tWin('overlay.cancelMenuItem')}
                 </button>
               )}
             </div>

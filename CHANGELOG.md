@@ -7,6 +7,41 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Copy Truth, Overlay i18n & Playback-Aware Tray — W-min201 minors cluster (M-WINDOWS-02/11/37 cured) — 2026-10-31
+
+- **M-02 (casualgamer m2 / writer).** The tray tooltip and the Help→About
+  dialog called THIS client "Phlix Media Server" — that is the server product's
+  name; a confused user's About box was misnaming the app it describes. All
+  seven main-process catalogs now read `tray.tooltip: 'Phlix'`,
+  `about.message: 'Phlix for Windows'` and a detail line speaking of a media
+  **client** for your Phlix server; the locale "brand kept verbatim" headers
+  were rewritten to the new law. `boot.tooOldDetail` deliberately still names
+  "Phlix Media Server" — that sentence is about the server — and
+  `trayCopyAndState.test.ts` pins the distinction against over-erasure.
+- **M-11 (casualgamer m11).** The player overlay was the last hardcoded-English
+  surface: SleepTimer (trigger aria/title, cancel button, expired notice, menu
+  heading, min/hr units) and PiPButton (enter/exit labels) now read a new
+  12-key `overlay` group in the windows-own catalog ×7 locales, EN values
+  byte-identical to the pre-extraction literals. The overlay is a dynamic
+  import of main.ts — same module instance — so the single boot-time locale
+  pin governs it; `overlayI18n.test.ts` pins the ordering, catalog parity,
+  leak-law entries (SI 'min', the Italian loanword) and zero-literal component
+  scans. docs/i18n.md §2 carries the new coverage law.
+- **M-37 (gameux).** The tray tooltip was set once at creation and never
+  again. New pure module `src/main/trayTooltip.ts` + `syncTrayTooltip()` in the
+  shell make it playback-aware: `power:update` (the play/pause truth channel)
+  arms "Phlix — playing", the progress `{0,0}` stop arm and pause clear it,
+  updates are change-gated so the native call cannot churn. DEFERRED honestly:
+  syncplay party awareness (no syncplay state reaches the main process — the
+  room socket lives in the vendored ui; a new IPC channel would be a surface
+  change, not a minor fix) and Windows overlay-badge icon art.
+- Tests: +14 (trayCopyAndState 9 + overlayI18n 5); suite 58/703 → 60/717.
+  mainI18n EXPECT_EN rows and the about-detail template pin rotated to the new
+  copy with the DELIBERATE ROTATIONS header amended. docs/ipc-channels.md
+  coordinates re-rotated (+22/+28 regimes from this batch's index.ts inserts)
+  — ipcChannels suite green. Gates: vue-tsc ×2 + tsc main + eslint 0,
+  lockwalk --live 4/0, audit-gate PASS, xvfb smoke 1 passed.
+
 ### Boot, Permissions & CI Hygiene — W-min200 minors cluster (M-WINDOWS-01/04/25/29/54 cured, 17 stale-verified) — 2026-10-31
 
 - **M-01 (casualgamer m1).** Against a slow/unreachable server the window sat

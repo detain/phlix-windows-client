@@ -14,6 +14,11 @@ import { createRouter, createWebHashHistory } from 'vue-router';
 import PlayerSupplement from './components/PlayerSupplement';
 import log from 'electron-log';
 
+// M-WINDOWS-11 note: the overlay components read the windows-own catalog via
+// tWin(). This module is loaded by main.ts as a dynamic import (same realm,
+// same module instance), so the shell's boot-time setWindowLocale() already
+// governs it — see docs/i18n.md §2; overlayI18n.test.ts pins that ordering.
+
 // Create the Vue app ONCE at module level
 const app = createApp(PlayerSupplement);
 const pinia = createPinia();

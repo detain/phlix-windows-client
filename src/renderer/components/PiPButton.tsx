@@ -11,6 +11,7 @@
 import { defineComponent, ref, watch, onMounted, onUnmounted, computed } from 'vue';
 import { usePlayerStore } from '@phlix/ui';
 import log from 'electron-log';
+import { tWin } from '../i18n/windows-own';
 
 const STORAGE_KEY = 'phlix-pip-enabled';
 
@@ -182,9 +183,9 @@ const PiPButton = defineComponent({
         <button
           class="pip-button"
           onClick={togglePiP}
-          aria-label={isInPiP.value ? 'Exit picture-in-picture' : 'Enter picture-in-picture'}
+          aria-label={isInPiP.value ? tWin('overlay.exitPip') : tWin('overlay.enterPip')}
           aria-pressed={isInPiP.value}
-          title={isInPiP.value ? 'Exit PiP' : 'Picture-in-Picture'}
+          title={isInPiP.value ? tWin('overlay.titlePipExit') : tWin('overlay.titlePip')}
           style={{
             background: isInPiP.value ? 'rgba(80,160,255,0.25)' : 'rgba(0,0,0,0.5)',
             border: `1px solid ${isInPiP.value ? 'rgba(80,160,255,0.4)' : 'rgba(255,255,255,0.15)'}`,

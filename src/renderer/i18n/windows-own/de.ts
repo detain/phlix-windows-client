@@ -40,5 +40,21 @@ export const WIN_DE = {
     requiredVersion: 'Phlix für Windows benötigt mindestens',
     incompatibleAction: 'Aktualisieren Sie den Phlix-Server oder verbinden Sie sich mit einem neueren, und starten Sie die App neu.',
     incompatibleRetry: 'Erneut versuchen'
+  },
+  // M-WINDOWS-11: player-overlay labels (see en.ts law note; values are
+  // this locale's translations of the shipped literals).
+  overlay: {
+    sleepTimer: 'Sleep-Timer',
+    cancelSleepTimer: 'Sleep-Timer abbrechen',
+    expiredNotice: 'Sleep-Timer abgelaufen — Wiedergabe gestoppt',
+    menuHeading: 'Sleep-Timer',
+    cancelMenuItem: 'Timer abbrechen',
+    unitMin: 'min',
+    unitHr: 'Std',
+    unitHrs: 'Std',
+    enterPip: 'Bild-im-Bild aktivieren',
+    exitPip: 'Bild-im-Bild beenden',
+    titlePip: 'Bild-im-Bild',
+    titlePipExit: 'PiP beenden'
   }
 } satisfies WindowOwnCatalog;

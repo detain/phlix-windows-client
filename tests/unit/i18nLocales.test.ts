@@ -142,17 +142,23 @@ const FORMER_AHEAD_KEYS: readonly string[] = [
 // upstream); client-side they ride the ≥90%-differ bulk law above.
 // windows-own renderer nav: 'Photos' is the French word too (fr), 'Admin' the
 // accepted German desktop short form (de). Nothing else collides.
+// overlay.unitMin 'min' is the SI time symbol — written identically in these
+// orthographies (ja uses 分, de too keeps 'min'); it's overlay.sleepTimer
+// 'Sleep timer' is the established Italian loanword (menuHeading renders the
+// native 'Timer per dormire'). EN 'hr'/'hrs' are NOT mirrored anywhere
+// (de 'Std', the rest 'h', ja '時間').
 const WIN_EN_LEAK_OK: Record<Locale, readonly string[]> = {
-  es: [],
-  fr: ['nav.photos'],
-  de: ['nav.admin'],
-  it: [],
-  pt_BR: [],
+  es: ['overlay.unitMin'],
+  fr: ['nav.photos', 'overlay.unitMin'],
+  de: ['nav.admin', 'overlay.unitMin'],
+  it: ['overlay.unitMin', 'overlay.sleepTimer'],
+  pt_BR: ['overlay.unitMin'],
   ja: [],
 };
-// main-process chrome: the brand string 'Phlix Media Server' (tray.tooltip,
-// about.message) stays verbatim in EVERY locale; it keeps the loanwords File /
-// Stop; fr+de keep the international media label Pause.
+// main-process chrome: the brand 'Phlix' (tray.tooltip) and the product name
+// 'Phlix for Windows' (about.message) stay verbatim in EVERY locale (M-WINDOWS-02
+// rotated the client-as-server misname; every other string is localized); it
+// keeps the loanwords File / Stop; fr+de keep the international media label Pause.
 const MAIN_EN_LEAK_OK: Record<Locale, readonly string[]> = {
   es: ['tray.tooltip', 'about.message'],
   fr: ['tray.tooltip', 'thumbar.pause', 'about.message'],
@@ -390,13 +396,13 @@ describe.skipIf(!SIBLING_PRESENT)(
 // B. WINDOWS-OWN renderer catalog (nav labels — authored here, every law pinned)
 // ---------------------------------------------------------------------------
 
-describe('windows-own catalog (nav + boot) — key-set, baseline, leaks', () => {
-  it('every locale table has EXACTLY the 22 English keys — 16 nav + 6 boot (both directions)', () => {
+describe('windows-own catalog (nav + boot + overlay) — key-set, baseline, leaks', () => {
+  it('every locale table has EXACTLY the 34 English keys — 16 nav + 6 boot + 12 overlay (both directions)', () => {
     const reference = keySet(WIN_EN as unknown as Table);
     for (const locale of LOCALES) {
       expect(keySet(WIN_TABLES[locale]), `${locale} key set differs from en`).toBe(reference);
     }
-    expect(EN_WIN.size).toBe(22);
+    expect(EN_WIN.size).toBe(34);
   });
 
   it('the registry carries precisely the catalog files that exist', () => {
@@ -508,12 +514,12 @@ describe('fr typographic apostrophe law (windows-own + main catalogs)', () => {
 // ---------------------------------------------------------------------------
 
 describe('main-process catalog ×6 — key-set, placeholders, sanity', () => {
-  it('every locale carries EXACTLY the 36 English keys (both directions)', () => {
+  it('every locale carries EXACTLY the 37 English keys (both directions)', () => {
     const reference = keySet(MAIN_EN as unknown as Table);
     for (const locale of LOCALES) {
       expect(keySet(MAIN_TABLES[locale]), `${locale} key set differs from en`).toBe(reference);
     }
-    expect(EN_MAIN.size).toBe(36);
+    expect(EN_MAIN.size).toBe(37);
   });
 
   it('the registry carries precisely the catalog files that exist', () => {

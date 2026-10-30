@@ -8,8 +8,10 @@
  *   = check for updates, 再生/一時停止 transport pair).
  * - Media convention: 早戻し/早送り for Rewind/Fast Forward (Jellyfin-ja style),
  *   thumbar uses the compact 10秒戻す/10秒進める form.
- * - Brand kept verbatim in Latin script: 'Phlix', 'Phlix Media Server'
- *   (tray.tooltip, about.message) — pinned in the no-English-leak allow-list;
+ * - Brand kept verbatim: 'Phlix' (tray.tooltip — brand-only since
+ *   M-WINDOWS-02 retired the client-as-server misname) and 'Phlix for
+ *   Windows' (about.message); the server product name survives only where it
+ *   actually names the server (boot.tooOldDetail).
  *   '{version}' placeholders untouched; the About \n\n structure is preserved.
  *
  * @copyright 2026 Joe Huss <detain@interserver.net>
@@ -24,7 +26,8 @@ export const ja = {
     stop: '停止',
     minimizeToTray: 'トレイに最小化',
     quit: '終了',
-    tooltip: 'Phlix Media Server'
+    tooltip: 'Phlix',
+    tooltipPlaying: 'Phlix — 再生中'
   },
   menu: {
     file: 'ファイル',
@@ -56,8 +59,8 @@ export const ja = {
   },
   about: {
     title: 'Phlix について',
-    message: 'Phlix Media Server',
-    detail: 'バージョン {version}\n\nご家庭向けの無料メディアサーバー。'
+    message: 'Phlix for Windows',
+    detail: 'バージョン {version}\n\nPhlix サーバーのための無料メディアクライアントです。'
   },
   boot: {
     tooOldTitle: 'サーバーのバージョンが古すぎます',

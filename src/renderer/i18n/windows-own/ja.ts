@@ -41,5 +41,21 @@ export const WIN_JA = {
     requiredVersion: 'Phlix for Windows の必要最低バージョン',
     incompatibleAction: 'Phlix サーバーを更新するか、より新しいサーバーに接続してから、アプリを再起動してください。',
     incompatibleRetry: '再試行する'
+  },
+  // M-WINDOWS-11: player-overlay labels (see en.ts law note; values are
+  // this locale's translations of the shipped literals).
+  overlay: {
+    sleepTimer: 'スリープタイマー',
+    cancelSleepTimer: 'スリープタイマーをキャンセル',
+    expiredNotice: 'スリープタイマーが終了しました — 再生は停止しました',
+    menuHeading: 'スリープタイマー',
+    cancelMenuItem: 'タイマーをキャンセル',
+    unitMin: '分',
+    unitHr: '時間',
+    unitHrs: '時間',
+    enterPip: 'ピクチャー・イン・ピクチャーを開始',
+    exitPip: 'ピクチャー・イン・ピクチャーを終了',
+    titlePip: 'ピクチャー・イン・ピクチャー',
+    titlePipExit: 'PiP 終了'
   }
 } satisfies WindowOwnCatalog;

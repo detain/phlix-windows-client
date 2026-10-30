@@ -22,6 +22,7 @@ import { getMainLocale, setMainLocale, t } from './i18n';
 import { restoreWindow } from './windowRestore';
 import { validateNotificationText, createToastThrottle } from './notificationGuard';
 import { installPermissionGuard } from './permissionGuard';
+import { trayTooltipFor } from './trayTooltip';
 import { createSecretCustody } from './secretStore';
 import type { SettingsSink } from './secretStore';
 import log from 'electron-log';
@@ -257,6 +258,11 @@ const configCustody = createSecretCustody({
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
+// M-WINDOWS-37: live tray-tooltip state — fed by power:update (renderer
+// playing flag) and cleared by a stopped playback session. lastTrayTooltip
+// makes the sync change-gated (setToolTip fires only on real transitions).
+let trayTooltipPlaying = false;
+let lastTrayTooltip = '';
 let isQuitting = false;
 let isPlaying = false;
 let powerBlockerId: number | null = null;
@@ -661,6 +667,22 @@ function setupAutoUpdater(): void {
   }, 6 * 60 * 60 * 1000);
 }
 
+/**
+ * M-WINDOWS-37: re-resolve the tray tooltip from the live playing state.
+ * Change-gated — a per-progress-tick setToolTip would churn the native tray
+ * with no visible benefit; the only interesting events are transitions.
+ */
+function syncTrayTooltip(): void {
+  if (!tray) return;
+  const label = trayTooltipFor(trayTooltipPlaying, {
+    idle: t('tray.tooltip'),
+    playing: t('tray.tooltipPlaying')
+  });
+  if (label === lastTrayTooltip) return;
+  tray.setToolTip(label);
+  lastTrayTooltip = label;
+}
+
 export function createTray(): void {
   const iconPath = path.join(__dirname, '../../build/icon.png');
   const icon = nativeImage.createFromPath(iconPath);
@@ -687,7 +709,7 @@ export function createTray(): void {
     }}
   ]);
 
-  tray.setToolTip(t('tray.tooltip'));
+  syncTrayTooltip();
   tray.setContextMenu(contextMenu);
 
   // M-WINDOWS-03: while the window is hidden there is NO taskbar button to
@@ -1040,12 +1062,18 @@ ipcMain.on('playback:progress', (_, progress: { current: number; total: number }
   } else {
     // total === 0 or current >= total: clear the progress bar
     mainWindow.setProgressBar(-1);
+    // M-WINDOWS-37: a cleared session also retires the playing tooltip.
+    trayTooltipPlaying = false;
+    syncTrayTooltip();
   }
 });
 
 // W4.6: power save blocker — renderer sends playing state to block/unblock display sleep
 ipcMain.on('power:update', (_event, { playing }: { playing: boolean }) => {
   ensurePowerBlocker(playing);
+  // M-WINDOWS-37: the same live playing flag drives the tray tooltip.
+  trayTooltipPlaying = playing === true;
+  syncTrayTooltip();
 });
 
 // W4.7: native notifications — renderer requests native system notification

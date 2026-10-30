@@ -15,7 +15,15 @@
  * 'Rewind 10s'/'Forward 10s' in menu + thumbar alike (the former
  * 'Previous / …'/'Next / …' tooltips mislabeled the 10-second SEEK as a track
  * change, and 'Fast Forward' was a third name for the same action), and
- * tray.minimizeToTray went to sentence case per Windows HIG.
+ * tray.minimizeToTray went to sentence case per Windows HIG; and the
+ * W-min201 misname pass (review windows__casualgamer m2) — the About dialog
+ * and the tray tooltip called THIS client 'Phlix Media Server', which is the
+ * server product's name, not ours: tooltip is now the bare brand (it is
+ * playback-aware via tray.tooltipPlaying), message 'Phlix for Windows', detail
+ * speaks of a media CLIENT for your Phlix server. boot.tooOldDetail still
+ * names 'Phlix Media Server' — there the sentence is ABOUT the server, and
+ * trayCopyAndState.test.ts pins that distinction against well-meaning
+ * over-erasure.
  *
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
@@ -32,7 +40,8 @@ const ORIGINAL_MAIN_PROCESS_STRINGS: Record<MainMessageKey, string> = {
   'tray.stop': 'Stop',
   'tray.minimizeToTray': 'Minimize to tray',
   'tray.quit': 'Quit',
-  'tray.tooltip': 'Phlix Media Server',
+  'tray.tooltip': 'Phlix',
+  'tray.tooltipPlaying': 'Phlix — playing',
 
   'menu.file': 'File',
   'menu.settings': 'Settings',
@@ -62,8 +71,8 @@ const ORIGINAL_MAIN_PROCESS_STRINGS: Record<MainMessageKey, string> = {
   'updater.readyBody': 'Phlix {version} has been downloaded. Restart to apply.',
 
   'about.title': 'About Phlix',
-  'about.message': 'Phlix Media Server',
-  'about.detail': 'Version {version}\n\nA free media server for your home.',
+  'about.message': 'Phlix for Windows',
+  'about.detail': 'Version {version}\n\nA free media client for your Phlix server.',
 
   // M-WINDOWS-02 additions (born in the catalog, not extracted — see header):
   // the too-old-server dialog text. The renderer-side screen strings live in
@@ -124,7 +133,7 @@ describe('main-process i18n interpolation', () => {
 
   it('about detail renders the original template literal exactly', () => {
     expect(t('about.detail', { version: '9.9.9' }))
-      .toBe('Version 9.9.9\n\nA free media server for your home.');
+      .toBe('Version 9.9.9\n\nA free media client for your Phlix server.');
   });
 
   it('leaves placeholders intact when the param is missing', () => {

@@ -9,8 +9,10 @@
  * Language decisions (flagged for review):
  * - "você" register matching the pt_BR ui bundle; Configurações is the SSOT
  *   settings term, 'bandeja' the pt_BR system-tray word.
- * - Brand kept verbatim: 'Phlix', 'Phlix Media Server' (tray.tooltip,
- *   about.message); '{version}' placeholders untouched.
+ * - Brand kept verbatim: 'Phlix' (tray.tooltip — brand-only since
+ *   M-WINDOWS-02 retired the client-as-server misname) and 'Phlix for
+ *   Windows' (about.message); the server product name survives only where it
+ *   actually names the server (boot.tooOldDetail).
  * - pt_BR media convention writes seconds as '10s' (no space) in short button
  *   labels — kept compact for the thumbar tooltip.
  *
@@ -26,7 +28,8 @@ export const pt_BR = {
     stop: 'Parar',
     minimizeToTray: 'Minimizar para a bandeja',
     quit: 'Sair',
-    tooltip: 'Phlix Media Server'
+    tooltip: 'Phlix',
+    tooltipPlaying: 'Phlix — reproduzindo'
   },
   menu: {
     file: 'Arquivo',
@@ -58,8 +61,8 @@ export const pt_BR = {
   },
   about: {
     title: 'Sobre o Phlix',
-    message: 'Phlix Media Server',
-    detail: 'Versão {version}\n\nUm servidor de mídia gratuito para sua casa.'
+    message: 'Phlix for Windows',
+    detail: 'Versão {version}\n\nUm cliente de mídia gratuito para o seu servidor Phlix.'
   },
   boot: {
     tooOldTitle: 'Versão do servidor antiga demais',

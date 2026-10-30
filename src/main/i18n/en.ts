@@ -21,7 +21,8 @@ export const en = {
     stop: 'Stop',
     minimizeToTray: 'Minimize to tray',
     quit: 'Quit',
-    tooltip: 'Phlix Media Server'
+    tooltip: 'Phlix',
+    tooltipPlaying: 'Phlix — playing'
   },
   menu: {
     file: 'File',
@@ -53,8 +54,8 @@ export const en = {
   },
   about: {
     title: 'About Phlix',
-    message: 'Phlix Media Server',
-    detail: 'Version {version}\n\nA free media server for your home.'
+    message: 'Phlix for Windows',
+    detail: 'Version {version}\n\nA free media client for your Phlix server.'
   },
   boot: {
     tooOldTitle: 'Server Version Too Old',

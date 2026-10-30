@@ -43,5 +43,26 @@ export const WIN_EN = {
     requiredVersion: 'Phlix for Windows requires at least',
     incompatibleAction: 'Update the Phlix server, or connect to a newer one, then restart this app.',
     incompatibleRetry: 'Try again'
+  },
+  // M-WINDOWS-11 (review windows__casualgamer m11): the player-overlay surface
+  // (SleepTimer + PiPButton) shipped hardcoded English while everything else
+  // localized. EN values are byte-identical to the pre-extraction literals —
+  // same law as every other catalog here. The overlay is a DYNAMIC import of
+  // main.ts (same module instance), so the shell's boot-time locale pin
+  // governs its tWin() reads. Unit strings stay concatenation pieces (the
+  // catalog has no interpolation seam) — component code owns `${value} ${unit}`.
+  overlay: {
+    sleepTimer: 'Sleep timer',
+    cancelSleepTimer: 'Cancel sleep timer',
+    expiredNotice: 'Sleep timer expired — playback stopped',
+    menuHeading: 'Sleep Timer',
+    cancelMenuItem: 'Cancel timer',
+    unitMin: 'min',
+    unitHr: 'hr',
+    unitHrs: 'hrs',
+    enterPip: 'Enter picture-in-picture',
+    exitPip: 'Exit picture-in-picture',
+    titlePip: 'Picture-in-Picture',
+    titlePipExit: 'Exit PiP'
   }
 } as const;

@@ -6,8 +6,10 @@
  * Language decisions (flagged for review):
  * - Informal "tu" register matching the it ui bundle's voice; Impostazioni is
  *   the SSOT settings term.
- * - Brand kept verbatim: 'Phlix', 'Phlix Media Server' (tray.tooltip,
- *   about.message); '{version}' placeholders untouched.
+ * - Brand kept verbatim: 'Phlix' (tray.tooltip — brand-only since
+ *   M-WINDOWS-02 retired the client-as-server misname) and 'Phlix for
+ *   Windows' (about.message); the server product name survives only where it
+ *   actually names the server (boot.tooOldDetail).
  * - 'File' (menu) and 'Stop' (tray/menu) are standard Italian loanwords and
  *   legitimately equal their English spellings — pinned in the no-English-leak
  *   allow-list.
@@ -25,7 +27,8 @@ export const it = {
     stop: 'Stop',
     minimizeToTray: 'Riduci a icona nella barra delle applicazioni',
     quit: 'Esci',
-    tooltip: 'Phlix Media Server'
+    tooltip: 'Phlix',
+    tooltipPlaying: 'Phlix — riproduzione in corso'
   },
   menu: {
     file: 'File',
@@ -57,8 +60,8 @@ export const it = {
   },
   about: {
     title: 'Informazioni su Phlix',
-    message: 'Phlix Media Server',
-    detail: 'Versione {version}\n\nUn server multimediale gratuito per la tua casa.'
+    message: 'Phlix for Windows',
+    detail: 'Versione {version}\n\nUn client multimedia gratuito per il tuo server Phlix.'
   },
   boot: {
     tooOldTitle: 'Versione del server troppo vecchia',

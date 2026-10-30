@@ -7,8 +7,10 @@
  * - Neutral Latin-American Spanish with "tú" register, mirroring the es ui
  *   bundle's voice; nav terms match the SSOT bundle where an equivalent exists
  *   (Ajustes = settings).
- * - Brand kept verbatim: 'Phlix', 'Phlix Media Server' (tray.tooltip,
- *   about.message); '{version}' placeholders untouched.
+ * - Brand kept verbatim: 'Phlix' (tray.tooltip — brand-only since
+ *   M-WINDOWS-02 retired the client-as-server misname) and 'Phlix for
+ *   Windows' (about.message); the server product name survives only where it
+ *   actually names the server (boot.tooOldDetail).
  * - Thumbar seconds use es typography '10 s' (space before unit).
  *
  * @copyright 2026 Joe Huss <detain@interserver.net>
@@ -23,7 +25,8 @@ export const es = {
     stop: 'Detener',
     minimizeToTray: 'Minimizar a la bandeja',
     quit: 'Salir',
-    tooltip: 'Phlix Media Server'
+    tooltip: 'Phlix',
+    tooltipPlaying: 'Phlix — reproduciendo'
   },
   menu: {
     file: 'Archivo',
@@ -55,8 +58,8 @@ export const es = {
   },
   about: {
     title: 'Acerca de Phlix',
-    message: 'Phlix Media Server',
-    detail: 'Versión {version}\n\nUn servidor de medios gratuito para tu hogar.'
+    message: 'Phlix for Windows',
+    detail: 'Versión {version}\n\nUn cliente de medios gratuito para tu servidor Phlix.'
   },
   boot: {
     tooOldTitle: 'Versión del servidor demasiado antigua',

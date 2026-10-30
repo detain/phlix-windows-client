@@ -6,8 +6,10 @@
  * Language decisions (flagged for review):
  * - "vous" register, matching the fr ui bundle's voice; Paramètres = settings
  *   term from the SSOT bundle.
- * - Brand kept verbatim: 'Phlix', 'Phlix Media Server' (tray.tooltip,
- *   about.message); '{version}' placeholders untouched.
+ * - Brand kept verbatim: 'Phlix' (tray.tooltip — brand-only since
+ *   M-WINDOWS-02 retired the client-as-server misname) and 'Phlix for
+ *   Windows' (about.message); the server product name survives only where it
+ *   actually names the server (boot.tooOldDetail).
  * - 'Pause' is the standard French media label (thumbar.pause equals the English
  *   word legitimately — pinned in the no-English-leak allow-list).
  * - Thumbar seconds use fr typography '10 s' (space before unit).
@@ -24,7 +26,8 @@ export const fr = {
     stop: 'Arrêter',
     minimizeToTray: 'Réduire dans la zone de notification',
     quit: 'Quitter',
-    tooltip: 'Phlix Media Server'
+    tooltip: 'Phlix',
+    tooltipPlaying: 'Phlix — lecture en cours'
   },
   menu: {
     file: 'Fichier',
@@ -56,8 +59,8 @@ export const fr = {
   },
   about: {
     title: 'À propos de Phlix',
-    message: 'Phlix Media Server',
-    detail: 'Version {version}\n\nUn serveur multimédia gratuit pour votre maison.'
+    message: 'Phlix for Windows',
+    detail: 'Version {version}\n\nUn client multimédia gratuit pour votre serveur Phlix.'
   },
   boot: {
     tooOldTitle: 'Version du serveur trop ancienne',
