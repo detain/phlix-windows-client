@@ -32,7 +32,7 @@ phlix://<host>/<value>
 > parser ↔ route-record pin (built over the hub route set) lives in
 > `tests/unit/deepLinkRouteContract.test.ts`.
 
-> **Note:** The `'internal'` host is also accepted by the parser (for notification click-action routing) but is omitted from this table as it is an implementation detail, not a user-facing link type.
+> **Note:** The `'internal'` host is also accepted by the parser (for notification click-action routing) but is omitted from this table as it is an implementation detail, not a user-facing link type. It is not a bypass: an internal path is emitted only when it is exactly `/app` or `/app/`-rooted segment-exactly (`/appevil` is refused), and it runs through the same traversal, null-byte and length gates (≤1024 chars) as every other host — so every path the parser accepts resolves to at least the `/app/:pathMatch(.*)*` 404 view in every app mode, and the renderer is never handed a dead off-base path [M-WINDOWS-15].
 
 ## Value Formats
 
@@ -50,7 +50,7 @@ phlix://<host>/<value>
 3. **Value**: Must not be empty and must match the required format for that host
 4. **Security**: Path traversal attempts (`../`), null byte injection, and other suspicious patterns are rejected and logged
 
-All rejections are logged with `[deeplink]` prefix at warn level.
+All rejections are logged with `[deeplink]` prefix at warn level — and logging is not the only surface [M-WINDOWS-15]: a link the app received but could not route is also shown to the user. Each delivery (drain) pass that hits one or more rejections raises exactly ONE warning dialog ("Could Not Open Link"; title and message are localized from the main-process catalog, all 7 locales) for the first rejected link of that pass — never a modal pile-up, while every individual rejection keeps its own log line. The dialog's detail line carries only the REDACTED form of the link: query strings and fragments are dropped, and an `accept-invite` path segment renders as `[redacted]`, because a malformed invite candidate may still contain a live one-time token. Valid links never trigger this dialog.
 
 ## Arrival Paths
 
@@ -89,5 +89,5 @@ phlix://server/server-456
 ## Security Notes
 
 - Deep links are validated against strict allowlists before routing
-- Invalid URLs are logged but do not crash or expose internal state
+- Invalid URLs are logged (redacted) and surfaced with the one-per-drain rejection dialog described under Validation Rules — they do not crash the app or expose internal state, and neither the log lines nor the dialog ever show a raw link
 - The app never navigates to arbitrary URLs, only to predefined internal routes

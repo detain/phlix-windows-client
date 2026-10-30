@@ -7,6 +7,33 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Deep-Link Docs Mirror the Rejection Dialog and the Internal `/app` Producer Law — R-WINDOWS-13 (review riders W13) — 2026-10-31
+
+- **Docs currency only, zero behavior change (R-WINDOWS-13):**
+  `docs/deep-links.md` predated the M-WINDOWS-15 cure in two ways that
+  were incomplete rather than false: parse rejections were described as
+  merely "logged", and the `internal` host as an unconditional parser
+  allowance. Neither statement named what the shipped code now does.
+- **The three-site cure:** the internal-host note now states the `/app`
+  producer law — an internal path is emitted only when it is exactly
+  `/app` or segment-exactly `/app/`-rooted (`/appevil` is refused),
+  through the same traversal, null-byte and length gates as every other
+  host, so every accepted output renders at least the ui 404 catch-all
+  in every app mode; the rejections paragraph mirrors
+  `pumpPendingDeepLinks` and `showDeepLinkRejectedDialog` — one
+  localized warning dialog per drain pass for the first rejected link,
+  with each rejection keeping its own redacted log line and the dialog
+  detail redaction-only (a live one-time invite token never reaches the
+  screen); the Security Notes bullet names the dialog surface next to
+  the redacted-log surface. Prose mirrors `src/main/deepLinkValidator.ts`
+  and the drain path verbatim; no code, tests or locale catalogs touched.
+- **Gates:** lint 0; vue-tsc renderer + tsc main + vue-tsc tests all
+  clean; vitest serial 71 files / 823 tests — exact zero-delta vs the
+  bacf379 tip figures (no test references the doc); audit-gate PASS
+  (0 advisories, allow-list empty); lockwalk 4 edges 0 mismatches;
+  build untouched — no src/asset change, dist byte-immune.
+  `* text=auto eol=lf` posture held.
+
 ### Off-Route Relay Mirrors the Engine's Modifier Gate — R-WINDOWS-11 (review riders W11) — 2026-10-31
 
 - **Ctrl/Cmd/Alt chords belong to the OS again (R-WINDOWS-11):** the global
