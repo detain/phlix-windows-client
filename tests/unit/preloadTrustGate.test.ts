@@ -28,6 +28,12 @@
  * navigation posture is deliberately NOT duplicated here, the preload-side
  * trust gate is the minimal complement).
  *
+ * R-WINDOWS-08 adds the isPackaged-aware deny: a packaged shell (main stamps
+ * '--phlix-packaged' into additionalArguments iff app.isPackaged) must NOT
+ * trust the dev vite entry http://localhost:5173; pinned at the predicate
+ * table, through the argv channel in the wiring legs, and at the main-side
+ * conditional in the posture section.
+ *
  * Mutation law: deleting the gate (always expose), flipping the predicate,
  * or editing the boot-URL posture each reddens named tests below.
  *
@@ -58,10 +64,11 @@ vi.mock('electron', () => ({
 }));
 
 type PreloadModule = typeof import('../../src/preload/index');
-type PreloadContext = { href: string; isMainFrame: boolean };
+type PreloadContext = { href: string; isMainFrame: boolean; isPackagedShell?: boolean };
 
 let isTrustedPreloadContext: (context: PreloadContext) => boolean;
 let TRUSTED_BOOT_TARGETS: ReadonlyArray<{ protocol: string; host: string }>;
+let PHLIX_PACKAGED_ARGV_FLAG: string;
 
 beforeAll(async () => {
   // Load once in a NEUTRAL context (no window stub, no isMainFrame) — the
@@ -69,10 +76,15 @@ beforeAll(async () => {
   const mod: PreloadModule = await import('../../src/preload/index');
   isTrustedPreloadContext = mod.isTrustedPreloadContext;
   TRUSTED_BOOT_TARGETS = mod.TRUSTED_BOOT_TARGETS;
+  PHLIX_PACKAGED_ARGV_FLAG = mod.PHLIX_PACKAGED_ARGV_FLAG;
 });
 
 /** Stub the document/process facts a sandboxed preload can observe. */
-function setPreloadEnv(href: string | undefined, isMainFrame: boolean | undefined): void {
+function setPreloadEnv(
+  href: string | undefined,
+  isMainFrame: boolean | undefined,
+  packagedShell = false
+): void {
   const g = globalThis as unknown as { window?: { location?: { href?: string } } };
   if (href === undefined) {
     delete g.window;
@@ -84,6 +96,15 @@ function setPreloadEnv(href: string | undefined, isMainFrame: boolean | undefine
     delete proc.isMainFrame;
   } else {
     proc.isMainFrame = isMainFrame;
+  }
+  // R-WINDOWS-08 argv channel: strip any inherited flag, then plant it when
+  // the leg models a packaged shell.
+  const argIdx = process.argv.indexOf('--phlix-packaged');
+  if (argIdx !== -1) {
+    process.argv.splice(argIdx, 1);
+  }
+  if (packagedShell) {
+    process.argv.push('--phlix-packaged');
   }
 }
 
@@ -151,6 +172,24 @@ describe('isTrustedPreloadContext (pure trust predicate)', () => {
     expect(isTrustedPreloadContext({ href: '', isMainFrame: true })).toBe(false);
     expect(isTrustedPreloadContext({ href: 'not a url', isMainFrame: true })).toBe(false);
   });
+
+  it('R-WINDOWS-08: a packaged shell denies the dev-server entry but keeps the prod boot', () => {
+    expect(
+      isTrustedPreloadContext({ href: 'http://localhost:5173/', isMainFrame: true, isPackagedShell: true })
+    ).toBe(false);
+    expect(
+      isTrustedPreloadContext({
+        href: 'http://localhost:5173/src/renderer/main.ts', isMainFrame: true, isPackagedShell: true,
+      })
+    ).toBe(false);
+    expect(
+      isTrustedPreloadContext({ href: 'app://-/app/', isMainFrame: true, isPackagedShell: true })
+    ).toBe(true);
+    // The flag is the ONLY difference — same href stays trusted without it.
+    expect(
+      isTrustedPreloadContext({ href: 'http://localhost:5173/', isMainFrame: true })
+    ).toBe(true);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -209,6 +248,21 @@ describe('preload module wiring (fresh evaluation per committed document)', () =
     await loadPreload();
     expect(exposeInMainWorld).toHaveBeenCalledTimes(1);
   });
+
+  it('R-WINDOWS-08: packaged argv flag reaches the gate — dev boot exposes NOTHING', async () => {
+    setPreloadEnv('http://localhost:5173/', true, true);
+    await loadPreload();
+    expect(exposeInMainWorld).not.toHaveBeenCalled();
+  });
+
+  it('R-WINDOWS-08: packaged argv flag keeps the prod boot fully wired', async () => {
+    setPreloadEnv('app://-/app/', true, true);
+    await loadPreload();
+    expect(exposeInMainWorld).toHaveBeenCalledTimes(1);
+    const [name, api] = exposeInMainWorld.mock.calls[0] as [string, Record<string, unknown>];
+    expect(name).toBe('electronAPI');
+    expect(typeof api['getVersion']).toBe('function');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -222,6 +276,16 @@ describe('main-process posture the preload gate relies on', () => {
     expect(mainSource).toMatch(/contextIsolation:\s*true/);
     expect(mainSource).toMatch(/sandbox:\s*true/);
     expect(mainSource).toMatch(/nodeIntegration:\s*false/);
+  });
+
+  it('R-WINDOWS-08: main stamps the packaged argv flag gated on app.isPackaged', () => {
+    // The exact conditional shape (flag array iff packaged, empty otherwise).
+    expect(mainSource).toMatch(
+      /additionalArguments:\s*app\.isPackaged\s*\?\s*\['--phlix-packaged'\]\s*:\s*\[\]/
+    );
+    // Cross-file string identity: the exported preload constant is the SAME
+    // token main plants — a rename on one side without the other reddens.
+    expect(PHLIX_PACKAGED_ARGV_FLAG).toBe('--phlix-packaged');
   });
 
   it('covers EVERY boot URL the main process navigates to with the trust predicate', () => {

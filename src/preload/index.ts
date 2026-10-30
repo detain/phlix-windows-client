@@ -29,6 +29,15 @@ import { contextBridge, ipcRenderer } from 'electron';
  *   - dev  : 'http://localhost:5173' (vite dev server, strictPort)
  * Same-origin child frames are NOT trusted either — the SPA never runs
  * framed, so no framed context has a legitimate need for the OS surface.
+ * R-WINDOWS-08 (isPackaged-aware deny): in a PACKAGED shell the dev entry is
+ * dead weight — a stray local listener on 5173 plus a top-level navigation
+ * into it would otherwise hand the bridge to a non-bundled document. The
+ * main process stamps `--phlix-packaged` into the window's
+ * additionalArguments iff `app.isPackaged`, and the predicate rejects EVERY
+ * http: document when that flag is present. (A sandboxed preload cannot read
+ * `app` directly; process.argv is the sanctioned sync channel.) Absent the
+ * flag the trust set is the full pair, exactly as before — the dev workflow
+ * is untouched.
  * A file: origin is deliberately absent: nothing in this shell loads file://
  * (the only navigation sites are the two loadURL calls), and an unkeyed
  * file origin is no trust boundary anyway. If a future boot URL is added,
@@ -45,7 +54,20 @@ export interface PreloadContext {
   href: string;
   /** True only for the webContents' main frame (process.isMainFrame). */
   isMainFrame: boolean;
+  /**
+   * True when this shell is a packaged build (main stamped
+   * PHLIX_PACKAGED_ARGV_FLAG into process.argv). Absent/false = dev shell,
+   * full trust set. R-WINDOWS-08.
+   */
+  isPackagedShell?: boolean;
 }
+
+/**
+ * The sync main→sandboxed-preload packaged-ness channel: main adds it to the
+ * window's additionalArguments iff app.isPackaged; the preload reads
+ * process.argv (the only signal a sandboxed preload can see synchronously).
+ */
+export const PHLIX_PACKAGED_ARGV_FLAG = '--phlix-packaged';
 
 /** Boot documents whose origin may hold the privileged bridge. */
 export const TRUSTED_BOOT_TARGETS: ReadonlyArray<{ protocol: string; host: string }> = [
@@ -68,6 +90,9 @@ export function isTrustedPreloadContext(context: PreloadContext): boolean {
   } catch {
     return false; // fail closed: garbage/unreadable location ⇒ no bridge
   }
+  if (context.isPackagedShell && parsed.protocol === 'http:') {
+    return false; // R-WINDOWS-08: packaged shells deny the dev-server entry
+  }
   return TRUSTED_BOOT_TARGETS.some(
     (target) => target.protocol === parsed.protocol && target.host === parsed.host
   );
@@ -83,7 +108,11 @@ export function isTrustedPreloadContext(context: PreloadContext): boolean {
 function readPreloadContext(): PreloadContext {
   const hostWindow = (globalThis as unknown as { window?: { location?: { href?: string } } }).window;
   const href = typeof hostWindow?.location?.href === 'string' ? hostWindow.location.href : '';
-  return { href, isMainFrame: process.isMainFrame === true };
+  return {
+    href,
+    isMainFrame: process.isMainFrame === true,
+    isPackagedShell: process.argv.includes(PHLIX_PACKAGED_ARGV_FLAG),
+  };
 }
 
 // Expose protected methods to renderer — surface unchanged, but gated below.

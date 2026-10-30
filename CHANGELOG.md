@@ -7,6 +7,35 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Security — R-W8 rider R-WINDOWS-08: packaged shells deny the dev-server preload entry (isPackaged-aware trust gate) — 2026-10-30
+
+- **The residual (M-WINDOWS-10__r1 P4-2, honestly unclaimed then).** The trust
+  gate pairs `app://-` (prod boot) with `http://localhost:5173` (vite dev,
+  strictPort) unconditionally: a PACKAGED shell still trusted the dev entry, so
+  a local listener on 5173 plus a top-level navigation into it (needs local
+  code presence as a precondition — a class the gate itself flagged as its
+  limit) would hand the full `electronAPI` bridge to a non-bundled document.
+- **The cure.** `PreloadContext` gains `isPackagedShell`; the pure predicate
+  denies EVERY `http:` document when it is set. The signal travels the only
+  sync channel a sandboxed preload can read: `createWindow` passes
+  `additionalArguments: app.isPackaged ? ['--phlix-packaged'] : []` and
+  `readPreloadContext()` probes `process.argv` for the exported
+  `PHLIX_PACKAGED_ARGV_FLAG`. Dev workflow untouched (flag absent ⇒ full trust
+  set, byte-identical decision).
+- **Pins (tests/unit/preloadTrustGate.test.ts, 19 → 23).** Predicate table: packaged
+  shell denies both dev-entry shapes and keeps `app://-`; flag-isolation leg
+  (same href trusted without it). Wiring: argv plant + dev boot exposes
+  NOTHING; argv plant + prod boot keeps the surface. Posture: the main-side
+  conditional pinned by exact shape AND the cross-file flag-string identity
+  (a one-sided rename reddens). Mutations: predicate-arm strip reddens exactly
+  the two deny legs; main-side token rename reddens exactly the posture pin.
+- **Ripple (measure-at-red).** The +5-line insert in `src/main/index.ts`
+  shifted every registration coordinate tracked by the R-WINDOWS-03 doc
+  currency pin; all 43 cited rows in `docs/ipc-channels.md` rotated +5 to the
+  measured live lines in this same commit (ipcChannels suite green again at
+  32/32, no counts moved). Full serial vitest 676 passed (parent 672, +4
+  exact, 54 files); typecheck (vue-tsc + tsc), lint, build all 0.
+
 ### Docs — R-W3 rider R-WINDOWS-03: `docs/ipc-channels.md` re-vendored to measured truth and made load-bearing by four doc-currency pins — 2026-10-30
 
 - **The gap.** The doc's line coordinates had rotted across whole eras (every

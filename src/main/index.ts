@@ -344,7 +344,12 @@ function createWindow(): void {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true
+      sandbox: true,
+      // R-WINDOWS-08: the ONLY sanctioned sync channel a sandboxed preload
+      // can read packaged-ness from (its process.argv). The preload trust
+      // gate denies every http: document when the flag is present — the dev
+      // vite entry must be dead weight in a packaged shell.
+      additionalArguments: app.isPackaged ? ['--phlix-packaged'] : []
     }
   };
 
