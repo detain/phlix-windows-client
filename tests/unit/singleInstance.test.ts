@@ -112,6 +112,9 @@ vi.mock('electron', () => ({
   }),
   // M-WINDOWS-11: safeStorage stub — SUT destructures at module-eval; unavailable
   // ⇒ disclosed plaintext fallback, so the {get,set} store stub below still sees plain values.
+  // M-WINDOWS-29: src/main/index.ts installs the permission guard on
+  // defaultSession inside app.whenReady — the mock must expose it.
+  session: { defaultSession: { setPermissionRequestHandler: vi.fn(), setPermissionCheckHandler: vi.fn() } },
   safeStorage: {
     isEncryptionAvailable: () => false,
     encryptString: () => {

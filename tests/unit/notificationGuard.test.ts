@@ -33,13 +33,13 @@ describe('validateNotificationText (M-WINDOWS-33)', () => {
 
   it('rejects a non-string title', () => {
     const verdict = validateNotificationText(42, 'body');
-    expect(verdict.ok).toBe(false);
+    if (verdict.ok) throw new Error('expected rejection for a non-string title');
     expect(verdict.reason).toContain('title');
   });
 
   it('rejects a non-string body', () => {
     const verdict = validateNotificationText('title', { nested: true });
-    expect(verdict.ok).toBe(false);
+    if (verdict.ok) throw new Error('expected rejection for a non-string body');
     expect(verdict.reason).toContain('body');
   });
 

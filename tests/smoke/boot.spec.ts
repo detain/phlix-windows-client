@@ -244,6 +244,11 @@ test('boot smoke test', async () => {
     undefined,
     { timeout: 15_000 }
   );
+  // --- M-WINDOWS-01 guard: the pre-JS boot splash must be gone once the
+  // renderer owns the window (boot() removes it at mount, and the
+  // incompatible-server screen removes it too). A splash still attached after
+  // mount means a removal site regressed.
+  await window.waitForSelector('#boot-splash', { state: 'detached', timeout: 15_000 });
 
   // --- W0.4d guard (title): the deterministic part is hard — the shell's
   // <title> is 'Phlix' and the post-mount router title keeps the 'Phlix' suffix

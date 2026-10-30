@@ -20,7 +20,7 @@ Phlix Windows provides a full-featured media server client for Windows, enabling
 - **Native Menus** - Full application menu with keyboard shortcuts
 - **Media Key Support** - Media key support via thumbar buttons and tray/menu keyboard accelerators (Play/Pause, Stop, Rewind/Forward 10s bridged into the player)
 - **Authentication** - Secure login with session persistence (handled by `@phlix/ui`)
-- **Shared UI** - Modern Vue 3 interface from `@phlix/ui` with the Nocturne theme
+- **Shared UI** - Modern Vue 3 interface from `@phlix/ui` with the Nocturne theme (deliberate default — the client does not follow the OS dark/light preference; one consistent look across every launch is the estate-wide brand posture. Change it any time in Settings, which persists to your server profile)
 - **Settings Management** - Configurable preferences including minimize-to-tray behavior
 
 ## Minimum Server Version

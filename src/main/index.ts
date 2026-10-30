@@ -4,7 +4,7 @@
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
 
-import { app, BrowserWindow, Menu, Tray, ipcMain, shell, nativeImage, dialog, protocol, screen, powerSaveBlocker, Notification, safeStorage } from 'electron';
+import { app, BrowserWindow, Menu, Tray, ipcMain, shell, nativeImage, dialog, protocol, screen, powerSaveBlocker, Notification, safeStorage, session } from 'electron';
 import type { MessageBoxOptions, ThumbarButton } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -21,6 +21,7 @@ import {
 import { getMainLocale, setMainLocale, t } from './i18n';
 import { restoreWindow } from './windowRestore';
 import { validateNotificationText, createToastThrottle } from './notificationGuard';
+import { installPermissionGuard } from './permissionGuard';
 import { createSecretCustody } from './secretStore';
 import type { SettingsSink } from './secretStore';
 import log from 'electron-log';
@@ -1327,6 +1328,13 @@ app.whenReady().then(() => {
 
   setupAppProtocolHandler();
   setAsDefaultProtocolClient();
+
+  // M-WINDOWS-29: default-deny OS permissions before any window exists — the
+  // renderer's only legitimate ask is clipboard-sanitized-write (the vendored
+  // ui's copy buttons); camera/mic/geolocation/notifications-via-webapi/MIDI
+  // and every unknown privilege are refused. See src/main/permissionGuard.ts.
+  installPermissionGuard(session.defaultSession);
+
   createWindow();
   createMenu();
   createTray();

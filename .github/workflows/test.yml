@@ -14,6 +14,9 @@ jobs:
   test:
     name: Test on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    # M-WINDOWS-25: bounded jobs. Windows npm ci (Electron download) + build +
+    # two test passes + coverage historically lands near 15 min; 30 is headroom.
+    timeout-minutes: 30
 
     strategy:
       # A failure on one OS must not cancel the other matrix leg — the two legs
@@ -103,6 +106,7 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-26.04
+    timeout-minutes: 10
 
     steps:
       - name: Checkout code
@@ -123,6 +127,7 @@ jobs:
   types:
     name: Type Check
     runs-on: ubuntu-26.04
+    timeout-minutes: 15
 
     steps:
       - name: Checkout code

@@ -173,6 +173,10 @@ function renderIncompatibleServerScreen(
   retryCheck: () => Promise<ServerVersionCheckResult>
 ): void {
   const container = document.getElementById('phlix-app') ?? document.body;
+  // M-WINDOWS-01: this screen renders in place of mounting, so nothing else
+  // will retire the pre-JS boot splash — remove it here or it covers the
+  // incompatibility message forever.
+  document.getElementById('boot-splash')?.remove();
   document.title = tWin('boot.incompatibleTitle');
   container.setAttribute('style', [
     'display:flex', 'align-items:center', 'justify-content:center', 'height:100vh',
@@ -382,12 +386,20 @@ export async function boot(): Promise<void> {
     menu: buildMenu(appMode),
     extraRoutes: buildExtraRoutes(appMode),
     deviceHeaders,
+    // M-WINDOWS-04 (explicit non-feature): boot always pins Nocturne — the
+    // client deliberately does NOT mirror the OS dark/light scheme. One
+    // consistent look across every launch is the estate-wide brand posture
+    // (server/hub web-uis fixed-default the same); a personal choice still
+    // exists in in-app Settings and flows from the server, never from the OS.
     defaultTheme: 'nocturne',
     branding: { wordmark: 'Phlix' },
     ...(messages ? { messages } : {})
   });
 
   app.mount('#phlix-app');
+
+  // M-WINDOWS-01: Vue owns the window now — retire the pre-JS boot splash.
+  document.getElementById('boot-splash')?.remove();
 
   // Wire Electron media events to @phlix/ui player store
   _cleanupBridge = installElectronBridge(app);

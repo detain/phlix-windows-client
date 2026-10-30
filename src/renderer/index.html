@@ -9,8 +9,38 @@
     -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' app:; img-src 'self' data: blob: http: https:; media-src 'self' blob: http: https:; worker-src 'self' blob:; child-src 'self' blob:; connect-src 'self' http: https: ws: wss: app:; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:;" />
     <title>Phlix</title>
+    <!--
+      M-WINDOWS-01: the boot splash paints BEFORE any JavaScript runs, so an
+      unreachable server (boot() awaits config IPC + a 5s version gate) shows
+      the brand and a spinner instead of a dark empty frame. Inline style is
+      CSP-legal (style-src 'unsafe-inline' — required for Vue scoped styles
+      anyway). Animation + wordmark only: no prose, so nothing to localize.
+      Reduced-motion users get a static ring.
+    -->
+    <style>
+      html, body { margin: 0; background: #1a1a2e; }
+      #boot-splash {
+        position: fixed; inset: 0; z-index: 0;
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+        background: #1a1a2e; color: #e8e8f0;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      #boot-splash .boot-splash-wordmark { font-size: 26px; font-weight: 600; letter-spacing: 0.06em; }
+      #boot-splash .boot-splash-ring {
+        width: 28px; height: 28px; border-radius: 50%;
+        border: 3px solid rgba(232, 232, 240, 0.25); border-top-color: #e8e8f0;
+        animation: boot-splash-spin 0.9s linear infinite;
+      }
+      @keyframes boot-splash-spin { to { transform: rotate(360deg); } }
+      @media (prefers-reduced-motion: reduce) {
+        #boot-splash .boot-splash-ring { animation: none; }
+      }
+    </style>
   </head>
   <body>
+    <!-- Sibling of (never inside) #phlix-app: tests/smoke/boot.spec.ts treats
+         children of the mount point as the "renderer booted" proof. -->
+    <div id="boot-splash" aria-hidden="true"><span class="boot-splash-wordmark">Phlix</span><span class="boot-splash-ring"></span></div>
     <div id="phlix-app"></div>
     <div id="player-supplement-root"></div>
     <script type="module" src="/main.ts"></script>

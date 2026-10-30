@@ -7,6 +7,59 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Boot, Permissions & CI Hygiene — W-min200 minors cluster (M-WINDOWS-01/04/25/29/54 cured, 17 stale-verified) — 2026-10-31
+
+- **M-01 (casualgamer m1).** Against a slow/unreachable server the window sat
+  dark and empty for up to the version-check timeout — `boot()` awaits config
+  IPC + the version gate before `app.mount()`. `src/renderer/index.html` now
+  ships a pre-JS boot splash: brand wordmark + animation-only spinner (zero
+  prose, nothing to localize), painted on the same `#1a1a2e` as the window
+  background, static ring under `prefers-reduced-motion`. It is a SIBLING of
+  `#phlix-app` (the smoke suite treats mount-point children as the boot
+  proof); `boot()` removes it at mount and
+  `renderIncompatibleServerScreen()` removes it on the failure screen (which
+  replaces mounting). The smoke leg additionally waits for `#boot-splash`
+  detachment. Pins: `tests/unit/bootSplash.test.ts` (6).
+- **M-29 (exploiter MINOR-1).** No `session.defaultSession` permission hooks
+  existed, so Electron granted every OS permission the renderer asked for — a
+  hostile/compromised server could obtain camera/mic/geolocation from a
+  media-player shell. New pure module `src/main/permissionGuard.ts`
+  (default-deny decision table + structural session installer, unit-testable
+  without an Electron runtime) wired at `app.whenReady` before any window
+  exists, both request and check handlers. Single measured carve-out:
+  `clipboard-sanitized-write` — the pinned `@phlix/ui` bundle calls
+  `navigator.clipboard.writeText` at 9 copy-button sites (the review's
+  "deny-all is cost-free" premise was checked against the bundle and
+  corrected). Pins: `tests/unit/permissionGuard.test.ts` (5).
+- **M-25 (devops).** Every CI job lacking a ceiling (GH default 6 h) got an
+  explicit `timeout-minutes`: test.yml test 30 / lint 10 / types 15;
+  build.yml lint 10 / typecheck 15 / test 20 / audit 10 / build 45 /
+  version-check 5 / release-latest 15 / release 15. The two smoke jobs kept
+  their existing 20.
+- **M-04 (gameux).** The always-Nocturne boot is now recorded as an EXPLICIT
+  non-feature (README feature bullet + a docblock at the `defaultTheme`
+  config): the client deliberately does not mirror the OS dark/light scheme —
+  one consistent look estate-wide, personal choice via in-app Settings.
+  Behavior unchanged (brand decision, no code path altered).
+- **M-54 (writer m10/m11).** `docs/ci-baseline.md`: retitled as an era-frozen
+  audit snapshot with an inline-corrections law; drifted present-tense claims
+  corrected from the live workflows — audit gate is `scripts/audit-gate.mjs`
+  as the LAST test-job step plus build.yml's own `audit` job (not "npm audit
+  step 36–37"), `build`'s needs list includes `audit`, the "Codecov is
+  authoritative (`fail_ci_if_error: true`)" claim was false-in-place (token
+  unauthorized; the vitest `lines: 54` threshold is the gate), the lint row's
+  "`--max-warnings 0`" never matches the live `eslint .`, `ubuntu-latest` →
+  `ubuntu-26.04` throughout, rot-prone `build.yml:138` refs → symbol anchors.
+  The synthetic 20-run sample table is untouched (separate reviewer's lane).
+  `docs/ui-surface.md`: era-snapshot banner (measured at v0.98.39, runtime
+  pin is v0.99.10 — re-derive, don't trust rows) + windows-side line
+  coordinates replaced by symbol anchors + the mispointed "documented at
+  main.ts:30-34" nav-suppression claim re-attributed to `createPhlixApp`.
+- **M-17 — STALE-VERIFIED** (no re-cure): the incompatible-server screen with
+  working Retry is live (`renderIncompatibleServerScreen` + gate with
+  `M-WINDOWS-16` comments) — cured estate-side by majors `b5547ce`/`674566a`,
+  ancestry-proven at tip.
+
 ### Security & Copy — W-min199 minors cluster (M-WINDOWS-12/33/41/49/50 cured, 05/36/38 stale-verified) — 2026-10-31
 
 - **M-33 (exploiter MINOR-5).** `notification:show` forwarded renderer strings

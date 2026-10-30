@@ -1,13 +1,24 @@
 # @phlix/ui v0.98.39 — Page and Route Surface Inventory
 
+> **Era snapshot (M-WINDOWS-54, 2026-10-31):** every row below was measured against
+> `@phlix/ui` **v0.98.39**. The runtime this repo pins today is
+> `github:detain/phlix-ui#v0.99.10`; the v0.99.x wave (playlist management, theme
+> sources, socket-hint seams, …) has NOT been re-inventoried here. Use this table
+> as the historical baseline and the method to re-derive it — do not trust an
+> individual row as live truth without re-running the headless dist analysis
+> against the pinned bundle. Windows-side line coordinates have been replaced by
+> symbol anchors (coordinates rot; symbols don't).
+
 **Purpose:** Track every page available in `@phlix/ui` v0.98.39, which ones are wired
 in the reference web-ui (`phlix-server/web-ui`), and which are wired in this repo
 (`phlix-windows-client`).
 
 - **Page count:** 43 root pages + 23 admin pages = **66 total**
-- **Reference web-ui:** `phlix-server/web-ui/src/main.ts:30-77` (menu + extraRoutes)
-- **This repo:** `src/renderer/main.ts:56-90` (buildMenu) and `:102-120` (buildExtraRoutes)
-- Shell renders **no default nav** once `menu` is supplied (documented at `src/renderer/main.ts:30-34`)
+- **Reference web-ui:** `phlix-server/web-ui/src/main.ts` (menu + extraRoutes — the
+  `buildMenu`/`buildExtraRoutes` call sites, v0.98.39 era)
+- **This repo:** `buildMenu()` / `buildExtraRoutes()` in `src/renderer/main.ts`
+- Shell renders **no default nav** once `menu` is supplied — behavior of
+  `@phlix/ui`'s own `createPhlixApp` (no windows-side code involved)
 
 ## Status Key
 
