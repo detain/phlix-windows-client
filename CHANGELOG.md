@@ -7,6 +7,21 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### DEVELOPER.md Consumer-Core Sentence Qualifies Navigation — R-WINDOWS-21 (review riders W21) — 2026-10-30
+
+- **Docs-only precision pass, zero behavior change (R-WINDOWS-21):** the
+  renderer-overview sentence in `DEVELOPER.md` listed "navigation" among
+  what comes from `@phlix/ui`, unqualified — while the repo's own shipped
+  truth (recorded in the same doc's *Renderer Process* section and pinned
+  by `tests/unit/i18nLocales.test.ts`) is that the nav ENTRIES are local:
+  `buildMenu()` in `src/renderer/main.ts` builds the per-mode catalog
+  (labels from the windows-own i18n catalogs) and injects it as `menu`
+  into `createPhlixApp`; `@phlix/ui` renders that catalog as the top-bar
+  chrome. The sentence now separates the two: the navigation chrome is
+  vendored, the entries it renders are the local `buildMenu()` catalog.
+  Review rider M-WINDOWS-22 r3 MINOR-1 (precision wording). Repo grep:
+  the sentence exists only here; no pin, test or dependency touched.
+
 ### Version-Check Docblock Coordinates Re-anchored to Live Server/Hub Source — R-WINDOWS-20 (review riders W20) — 2026-10-30
 
 - **Comments-only, zero behavior change (R-WINDOWS-20):** the W2-era docblock

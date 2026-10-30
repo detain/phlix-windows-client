@@ -41,10 +41,12 @@ Process* below).
 
 The renderer pins `@phlix/ui` (`github:detain/phlix-ui#v0.99.10`) and `@phlix/contracts`
 (`github:detain/phlix-contracts#v0.5.3`). Vue 3, Pinia, and vue-router are peer deps of `@phlix/ui`.
-Vendored page views, navigation, theming, and application state come from `@phlix/ui`; alongside
-that consumer core the repo ships its own local surfaces — player overlay components, a
-boot-failure screen, i18n catalogs, media-session handlers, a DPAPI token-store adapter, and the
-local `/app/*` route wiring (see *Renderer Process* below).
+Vendored page views, theming, application state, and the navigation chrome come from
+`@phlix/ui`; the nav entries it renders are local (the `buildMenu()` catalog in
+`src/renderer/main.ts`). Alongside that consumer core the repo ships its own local
+surfaces — player overlay components, a boot-failure screen, i18n catalogs,
+media-session handlers, a DPAPI token-store adapter, and the local `/app/*` route
+wiring (see *Renderer Process* below).
 
 Both are pinned by GitHub tag — upstream master changes are inert until both the tag and the pin move.
 
