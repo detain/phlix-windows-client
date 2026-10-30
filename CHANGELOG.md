@@ -7,6 +7,20 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Getting-updates Copy Stops Under-claiming the Manual Check — R-WINDOWS-19 (review riders W19) — 2026-10-30
+
+- **Docs-only truth pass, zero behavior change (R-WINDOWS-19):** README's
+  "Getting updates" said the check "will silently find nothing". The
+  find-nothing half stayed true (prerelease-blind posture, rolling
+  "Latest (master)" only), but "silently" became false when M-WINDOWS-12
+  (991281c) wired the `update-not-available` arm: a manual check now
+  answers with the "You're on the latest version" notification
+  (`src/main/index.ts` manualUpdateCheckPending arm, en catalog
+  `updater.notAvailableTitle`), while background checks stay quiet. The
+  sentence fades "silently" and one sentence states the visible answer.
+  M-WINDOWS-19 install-story pin 6 unaffected — the section still
+  discloses the prerelease-blind posture.
+
 ### Disposition Table Gains Its r2 Deep-Links Row — R-WINDOWS-17 (review riders W17) — 2026-10-30
 
 - **Docblock-only, zero behavior change (R-WINDOWS-17):** the

@@ -139,8 +139,10 @@ security-review-gated future feature, not available today.
 ### Getting updates
 
 The app includes an update check (Help → *Check for Updates*, plus a background check about
-every 6 hours), but **today it will silently find nothing**: it deliberately ignores
-pre-releases, and only the rolling “Latest (master)” pre-release exists. Until stable
+every 6 hours), but **today it will find nothing**: it deliberately ignores
+pre-releases, and only the rolling “Latest (master)” pre-release exists. Finding
+nothing is not saying nothing — a manual check answers with a “You're on the latest
+version” notification, while the background checks stay quiet. Until stable
 versioned releases are published, getting a new build means re-downloading the current
 installer from the [releases page](https://github.com/detain/phlix-windows-client/releases)
 and installing over the old one. Release notes for versioned releases appear on that same
