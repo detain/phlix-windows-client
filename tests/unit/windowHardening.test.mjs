@@ -102,8 +102,8 @@ describe('M-WINDOWS-14: tray takes the shell-picked multi-size icon', () => {
   it('createTray prefers icon.ico and falls back to the png path', () => {
     const idx = main.indexOf('export function createTray');
     const slice = main.slice(idx, idx + 1000);
-    expect(slice).toMatch("build/icon\.ico");
-    expect(slice).toMatch("build/icon\.png");
+    expect(slice).toMatch("build/icon.ico");
+    expect(slice).toMatch("build/icon.png");
     // the forced single-size resize survives ONLY on the fallback branch
     const resizeCount = (slice.match(/\.resize\(\{ width: 16, height: 16 \}\)/g) ?? []).length;
     expect(resizeCount).toBeLessThanOrEqual(1);

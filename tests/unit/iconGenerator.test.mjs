@@ -11,7 +11,7 @@
  */
 import { describe, it, expect, beforeAll } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { readFileSync, existsSync, rmSync, mkdirSync } from 'node:fs';
+import { readFileSync, rmSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const OUT = '/tmp/opencode/fix-win-min/icons-out';
