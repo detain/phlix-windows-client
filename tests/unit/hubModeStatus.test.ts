@@ -175,9 +175,27 @@ describe('Hub Mode is not enterable (M-WINDOWS-17)', () => {
 
   it('the installed @phlix/ui bundle touches no electronAPI — no vendored surface can drive the writer', () => {
     expect(existsSync(UI_DIST_DIR), `vendored bundle missing at ${UI_DIST_DIR}`).toBe(true);
-    const chunks = readdirSync(UI_DIST_DIR).filter((name) => name.endsWith('.js'));
-    // Floor guard: an empty scan would make the absence-assertion vacuous.
-    expect(chunks.length, 'vendored bundle produced no .js chunks').toBeGreaterThan(10);
+    // R-WINDOWS-15: dist ships every chunk in BOTH module formats (.js + .cjs).
+    // The renderer loads only .js chunks, but the claim under test is about the
+    // installed bundle — scanning one format left the other technically
+    // unpinned, a silent hole where an upstream hub-connection seam could ship
+    // in .cjs unseen. All JS chunk formats are scanned; .mjs is admitted
+    // defensively in case a future build switches format.
+    const names = readdirSync(UI_DIST_DIR);
+    const jsChunks = names.filter((name) => name.endsWith('.js'));
+    const cjsChunks = names.filter((name) => name.endsWith('.cjs'));
+    const mjsChunks = names.filter((name) => name.endsWith('.mjs'));
+    // Floor guards: an empty (or format-starved) scan would make the
+    // absence-assertion vacuous. The per-format floors are the R-WINDOWS-15
+    // tripwire's own tripwire — if a re-pin ever changes the dist layout,
+    // these redden so the scan set is re-derived, never silently narrowed.
+    expect(jsChunks.length, 'vendored bundle produced no .js chunks').toBeGreaterThan(10);
+    expect(
+      cjsChunks.length,
+      'vendored bundle produced no .cjs chunks — the dist module-format layout changed; ' +
+      're-derive the R-WINDOWS-15 scan set before trusting this pin'
+    ).toBeGreaterThan(10);
+    const chunks = [...jsChunks, ...cjsChunks, ...mjsChunks];
     const carriers = chunks.filter(
       (name) => readFileSync(join(UI_DIST_DIR, name), 'utf-8').includes('electronAPI')
     );

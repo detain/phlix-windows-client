@@ -7,6 +7,20 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Hub-Mode Bundle Tripwire Now Pins Every Chunk Format — R-WINDOWS-15 (review riders W15) — 2026-10-31
+
+- **Test-hardening only, zero behavior change (R-WINDOWS-15):** the
+  M-WINDOWS-17 electronAPI bundle scan read `.js` chunks only, while the
+  pinned `@phlix/ui` dist ships every chunk in two module formats (139 .js
+  + 139 .cjs today). The renderer consumes only `.js`, so the pin was green
+  and honest as far as it reached — but a hub-connection seam landing in
+  the unscanned `.cjs` build would have been a real `electronAPI`
+  reference the tripwire never saw. The scan now covers `.js`, `.cjs` and
+  (defensively) `.mjs` chunks, with a per-format floor guard: a future
+  dist-layout change reddens the guard so the scan set is re-derived,
+  never silently narrowed. Zero carriers in either format re-verified on
+  the installed bundle.
+
 ### Deep-Link Contract Test Comments Carry the Right Hub-Config Item Number — R-WINDOWS-14 (review riders W14) — 2026-10-31
 
 - **Comment-only truth pass, zero behavior change (R-WINDOWS-14):**
