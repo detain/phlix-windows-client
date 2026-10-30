@@ -7,7 +7,32 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-### Copy Truth, Overlay i18n & Playback-Aware Tray — W-min201 minors cluster (M-WINDOWS-02/11/37 cured) — 2026-10-31
+### Pipeline & Docs Truth — W-min202 minors cluster (M-WINDOWS-03/27/46/07 cured, 06/52/53 stale-verified, 10 honest-parked) — 2026-10-31
+
+- **Dead dispatch input deleted (M-WINDOWS-27):** `build.yml`'s `workflow_dispatch.version`
+  input was read only inside the tag-gated release job — it could never take effect. The
+  input is gone (bare dispatch stays for pipeline validation) and Get-version is tag-only.
+- **Checksum steps made honest (M-WINDOWS-27):** both `SHA256SUMS.txt` producers now use
+  `shopt -s nullglob` arrays and fail loud (`::error::`) instead of hashing literal
+  never-produced patterns and printing "No artifacts found" beside a populated file.
+  The rolling-release checksum covers exactly the two assets the release carries.
+- **Updater note corrected (M-WINDOWS-27):** the workflow comment claiming the auto-updater
+  consumer lives in `@phlix/ui` was false — this repo's Electron main process is the
+  electron-updater consumer. 4 pins in `tests/unit/buildWorkflowTruth.test.mjs`.
+- **Troubleshooting de-costumed (M-WINDOWS-03):** the packaged-app reader was told to
+  install Node.js 24+ and run `npm install`. End-user arm now points at the tray and the
+  shipped logs; the Node guidance moved under an explicit from-source heading.
+- **Config/log paths split (M-WINDOWS-46):** the shipped app writes under
+  `%APPDATA%\Phlix` (packaged `app.name` = installer product name); `%APPDATA%\phlix-windows`
+  is the from-source directory. README names both laws.
+- **resolveConfig docs drift cured (M-WINDOWS-07):** AGENTS.md and DEVELOPER.md still taught
+  the retired `http://localhost:8096` fallback. Both now state the empty-base law
+  (`serverUrl ?? envUrl ?? ''` with `requireConnection: true` → `@phlix/ui` Connect screen).
+- **Stale-verified (already cured earlier):** M-WINDOWS-06 (ui-surface era banner — W-min200
+  908227b), M-WINDOWS-52 (signing posture + canonical secret names + guard tests,
+  measured-2026-10-29 wave), M-WINDOWS-53 (AGENTS.md pins already match package.json).
+- **Honest park:** M-WINDOWS-10 (`@phlix/ui` v0.99.11-era re-pin) is owner-gated — the
+  estate pins hold at v0.99.10 until the v0.99.12 tag-wave cascade runs.
 
 - **M-02 (casualgamer m2 / writer).** The tray tooltip and the Help→About
   dialog called THIS client "Phlix Media Server" — that is the server product's

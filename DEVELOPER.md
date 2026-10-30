@@ -159,7 +159,10 @@ src/renderer/
 - **Hub mode** (`{ app: 'hub', apiBase: hub.hubUrl }`) when `hub.hubUrl` is set AND
   `hub.connectionMode !== 'direct'`.
 - Otherwise **server mode** (`{ app: 'server', apiBase }`) with the base resolved as
-  `serverUrl || envUrl || 'http://localhost:8096'` (empty strings are skipped by `||`).
+  `input.serverUrl ?? input.envUrl ?? ''` — and an EMPTY `apiBase` is a legitimate outcome,
+  not a gap the code papers over with a localhost guess: `main.ts` passes
+  `requireConnection: true`, so an empty base lands the user on the shared `@phlix/ui`
+  first-run Connect screen (M-WINDOWS-07 retired the stale description of this law).
 
 ### Electron → player bridge (`electronBridge.ts`)
 

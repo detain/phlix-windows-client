@@ -12,12 +12,10 @@ on:
       - 'package.json'
       - 'electron-builder.*'
       - '.github/workflows/build.yml'
+  # M-WINDOWS-27: the dispatch `version` input was deleted. Its only reader sat
+  # inside the tag-gated release job, so a dispatch build could never use it —
+  # a lie the UI kept offering. Dispatch remains for pipeline validation.
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version to build (e.g., 1.0.0)'
-        required: false
-        type: string
 
 concurrency:
   group: build-${{ github.ref }}
@@ -233,7 +231,15 @@ jobs:
         shell: bash
         run: |
           cd release
-          sha256sum *.exe *.appx *.nupkg > SHA256SUMS.txt 2>/dev/null || echo "No artifacts found" >&2
+          # M-WINDOWS-27: nullglob array — hash exactly what exists; an empty
+          # leg fails LOUD. The old glob handed sha256sum literal patterns for
+          # files this repo never produces (the nsis leg has no appx package
+          # and no nupkg exists at all), so a successful partial hash still
+          # echoed a not-found warning beside a populated file — contradictory.
+          shopt -s nullglob
+          files=(*.exe *.appx *.blockmap)
+          if [ ${#files[@]} -eq 0 ]; then echo "::error::checksum step found no artifacts to hash" >&2; exit 1; fi
+          sha256sum "${files[@]}" > SHA256SUMS.txt
 
       - name: Upload artifacts
         # The nsis leg's release/ also carries electron-builder's own updater
@@ -267,9 +273,11 @@ jobs:
   # prerelease serves downloads only. Feed url ↔ GitHub asset name ↔ the
   # provider's dash-normalized download path are one string by the space-free
   # nsis.artifactName law in package.json (M-WINDOWS-05: this workflow used to
-  # hand-write a sha256 look-alike no updater can verify). If @phlix/ui (the
-  # consuming package) ever ships its own auto-updater, it overrides these
-  # choices there — this repo hosts the installer artifacts and the feed.
+  # hand-write a sha256 look-alike no updater can verify). The feed's consumer
+  # is THIS repo's own Electron main process — src/main/index.ts wires
+  # electron-updater's autoUpdater (M-WINDOWS-27 corrected this note, which
+  # used to outsource updater consumption to @phlix/ui: the ui is the renderer
+  # and ships no electron-updater dependency).
 
   # ─── version-check ────────────────────────────────────────────────────────────
   # Runs before any release job. Fails if package.json version does not match
@@ -334,7 +342,14 @@ jobs:
       - name: Generate SHA256 checksums for release artifacts
         run: |
           cd artifacts
-          sha256sum nsis/*.exe nsis/*.appx nsis/*.nupkg appx/*.exe appx/*.appx appx/*.nupkg > SHA256SUMS.txt 2>/dev/null || echo "No artifacts found" >&2
+          # M-WINDOWS-27: the rolling release carries exactly the nsis .exe and
+          # the appx .appx (see the asset list below) — hash those two, fail
+          # loud if either leg is missing. The old six-pattern glob half-matched
+          # and mislabeled a good integrity file as empty.
+          shopt -s nullglob
+          files=(nsis/*.exe appx/*.appx)
+          if [ ${#files[@]} -ne 2 ]; then echo "::error::expected both nsis .exe and appx .appx artifacts, got ${#files[@]}" >&2; exit 1; fi
+          sha256sum "${files[@]}" > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
       - name: Reset "latest" release + tag
@@ -446,12 +461,11 @@ jobs:
       - name: Get version
         id: version
         run: |
-          if [[ "${{ github.event.inputs.version }}" != "" ]]; then
-            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-          else
-            VERSION=${GITHUB_REF#refs/tags/v}
-            echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          fi
+          # M-WINDOWS-27: tag-only. This step used to prefer a dispatch-supplied
+          # version first — unreachable, because the whole job is gated on
+          # refs/tags/v — and that dead dispatch option was deleted with it.
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Generate SHA256 checksums
         id: sha256

@@ -161,8 +161,12 @@ For development:
 
 ## Configuration
 
-The application stores configuration in the user's app data directory:
-- **Windows**: `%APPDATA%\phlix-windows`
+The application stores configuration in the user's app data directory. The
+directory is named after the running app's name — the packaged installer ships
+as the product name **Phlix**, while a from-source run uses the package name
+`phlix-windows`:
+- **Windows (installed app)**: `%APPDATA%\Phlix`
+- **Windows (running from source)**: `%APPDATA%\phlix-windows`
 
 ### Configuration Options
 
@@ -400,11 +404,20 @@ copy (Features + What Works bullets, how-to steps), and retire the pins together
 ### Common Issues
 
 **App doesn't start:**
+- Relaunch **Phlix** from the Start menu; if it only minimized, use the tray
+  icon's Show entry (hover it — the tooltip reads "Phlix", and "Phlix — playing"
+  while media is running).
+- Read the newest file in `%APPDATA%\Phlix\logs\` — main-process failures are
+  recorded there by electron-log.
+- If the installation looks damaged, verify the installer against
+  `SHA256SUMS.txt` (see *First run* above) and reinstall.
+
+**App doesn't start when running from source:**
 - Ensure Node.js 24+ is installed (the repo's `engines.node` requires `>=24.0.0` — see Prerequisites)
 - Run `npm install` to install dependencies
 - Check console for error messages
 
-**Vite server port conflict:**
+**Vite server port conflict (also from source):**
 - Kill processes using port 5173
 - Modify `vite.config.mts` to use a different port
 
@@ -414,8 +427,9 @@ copy (Features + What Works bullets, how-to steps), and retire the pins together
 
 ### Logs
 
-Application logs are stored in:
-- **Windows**: `%APPDATA%\phlix-windows\logs\`
+Application logs are stored in (same packaged-vs-source naming as *Configuration*):
+- **Windows (installed app)**: `%APPDATA%\Phlix\logs\`
+- **Windows (running from source)**: `%APPDATA%\phlix-windows\logs\`
 
 Use `electron-log` for runtime logging:
 ```typescript
