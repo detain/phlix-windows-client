@@ -7,6 +7,52 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### SMTC Ownership, Config-Write Validation & Log Redaction — W-min207 minors cluster (M-WINDOWS-34/35/44 cured, M-WINDOWS-20 stale-verified) — 2026-10-31
+
+- **The shell's second SMTC installer is gone (M-WINDOWS-35, full-deletion route
+  disclosed):** `setupMediaSession()` registered all seven `navigator.mediaSession`
+  action handlers unconditionally AFTER the vendored @phlix/ui store's own
+  capability-gated installer — last write wins, so the shell silently owned the
+  transport; its previoustrack/nexttrack arms drove `media-previous`/`media-next`
+  pushes whose only renderer consumers were documented no-op log lines. The
+  phantom-button dead-end and the whole relay leg went: installer, the seven
+  `media:*` invoke channels + main handlers + preload wrappers + type decls, the
+  three orphaned push subscriptions and their bridge arms, ten doc rows.
+  `clearMediaSessionTransport` (M-WINDOWS-22 stop-clear) stays — the store never
+  returns the transport to `none` itself. The store is now the SOLE SMTC
+  transport owner; `smtcOwnership.test.mjs` pins both the absence (installer,
+  channels, rows) and the survival of every live push producer (tray/menu/thumbar).
+- **Config writes validate at the boundary (M-WINDOWS-34):** `hub:set-config`
+  and `app:set-server-url` persisted ANY renderer-supplied value verbatim —
+  `file:`/`javascript:`/credentialed URLs and type junk sailed into the store and
+  later became boot-time fetch/seed inputs. Both handlers now enforce one law:
+  `hubUrl`/`serverUrl` must be empty, `null` (the legacy delete/clear signal), or
+  pass `isFetchableApiBase` (relocated to `urlValidator.ts` — one law for the
+  fetch guard AND the write guards, versionCheck re-exports it); `activeServerId`
+  is a bounded non-blank string (opaque id, deliberately not URL-shaped);
+  `connectionMode` is the closed `{direct, hub}` enum `resolveConfig` actually
+  reads. Fields are judged independently — one malformed value cannot block its
+  legal siblings; the handlers answer with the accept verdict. 9 behavior cases
+  (`configWriteValidation.test.ts`), 8 red on the raw-writing baseline; four
+  electron-mock stub sets extended for the new import surface (the full-
+  replacement `mainSecretCustody` mock became partial so the real laws stay
+  live there).
+- **Rejection logs stop echoing secrets (M-WINDOWS-44):** every refuse path now
+  carries a summary, never the payload — `summarizeUrlForLog` (scheme//host,
+  port kept) for the protocol refusals, the literal `unparseable URL` for junk,
+  length-only for rejected `app://` asset paths (`Invalid path format` —
+  a debug aid I introduced in W-min204, cured in-lane here — plus the traversal
+  warn, disclosed extra), and the version-check probe line logs the summary
+  instead of the full `/system/info` URL. The deep-link validator's warns were
+  proof-checked already-clean (scheme/host only). `logRedaction.test.ts` —
+  including the host-identity decision (the summary keeps `host:port`, pinned
+  'host identity keeps port') — six cases, import-red baseline.
+- **M-WINDOWS-20 stale-verified:** the orphaned updater IPC surface the review
+  flagged is the named `PRELOAD_SHELL_ONLY` inventory W-min205 minted (its five
+  update:* rows + deferred-UI rationale live in `ipcChannels.test.ts`); the
+  requested electron.d.ts declarations were deliberately not added — types
+  without consumers are drift bait, same 205 law.
+
 ### Crash Recovery, Self-Navigation Fix & Icon Engineering — W-min206 minors cluster (M-WINDOWS-09/14/16/18/19/23/30/32 cured) — 2026-10-31
 
 - **Renderer crash recovery (M-WINDOWS-09):** `render-process-gone` only

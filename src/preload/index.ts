@@ -144,28 +144,9 @@ const electronApiSurface = {
     ipcRenderer.on('media-forward', callback);
     return () => ipcRenderer.removeListener('media-forward', callback);
   },
-  onMediaSeekTo: (callback: (time: number) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, time: number) => callback(time);
-    ipcRenderer.on('media-seek-to', listener);
-    return () => ipcRenderer.removeListener('media-seek-to', listener);
-  },
-  onMediaPrevious: (callback: () => void) => {
-    ipcRenderer.on('media-previous', callback);
-    return () => ipcRenderer.removeListener('media-previous', callback);
-  },
-  onMediaNext: (callback: () => void) => {
-    ipcRenderer.on('media-next', callback);
-    return () => ipcRenderer.removeListener('media-next', callback);
-  },
-
-  // W4.5: SMTC action handlers (navigator.mediaSession)
-  mediaPlay: () => ipcRenderer.invoke('media:play'),
-  mediaPause: () => ipcRenderer.invoke('media:pause'),
-  mediaPrevious: () => ipcRenderer.invoke('media:previous'),
-  mediaNext: () => ipcRenderer.invoke('media:next'),
-  mediaSeekBackward: () => ipcRenderer.invoke('media:seek-backward'),
-  mediaSeekForward: () => ipcRenderer.invoke('media:seek-forward'),
-  mediaSeekTo: (time: number) => ipcRenderer.invoke('media:seek-to', time),
+  // M-WINDOWS-35: the seek-to / previous / next subscription wrappers and
+  // the seven invoke relayers removed with the shell's second SMTC
+  // installer — their only producers/consumers were that leg.
 
   // Settings
   onOpenSettings: (callback: () => void) => {
@@ -175,12 +156,12 @@ const electronApiSurface = {
 
   // Hub configuration handlers
   hubGetConfig: () => ipcRenderer.invoke('hub:get-config'),
-  hubSetConfig: (config: { hubUrl?: string; activeServerId?: string; connectionMode?: string }) =>
+  hubSetConfig: (config: { hubUrl?: string | null; activeServerId?: string | null; connectionMode?: string | null }) =>
     ipcRenderer.invoke('hub:set-config', config),
 
   // Direct server URL
   getServerUrl: () => ipcRenderer.invoke('app:get-server-url'),
-  setServerUrl: (url: string) => ipcRenderer.invoke('app:set-server-url', url),
+  setServerUrl: (url: string | null) => ipcRenderer.invoke('app:set-server-url', url),
 
   // W7.6: runtime server version enforcement (1.1.0 minimum). M-WINDOWS-02: resolves to the
   // structured ServerVersionCheck verdict (src/renderer/types/electron.d.ts), not a bare boolean.

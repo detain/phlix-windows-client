@@ -4,84 +4,22 @@
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
 
-// M-WINDOWS-14: this module used to also export `updateMeta()` (plus a
-// MediaSessionMetadata interface) for the shell's play/pause path. It read
-// `title`/`artist`/`album`/`artwork` fields that do not exist on the real
-// `usePlayerStore`, so every call overwrote the vendored ui store's rich
-// SMTC metadata (`setCurrent` feeds `navigator.mediaSession.metadata`
-// itself) with a fabricated `{ title: 'Phlix' }` stub — and its
-// "null metadata while paused" behavior never matched the store's. The call
-// site in electronBridge.ts was removed; the zero-caller function went with
-// it (estate dead-code law). SMTC metadata is the store's own feed.
+// M-WINDOWS-35: this module used to be the shell's SECOND
+// navigator.mediaSession installer, wired after the vendored @phlix/ui
+// player store's own capability-gated handlers. Registering later WINS the
+// single slot per action, so the shell silently replaced the store's
+// transport handlers; worse, its prev/next arms re-dispatched into
+// 'media-previous'/'media-next' pushes whose only renderer consumers were
+// documented no-op log lines (playlist management lives in @phlix/ui) —
+// phantom SMTC buttons acknowledging clicks into nothing. The whole leg
+// went: the installer export, the 7 invoke channels it called, and the 3
+// push subscriptions only those channels fed. SMTC transport, metadata,
+// playbackState and positionState are owned SOLELY by the vendored store's
+// installer now; this module keeps only the stop-clear below
+// (M-WINDOWS-22). Historical note from M-WINDOWS-14: the old `updateMeta()`
+// export fabricated stub metadata over the store's rich `setCurrent` feed
+// and was deleted for the same ownership reason.
 
-/**
- * Sets up navigator.mediaSession for Windows SMTC integration.
- * Returns a cleanup function to remove action handlers.
- */
-export function setupMediaSession(): () => void {
-  if (typeof navigator === 'undefined' || !navigator.mediaSession) {
-    return () => {};
-  }
-
-  const handlePlay = () => {
-    window.electronAPI?.mediaPlay();
-  };
-
-  const handlePause = () => {
-    window.electronAPI?.mediaPause();
-  };
-
-  const handlePrev = () => {
-    window.electronAPI?.mediaPrevious();
-  };
-
-  const handleNext = () => {
-    window.electronAPI?.mediaNext();
-  };
-
-  const handleSeekBack = () => {
-    window.electronAPI?.mediaSeekBackward();
-  };
-
-  const handleSeekForward = () => {
-    window.electronAPI?.mediaSeekForward();
-  };
-
-  const handleSeekTo = (details?: MediaSessionActionDetails) => {
-    if (details?.seekTime !== undefined) {
-      window.electronAPI?.mediaSeekTo(details.seekTime);
-    }
-  };
-
-  const actionHandlers: [MediaSessionAction, (details?: MediaSessionActionDetails) => void][] = [
-    ['play', handlePlay],
-    ['pause', handlePause],
-    ['previoustrack', handlePrev],
-    ['nexttrack', handleNext],
-    ['seekbackward', handleSeekBack],
-    ['seekforward', handleSeekForward],
-    ['seekto', handleSeekTo],
-  ];
-
-  actionHandlers.forEach(([action, handler]) => {
-    try {
-      navigator.mediaSession.setActionHandler(action, handler);
-    } catch {
-      // Some handlers may not be supported
-    }
-  });
-
-  // Return cleanup function
-  return () => {
-    actionHandlers.forEach(([action]) => {
-      try {
-        navigator.mediaSession.setActionHandler(action, null);
-      } catch {
-        // Ignore
-      }
-    });
-  };
-}
 /**
  * M-WINDOWS-22 (review windows__gameux): SMTC STOP-CLEAR. The vendored store
  * feeds metadata, playbackState (playing/paused) and positionState itself —

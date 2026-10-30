@@ -134,7 +134,8 @@ vi.mock('electron-store', () => ({
 }));
 
 vi.mock('../../src/main/pathUtils', () => ({ isPathSafe: vi.fn(() => true) }));
-vi.mock('../../src/main/urlValidator', () => ({ validateExternalUrl: vi.fn(() => true) }));
+// M-WINDOWS-34: extended stub set — index.ts now imports these too.
+vi.mock('../../src/main/urlValidator', () => ({ validateExternalUrl: vi.fn(() => true), validateNavigationUrl: vi.fn(() => true), isFetchableApiBase: vi.fn(() => true) }));
 
 vi.mock('electron-updater', () => ({
   autoUpdater: {

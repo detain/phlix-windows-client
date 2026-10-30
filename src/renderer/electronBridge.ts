@@ -337,32 +337,16 @@ export function wireElectronBridge(player: BridgePlayer, router: BridgeRouter): 
   );
 
   cleanups.push(
-    api.onMediaSeekTo((time: number) => {
-      if (!playerCanControl(player)) return;
-      player.seekTo(time);
-      // W4.5: position changed — update progress bar
-      api.setPlaybackProgress?.(player.position, player.duration);
-    })
-  );
-
-  cleanups.push(
     api.onOpenSettings(() => {
       router.push('/app/settings');
     })
   );
 
-  // W4.5: SMTC previous/next track handlers (no-op — playlist management is in @phlix/ui)
-  cleanups.push(
-    api.onMediaPrevious(() => {
-      log.info('[electronBridge] media-previous received (no-op: playlist in @phlix/ui)');
-    })
-  );
-
-  cleanups.push(
-    api.onMediaNext(() => {
-      log.info('[electronBridge] media-next received (no-op: playlist in @phlix/ui)');
-    })
-  );
+  // M-WINDOWS-35: the seek-to / previous / next subscription arms were
+  // deleted with their channels — those pushes were produced only by the
+  // shell's second SMTC installer (now removed) relaying its own invoke
+  // calls, and the prev/next pair were documented no-op log sinks for
+  // phantom SMTC buttons the vendored store's gating already prevents.
 
   // M-WINDOWS-14: the in-app transport never enters any handler above — the
   // vendored player drives the store directly. Mirror the store's reactive

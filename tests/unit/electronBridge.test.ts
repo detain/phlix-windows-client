@@ -48,16 +48,10 @@ interface FakeElectronAPI {
   onMediaStop: ReturnType<typeof vi.fn>;
   onMediaRewind: ReturnType<typeof vi.fn>;
   onMediaForward: ReturnType<typeof vi.fn>;
-  onMediaSeekTo: ReturnType<typeof vi.fn>;
-  onMediaPrevious: ReturnType<typeof vi.fn>;
-  onMediaNext: ReturnType<typeof vi.fn>;
   onOpenSettings: ReturnType<typeof vi.fn>;
-  mediaPlay: ReturnType<typeof vi.fn>;
-  mediaPause: ReturnType<typeof vi.fn>;
-  mediaPrevious: ReturnType<typeof vi.fn>;
-  mediaNext: ReturnType<typeof vi.fn>;
-  mediaSeekBackward: ReturnType<typeof vi.fn>;
-  mediaSeekForward: ReturnType<typeof vi.fn>;
+  // M-WINDOWS-35: onMediaSeekTo/onMediaPrevious/onMediaNext + the
+  // mediaPlay..mediaSeekForward invoke fields went with those channels
+  // (the shell's second SMTC installer was their only traffic).
   // M-WINDOWS-14: the three OS-surface senders the reactive mirror drives.
   updateThumbar: ReturnType<typeof vi.fn>;
   setPlaybackProgress: ReturnType<typeof vi.fn>;
@@ -86,16 +80,7 @@ function makeFakeApi(): FakeElectronAPI {
     onMediaStop: register('media-stop'),
     onMediaRewind: register('media-rewind'),
     onMediaForward: register('media-forward'),
-    onMediaSeekTo: register('media-seek-to'),
-    onMediaPrevious: register('media-previous'),
-    onMediaNext: register('media-next'),
     onOpenSettings: register('open-settings'),
-    mediaPlay: vi.fn(),
-    mediaPause: vi.fn(),
-    mediaPrevious: vi.fn(),
-    mediaNext: vi.fn(),
-    mediaSeekBackward: vi.fn(),
-    mediaSeekForward: vi.fn(),
     updateThumbar: vi.fn(),
     setPlaybackProgress: vi.fn(),
     updatePowerBlocker: vi.fn()

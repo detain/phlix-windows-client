@@ -105,9 +105,14 @@ vi.mock('../../src/main/pathUtils', () => ({
   isPathSafe: vi.fn(() => true)
 }));
 
-vi.mock('../../src/main/urlValidator', () => ({
-  validateExternalUrl: vi.fn(() => true)
-}));
+// M-WINDOWS-34: partial mock — index.ts's config handlers now consult
+// isFetchableApiBase from this module; the real laws must run so the
+// custody round-trip exercises the true accept path (its fixtures are
+// genuine https origins; a bare stub missing the export threw on access).
+vi.mock('../../src/main/urlValidator', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/main/urlValidator')>();
+  return { ...actual, validateExternalUrl: vi.fn(() => true) };
+});
 
 // ---------------------------------------------------------------------------
 // electron mock — singleInstance-shaped, extended with safeStorage custody

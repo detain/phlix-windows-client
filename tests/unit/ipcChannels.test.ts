@@ -456,13 +456,6 @@ describe('IPC channel pairing', () => {
         'gpu:set-disable-hardware-acceleration',
         'hub:get-config',
         'hub:set-config',
-        'media:next',
-        'media:pause',
-        'media:play',
-        'media:previous',
-        'media:seek-backward',
-        'media:seek-forward',
-        'media:seek-to',
         'notification:show',
         'tray:get-minimize-to-tray',
         'update:check-for-updates',
@@ -483,13 +476,6 @@ describe('IPC channel pairing', () => {
         'gpu:set-disable-hardware-acceleration',
         'hub:get-config',
         'hub:set-config',
-        'media:next',
-        'media:pause',
-        'media:play',
-        'media:previous',
-        'media:seek-backward',
-        'media:seek-forward',
-        'media:seek-to',
         'notification:show',
         'tray:get-minimize-to-tray',
         'update:check-for-updates',
@@ -509,16 +495,14 @@ describe('IPC channel pairing', () => {
       expect(mainOn.sort()).toEqual(['minimize-to-tray', 'set-always-on-top', 'tray:set-minimize-to-tray', 'thumbar:update', 'playback:progress', 'power:update', 'deeplink:ready', 'vault:get', 'vault:set', 'vault:delete', 'vault:is-available'].sort());
     });
 
-    it('main process sends exactly twelve distinct push channels to renderer', () => {
-      // media-*, open-settings, deeplink:open, update:* (unique channel names)
+    it('main process sends exactly nine distinct push channels to renderer', () => {
+      // M-WINDOWS-35: media-previous/media-next/media-seek-to left with the shell's
+      // second SMTC installer; media-play-pause/stop/rewind/forward remain (thumbar/tray/menu).
       expect([...new Set(mainWebContentsSend)].sort()).toEqual([
         'deeplink:open',
         'media-forward',
-        'media-next',
         'media-play-pause',
-        'media-previous',
         'media-rewind',
-        'media-seek-to',
         'media-stop',
         'open-settings',
         'update:available',
@@ -527,15 +511,12 @@ describe('IPC channel pairing', () => {
       ].sort());
     });
 
-    it('preload listens to exactly twelve push channels from main', () => {
+    it('preload listens to exactly nine push channels from main', () => {
       expect(preloadOnChannels.sort()).toEqual([
         'deeplink:open',
         'media-forward',
-        'media-next',
         'media-play-pause',
-        'media-previous',
         'media-rewind',
-        'media-seek-to',
         'media-stop',
         'open-settings',
         'update:available',

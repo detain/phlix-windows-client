@@ -10,7 +10,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
 import { isPathSafe } from './pathUtils';
-import { validateExternalUrl, validateNavigationUrl } from './urlValidator';
+import { validateExternalUrl, validateNavigationUrl, isFetchableApiBase } from './urlValidator';
 import { checkMinServerVersion, type ServerVersionCheck } from './versionCheck';
 import {
   parseDeepLinkUrl,
@@ -540,8 +540,10 @@ function createWindow(): void {
  * forward — M-WINDOWS-50 truth pass: the outer buttons are 10-second SEEKS.
  * Clicks send media-rewind/media-forward and the renderer resolves them to
  * player.seekBy(±SEEK_STEP_SECONDS) (src/renderer/electronBridge.ts); they do
- * NOT change tracks. Real SMTC previous/next exist separately and are the
- * documented no-op arm (playlist management lives in @phlix/ui). All three
+ * NOT change tracks. SMTC previous/next are no longer registered by this
+ * shell at all (M-WINDOWS-35: the second installer that fed those phantom
+ * buttons was removed; playlist management lives in @phlix/ui and the
+ * vendored store gates its own SMTC actions). All three
  * buttons share the resized app icon today, so the tooltips carry the whole
  * differentiation — kept honest in the i18n catalog (thumbar.*).
  * Called once after createWindow() and updated via thumbar:update IPC events.
@@ -1018,10 +1020,49 @@ ipcMain.handle('hub:get-config', () => {
   };
 });
 
-ipcMain.handle('hub:set-config', (_, config: { hubUrl?: string; activeServerId?: string; connectionMode?: string }) => {
-  if (config.hubUrl !== undefined) configCustody.write('hubUrl', config.hubUrl);
-  if (config.activeServerId !== undefined) store.set('activeServerId', config.activeServerId);
-  if (config.connectionMode !== undefined) store.set('connectionMode', config.connectionMode);
+// M-WINDOWS-34 (review windows__exploiter 6): config writes are validated AT
+// THE BOUNDARY. Both handlers used to persist renderer-supplied values raw —
+// file:/javascript:/cred-bearing URLs could poison the very inputs boot-time
+// fetches and seeds trust, and non-string junk corrupted the store. Laws:
+// hubUrl/serverUrl must be '' (the LEGAL clear-signal — main.ts
+// onConnectionChange(url ?? '') depends on it) or pass isFetchableApiBase;
+// activeServerId is an opaque id — a bounded non-blank string, deliberately
+// NOT URL-shaped; connectionMode is the closed enum resolveConfig actually
+// reads ({direct, hub}: anything !== 'direct' with a hubUrl enters hub mode,
+// so invented values silently mis-route). Fields are judged independently —
+// one malformed field cannot block its legal siblings. Refusal logs carry no
+// raw values (M-WINDOWS-44 law). Returns true when every PRESENT field was
+// accepted.
+ipcMain.handle('hub:set-config', (_, config: { hubUrl?: string | null; activeServerId?: string | null; connectionMode?: string | null }) => {
+  const raw = (config ?? {}) as Record<string, unknown>;
+  let allAccepted = true;
+  if (raw.hubUrl !== undefined) {
+    // null keeps the legacy CLEAR meaning (store row becomes null = absent;
+    // mainSecretCustody's no-phantom-envelope probe rides this path).
+    if (raw.hubUrl === null || (typeof raw.hubUrl === 'string' && (raw.hubUrl === '' || isFetchableApiBase(raw.hubUrl)))) {
+      configCustody.write('hubUrl', raw.hubUrl as string | null);
+    } else {
+      allAccepted = false;
+      log.warn('[config] hub:set-config refused malformed hubUrl (http(s)/no-userinfo/host, empty-clear, or null law)');
+    }
+  }
+  if (raw.activeServerId !== undefined) {
+    if (raw.activeServerId === null || (typeof raw.activeServerId === 'string' && raw.activeServerId.trim().length > 0 && raw.activeServerId.length <= 512)) {
+      store.set('activeServerId', raw.activeServerId as string | null);
+    } else {
+      allAccepted = false;
+      log.warn('[config] hub:set-config refused malformed activeServerId (bounded non-blank string law)');
+    }
+  }
+  if (raw.connectionMode !== undefined) {
+    if (raw.connectionMode === null || raw.connectionMode === 'direct' || raw.connectionMode === 'hub') {
+      store.set('connectionMode', raw.connectionMode as string | null);
+    } else {
+      allAccepted = false;
+      log.warn('[config] hub:set-config refused unknown connectionMode (vocabulary: direct|hub)');
+    }
+  }
+  return allAccepted;
 });
 
 // Direct server URL handlers — M-WINDOWS-11: custody-sealed (see hubUrl above).
@@ -1029,8 +1070,16 @@ ipcMain.handle('app:get-server-url', () => {
   return configCustody.read('serverUrl');
 });
 
-ipcMain.handle('app:set-server-url', (_, url: string) => {
+ipcMain.handle('app:set-server-url', (_, url: string | null) => {
+  // M-WINDOWS-34: same boundary law as hub:set-config — '' AND null are the
+  // legal clears (null = legacy absent-row write the custody probes); any
+  // other value must be a plain http(s) origin without userinfo.
+  if (url !== null && (typeof url !== 'string' || (url !== '' && !isFetchableApiBase(url)))) {
+    log.warn('[config] app:set-server-url refused non-http(s)/malformed value (http(s)/no-userinfo/host, empty- or null-clear law)');
+    return false;
+  }
   configCustody.write('serverUrl', url);
+  return true;
 });
 
 // W7.6: runtime server version enforcement — verify server meets minimum version before boot completes
@@ -1290,35 +1339,14 @@ ipcMain.handle('gpu:get-feature-status', () => {
   return app.getGPUFeatureStatus();
 });
 
-// W4.5: SMTC action handlers from navigator.mediaSession
-// These dispatch back to the renderer which owns the player state
-ipcMain.handle('media:play', () => {
-  mainWindow?.webContents.send('media-play-pause');
-});
-
-ipcMain.handle('media:pause', () => {
-  mainWindow?.webContents.send('media-play-pause');
-});
-
-ipcMain.handle('media:previous', () => {
-  mainWindow?.webContents.send('media-previous');
-});
-
-ipcMain.handle('media:next', () => {
-  mainWindow?.webContents.send('media-next');
-});
-
-ipcMain.handle('media:seek-backward', () => {
-  mainWindow?.webContents.send('media-rewind');
-});
-
-ipcMain.handle('media:seek-forward', () => {
-  mainWindow?.webContents.send('media-forward');
-});
-
-ipcMain.handle('media:seek-to', (_, time: number) => {
-  mainWindow?.webContents.send('media-seek-to', time);
-});
+// M-WINDOWS-35: the W4.5 'media:*' invoke handlers that used to sit here
+// (media:play / media:pause / media:previous / media:next / media:seek-backward
+// / media:seek-forward / media:seek-to) were re-dispatch relays feeding ONLY
+// the shell's second mediaSession installer, which clobbered the vendored
+// @phlix/ui store's capability-gated SMTC handlers. Gone with the installer;
+// the store drives player actions in-realm. The live push channels below
+// (media-play-pause / media-stop / media-rewind / media-forward from tray,
+// menu and thumbar) are unaffected — their renderer consumers are live.
 
 // W4.9: Manual update check — triggered by "Check for updates" menu or renderer
 ipcMain.handle('update:check-for-updates', async () => {
@@ -1400,7 +1428,10 @@ export function setupAppProtocolHandler(): void {
     // like any real web server would) or lives under it ('/app/...').
     const isSpaPrefixOrChild = urlPath === '/app' || urlPath.startsWith('/app/');
     if (!isSpaPrefixOrChild) {
-      log.warn(`[app protocol] Invalid path format: ${urlPath}`);
+      // M-WINDOWS-44: length-only refusal — an invalid asset path is exactly
+      // the input that must not echo into logs (deep-link tokens travel in
+      // path fragments; probing paths are user data).
+      log.warn(`[app protocol] Invalid path format: rejected path of length ${urlPath.length}`);
       return new Response('Forbidden', { status: 403 });
     }
 
@@ -1432,7 +1463,9 @@ export function setupAppProtocolHandler(): void {
 
     // Path traversal protection: ensure resolved path is within RENDERER_DIST_DIR
     if (!isPathSafe(RENDERER_DIST_DIR, relativePath)) {
-      log.warn(`[app protocol] Path traversal attempt blocked: ${relativePath}`);
+      // M-WINDOWS-44 same law: traversal probes are exactly the input that
+      // must not echo — record the attempt shape, not the payload.
+      log.warn(`[app protocol] Path traversal attempt blocked (relative path length ${relativePath.length}, leading segment ${relativePath.split('/')[0] ? relativePath.split('/')[0].slice(0, 8) : ''})`);
       return new Response('Forbidden', { status: 403 });
     }
 

@@ -5,6 +5,10 @@
  */
 
 import log from 'electron-log';
+// M-WINDOWS-44: version-endpoint logs carry a scheme+host summary, never the
+// raw (possibly renderer-influenced) base with its path.
+import { isFetchableApiBase, summarizeUrlForLog } from './urlValidator';
+export { isFetchableApiBase };
 
 const MIN_SERVER_VERSION = '1.1.0';
 
@@ -67,25 +71,16 @@ function versionSatisfiesMin(current: string, required: string): boolean {
 }
 
 /**
- * M-WINDOWS-30: the apiBase a (possibly renderer-influenced) caller passes
- * becomes a main-process fetch — it must be a plain http(s) origin with no
- * embedded credentials and a real host. Loopback and private LAN hosts stay
- * legal by design: self-hosted servers are the product. Anything else (other
- * schemes, `user:pw@host`, bare/unparseable strings) is not fetchable here.
+ * M-WINDOWS-30: the apiBase fetch guard. The LAW lives in urlValidator.ts
+ * (M-WINDOWS-34 relocated it there so the config-write guards share it);
+ * this re-export preserves the versionCheck test/consumer surface.
  */
-export function isFetchableApiBase(apiBase: string): boolean {
-  try {
-    const parsed = new URL(apiBase);
-    return (
-      (parsed.protocol === 'https:' || parsed.protocol === 'http:') &&
-      !parsed.username &&
-      !parsed.password &&
-      parsed.hostname.length > 0
-    );
-  } catch {
-    return false;
-  }
-}
+/**
+ * M-WINDOWS-30: the apiBase fetch guard. The LAW lives in urlValidator.ts
+ * (M-WINDOWS-34 relocated it there so the config-write guards share it);
+ * the import at the head of this file both binds it locally and re-exports
+ * it for the existing versionCheck test/consumer surface.
+ */
 
 /**
  * Checks the server's version against the minimum supported version (1.1.0).
@@ -135,7 +130,7 @@ export async function checkMinServerVersion(apiBase: string): Promise<ServerVers
   const versionUrl = `${base}/system/info`;
 
   try {
-    log.info(`[versionCheck] Checking server version at ${versionUrl}`);
+    log.info(`[versionCheck] Checking server version at ${summarizeUrlForLog(versionUrl)}`);
     const response = await fetch(versionUrl, {
       method: 'GET',
       headers: {

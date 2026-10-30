@@ -40,17 +40,16 @@ declare global {
       onMediaStop: (callback: () => void) => () => void;
       onMediaRewind: (callback: () => void) => () => void;
       onMediaForward: (callback: () => void) => () => void;
-      /** W4.5: receives media-seek-to event from main process (SMTC seek-to action) */
-      onMediaSeekTo: (callback: (time: number) => void) => () => void;
-      /** W4.5: receives media-previous event from main process (SMTC previous-track action) */
-      onMediaPrevious: (callback: () => void) => () => void;
-      /** W4.5: receives media-next event from main process (SMTC next-track action) */
-      onMediaNext: (callback: () => void) => () => void;
+      // M-WINDOWS-35: the seek-to / previous / next subscription declarations
+      // and the seven SMTC invoke wrappers removed with the shell's second
+      // installer (see preload + mediaSession headers).
       onOpenSettings: (callback: () => void) => () => void;
       hubGetConfig: () => Promise<HubConfig>;
-      hubSetConfig: (config: { hubUrl?: string; activeServerId?: string; connectionMode?: string }) => Promise<void>;
+      /** M-WINDOWS-34: resolves true when the write was accepted, false when a field failed validation (malformed values are refused, never stored). */
+      hubSetConfig: (config: { hubUrl?: string | null; activeServerId?: string | null; connectionMode?: string | null }) => Promise<boolean>;
       getServerUrl: () => Promise<string | null>;
-      setServerUrl: (url: string) => Promise<void>;
+      /** M-WINDOWS-34: '' is the legal clear-signal; any other value must pass isFetchableApiBase. Resolves the accept verdict. */
+      setServerUrl: (url: string | null) => Promise<boolean>;
       /** Returns a stable, per-install device identifier. Generated once and persisted to electron-store. */
       getDeviceId: () => Promise<string>;
       /**
@@ -83,20 +82,9 @@ declare global {
       setDisableHardwareAcceleration: (value: boolean) => Promise<void>;
       /** W4.12: gets GPU feature status for diagnostics */
       getGpuFeatureStatus: () => Promise<Electron.GPUFeatureStatus>;
-      /** W4.5: SMTC action handler - play */
-      mediaPlay: () => Promise<void>;
-      /** W4.5: SMTC action handler - pause */
-      mediaPause: () => Promise<void>;
-      /** W4.5: SMTC action handler - previous track (stop) */
-      mediaPrevious: () => Promise<void>;
-      /** W4.5: SMTC action handler - next track (stop) */
-      mediaNext: () => Promise<void>;
-      /** W4.5: SMTC action handler - seek backward */
-      mediaSeekBackward: () => Promise<void>;
-      /** W4.5: SMTC action handler - seek forward */
-      mediaSeekForward: () => Promise<void>;
-      /** W4.5: SMTC action handler - seek to position */
-      mediaSeekTo: (time: number) => Promise<void>;
+      // M-WINDOWS-35: the seven SMTC action-invoke declarations were removed
+      // — the shell's second installer (see ./mediaSession era notes) was
+      // their only caller.
       /** W7.6: runtime server version enforcement — checks server meets minimum 1.1.0. M-WINDOWS-02: structured verdict so every blocking outcome carries the versions that decided it (mirrors ServerVersionCheck in src/main/versionCheck.ts). */
       checkServerVersion: (apiBase: string) => Promise<ServerVersionCheck>;
     };
