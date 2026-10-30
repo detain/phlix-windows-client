@@ -7,6 +7,34 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Off-Route Relay Mirrors the Engine's Modifier Gate — R-WINDOWS-11 (review riders W11) — 2026-10-31
+
+- **Ctrl/Cmd/Alt chords belong to the OS again (R-WINDOWS-11):** the global
+  relay in `installFocusGuard` acts whenever the ui player route is NOT
+  mounted, but it keyed solely on `e.code` — modifier-agnostic — so
+  off-route Ctrl/Cmd+Arrow (word navigation), Alt+Arrow (browser
+  back/forward) and Ctrl/Cmd+Space were hijacked into ±10 seeks and
+  play/pause. The vendored installer `b()` ignores every ctrl/meta/alt chord
+  (@phlix/ui v0.99.10 `dist/shortcuts-Ck2yBFUB.js:318`, byte-verified);
+  inside the player those chords were already free — the two jurisdictions
+  now accept the SAME set, bare keys only, no preventDefault on chords.
+  Shift stays ungated, mirroring the engine's set precisely rather than
+  exceeding it.
+  -6 `electronBridge` tests (five refused chords with their no-capture pin
+    each, one Shift-still-seeks parity pin).
+  -The +14-line shift rotated 10 `docs/ipc-channels.md` renderer
+    coordinates (the R-WINDOWS-03 doc-currency pins reddened and re-
+    anchored: play-pause :289→303, thumbar :299→313, progress :300/:326/
+    :335→:314/:340/:349, power :302→316, stop :316→330, rewind :322→336,
+    forward :331→345, settings :340→354); main-process coordinates
+    untouched.
+
+  Gates: lint 0; vue-tsc renderer + tsc main + vue-tsc tests all clean;
+  vitest serial 71 files / 823 tests (817 + 6, exact); audit-gate PASS
+  allow-list empty (0 advisories); lockwalk 4 edges 0 mismatches; build
+  determinism — aggregate dist md5 b27587957db385088d2e94adaae05d51 twice;
+  `* text=auto eol=lf` posture held (all touched files LF).
+
 ### Manual Update-Check Failure Gets a Visible Reply — R-WINDOWS-09 (review riders W9) — 2026-10-31
 
 - **The error arm answers manual requests now (R-WINDOWS-09):** a non-offline

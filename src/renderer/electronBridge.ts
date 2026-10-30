@@ -207,7 +207,9 @@ function isButtonActivation(el: Element | null): boolean {
  * Installs a document-wide keydown listener that bridges Space / Left / Right
  * to the player for GLOBAL shortcuts — the Playback menu ships those keys with
  * `registerAccelerator: false` by design, so this relay is the only keyboard
- * path outside the player page.
+ * path outside the player page. Only BARE (unmodified) presses are relayed:
+ * any ctrl/meta/alt chord defers to the OS/browser, mirroring the engine's
+ * own modifier gate (R-WINDOWS-11).
  *
  * Trust boundary (M-WINDOWS-13): the vendored @phlix/ui bundle owns these keys
  * on its own player page. Its engine installs a second document-level keydown
@@ -241,6 +243,18 @@ export function installFocusGuard(player: BridgePlayer): () => void {
     // fact and must not depend on the `window` binding, which unit tests and
     // dev/browser contexts reshape freely.)
     if (location.pathname.startsWith(PLAYER_ROUTE_PREFIX)) return;
+
+    // Engine parity (R-WINDOWS-11): the vendored installer `b()` ignores every
+    // chord carrying a ctrl/meta/alt modifier (@phlix/ui v0.99.10
+    // dist/shortcuts-Ck2yBFUB.js:318 — `e.ctrlKey || e.metaKey || e.altKey ||
+    // v(e.target)`), so inside the player those chords are already free.
+    // Off-route the relay was the sole interceptor and hijacked them:
+    // Ctrl/Cmd+Arrow (word navigation), Alt+Arrow (history back/forward) and
+    // Ctrl/Cmd+Space all became transport actions. The relay now refuses the
+    // same modifier set — bare keys only, exactly like the engine. Shift is
+    // NOT gated, mirroring the engine's set precisely (an over-gate would
+    // diverge the two jurisdictions back apart).
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
 
     if (isTextInput(document.activeElement)) return;
 

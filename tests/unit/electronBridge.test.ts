@@ -648,6 +648,70 @@ describe('installFocusGuard defers to the vendored ui player engine (M-WINDOWS-1
   });
 });
 
+/**
+ * R-WINDOWS-11 (M-WINDOWS-13 r1 disclosed residual): the relay acts OFF the
+ * vendored engine's route, but it was hijacking every chord of its three
+ * keys — Ctrl/Cmd+Arrow (word navigation), Alt+Arrow (browser history) and
+ * Ctrl/Cmd+Space all became transport actions because `e.code` is modifier-
+ * agnostic. The vendored installer `b()` refuses exactly the ctrl/meta/alt
+ * set (@phlix/ui v0.99.10 dist/shortcuts-Ck2yBFUB.js:318); off-route the
+ * relay now mirrors that gate precisely — Shift stays ungated, and bare-key
+ * relay is untouched (the original suite above pins both).
+ */
+describe('installFocusGuard modifier gate — engine parity (R-WINDOWS-11)', () => {
+  beforeEach(() => {
+    document.body.innerHTML = `<div id="plain-div"></div>`;
+    history.pushState({}, '', '/app/browse');
+  });
+
+  afterEach(() => {
+    history.pushState({}, '', '/');
+    document.body.innerHTML = '';
+  });
+
+  function makeModPlayer(playing = false) {
+    return {
+      playing,
+      play: vi.fn(),
+      pause: vi.fn(),
+      closePlayer: vi.fn(),
+      seekBy: vi.fn()
+    } as any;
+  }
+
+  function dispatchChord(code: string, init: KeyboardEventInit): KeyboardEvent {
+    const event = new KeyboardEvent('keydown', { code, bubbles: true, cancelable: true, ...init });
+    document.dispatchEvent(event);
+    return event;
+  }
+
+  it.each([
+    ['ctrlKey', 'ArrowLeft'],
+    ['metaKey', 'ArrowRight'],
+    ['altKey', 'ArrowLeft'],
+    ['ctrlKey', 'Space'],
+    ['metaKey', 'Space']
+  ])('chord with %s on %s is not relayed (engine b() gate parity)', (modifier, code) => {
+    const player = makeModPlayer(true);
+    const cleanup = installFocusGuard(player);
+    const event = dispatchChord(code, { [modifier]: true } as KeyboardEventInit);
+    expect(player.seekBy).not.toHaveBeenCalled();
+    expect(player.play).not.toHaveBeenCalled();
+    expect(player.pause).not.toHaveBeenCalled();
+    // No preventDefault either — the chord belongs to the OS/browser now.
+    expect(event.defaultPrevented).toBe(false);
+    cleanup();
+  });
+
+  it('Shift stays ungated: Shift+Arrow still seeks (engine set mirrored, not exceeded)', () => {
+    const player = makeModPlayer(true);
+    const cleanup = installFocusGuard(player);
+    dispatchChord('ArrowLeft', { shiftKey: true });
+    expect(player.seekBy).toHaveBeenCalledWith(-10);
+    cleanup();
+  });
+});
+
 
 
 /**

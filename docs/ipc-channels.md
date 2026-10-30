@@ -36,20 +36,20 @@ retired wrapper left behind both redden the suite.
 | `gpu:get-feature-status` | invoke | none | `GPUFeatureStatus` | `ipcMain.handle` (1353) | `getGpuFeatureStatus` | Not directly called by renderer; preload-only |
 | `update:check-for-updates` | invoke | none | `UpdateState` | `ipcMain.handle` (1367) | `checkForUpdates` | Not directly called by renderer; preload-only |
 | `update:get-status` | invoke | none | `UpdateState` | `ipcMain.handle` (1388) | `getUpdateStatus` | Not directly called by renderer; preload-only |
-| `thumbar:update` | send | `{ playing: boolean }` | — | `ipcMain.on` (1232) | `updateThumbar` | `src/renderer/electronBridge.ts:124, 299` |
-| `playback:progress` | send | `{ current: number; total: number }` | — | `ipcMain.on` (1237) | `setPlaybackProgress` | `src/renderer/electronBridge.ts:139, 151, 300, 326, 335` |
-| `power:update` | send | `{ playing: boolean }` | — | `ipcMain.on` (1255) | `updatePowerBlocker` | `src/renderer/electronBridge.ts:125, 302` |
+| `thumbar:update` | send | `{ playing: boolean }` | — | `ipcMain.on` (1232) | `updateThumbar` | `src/renderer/electronBridge.ts:124, 313` |
+| `playback:progress` | send | `{ current: number; total: number }` | — | `ipcMain.on` (1237) | `setPlaybackProgress` | `src/renderer/electronBridge.ts:139, 151, 314, 340, 349` |
+| `power:update` | send | `{ playing: boolean }` | — | `ipcMain.on` (1255) | `updatePowerBlocker` | `src/renderer/electronBridge.ts:125, 316` |
 | `deeplink:ready` | send | none | — | `ipcMain.on` (266) | `notifyDeeplinkReady` | `src/renderer/main.ts:466` (M-WINDOWS-06: fires only after `onDeeplink` subscribed; main drains its pending-deeplink queue on it) |
 | `vault:get` | sendSync | `{ key: string }` | `string \| null` | `ipcMain.on` (1170) | `vaultGet` | `src/renderer/safeStorageTokenStore.ts:73` — M-WINDOWS-11 DPAPI token vault (sync by @phlix/ui TokenStore contract; sender-pinned to the current main window) |
 | `vault:set` | sendSync | `{ key: string; value: string }` | `boolean` | `ipcMain.on` (1184) | `vaultSet` | `src/renderer/safeStorageTokenStore.ts:82` — M-WINDOWS-11 |
 | `vault:delete` | sendSync | `{ key: string }` | `boolean` | `ipcMain.on` (1203) | `vaultDelete` | `src/renderer/safeStorageTokenStore.ts:108, 115, 116, 117` — M-WINDOWS-11 |
 | `vault:is-available` | sendSync | none | `boolean` | `ipcMain.on` (1222) | `vaultIsAvailable` | `src/renderer/safeStorageTokenStore.ts:50` — M-WINDOWS-11 |
 | `deeplink:open` | push | `string` | — | `webContents.send` (182) | `onDeeplink` | `src/renderer/main.ts:451` |
-| `media-play-pause` | push | none | — | `webContents.send` (576, 828, 868) | `onMediaPlayPause` | `src/renderer/electronBridge.ts:289` |
-| `media-stop` | push | none | — | `webContents.send` (829, 869) | `onMediaStop` | `src/renderer/electronBridge.ts:316` |
-| `media-rewind` | push | none | — | `webContents.send` (571, 871) | `onMediaRewind` | `src/renderer/electronBridge.ts:322` |
-| `media-forward` | push | none | — | `webContents.send` (581, 872) | `onMediaForward` | `src/renderer/electronBridge.ts:331` |
-| `open-settings` | push | none | — | `webContents.send` (950) | `onOpenSettings` | `src/renderer/electronBridge.ts:340` |
+| `media-play-pause` | push | none | — | `webContents.send` (576, 828, 868) | `onMediaPlayPause` | `src/renderer/electronBridge.ts:303` |
+| `media-stop` | push | none | — | `webContents.send` (829, 869) | `onMediaStop` | `src/renderer/electronBridge.ts:330` |
+| `media-rewind` | push | none | — | `webContents.send` (571, 871) | `onMediaRewind` | `src/renderer/electronBridge.ts:336` |
+| `media-forward` | push | none | — | `webContents.send` (581, 872) | `onMediaForward` | `src/renderer/electronBridge.ts:345` |
+| `open-settings` | push | none | — | `webContents.send` (950) | `onOpenSettings` | `src/renderer/electronBridge.ts:354` |
 | `update:available` | push | `{ version: string }` | — | `webContents.send` (635) | `onUpdateAvailable` | No renderer subscriber; the preload listener exists for API completeness (updater UX is main-driven) |
 | `update:progress` | push | `{ percent: number }` | — | `webContents.send` (679) | `onUpdateProgress` | No renderer subscriber; the preload listener exists for API completeness (updater UX is main-driven) |
 | `update:downloaded` | push | `{ version: string }` | — | `webContents.send` (688) | `onUpdateDownloaded` | No renderer subscriber; the preload listener exists for API completeness (updater UX is main-driven) |
