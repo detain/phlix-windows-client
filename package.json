@@ -2,7 +2,7 @@
   "name": "phlix-windows",
   "version": "1.0.0",
   "license": "MIT",
-  "description": "Phlix Media Server Client for Windows",
+  "description": "Phlix for Windows — desktop client for your Phlix Media Server",
   "main": "dist/main/index.js",
   "scripts": {
     "prebuild": "node scripts/check-assets.js",
@@ -13,7 +13,7 @@
     "build:vite": "vite build",
     "build:electron": "tsc -p tsconfig.main.json && node scripts/assert-preload.mjs",
     "package": "npm run build && electron-builder --win --publish never",
-    "package:store": "npm run build && electron-builder --win appx",
+    "package:store": "npm run build && electron-builder --win appx --publish never",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",

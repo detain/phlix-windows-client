@@ -7,6 +7,36 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### End-User Disclosures & Canonical Naming — W-min203 minors cluster (M-WINDOWS-08/13/21/28/43/47/48/55 cured) — 2026-10-31
+
+- **Privacy disclosure (M-WINDOWS-08):** new README *Privacy & Update Checks* section names
+  both network legs — your server, and the electron-updater feed hitting `github.com`
+  ~5 s after launch + ~every 6 h — states there is no telemetry/crash-reporting, explains
+  the locally-generated device id, and documents that firewall-blocking `github.com` is
+  a supported posture.
+- **Signing doc artifact name (M-WINDOWS-13):** `docs/signing.md` commanded signtool over
+  `release\Phlix-1.0.0-setup.exe`, which the build never emits; four occurrences now carry
+  the real `artifactName` product `Phlix-Setup-1.0.0.exe`.
+- **Uninstall & data truth (M-WINDOWS-21 / M-WINDOWS-47):** new README *Uninstall & Stored
+  Data* section: per-user install location, removal path, and the deliberate law that
+  `deleteAppDataOnUninstall` stays unset — `%APPDATA%\Phlix` survives reinstalls on purpose,
+  with the clean-machine recipe documented.
+- **Publish-safety parity (M-WINDOWS-28):** `package:store` now carries `--publish never`
+  like its sibling; a credentialed maintainer can no longer get different publish semantics
+  from the store step.
+- **TLS expectations (M-WINDOWS-43):** README *HTTPS & certificates* states the store-trust
+  requirement, that self-signed certs fail closed with no accept-once prompt BY DESIGN
+  (`net::ERR_CERT_*` in the log), and that an in-app trust/pinning flow is a
+  security-review-gated future feature (deferred leg, disclosed — not a minors call).
+- **Canonical naming (M-WINDOWS-48):** README is now `# Phlix for Windows` throughout; a
+  *Naming* section fixes the four identifiers (product Phlix / human "Phlix for Windows" /
+  machine `phlix-windows` / server = Phlix Media Server) and scopes the developer file
+  headers; package.json description reworded to match.
+- **Undocumented knobs (M-WINDOWS-55):** README env table gained `PHLIX_DISABLE_GPU`,
+  `PHLIX_FORCE_PRODUCTION`, `VITE_PHLIX_LOCALE`; DEVELOPER.md now carries the full
+  electron-store key table (9 keys, writer-attributed from code) and the packaged-vs-source
+  log-path split.
+
 ### Pipeline & Docs Truth — W-min202 minors cluster (M-WINDOWS-03/27/46/07 cured, 06/52/53 stale-verified, 10 honest-parked) — 2026-10-31
 
 - **Dead dispatch input deleted (M-WINDOWS-27):** `build.yml`'s `workflow_dispatch.version`

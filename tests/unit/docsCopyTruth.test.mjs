@@ -58,3 +58,69 @@ describe('AGENTS.md resolveConfig law (M-WINDOWS-07)', () => {
     expect(line).toMatch(/Connect/i);
   });
 });
+
+// ---- W-min203 ----
+
+const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf-8'));
+const signing = read('docs/signing.md');
+const developer = read('DEVELOPER.md');
+
+describe('package scripts publish-safety (M-WINDOWS-28)', () => {
+  it('both package targets carry --publish never', () => {
+    expect(pkg.scripts.package).toMatch(/--publish never/);
+    expect(pkg.scripts['package:store'], 'appx step must not inherit publish semantics').toMatch(/--publish never/);
+  });
+});
+
+describe('signing.md artifact name (M-WINDOWS-13)', () => {
+  it('names the artifact the build actually produces', () => {
+    // package.json build.nsis.artifactName = ${productName}-Setup-${version}.${ext}
+    //   → Phlix-Setup-1.0.0.exe. The doc's old 'Phlix-1.0.0-setup.exe' never matches.
+    expect(pkg.build.nsis.artifactName).toBe('${productName}-Setup-${version}.${ext}');
+    expect(signing).not.toMatch(/Phlix-1\.0\.0-setup\.exe/);
+    expect(signing).toMatch(/Phlix-Setup-1\.0\.0\.exe/);
+  });
+});
+
+describe('README end-user disclosures (M-WINDOWS-08 / 21 / 43 / 47 / 55)', () => {
+  it('privacy section discloses the updater phone-home and nothing else', () => {
+    expect(readme).toMatch(/## Privacy/);
+    const privacy = readme.slice(readme.indexOf('## Privacy'));
+    expect(privacy).toMatch(/github\.com/);
+    expect(privacy).toMatch(/update/i);
+    expect(privacy.slice(0, 1200)).toMatch(/no usage data|no telemetry/i);
+  });
+  it('uninstall + data-persistence truth is documented', () => {
+    expect(readme).toMatch(/## Uninstall/);
+    const un = readme.slice(readme.indexOf('## Uninstall'), readme.indexOf('## Uninstall') + 1500);
+    expect(un).toMatch(/%APPDATA%\\Phlix/);
+    expect(un).toMatch(/deleteAppDataOnUninstall/); // named law: unset on purpose
+  });
+  it('TLS expectations cover self-signed certificates', () => {
+    expect(readme).toMatch(/self-signed/i);
+    expect(readme).toMatch(/certificate/i);
+  });
+  it('env table names every knob the code reads', () => {
+    for (const knob of ['PHLIX_DISABLE_GPU', 'PHLIX_FORCE_PRODUCTION', 'VITE_PHLIX_LOCALE', 'VITE_PHLIX_SERVER_URL']) {
+      expect(readme, `README env docs: ${knob}`).toContain(knob);
+    }
+  });
+  it('DEVELOPER.md enumerates the electron-store keys the main process writes', () => {
+    for (const key of ['serverUrl', 'hubUrl', 'deviceId', 'windowBounds', 'minimizeToTray',
+      'notificationsEnabled', 'connectionMode', 'activeServerId', 'disableHardwareAcceleration']) {
+      expect(developer, `DEVELOPER store-key docs: ${key}`).toContain(`'${key}'`);
+    }
+  });
+});
+
+describe('canonical naming (M-WINDOWS-48)', () => {
+  it('the human name is Phlix for Windows everywhere end-user facing', () => {
+    expect(readme.split('\n')[0]).toBe('# Phlix for Windows');
+    expect(readme).not.toMatch(/Phlix Windows\b/); // bare drift form retired
+    expect(readme).toMatch(/## Naming/);           // the law itself is recorded
+  });
+  it('package.json description drops the server/client ambiguity', () => {
+    expect(pkg.description).not.toBe('Phlix Media Server Client for Windows');
+    expect(pkg.description).toMatch(/Phlix for Windows/);
+  });
+});

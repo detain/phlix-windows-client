@@ -83,7 +83,7 @@ If not, download the Windows SDK from [developer.microsoft.com/windows/downloads
   /fd SHA256 \
   /tr http://timestamp.digicert.com \
   /td SHA256 \
-  release\Phlix-1.0.0-setup.exe
+  release\Phlix-Setup-1.0.0.exe
 ```
 
 **Flags explained:**
@@ -96,17 +96,17 @@ If not, download the Windows SDK from [developer.microsoft.com/windows/downloads
 #### 3. Verify the Signature
 
 ```powershell
-& $ST verify /pa /v release\Phlix-1.0.0-setup.exe
+& $ST verify /pa /v release\Phlix-Setup-1.0.0.exe
 ```
 
-Expected output: `Successfully verified: release\Phlix-1.0.0-setup.exe`
+Expected output: `Successfully verified: release\Phlix-Setup-1.0.0.exe`
 
 #### 4. (Recommended) Timestamp the Signature
 
 The `/tr` flag in step 2 already handles this. If you are re-signing an existing file:
 
 ```powershell
-& $ST timestamp /t http://timestamp.digicert.com release\Phlix-1.0.0-setup.exe
+& $ST timestamp /t http://timestamp.digicert.com release\Phlix-Setup-1.0.0.exe
 ```
 
 ---

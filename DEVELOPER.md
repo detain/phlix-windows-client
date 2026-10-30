@@ -79,8 +79,25 @@ The main process is responsible for:
 
 5. **Logging**
    - Uses `electron-log` for comprehensive logging
-   - Logs to `%APPDATA%\phlix-windows\logs\`
+   - Logs to `%APPDATA%\phlix-windows\logs\` from a source run (the PACKAGED app logs to
+     `%APPDATA%\Phlix\logs\` — app data folders key off the running app's name; see README
+     *Configuration*)
    - Global exception handlers for uncaught errors
+
+**Persisted state (electron-store, one JSON file under the app-data dir).** Every key the
+main process reads or writes, measured from the code (M-WINDOWS-55):
+
+| Store key | Written by | Meaning |
+|---|---|---|
+| `'serverUrl'` | `app:set-server-url` (Connect screen mirror) | direct-mode media server base URL |
+| `'hubUrl'` | `hub:set-config` | hub-mode base URL |
+| `'connectionMode'` | `hub:set-config` (default `'direct'`) | `'direct'` pins server mode; anything else lets a set `hubUrl` win in `resolveAppConfig` |
+| `'activeServerId'` | `hub:set-config` (default `null`) | selected server inside the hub |
+| `'deviceId'` | first `app:get-device-id` call | local `windows-<randomUUID()>` identity sent to your server — never hardware-derived |
+| `'windowBounds'` | main-window move/resize (debounced) | geometry restored on next launch |
+| `'minimizeToTray'` | tray context-menu checkbox + `tray:set-minimize-to-tray` | close-button-to-tray behavior |
+| `'notificationsEnabled'` | no in-repo writer (read at `notification:show`, default `true`) | reserved seam: gates tray toasts — today only hand-editing the store JSON changes it |
+| `'disableHardwareAcceleration'` | `gpu:set-disable-hardware-acceleration` IPC | persisted counterpart of the `PHLIX_DISABLE_GPU=1` boot switch |
 
 ### Preload Script (`src/preload/index.ts`)
 

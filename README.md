@@ -1,4 +1,4 @@
-# Phlix Windows Desktop App
+# Phlix for Windows
 
 [![Build](https://github.com/detain/phlix-windows-client/actions/workflows/build.yml/badge.svg)](https://github.com/detain/phlix-windows-client/actions/workflows/build.yml)
 [![Test](https://github.com/detain/phlix-windows-client/actions/workflows/test.yml/badge.svg)](https://github.com/detain/phlix-windows-client/actions/workflows/test.yml)
@@ -10,7 +10,22 @@ A native Windows desktop application for the Phlix Media Server, built with Elec
 
 ## Project Overview
 
-Phlix Windows provides a full-featured media server client for Windows, enabling users to browse, stream, and manage their media library with native desktop integration including system tray, media keys, and native menus. The entire renderer UI is the shared `@phlix/ui` app booted via `createPhlixApp(config)`, so screens and theming stay in sync with the other Phlix clients.
+Phlix for Windows is the native desktop client for your Phlix Media Server, enabling users to browse, stream, and manage their media library with native Windows integration: system tray, media keys, and native menus. The entire renderer UI is the shared `@phlix/ui` app booted via `createPhlixApp(config)`, so screens and theming stay in sync with the other Phlix clients.
+
+## Naming
+
+One product, four identifiers — each with a fixed role (M-WINDOWS-48 retired the loose forms):
+
+| Form | Where it lives | Role |
+|---|---|---|
+| **Phlix** | `build.productName` | the Start-menu / installed app name |
+| **Phlix for Windows** | docs, About dialog | the human name for this client |
+| `phlix-windows` / `phlix-windows-client` | npm package name / GitHub repo | machine identity |
+| **Phlix Media Server** | server product | what this client *connects to* — never this app |
+
+Developer-facing file headers and log lines keep the descriptive phrase "Phlix Media
+Server Client for Windows" (machine-pinned by `tests/unit/copyright.test.mjs`); it reads
+as "[[Phlix Media Server] Client] for Windows", and only humans should parse prose.
 
 ## Features
 
@@ -25,7 +40,7 @@ Phlix Windows provides a full-featured media server client for Windows, enabling
 
 ## Minimum Server Version
 
-Phlix Windows requires Phlix Media Server **1.1.0** or later — the first server release
+Phlix for Windows requires Phlix Media Server **1.1.0** or later — the first server release
 where the capabilities this client drives are stable: skip-intro markers, media facets,
 and schema-driven settings. (Servers ≥ 1.1.0 also expose SyncPlay group endpoints; those
 power the **web player your server hosts**, not this desktop app — see
@@ -110,6 +125,17 @@ point it at a different server from here; the correction has to happen server-si
 After a successful connect, your server URL and login persist, so later launches go
 directly to your library.
 
+### HTTPS & certificates
+
+When your server URL is `https://`, its certificate must chain to a root the Windows
+certificate store already trusts — a public CA (Let's Encrypt works fine for home
+servers with LAN DNS), or your own private CA installed into the machine's trust store.
+**Ad-hoc self-signed certificates are refused outright**: the app intentionally has no
+accept-once prompt or certificate-pinning flow, so the connection simply fails (electron-log
+records a `net::ERR_CERT_*` line) instead of training users to click past transport
+security. Fix the certificate, not the client. An in-app trust/pinning ceremony is a
+security-review-gated future feature, not available today.
+
 ### Getting updates
 
 The app includes an update check (Help → *Check for Updates*, plus a background check about
@@ -119,6 +145,26 @@ versioned releases are published, getting a new build means re-downloading the c
 installer from the [releases page](https://github.com/detain/phlix-windows-client/releases)
 and installing over the old one. Release notes for versioned releases appear on that same
 page; the rolling build’s notes name the `master` commit it was built from.
+
+## Privacy & Update Checks
+
+Phlix for Windows is self-hosted software: your library, accounts, and playback data
+live on **your** server. The app makes exactly two kinds of network calls:
+
+1. **Your server (or hub)** — everything you browse, stream, and manage.
+2. **GitHub Releases** — the built-in updater's feed: roughly 5 seconds after every
+   launch and about every 6 hours while running, electron-updater fetches the
+   `latest.yml` release metadata for `detain/phlix-windows-client` from
+   `github.com`. Installer bytes are downloaded only if you choose to install an
+   update.
+
+There is **no usage data, no analytics, no crash reporting** — nothing that describes
+what you watch ever leaves your machine. The device id the app sends *to your server*
+is a locally generated random value (`windows-<uuid>`, stored under
+`%APPDATA%\Phlix`, never derived from hardware). The GitHub update check discloses
+your IP address and the standard Windows User-Agent to GitHub, like any browser
+request would — that is the entire phone-home. Blocking `github.com` at the firewall
+is safe: update checks fail quietly in the log and everything else keeps working.
 
 ## Prerequisites
 
@@ -185,7 +231,10 @@ restore surfaces, and both fully restore hidden, minimized, and combined states.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `VITE_PHLIX_SERVER_URL` | (none) | Build-time fallback is empty (user must configure a server URL at first boot) |
+| `VITE_PHLIX_LOCALE` | (none) | Build-time UI locale override for the shell's own catalogs (nav/boot/menu/thumbar/overlay) |
 | `NODE_ENV` | `development` | Runtime environment |
+| `PHLIX_DISABLE_GPU` | (unset) | Set to `1` to switch off hardware acceleration at startup (`app.disableHardwareAcceleration()`) — the escape hatch for GPU-compositor crashes before the first window exists |
+| `PHLIX_FORCE_PRODUCTION` | (unset) | Truthy value makes an unpackaged tree boot the production `app://` path instead of the Vite dev server — what the smoke test uses to exercise the real boot URL without a packaged installer |
 
 There is no environment variable for hub mode; its runtime channel (`hub:set-config`) exists in
 the shell but ships no caller today — see *Hub Mode (not yet enterable)* below.
@@ -437,6 +486,19 @@ import log from 'electron-log';
 log.info('Application started');
 ```
 
+## Uninstall & Stored Data
+
+Remove it like any other app — Settings → Apps → **Phlix** → Uninstall (or the Start-menu
+uninstall entry). The per-user install lives in `%LOCALAPPDATA%\Programs\Phlix` unless a
+different folder was chosen at install time; no admin rights were used to install, none
+are needed to remove it.
+
+**Your settings, device id and logs deliberately survive uninstallation** — the installer
+ships with electron-builder's `deleteAppDataOnUninstall` unset, so reinstalling restores
+the server connection instead of wiping it. Everything the app persisted lives under
+`%APPDATA%\Phlix` (see *Configuration* and *Logs*); delete that folder after uninstalling
+to leave a clean machine, e.g. before handing it to someone else.
+
 ## License
 
 MIT License - see project repository for details.
@@ -465,7 +527,7 @@ MIT License - see project repository for details.
 
 **Today, watch with friends from the web player your server serves** — open your Phlix
 server's URL in a browser and use its player; SyncPlay rooms are fully live there. The
-Phlix Windows app is not yet a usable SyncPlay client.
+Phlix for Windows is not yet a usable SyncPlay client.
 
 What is true about SyncPlay inside this desktop app, measured against the exact shared
 UI bundle it ships (`@phlix/ui`, see `package.json`):
