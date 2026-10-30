@@ -88,7 +88,13 @@ const ORIGINAL_MAIN_PROCESS_STRINGS: Record<MainMessageKey, string> = {
   // question for token-bearing (invite) links and its two buttons.
   'deeplink.confirmMessage': 'Follow this Phlix link?',
   'deeplink.confirmAccept': 'Follow link',
-  'deeplink.confirmReject': 'Cancel'
+  'deeplink.confirmReject': 'Cancel',
+  // M-WINDOWS-09 additions (born in the catalog): the renderer-crash
+  // recovery question (title, message, Reload / Dismiss buttons).
+  'crash.title': 'Something went wrong',
+  'crash.message': 'The Phlix window stopped responding. Reload to recover your session.',
+  'crash.reload': 'Reload window',
+  'crash.dismiss': 'Dismiss'
 };
 
 function flattenedCatalogKeys(): MainMessageKey[] {

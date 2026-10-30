@@ -67,6 +67,27 @@ function versionSatisfiesMin(current: string, required: string): boolean {
 }
 
 /**
+ * M-WINDOWS-30: the apiBase a (possibly renderer-influenced) caller passes
+ * becomes a main-process fetch — it must be a plain http(s) origin with no
+ * embedded credentials and a real host. Loopback and private LAN hosts stay
+ * legal by design: self-hosted servers are the product. Anything else (other
+ * schemes, `user:pw@host`, bare/unparseable strings) is not fetchable here.
+ */
+export function isFetchableApiBase(apiBase: string): boolean {
+  try {
+    const parsed = new URL(apiBase);
+    return (
+      (parsed.protocol === 'https:' || parsed.protocol === 'http:') &&
+      !parsed.username &&
+      !parsed.password &&
+      parsed.hostname.length > 0
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Checks the server's version against the minimum supported version (1.1.0).
  *
  * Design decision: fail-open for unknown servers. Pre-1.1.0 servers that don't
@@ -88,6 +109,14 @@ export async function checkMinServerVersion(apiBase: string): Promise<ServerVers
   if (!apiBase) {
     // No server configured — skip the check, allow boot to continue
     log.info('[versionCheck] No apiBase configured, skipping server version check');
+    return { compatible: true, serverVersion: null, minimumVersion: MIN_SERVER_VERSION };
+  }
+
+  if (!isFetchableApiBase(apiBase)) {
+    // M-WINDOWS-30: a non-http(s) scheme, credentialed or host-less base is
+    // refused WITHOUT touching the network (the old code fetched whatever the
+    // caller supplied). Refusal follows the documented fail-open policy.
+    log.warn('[versionCheck] Refused non-fetchable apiBase (http(s)/no-userinfo/host law), skipping check');
     return { compatible: true, serverVersion: null, minimumVersion: MIN_SERVER_VERSION };
   }
 

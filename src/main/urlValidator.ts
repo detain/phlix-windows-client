@@ -25,3 +25,28 @@ export function validateExternalUrl(url: string): boolean {
     return false;
   }
 }
+
+/**
+ * Navigation law for the MAIN WINDOW (will-navigate guard).
+ *
+ * M-WINDOWS-18: app:// is this shell's own origin — the SPA router and
+ * reload-style hops live there and must not be blocked. The app:// protocol
+ * handler behind it only ever serves the packaged renderer
+ * (setupAppProtocolHandler hostname+prefix law), so allowing the scheme
+ * grants no new surface. Every other protocol falls through to the external
+ * law; malformed URLs deny.
+ *
+ * @param url - The navigation target.
+ * @returns true when the window may navigate there.
+ */
+export function validateNavigationUrl(url: string): boolean {
+  try {
+    if (new URL(url).protocol === 'app:') {
+      return true;
+    }
+  } catch {
+    log.warn(`[security] Blocked malformed navigation URL: ${url}`);
+    return false;
+  }
+  return validateExternalUrl(url);
+}

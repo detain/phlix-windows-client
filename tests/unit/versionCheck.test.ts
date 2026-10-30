@@ -302,3 +302,46 @@ describe('checkMinServerVersion', () => {
     expect(MIN_SERVER_VERSION).toBe('1.1.0');
   });
 });
+
+// M-WINDOWS-30: the renderer-supplied apiBase reached main-process fetch with
+// only a truthiness check — any scheme (file:, data:, gopher:) and embedded
+// credentials sailed through. The SSRF primitive is bounded now: http(s) only,
+// no userinfo, non-empty host; loopback stays legal (self-hosted LAN servers
+// are the product). Non-fetchable input fails OPEN per the documented policy,
+// and never touches the network.
+describe('fetchable-base boundary (M-WINDOWS-30)', () => {
+  let spy: Mock;
+  const realFetch = globalThis.fetch;
+  beforeEach(() => {
+    spy = vi.fn();
+    (globalThis as unknown as { fetch: Mock }).fetch = spy;
+  });
+  afterEach(() => {
+    (globalThis as unknown as { fetch: unknown }).fetch = realFetch;
+  });
+
+  it('classifies bases without fetching', async () => {
+    const { isFetchableApiBase } = await import('../../src/main/versionCheck');
+    expect(isFetchableApiBase('https://media.example.com')).toBe(true);
+    expect(isFetchableApiBase('http://localhost:8096')).toBe(true); // loopback is the product
+    expect(isFetchableApiBase('http://127.0.0.1:8096')).toBe(true);
+    expect(isFetchableApiBase('file:///C:/Windows')).toBe(false);
+    expect(isFetchableApiBase('data:text/html,hi')).toBe(false);
+    expect(isFetchableApiBase('http://user:pw@internal.metadata/')).toBe(false);
+    expect(isFetchableApiBase('http://')).toBe(false);
+    expect(isFetchableApiBase('not a url')).toBe(false);
+  });
+
+  it('refuses to fetch a disallowed scheme but stays fail-open', async () => {
+    const result = await checkMinServerVersion('file:///etc/passwd');
+    expect(spy).not.toHaveBeenCalled();
+    expect(result.compatible).toBe(true);
+    expect(result.serverVersion).toBeNull();
+  });
+
+  it('refuses to fetch a credentialed host (no network at all)', async () => {
+    const result = await checkMinServerVersion('http://admin:hunter2@169.254.169.254');
+    expect(spy).not.toHaveBeenCalled();
+    expect(result.compatible).toBe(true);
+  });
+});

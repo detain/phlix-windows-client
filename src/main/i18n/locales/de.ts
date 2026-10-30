@@ -73,5 +73,11 @@ export const de = {
     confirmMessage: 'Diesem Phlix-Link folgen?',
     confirmAccept: 'Link folgen',
     confirmReject: 'Abbrechen'
+  },
+  crash: {
+    title: 'Etwas ist schiefgelaufen',
+    message: 'Das Phlix-Fenster reagiert nicht mehr. Laden Sie neu, um die Sitzung wiederherzustellen.',
+    reload: 'Fenster neu laden',
+    dismiss: 'Verwerfen'
   }
 } satisfies MainCatalog;

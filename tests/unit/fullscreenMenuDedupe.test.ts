@@ -40,8 +40,11 @@ describe('F11 menu binding is unique (M-WINDOWS-41)', () => {
 
   it('the dedupe is documented at the View submenu so a future lane keeps it', () => {
     // The comment sits where the role entry used to be — law: pins carry their why.
+    // Window widened 700 → 1250 in W-min206: the M-WINDOWS-32 dev-only roles
+    // block now sits between the View label and the dedupe note. Mechanical
+    // reach only — the presence assertion is unchanged.
     const idx = mainSource.indexOf("label: t('menu.view')");
     expect(idx).toBeGreaterThan(-1);
-    expect(mainSource.slice(idx, idx + 700)).toMatch(/M-WINDOWS-41/);
+    expect(mainSource.slice(idx, idx + 1250)).toMatch(/M-WINDOWS-41/);
   });
 });

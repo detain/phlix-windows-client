@@ -325,7 +325,12 @@ describe('main-process posture the preload gate relies on', () => {
     // (OAuth-style flows); what changed is that such a page no longer gets
     // the bridge. This pin documents the complement — do not duplicate the
     // trust decision into will-navigate without retiring this reasoning.
-    expect(mainSource).toMatch(/on\(\s*'will-navigate'.*?=>\s*\{.*?if\s*\(!validateExternalUrl\(url\)\)/s);
+    // DELIBERATE ROTATION (M-WINDOWS-18, W-min206): the allowlist gained the
+    // shell's OWN app: origin (SPA routing was self-blocked by the old
+    // http(s)-only law); validateNavigationUrl = app: carve + the very same
+    // external law beneath it — complementarity with the preload gate is
+    // untouched, only self-navigation stopped being collateral damage.
+    expect(mainSource).toMatch(/on\(\s*'will-navigate'.*?=>\s*\{.*?if\s*\(!validateNavigationUrl\(url\)\)/s);
     expect(mainSource).toMatch(/event\.preventDefault\(\)/);
   });
 

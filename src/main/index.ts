@@ -10,7 +10,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
 import { isPathSafe } from './pathUtils';
-import { validateExternalUrl } from './urlValidator';
+import { validateExternalUrl, validateNavigationUrl } from './urlValidator';
 import { checkMinServerVersion, type ServerVersionCheck } from './versionCheck';
 import {
   parseDeepLinkUrl,
@@ -205,11 +205,13 @@ async function confirmDeepLinkFollow(win: BrowserWindow, url: string): Promise<b
 
 function setAsDefaultProtocolClient(): void {
   if (process.platform === 'win32') {
-    if (app.isPackaged) {
-      app.setAsDefaultProtocolClient('phlix', process.execPath, [`"${process.execPath}"`]);
-    } else {
-      app.setAsDefaultProtocolClient('phlix', process.execPath, [`"${process.execPath}"`]);
-    }
+    // M-WINDOWS-19: one honest call. The previous isPackaged if/else had
+    // byte-identical branches (dead code). Packaged: execPath IS the app.
+    // Dev: execPath is the bare electron launcher, so an OS-clicked
+    // phlix:// link opens a stock Electron shell instead of this source
+    // tree — deep links are a packaged-install feature; dev testing goes
+    // through `npm run dev` plus a second instance spawn with the URL arg.
+    app.setAsDefaultProtocolClient('phlix', process.execPath, [`"${process.execPath}"`]);
   }
 }
 
@@ -414,6 +416,12 @@ function createWindow(): void {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      // M-WINDOWS-16: this window keeps living in the tray (close button
+      // hides by default) while it holds the authed session, the live
+      // websocket, playback position reporting and the SyncPlay clock.
+      // Chromium's background throttle would starve those timers the moment
+      // the window is hidden — the exact moments they matter.
+      backgroundThrottling: false,
       // R-WINDOWS-08: the ONLY sanctioned sync channel a sandboxed preload
       // can read packaged-ness from (its process.argv). The preload trust
       // gate denies every http: document when the flag is present — the dev
@@ -500,20 +508,30 @@ function createWindow(): void {
   /**
    * Guards against renderer-initiated navigation to untrusted URL schemes.
    *
-   * Blocks navigation to anything except http: and https:. Dangerous schemes such as
-   * file:, javascript:, and data: are prevented from triggering renderer navigation,
-   * which stops a malicious page from e.g. exfiltrating local files or launching
-   * internal Electron handlers.
+   * M-WINDOWS-18: the app's OWN app:// origin is self-navigation — the SPA
+   * router and reload-style hops live there, and the old external-only law
+   * blocked the shell's own pages while waving through arbitrary external
+   * http(s). validateNavigationUrl inverts that back to sane: app: allowed,
+   * http(s) per the existing external law, everything else (file:,
+   * javascript:, data:, malformed) denied. The app:// handler behind this
+   * origin only ever serves the packaged renderer (setupAppProtocolHandler's
+   * prefix law), so allowing the origin cannot leak a new surface.
    */
   mainWindow.webContents.on('will-navigate', (event, url) => {
-    if (!validateExternalUrl(url)) {
+    if (!validateNavigationUrl(url)) {
       event.preventDefault();
     }
   });
 
   // W4.6: release power blocker if renderer process crashes
-  mainWindow.webContents.on('render-process-gone', () => {
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
     ensurePowerBlocker(false);
+    // M-WINDOWS-09: before this the user faced a permanently dead window in
+    // silence. The power-blocker release stays; on top of it, a recovery
+    // affordance: reload recovers the session view (reconnect + re-route are
+    // the renderer's boot path), and the crash reason lands in the log.
+    log.error(`[renderer] render process gone: ${details.reason}`);
+    crashRecoveryDialog();
   });
 }
 
@@ -690,7 +708,11 @@ function setupAutoUpdater(): void {
       message.includes('rate limit') ||
       message.includes('404') ||
       message.includes('ENOTFOUND') ||
-      message.includes('ECONNREFUSED')
+      message.includes('ECONNREFUSED') ||
+      // M-WINDOWS-23: the dev failure mode — a manual check in an unpackaged
+      // tree has no updater manifest to read. Quiet warn, not a scary error.
+      message.includes('app-update.yml') ||
+      message.includes('ENOENT')
     ) {
       log.warn(`[updater] Update check failed (likely offline): ${message}`);
       updateState.status = 'idle';
@@ -702,21 +724,26 @@ function setupAutoUpdater(): void {
     }
   });
 
-  // W4.9: Check after a short delay — do not block first paint
-  setTimeout(() => {
-    autoUpdater.checkForUpdates().catch((err) => {
-      log.warn(`[updater] Initial check error: ${err.message}`);
-    });
-  }, 5000);
-
-  // W4.9: Periodic check every 6 hours
-  _updateCheckTimer = setInterval(() => {
-    if (updateState.status === 'idle' || updateState.status === 'error') {
+  // M-WINDOWS-23: automatic update checks are a packaged-install behavior.
+  // In dev, electron-updater hunts the packaging-time app-update.yml every
+  // tick and only ever ENOENTs; the menu/IPC manual paths stay open below.
+  if (app.isPackaged) {
+    // W4.9: Check after a short delay — do not block first paint
+    setTimeout(() => {
       autoUpdater.checkForUpdates().catch((err) => {
-        log.warn(`[updater] Periodic check error: ${err.message}`);
+        log.warn(`[updater] Initial check error: ${err.message}`);
       });
-    }
-  }, 6 * 60 * 60 * 1000);
+    }, 5000);
+
+    // W4.9: Periodic check every 6 hours
+    _updateCheckTimer = setInterval(() => {
+      if (updateState.status === 'idle' || updateState.status === 'error') {
+        autoUpdater.checkForUpdates().catch((err) => {
+          log.warn(`[updater] Periodic check error: ${err.message}`);
+        });
+      }
+    }, 6 * 60 * 60 * 1000);
+  }
 }
 
 /**
@@ -735,16 +762,48 @@ function syncTrayTooltip(): void {
   lastTrayTooltip = label;
 }
 
+/**
+ * M-WINDOWS-09: ask the user whether to reload after a renderer-process
+ * death. Deliberately non-blocking (.then, never awaited): the gone-handler
+ * must return. Quit-shutdown must not be nagged by a dying window, and the
+ * reload rides the same did-start-loading re-arm the boot path uses (the
+ * renderer re-announces 'deeplink:ready' after mounting).
+ */
+function crashRecoveryDialog(): void {
+  if (isQuitting) return;
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  dialog.showMessageBox(mainWindow, {
+    type: 'error',
+    title: t('crash.title'),
+    message: t('crash.message'),
+    buttons: [t('crash.reload'), t('crash.dismiss')],
+    defaultId: 0,
+    cancelId: 1,
+    noLink: true
+  }).then((response) => {
+    if (response.response === 0 && mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.reload();
+    }
+  });
+}
+
 export function createTray(): void {
-  const iconPath = path.join(__dirname, '../../build/icon.png');
-  const icon = nativeImage.createFromPath(iconPath);
+  // M-WINDOWS-14: prefer the multi-size .ico — the shell then picks the entry
+  // that matches the taskbar DPI itself, instead of one forced 16px resize
+  // (wrong at 125/150% scaling). nativeImage decodes ico on win32; where it
+  // cannot (non-Windows test venues, odd installs) isEmpty() trips and the
+  // PNG-master path below runs with its explicit resize.
+  const icoPath = path.join(__dirname, '../../build/icon.ico');
+  const pngPath = path.join(__dirname, '../../build/icon.png');
+  const fromIco = nativeImage.createFromPath(icoPath);
+  const icon = fromIco.isEmpty() ? nativeImage.createFromPath(pngPath) : fromIco;
 
   if (icon.isEmpty()) {
-    log.error(`[tray] Icon not found at ${iconPath}, skipping tray creation`);
+    log.error(`[tray] Icon not found at ${icoPath} or ${pngPath}, skipping tray creation`);
     return;
   }
 
-  tray = new Tray(icon.resize({ width: 16, height: 16 }));
+  tray = new Tray(fromIco.isEmpty() ? icon.resize({ width: 16, height: 16 }) : icon);
 
   const contextMenu = Menu.buildFromTemplate([
     { label: t('tray.show'), click: () => restoreWindow(mainWindow) },
@@ -821,10 +880,18 @@ function createMenu(): void {
     {
       label: t('menu.view'),
       submenu: [
-        { role: 'reload' },
-        { role: 'forceReload' },
-        { role: 'toggleDevTools' },
-        { type: 'separator' },
+        // M-WINDOWS-32: the inspector trio is a development affordance. In a
+        // production build it hands any keyboard user a DevTools shell and a
+        // navigation reset, so it is compiled out of the menu at runtime —
+        // zoom stays (end-user feature), dev builds keep everything.
+        ...(isDev
+          ? ([
+              { role: 'reload' },
+              { role: 'forceReload' },
+              { role: 'toggleDevTools' },
+              { type: 'separator' }
+            ] satisfies Electron.MenuItemConstructorOptions[])
+          : []),
         { role: 'resetZoom' },
         { role: 'zoomIn' },
         { role: 'zoomOut' }
@@ -1484,7 +1551,12 @@ app.on('before-quit', () => {
   }
 });
 
-// Global exception handler
+// Global exception handler — M-WINDOWS-09 posture note: main-process faults
+// are logged and the process CONTINUES. Killing the app here would take the
+// tray, the authed session and any live playback down with a stranger's
+// stack trace, and Electron keeps the window layer alive past such faults.
+// Renderer death — the user-visible failure mode — has its own recovery
+// affordance above (render-process-gone → crashRecoveryDialog).
 process.on('uncaughtException', (error) => {
   log.error('Uncaught exception:', error);
 });

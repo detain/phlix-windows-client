@@ -73,5 +73,11 @@ export const fr = {
     confirmMessage: 'Suivre ce lien Phlix ?',
     confirmAccept: 'Suivre le lien',
     confirmReject: 'Annuler'
+  },
+  crash: {
+    title: 'Un problème est survenu',
+    message: 'La fenêtre Phlix a cessé de répondre. Rechargez pour reprendre votre session.',
+    reload: 'Recharger la fenêtre',
+    dismiss: 'Ignorer'
   }
 } satisfies MainCatalog;

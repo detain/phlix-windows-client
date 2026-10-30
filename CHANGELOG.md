@@ -7,6 +7,51 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Crash Recovery, Self-Navigation Fix & Icon Engineering — W-min206 minors cluster (M-WINDOWS-09/14/16/18/19/23/30/32 cured) — 2026-10-31
+
+- **Renderer crash recovery (M-WINDOWS-09):** `render-process-gone` only
+  released the power blocker — the user stared at a dead window forever. Now
+  the reason lands in the log and a red-dialog offers *Reload window*
+  (reuses the boot path's re-arm; never nagged during quit). New `crash.*`
+  keys ×7 locales (main catalog 40 → 44). `uncaughtException` KEEPS
+  log-and-continue with a recorded rationale: killing the process would take
+  tray, session and playback down with a stranger's stack trace.
+- **Icons engineered (M-WINDOWS-14):** the generator emitted an RGB (alpha-less)
+  512px PNG into a single ICO entry whose width byte overflowed (0 = "256" —
+  a lie about the 512 payload) while the 32px tray asset sat unread and the
+  tray forced one 16px resize (wrong at 125/150% DPI). Now: RGBA everywhere,
+  truthful 7-size ICO directory (16–256, chained offsets, declared bpp ==
+  data), `createTray` prefers the .ico so the shell picks per-DPI (PNG
+  fallback unchanged), and `PHLIX_ICON_OUT_DIR` makes the generator testable —
+  `iconGenerator.test.mjs` byte-parses IHDR + every directory entry. Solid
+  placeholder ART is unchanged (distinct glyphs = owner/art call).
+- **Background throttling off (M-WINDOWS-16):** the tray-resident window holds
+  the authed session, live websocket, progress reporting and the SyncPlay
+  clock — Chromium's hidden-window timer throttle would starve exactly those.
+- **will-navigate stops blocking the app itself (M-WINDOWS-18):** the guard
+  allowed arbitrary external http(s) but denied the shell's OWN app:// origin
+  — SPA self-navigation and reload were collateral damage. New
+  `validateNavigationUrl`: app: (the handler behind it serves only the
+  packaged renderer — no new surface) + the identical external law beneath.
+  Popups keep the external-only law; the preload trust-gate complement pin was
+  rotated with its reasoning carried.
+- **Dead if/else removed (M-WINDOWS-19):** the isPackaged branches of
+  protocol registration were byte-identical. One honest call + a comment
+  stating the truth: OS-clicked deep links are a packaged-install feature;
+  the dev branch never registered a source-tree handler.
+- **Updater dev posture (M-WINDOWS-23):** the automatic initial + 6 h checks
+  now arm only when packaged (in dev they could only ENOENT on the
+  packaging-time manifest), and the quiet classifier covers the manual-check
+  dev failure mode (`app-update.yml`/ENOENT → warn, not error theater).
+- **SSRF bound (M-WINDOWS-30):** `app:check-server-version` fetched any
+  renderer-supplied string. `isFetchableApiBase` gates it: http(s) only, no
+  embedded credentials, real host — loopback stays legal (self-hosted LAN
+  servers are the product); refusals touch no network and fail open per the
+  documented policy.
+- **DevTools out of production (M-WINDOWS-32):** the View submenu's
+  reload/forceReload/toggleDevTools trio ships behind the existing `isDev`
+  flag (zoom stays; dev builds keep everything).
+
 ### Toast Pref Honesty, Baseline Truth & Consumer Inventory — W-min205 minors cluster (M-WINDOWS-26/39/40/42/51 cured) — 2026-10-31
 
 - **notificationsEnabled now gates EVERY toast (M-WINDOWS-40):** the three

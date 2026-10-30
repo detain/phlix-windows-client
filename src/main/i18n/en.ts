@@ -68,5 +68,11 @@ export const en = {
     confirmMessage: 'Follow this Phlix link?',
     confirmAccept: 'Follow link',
     confirmReject: 'Cancel'
+  },
+  crash: {
+    title: 'Something went wrong',
+    message: 'The Phlix window stopped responding. Reload to recover your session.',
+    reload: 'Reload window',
+    dismiss: 'Dismiss'
   }
 } as const;

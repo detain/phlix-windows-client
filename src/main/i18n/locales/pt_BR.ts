@@ -75,5 +75,11 @@ export const pt_BR = {
     confirmMessage: 'Seguir este link do Phlix?',
     confirmAccept: 'Seguir link',
     confirmReject: 'Cancelar'
+  },
+  crash: {
+    title: 'Algo deu errado',
+    message: 'A janela do Phlix parou de responder. Recarregue para recuperar sua sessão.',
+    reload: 'Recarregar janela',
+    dismiss: 'Descartar'
   }
 } satisfies MainCatalog;

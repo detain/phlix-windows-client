@@ -73,5 +73,11 @@ export const ja = {
     confirmMessage: 'この Phlix リンクを開きますか？',
     confirmAccept: 'リンクを開く',
     confirmReject: 'キャンセル'
+  },
+  crash: {
+    title: '問題が発生しました',
+    message: 'Phlix ウィンドウの応答が停止しました。再読み込みするとセッションに復帰できます。',
+    reload: 'ウィンドウを再読み込み',
+    dismiss: '閉じる'
   }
 } satisfies MainCatalog;

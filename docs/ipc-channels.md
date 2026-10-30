@@ -18,51 +18,51 @@ retired wrapper left behind both redden the suite.
 
 | Channel | Direction | Payload | Return | Main Handler | Preload Method | Renderer Call Sites |
 |---|---|---|---|---|---|---|
-| `get-app-path` | invoke | none | `string` | `ipcMain.handle` (920) | `getAppPath` | Not directly called by renderer; preload-only |
-| `get-version` | invoke | none | `string` | `ipcMain.handle` (922) | `getVersion` | Not directly called by renderer; preload-only |
-| `set-always-on-top` | send | `boolean` | — | `ipcMain.on` (924) | `setAlwaysOnTop` | Not directly called by renderer; preload-only |
-| `minimize-to-tray` | send | none | — | `ipcMain.on` (928) | `minimizeToTray` | Not directly called by renderer; preload-only |
-| `tray:get-minimize-to-tray` | invoke | none | `boolean` | `ipcMain.handle` (932) | `getMinimizeToTray` | Not directly called by renderer; preload-only |
-| `tray:set-minimize-to-tray` | send | `boolean` | — | `ipcMain.on` (934) | `setMinimizeToTray` | Not directly called by renderer; preload-only |
-| `hub:get-config` | invoke | none | `HubConfig` | `ipcMain.handle` (946) | `hubGetConfig` | `src/renderer/main.ts:297` & `src/renderer/resolveConfig.ts:17` |
-| `hub:set-config` | invoke | `HubConfigPartial` | `void` | `ipcMain.handle` (954) | `hubSetConfig` | Not directly called by renderer; preload-only |
-| `app:get-server-url` | invoke | none | `string \| null` | `ipcMain.handle` (961) | `getServerUrl` | `src/renderer/main.ts:299` & `src/renderer/resolveConfig.ts:19` |
-| `app:set-server-url` | invoke | `string` | `void` | `ipcMain.handle` (965) | `setServerUrl` | `src/renderer/main.ts:391` |
-| `app:check-server-version` | invoke | `{ apiBase: string }` | `ServerVersionCheck` | `ipcMain.handle` (973) | `checkServerVersion` | `src/renderer/main.ts:330` |
-| `app:get-device-id` | invoke | none | `string` | `ipcMain.handle` (990) | `getDeviceId` | `src/renderer/main.ts:298` |
-| `notification:show` | invoke | `{ title: string; body: string; clickAction?: string }` | `boolean` | `ipcMain.handle` (1194) | `showNotification` | `src/renderer/main.ts:349` (M-WINDOWS-39: the incompatible-server boot reply is this channel's consumer; main-side gates per M-WINDOWS-33/40) |
-| `gpu:get-disable-hardware-acceleration` | invoke | none | `boolean` | `ipcMain.handle` (1213) | `getDisableHardwareAcceleration` | Not directly called by renderer; preload-only |
-| `gpu:set-disable-hardware-acceleration` | invoke | `boolean` | `void` | `ipcMain.handle` (1217) | `setDisableHardwareAcceleration` | Not directly called by renderer; preload-only |
-| `gpu:get-feature-status` | invoke | none | `GPUFeatureStatus` | `ipcMain.handle` (1222) | `getGpuFeatureStatus` | Not directly called by renderer; preload-only |
-| `media:play` | invoke | none | `boolean` | `ipcMain.handle` (1228) | `mediaPlay` | `src/renderer/mediaSession.ts:27` |
-| `media:pause` | invoke | none | `boolean` | `ipcMain.handle` (1232) | `mediaPause` | `src/renderer/mediaSession.ts:31` |
-| `media:previous` | invoke | none | `boolean` | `ipcMain.handle` (1236) | `mediaPrevious` | `src/renderer/mediaSession.ts:35` |
-| `media:next` | invoke | none | `boolean` | `ipcMain.handle` (1240) | `mediaNext` | `src/renderer/mediaSession.ts:39` |
-| `media:seek-backward` | invoke | none | `boolean` | `ipcMain.handle` (1244) | `mediaSeekBackward` | `src/renderer/mediaSession.ts:43` |
-| `media:seek-forward` | invoke | none | `boolean` | `ipcMain.handle` (1248) | `mediaSeekForward` | `src/renderer/mediaSession.ts:47` |
-| `media:seek-to` | invoke | `number` | `boolean` | `ipcMain.handle` (1252) | `mediaSeekTo` | `src/renderer/mediaSession.ts:52` |
-| `update:check-for-updates` | invoke | none | `UpdateState` | `ipcMain.handle` (1257) | `checkForUpdates` | Not directly called by renderer; preload-only |
-| `update:get-status` | invoke | none | `UpdateState` | `ipcMain.handle` (1278) | `getUpdateStatus` | Not directly called by renderer; preload-only |
-| `thumbar:update` | send | `{ playing: boolean }` | — | `ipcMain.on` (1101) | `updateThumbar` | `src/renderer/electronBridge.ts:124, 299` |
-| `playback:progress` | send | `{ current: number; total: number }` | — | `ipcMain.on` (1106) | `setPlaybackProgress` | `src/renderer/electronBridge.ts:139, 151, 300, 326, 335, 344` |
-| `power:update` | send | `{ playing: boolean }` | — | `ipcMain.on` (1124) | `updatePowerBlocker` | `src/renderer/electronBridge.ts:125, 302` |
-| `deeplink:ready` | send | none | — | `ipcMain.on` (264) | `notifyDeeplinkReady` | `src/renderer/main.ts:466` (M-WINDOWS-06: fires only after `onDeeplink` subscribed; main drains its pending-deeplink queue on it) |
-| `vault:get` | sendSync | `{ key: string }` | `string \| null` | `ipcMain.on` (1039) | `vaultGet` | `src/renderer/safeStorageTokenStore.ts:73` — M-WINDOWS-11 DPAPI token vault (sync by @phlix/ui TokenStore contract; sender-pinned to the current main window) |
-| `vault:set` | sendSync | `{ key: string; value: string }` | `boolean` | `ipcMain.on` (1053) | `vaultSet` | `src/renderer/safeStorageTokenStore.ts:82` — M-WINDOWS-11 |
-| `vault:delete` | sendSync | `{ key: string }` | `boolean` | `ipcMain.on` (1072) | `vaultDelete` | `src/renderer/safeStorageTokenStore.ts:108, 115, 116, 117` — M-WINDOWS-11 |
-| `vault:is-available` | sendSync | none | `boolean` | `ipcMain.on` (1091) | `vaultIsAvailable` | `src/renderer/safeStorageTokenStore.ts:50` — M-WINDOWS-11 |
+| `get-app-path` | invoke | none | `string` | `ipcMain.handle` (987) | `getAppPath` | Not directly called by renderer; preload-only |
+| `get-version` | invoke | none | `string` | `ipcMain.handle` (989) | `getVersion` | Not directly called by renderer; preload-only |
+| `set-always-on-top` | send | `boolean` | — | `ipcMain.on` (991) | `setAlwaysOnTop` | Not directly called by renderer; preload-only |
+| `minimize-to-tray` | send | none | — | `ipcMain.on` (995) | `minimizeToTray` | Not directly called by renderer; preload-only |
+| `tray:get-minimize-to-tray` | invoke | none | `boolean` | `ipcMain.handle` (999) | `getMinimizeToTray` | Not directly called by renderer; preload-only |
+| `tray:set-minimize-to-tray` | send | `boolean` | — | `ipcMain.on` (1001) | `setMinimizeToTray` | Not directly called by renderer; preload-only |
+| `hub:get-config` | invoke | none | `HubConfig` | `ipcMain.handle` (1013) | `hubGetConfig` | `src/renderer/main.ts:297` & `src/renderer/resolveConfig.ts:17` |
+| `hub:set-config` | invoke | `HubConfigPartial` | `void` | `ipcMain.handle` (1021) | `hubSetConfig` | Not directly called by renderer; preload-only |
+| `app:get-server-url` | invoke | none | `string \| null` | `ipcMain.handle` (1028) | `getServerUrl` | `src/renderer/main.ts:299` & `src/renderer/resolveConfig.ts:19` |
+| `app:set-server-url` | invoke | `string` | `void` | `ipcMain.handle` (1032) | `setServerUrl` | `src/renderer/main.ts:391` |
+| `app:check-server-version` | invoke | `{ apiBase: string }` | `ServerVersionCheck` | `ipcMain.handle` (1040) | `checkServerVersion` | `src/renderer/main.ts:330` |
+| `app:get-device-id` | invoke | none | `string` | `ipcMain.handle` (1057) | `getDeviceId` | `src/renderer/main.ts:298` |
+| `notification:show` | invoke | `{ title: string; body: string; clickAction?: string }` | `boolean` | `ipcMain.handle` (1261) | `showNotification` | `src/renderer/main.ts:349` (M-WINDOWS-39: the incompatible-server boot reply is this channel's consumer; main-side gates per M-WINDOWS-33/40) |
+| `gpu:get-disable-hardware-acceleration` | invoke | none | `boolean` | `ipcMain.handle` (1280) | `getDisableHardwareAcceleration` | Not directly called by renderer; preload-only |
+| `gpu:set-disable-hardware-acceleration` | invoke | `boolean` | `void` | `ipcMain.handle` (1284) | `setDisableHardwareAcceleration` | Not directly called by renderer; preload-only |
+| `gpu:get-feature-status` | invoke | none | `GPUFeatureStatus` | `ipcMain.handle` (1289) | `getGpuFeatureStatus` | Not directly called by renderer; preload-only |
+| `media:play` | invoke | none | `boolean` | `ipcMain.handle` (1295) | `mediaPlay` | `src/renderer/mediaSession.ts:27` |
+| `media:pause` | invoke | none | `boolean` | `ipcMain.handle` (1299) | `mediaPause` | `src/renderer/mediaSession.ts:31` |
+| `media:previous` | invoke | none | `boolean` | `ipcMain.handle` (1303) | `mediaPrevious` | `src/renderer/mediaSession.ts:35` |
+| `media:next` | invoke | none | `boolean` | `ipcMain.handle` (1307) | `mediaNext` | `src/renderer/mediaSession.ts:39` |
+| `media:seek-backward` | invoke | none | `boolean` | `ipcMain.handle` (1311) | `mediaSeekBackward` | `src/renderer/mediaSession.ts:43` |
+| `media:seek-forward` | invoke | none | `boolean` | `ipcMain.handle` (1315) | `mediaSeekForward` | `src/renderer/mediaSession.ts:47` |
+| `media:seek-to` | invoke | `number` | `boolean` | `ipcMain.handle` (1319) | `mediaSeekTo` | `src/renderer/mediaSession.ts:52` |
+| `update:check-for-updates` | invoke | none | `UpdateState` | `ipcMain.handle` (1324) | `checkForUpdates` | Not directly called by renderer; preload-only |
+| `update:get-status` | invoke | none | `UpdateState` | `ipcMain.handle` (1345) | `getUpdateStatus` | Not directly called by renderer; preload-only |
+| `thumbar:update` | send | `{ playing: boolean }` | — | `ipcMain.on` (1168) | `updateThumbar` | `src/renderer/electronBridge.ts:124, 299` |
+| `playback:progress` | send | `{ current: number; total: number }` | — | `ipcMain.on` (1173) | `setPlaybackProgress` | `src/renderer/electronBridge.ts:139, 151, 300, 326, 335, 344` |
+| `power:update` | send | `{ playing: boolean }` | — | `ipcMain.on` (1191) | `updatePowerBlocker` | `src/renderer/electronBridge.ts:125, 302` |
+| `deeplink:ready` | send | none | — | `ipcMain.on` (266) | `notifyDeeplinkReady` | `src/renderer/main.ts:466` (M-WINDOWS-06: fires only after `onDeeplink` subscribed; main drains its pending-deeplink queue on it) |
+| `vault:get` | sendSync | `{ key: string }` | `string \| null` | `ipcMain.on` (1106) | `vaultGet` | `src/renderer/safeStorageTokenStore.ts:73` — M-WINDOWS-11 DPAPI token vault (sync by @phlix/ui TokenStore contract; sender-pinned to the current main window) |
+| `vault:set` | sendSync | `{ key: string; value: string }` | `boolean` | `ipcMain.on` (1120) | `vaultSet` | `src/renderer/safeStorageTokenStore.ts:82` — M-WINDOWS-11 |
+| `vault:delete` | sendSync | `{ key: string }` | `boolean` | `ipcMain.on` (1139) | `vaultDelete` | `src/renderer/safeStorageTokenStore.ts:108, 115, 116, 117` — M-WINDOWS-11 |
+| `vault:is-available` | sendSync | none | `boolean` | `ipcMain.on` (1158) | `vaultIsAvailable` | `src/renderer/safeStorageTokenStore.ts:50` — M-WINDOWS-11 |
 | `deeplink:open` | push | `string` | — | `webContents.send` (182) | `onDeeplink` | `src/renderer/main.ts:451` |
-| `media-play-pause` | push | none | — | `webContents.send` (556, 752, 792, 1229, 1233) | `onMediaPlayPause` | `src/renderer/electronBridge.ts:289` |
-| `media-stop` | push | none | — | `webContents.send` (753, 793) | `onMediaStop` | `src/renderer/electronBridge.ts:316` |
-| `media-rewind` | push | none | — | `webContents.send` (551, 795, 1245) | `onMediaRewind` | `src/renderer/electronBridge.ts:322` |
-| `media-forward` | push | none | — | `webContents.send` (561, 796, 1249) | `onMediaForward` | `src/renderer/electronBridge.ts:331` |
-| `media-seek-to` | push | `number` | — | `webContents.send` (1253) | `onMediaSeekTo` | `src/renderer/electronBridge.ts:340` |
-| `media-previous` | push | none | — | `webContents.send` (1237) | `onMediaPrevious` | `src/renderer/electronBridge.ts:356` |
-| `media-next` | push | none | — | `webContents.send` (1241) | `onMediaNext` | `src/renderer/electronBridge.ts:362` |
-| `open-settings` | push | none | — | `webContents.send` (866) | `onOpenSettings` | `src/renderer/electronBridge.ts:349` |
-| `update:available` | push | `{ version: string }` | — | `webContents.send` (615) | `onUpdateAvailable` | No renderer subscriber; the preload listener exists for API completeness (updater UX is main-driven) |
-| `update:progress` | push | `{ percent: number }` | — | `webContents.send` (659) | `onUpdateProgress` | No renderer subscriber; the preload listener exists for API completeness (updater UX is main-driven) |
-| `update:downloaded` | push | `{ version: string }` | — | `webContents.send` (668) | `onUpdateDownloaded` | No renderer subscriber; the preload listener exists for API completeness (updater UX is main-driven) |
+| `media-play-pause` | push | none | — | `webContents.send` (574, 811, 851, 1296, 1300) | `onMediaPlayPause` | `src/renderer/electronBridge.ts:289` |
+| `media-stop` | push | none | — | `webContents.send` (812, 852) | `onMediaStop` | `src/renderer/electronBridge.ts:316` |
+| `media-rewind` | push | none | — | `webContents.send` (569, 854, 1312) | `onMediaRewind` | `src/renderer/electronBridge.ts:322` |
+| `media-forward` | push | none | — | `webContents.send` (579, 855, 1316) | `onMediaForward` | `src/renderer/electronBridge.ts:331` |
+| `media-seek-to` | push | `number` | — | `webContents.send` (1320) | `onMediaSeekTo` | `src/renderer/electronBridge.ts:340` |
+| `media-previous` | push | none | — | `webContents.send` (1304) | `onMediaPrevious` | `src/renderer/electronBridge.ts:356` |
+| `media-next` | push | none | — | `webContents.send` (1308) | `onMediaNext` | `src/renderer/electronBridge.ts:362` |
+| `open-settings` | push | none | — | `webContents.send` (933) | `onOpenSettings` | `src/renderer/electronBridge.ts:349` |
+| `update:available` | push | `{ version: string }` | — | `webContents.send` (633) | `onUpdateAvailable` | No renderer subscriber; the preload listener exists for API completeness (updater UX is main-driven) |
+| `update:progress` | push | `{ percent: number }` | — | `webContents.send` (677) | `onUpdateProgress` | No renderer subscriber; the preload listener exists for API completeness (updater UX is main-driven) |
+| `update:downloaded` | push | `{ version: string }` | — | `webContents.send` (686) | `onUpdateDownloaded` | No renderer subscriber; the preload listener exists for API completeness (updater UX is main-driven) |
 
 ## Behavioral Tests
 
