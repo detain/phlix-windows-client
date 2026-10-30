@@ -7,6 +7,23 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Docs — R-W1 rider R-WINDOWS-01: hash-verify recipe regains its cwd phrase — 2026-10-30
+
+- **The gap.** M-WINDOWS-01 review r2 MINOR-1 (queued as rider R-WINDOWS-01): the
+  r2 rewrite dropped r1's explicit cwd phrase — the preamble said "save
+  `SHA256SUMS.txt` … into the same folder, then run both lines in PowerShell"
+  while both commands use relative `.\` paths, which resolve against the
+  PowerShell cwd (default shell lands in `$HOME`), NOT necessarily the folder
+  the files were saved to. A literal-follower got "Cannot find path".
+- **The cure.** The one-word restore the review named: "…run both lines in
+  PowerShell **from that folder**". Docs-only; the r1-approved commands, the
+  two format-quirk bridge sentences and the `Get-FileHash` walkthrough pin
+  (`tests/unit/installStoryStatus.test.ts`) are untouched.
+- **Proof.** Gates at tip: full vitest serial suite green (`--no-file-parallelism`,
+  53 files / 666 tests, zero floors moved); `npm run typecheck` (vue-tsc +
+  tsconfig.main) exit 0; `node scripts/lockwalk.mjs --live` 4 edges 0
+  mismatches. README diff = exactly the one phrase.
+
 ### Test — M-WINDOWS-20 guard law: the clone→cd install pairing made runtime-derived and reddens on drift — 2026-10-29
 
 - **Why:** review windows__writer M2 found the first install block broke copy-paste readers —

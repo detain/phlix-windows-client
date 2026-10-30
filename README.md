@@ -69,7 +69,7 @@ the publisher as **Unknown**. That is the expected behavior of unsigned software
 the file is malicious, and there is no “verified publisher” here. To proceed safely:
 
 1. Optional but recommended — verify the download. Also save `SHA256SUMS.txt` from the
-   release page into the same folder, then run both lines in PowerShell:
+   release page into the same folder, then run both lines in PowerShell from that folder:
 
    ```powershell
    $expected = (Select-String -Path .\SHA256SUMS.txt -Pattern 'Phlix-Setup').Line.Split(' ')[0]
