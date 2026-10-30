@@ -44,7 +44,7 @@ function hubRouter(): import('vue-router').Router {
 }
 
 /** Router built identically to the SERVER-mode boot path (the mode desktop
- *  actually runs in until M-WINDOWS-16 wires hub config — windows__gameux M6). */
+ *  actually runs in until M-WINDOWS-17 wires hub config — windows__gameux M6). */
 function serverRouter(): import('vue-router').Router {
   const app = createPhlixApp({
     app: 'server',
@@ -184,7 +184,7 @@ describe('M-WINDOWS-15 mode matrix — no parser output dead-ends in either mode
   // invite/server are hub-mode extraRoutes. In server mode they cannot land on
   // a concrete view — but they MUST land on the rendered 404 catch-all, never
   // on zero records. (Reaching the concrete invite view in server mode is
-  // M-WINDOWS-16's hub-mode cure, not this grammar contract.)
+  // M-WINDOWS-17's hub-mode cure, not this grammar contract.)
   const HUB_ONLY: string[] = ['phlix://accept-invite/tok-1', 'phlix://server/s-1'];
 
   it.each(HUB_ONLY)('$url → concrete in hub, rendered 404 catch-all in server mode', (url) => {

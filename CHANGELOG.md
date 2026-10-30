@@ -7,6 +7,20 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Deep-Link Contract Test Comments Carry the Right Hub-Config Item Number — R-WINDOWS-14 (review riders W14) — 2026-10-31
+
+- **Comment-only truth pass, zero behavior change (R-WINDOWS-14):**
+  `tests/unit/deepLinkRouteContract.test.ts` named the wrong item twice —
+  the WIN-15-era text reserved "M-WINDOWS-16" for the hub-config wiring,
+  but that number shipped as the boot-retry lane while the hub-config
+  item (windows__gameux M6) became M-WINDOWS-17, whose shipped lanes and
+  open second leg (R-WINDOWS-16) own the wiring scope. The server-router
+  header (":47") and the hub-only-case note (":187") now read
+  M-WINDOWS-17; the claim itself is unchanged and still true — desktop
+  runs server-mode until that wiring lands.
+- **Ledger:** `M-WINDOWS-15__r1.md` rider #2 re-attributed
+  M-WINDOWS-16 → M-WINDOWS-17 with a post-lane provenance note.
+
 ### Deep-Link Docs Mirror the Rejection Dialog and the Internal `/app` Producer Law — R-WINDOWS-13 (review riders W13) — 2026-10-31
 
 - **Docs currency only, zero behavior change (R-WINDOWS-13):**
