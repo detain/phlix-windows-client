@@ -67,6 +67,10 @@ const ORIGINAL_MAIN_PROCESS_STRINGS: Record<MainMessageKey, string> = {
   // the "update-not-available" reply for a user-requested check.
   'updater.notAvailableTitle': "You're on the latest version",
   'updater.notAvailableBody': 'Phlix {version} is already the latest version.',
+  // R-WINDOWS-09 addition (born in the catalog, same precedent): the visible
+  // answer a manual check earns from a genuine (non-offline) failure.
+  'updater.checkFailedTitle': 'Update Check Failed',
+  'updater.checkFailedBody': 'Phlix could not check for updates right now. Try again later.',
   'updater.readyTitle': 'Update Ready',
   'updater.readyBody': 'Phlix {version} has been downloaded. Restart to apply.',
 

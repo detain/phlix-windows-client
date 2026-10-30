@@ -7,6 +7,35 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Manual Update-Check Failure Gets a Visible Reply — R-WINDOWS-09 (review riders W9) — 2026-10-31
+
+- **The error arm answers manual requests now (R-WINDOWS-09):** a non-offline
+  failure of a user-requested check ("Check for updates" menu,
+  `update:check-for-updates` IPC) was log+state only — the user saw silence.
+  The arm mirrors M-WINDOWS-12's not-available reply: the pending-manual flag
+  is captured before consumption, and on a genuine failure the shell toasts a
+  generic `updater.checkFailed*` pair through `notifyUser` (pref-gated,
+  unthrottled, payload-law governed). Offline-class errors keep their W4.9
+  silence even for manual requests; automatic errors keep theirs entirely.
+  Copy carries no `err.message` — provider strings can hold URLs and internals.
+  -7 catalogs gained the pair in the notAvailable/ready slot (main catalog
+    44 to 46 keys per locale; `i18nLocales` floor rotated at both binding
+    sites); `mainI18n` born-in-catalog table gained the two EN originals.
+  -4 `autoUpdater` tests (manual menu reply, manual IPC reply, automatic
+    stays silent, offline-manual stays silent); the M-WINDOWS-12 leak-guard
+    test's zero-toast assertion was converted to still-exactly-one — the
+    consumption law it guards is unchanged, the manual failure is now simply
+    itself answered. Stripping the reply reddens exactly those three pins.
+  -The +15-line shift rotated all 30 `docs/ipc-channels.md` Main Handler
+    coordinates past the insertion point (three push sites above it stay
+    put); `ipcChannels.test.ts` doc-currency pins green on the new bytes.
+
+  Gates: lint 0; vue-tsc renderer + tsc main + vue-tsc tests all clean; vitest
+  serial 71 files / 817 tests (813 + 4, exact); audit-gate PASS allow-list
+  empty (untouched); lockwalk 4 edges 0 mismatches; build determinism —
+  aggregate dist md5 39e450ca0e1ffa9791994d5878846c3e twice;
+  `* text=auto eol=lf` posture held (all touched files LF).
+
 ### SMTC Ownership, Config-Write Validation & Log Redaction — W-min207 minors cluster (M-WINDOWS-34/35/44 cured, M-WINDOWS-20 stale-verified) — 2026-10-31
 
 - **The shell's second SMTC installer is gone (M-WINDOWS-35, full-deletion route

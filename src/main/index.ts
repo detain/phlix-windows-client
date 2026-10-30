@@ -702,6 +702,11 @@ function setupAutoUpdater(): void {
     // M-WINDOWS-12: an error terminates the in-flight check; consume any
     // pending manual request so it cannot leak into a later automatic
     // not-available and fabricate a "you're up to date" toast.
+    // R-WINDOWS-09: capture the pending state BEFORE consuming — a
+    // NON-offline failure of a user-requested check now answers visibly
+    // below, mirroring the M-WINDOWS-12 not-available reply. Offline-class
+    // errors stay silent even for manual requests (W4.9 no-noise doctrine).
+    const wasManualCheck = manualUpdateCheckPending;
     manualUpdateCheckPending = false;
     // W4.9: Handle offline and rate-limited cases quietly — no user-facing noise
     const message = err.message ?? String(err);
@@ -723,6 +728,16 @@ function setupAutoUpdater(): void {
       log.error(`[updater] Error: ${message}`);
       updateState.status = 'error';
       updateState.error = message;
+      // R-WINDOWS-09 [review riders W9]: the manual reply this check earned.
+      // Before this arm, a genuine (non-offline) failure of a user-requested
+      // check was log+state only — the user saw silence. Copy is generic on
+      // purpose: err.message can carry URLs/provider internals, and raw
+      // provider text is exactly what the notification payload law rejects.
+      if (wasManualCheck) {
+        notifyUser(t('updater.checkFailedTitle'), t('updater.checkFailedBody'), {
+          throttle: false
+        });
+      }
     }
   });
 

@@ -345,10 +345,15 @@ describe('M-WINDOWS-12: update-not-available arm', () => {
 
     const result = await ipcHandler('update:check-for-updates')();
     expect(result).toEqual(expect.objectContaining({ status: 'error' }));
+    // R-WINDOWS-09: the manual error is itself answered now — exactly one
+    // failure toast (assertion converted from not.toHaveBeenCalled(), which
+    // pinned the old silence; the consumption law this test guards is held
+    // by the still-exactly-one check below).
+    expect(mockNotification).toHaveBeenCalledTimes(1);
 
     // Later automatic cycle: the consumed flag must not revive the reply.
     handlers['update-not-available']({ version: '1.0.0' });
-    expect(mockNotification).not.toHaveBeenCalled();
+    expect(mockNotification).toHaveBeenCalledTimes(1);
   });
 
   it('an available update during a manual check consumes the request — only the real "Update Available" toast fires', async () => {
@@ -368,5 +373,72 @@ describe('M-WINDOWS-12: update-not-available arm', () => {
     // A subsequent automatic not-available cycle stays silent (flag consumed).
     handlers['update-not-available']({ version: '2.0.0' });
     expect(mockNotification).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// R-WINDOWS-09 [review riders W9]: the non-offline error arm of a MANUAL
+// check was log+state only — a user who clicked "Check for updates" and hit a
+// genuine failure (server 5xx, signature verification, malformed feed) was
+// answered with silence. M-WINDOWS-12's not-available arm already established
+// the reply pattern: when the request was manual, answer visibly through
+// notifyUser (pref-gated, unthrottled). These tests mirror that reply for the
+// failure case; offline-class errors stay silent even for manual requests —
+// the W4.9 no-noise doctrine is deliberately NOT widened. Red on the parent,
+// where the arm carries no notifyUser call.
+// ---------------------------------------------------------------------------
+describe('R-WINDOWS-09: manual check earns a visible failure reply', () => {
+  const manualErrorCheck = (message: string) => {
+    mockAutoUpdater.checkForUpdates.mockImplementation(async () => {
+      handlers['checking-for-update']();
+      handlers['error'](new Error(message));
+    });
+  };
+
+  it('menu "Check for updates" with a non-offline error toasts the failure reply once (payload copy truth)', () => {
+    mockNotification.mockClear();
+    manualErrorCheck('HTTP response returned code 500');
+
+    clickMenuCheckForUpdates();
+
+    expect(mockNotification).toHaveBeenCalledTimes(1);
+    expect(mockNotification).toHaveBeenCalledWith({
+      title: 'Update Check Failed',
+      body: 'Phlix could not check for updates right now. Try again later.'
+    });
+    expect(getUpdateStatus().status).toBe('error');
+  });
+
+  it('update:check-for-updates IPC earns the same reply — both manual entries are user requests', async () => {
+    mockNotification.mockClear();
+    manualErrorCheck('signature verification failed');
+
+    await ipcHandler('update:check-for-updates')();
+
+    expect(mockNotification).toHaveBeenCalledTimes(1);
+    expect(mockNotification).toHaveBeenCalledWith({
+      title: 'Update Check Failed',
+      body: 'Phlix could not check for updates right now. Try again later.'
+    });
+  });
+
+  it('automatic errors (no pending request) stay SILENT — W4.9 doctrine unchanged', () => {
+    mockNotification.mockClear();
+
+    handlers['checking-for-update']();
+    handlers['error'](new Error('HTTP response returned code 503'));
+
+    expect(mockNotification).not.toHaveBeenCalled();
+    expect(getUpdateStatus().status).toBe('error');
+  });
+
+  it('offline-class errors stay SILENT even when the check was manual', () => {
+    mockNotification.mockClear();
+    manualErrorCheck('net::ERR_INTERNET_DISCONNECTED');
+
+    clickMenuCheckForUpdates();
+
+    expect(mockNotification).not.toHaveBeenCalled();
+    expect(getUpdateStatus().status).toBe('idle');
   });
 });

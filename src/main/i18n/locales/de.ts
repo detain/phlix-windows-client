@@ -54,6 +54,8 @@ export const de = {
     availableBody: 'Phlix {version} ist verfügbar. Klicken Sie zum Herunterladen.',
     notAvailableTitle: 'Sie nutzen die neueste Version',
     notAvailableBody: 'Phlix {version} ist bereits die neueste Version.',
+    checkFailedTitle: 'Update-Prüfung fehlgeschlagen',
+    checkFailedBody: 'Phlix konnte derzeit nicht nach Updates suchen. Versuchen Sie es später erneut.',
     readyTitle: 'Update bereit',
     readyBody: 'Phlix {version} wurde heruntergeladen. Starten Sie neu, um es anzuwenden.'
   },

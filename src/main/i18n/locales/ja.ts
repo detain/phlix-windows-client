@@ -54,6 +54,8 @@ export const ja = {
     availableBody: 'Phlix {version} が利用可能です。クリックしてダウンロード。',
     notAvailableTitle: '最新版を使用しています',
     notAvailableBody: 'Phlix {version} はすでに最新バージョンです。',
+    checkFailedTitle: '更新の確認に失敗しました',
+    checkFailedBody: '現在、Phlix は更新を確認できませんでした。しばらくしてからもう一度お試しください。',
     readyTitle: '更新の準備完了',
     readyBody: 'Phlix {version} のダウンロードが完了しました。再起動して適用してください。'
   },

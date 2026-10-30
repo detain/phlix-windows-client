@@ -49,6 +49,10 @@ export const en = {
     availableBody: 'Phlix {version} is available. Click to download.',
     notAvailableTitle: "You're on the latest version",
     notAvailableBody: 'Phlix {version} is already the latest version.',
+    // R-WINDOWS-09 additions (born in the catalog, M-WINDOWS-12 precedent):
+    // the visible answer a manual check earns from a non-offline failure.
+    checkFailedTitle: 'Update Check Failed',
+    checkFailedBody: 'Phlix could not check for updates right now. Try again later.',
     readyTitle: 'Update Ready',
     readyBody: 'Phlix {version} has been downloaded. Restart to apply.'
   },

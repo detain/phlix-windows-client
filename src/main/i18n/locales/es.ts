@@ -53,6 +53,8 @@ export const es = {
     availableBody: 'Phlix {version} está disponible. Haz clic para descargar.',
     notAvailableTitle: 'Ya tienes la última versión',
     notAvailableBody: 'Phlix {version} ya es la última versión.',
+    checkFailedTitle: 'Error al buscar actualizaciones',
+    checkFailedBody: 'Phlix no pudo buscar actualizaciones en este momento. Inténtalo de nuevo más tarde.',
     readyTitle: 'Actualización lista',
     readyBody: 'Phlix {version} se ha descargado. Reinicia para aplicar.'
   },

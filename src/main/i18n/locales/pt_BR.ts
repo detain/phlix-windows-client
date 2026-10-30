@@ -56,6 +56,8 @@ export const pt_BR = {
     availableBody: 'Phlix {version} está disponível. Clique para baixar.',
     notAvailableTitle: 'Você está na versão mais recente',
     notAvailableBody: 'Phlix {version} já é a versão mais recente.',
+    checkFailedTitle: 'Falha ao verificar atualizações',
+    checkFailedBody: 'Phlix não pôde verificar atualizações agora. Tente novamente mais tarde.',
     readyTitle: 'Atualização pronta',
     readyBody: 'Phlix {version} foi baixada. Reinicie para aplicar.'
   },
