@@ -201,6 +201,120 @@ describe('doc vs code alignment', () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// Doc currency (R-WINDOWS-03)
+// ---------------------------------------------------------------------------
+
+/**
+ * R-WINDOWS-03: the doc drifted silently for whole eras — ALL main/renderer
+ * line coordinates were stale, 8 channels had no row at all, and the prose
+ * counts (35/19/9/6) were fiction. The direction-name checks above cannot
+ * see a channel the doc OMITS (they only test doc→code), and nothing ever
+ * verified the coordinates the doc DOES print. These pins make the table
+ * load-bearing in both directions: completeness per inventory, exact
+ * main-site sets per row, truth of every cited renderer line, and the prose
+ * counts. A coord that rots now reddens the suite instead of lying quietly.
+ */
+type DocRow = { channel: string; direction: string; cells: string[] };
+
+function parseDocTable(content: string): DocRow[] {
+  const rows: DocRow[] = [];
+  for (const line of content.split('\n')) {
+    const m = line.match(/^\|\s*`([^`]+)`\s*\|/);
+    if (!m) continue;
+    const cells = line.split(/(?<!\\)\|/).slice(1, -1).map((c) => c.trim());
+    rows.push({ channel: m[1], direction: cells[1], cells });
+  }
+  return rows;
+}
+
+/** 1-based lines where the direction's registration grammar mentions the channel. */
+function mainSiteLines(direction: string, channel: string): number[] {
+  const grammar =
+    direction === 'invoke' ? 'ipcMain\\.handle\\(\\s*\'' :
+    direction === 'push' ? 'webContents\\.send\\(\\s*\'' :
+    'ipcMain\\.on\\(\\s*\'';
+  const rx = new RegExp(grammar + channel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\'');
+  const lines = mainSource.split('\n');
+  const hits: number[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (rx.test(lines[i])) hits.push(i + 1);
+  }
+  return hits;
+}
+
+describe('doc currency (R-WINDOWS-03)', () => {
+  const docContent = readFileSync(resolve(PROJECT_ROOT, 'docs/ipc-channels.md'), 'utf-8');
+  const rows = parseDocTable(docContent);
+
+  it('the doc enumerates EVERY live channel with its true direction (no omissions)', () => {
+    const byDirection = (direction: string) =>
+      rows.filter((r) => r.direction === direction).map((r) => r.channel).sort();
+    expect(byDirection('invoke')).toEqual([...new Set(preloadInvoke)].sort());
+    expect(byDirection('send')).toEqual([...new Set(preloadSend)].sort());
+    expect(byDirection('sendSync')).toEqual([...new Set(preloadSendSync)].sort());
+    expect(byDirection('push')).toEqual([...new Set(mainWebContentsSend)].sort());
+    // Every row's direction must be one the code actually uses for it.
+    const live = new Map<string, string>();
+    [...new Set(preloadInvoke)].forEach((c) => live.set(c, 'invoke'));
+    [...new Set(preloadSend)].forEach((c) => live.set(c, 'send'));
+    [...new Set(preloadSendSync)].forEach((c) => live.set(c, 'sendSync'));
+    [...new Set(mainWebContentsSend)].forEach((c) => live.set(c, 'push'));
+    expect(rows.length).toBe(live.size);
+    const misdirected = rows.filter((r) => live.get(r.channel) !== r.direction);
+    expect(misdirected.map((r) => r.channel)).toEqual([]);
+  });
+
+  it('each row\'s Main Handler coordinates are exactly the live registration sites', () => {
+    const offenders: string[] = [];
+    for (const row of rows) {
+      const cited = [...row.cells[4].matchAll(/\(([\d,\s]+)\)/g)]
+        .flatMap((m) => m[1].split(',').map((s) => parseInt(s.trim(), 10)));
+      const expected = mainSiteLines(row.direction, row.channel);
+      if (String(cited.sort((a, b) => a - b)) !== String(expected.sort((a, b) => a - b))) {
+        offenders.push(`${row.channel}: doc ${JSON.stringify(cited)} != live ${JSON.stringify(expected)}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it('each cited renderer line really calls the row\'s preload method', () => {
+    const offenders: string[] = [];
+    for (const row of rows) {
+      const method = row.cells[5].match(/`([^`]+)`/)?.[1] ?? '';
+      for (const site of row.cells[6].matchAll(/src\/renderer\/([\w./-]+):(\d+(?:,\s*\d+)*)/g)) {
+        const file = readFileSync(resolve(PROJECT_ROOT, 'src/renderer', site[1]), 'utf-8').split('\n');
+        for (const num of site[2].split(',').map((s) => parseInt(s.trim(), 10))) {
+          if (!file[num - 1]?.includes(method)) {
+            offenders.push(`${row.channel}: src/renderer/${site[1]}:${num} does not call ${method}`);
+          }
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it('the prose counts match the measured inventories', () => {
+    const distinct = new Set([
+      ...preloadInvoke, ...preloadSend, ...preloadSendSync, ...mainWebContentsSend,
+    ]);
+    const claims: Array<[RegExp, number]> = [
+      [/All (\d+) invoke channels/, new Set(preloadInvoke).size],
+      [/All (\d+) send channels/, new Set(preloadSend).size],
+      [/All (\d+) sendSync channels/, new Set(preloadSendSync).size],
+      [/All (\d+) push channels/, new Set(mainWebContentsSend).size],
+      [/for all (\d+) channels/, distinct.size],
+    ];
+    const offenders: string[] = [];
+    for (const [rx, truth] of claims) {
+      const m = docContent.match(rx);
+      if (!m) offenders.push(`count sentence missing: ${rx}`);
+      else if (Number(m[1]) !== truth) offenders.push(`${rx.source}: doc says ${m[1]}, truth is ${truth}`);
+    }
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe('IPC channel pairing', () => {
   describe('preload invoke channels', () => {
     it('every preload ipcRenderer.invoke channel has a matching ipcMain.handle', () => {

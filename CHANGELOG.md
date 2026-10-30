@@ -7,6 +7,26 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Docs — R-W3 rider R-WINDOWS-03: `docs/ipc-channels.md` re-vendored to measured truth and made load-bearing by four doc-currency pins — 2026-10-30
+
+- **The gap.** The doc's line coordinates had rotted across whole eras (every
+  single one was stale — e.g. `get-app-path` printed 645 while the handler
+  lives at 825), eight live channels had no row at all (`update:check-for-updates`,
+  `update:get-status`, the `update:available/progress/downloaded` pushes and the
+  `media-previous/media-next/media-seek-to` pushes), and the prose counted 35
+  channels where the tree ships 45. The existing doc-vs-code checks only tested
+  doc→code, so an omission was invisible by construction.
+- **The cure.** The table is rebuilt from a measured scan (all 45 channels,
+  true directions, exact registration-site line sets, verified renderer call
+  lines), and `tests/unit/ipcChannels.test.ts` gains a `doc currency
+  (R-WINDOWS-03)` suite: completeness both directions per inventory, each
+  row's Main Handler coordinates equal to the live site set, each cited
+  renderer line provably calling the row's preload method, and every prose
+  count compared to the measured number. Red-first proven (all four pins
+  convicted the stale doc), teeth mutation-proven (a one-line coord rot
+  reddens the suite). Gates: vue-tsc x2 + tsc + lint + vitest serial + audit
+  gate + build green.
+
 ### Tests — R-W2 rider R-WINDOWS-02: the ServerVersionCheck mirror finally has its parity tripwire — 2026-10-30
 
 - **The gap.** M-WINDOWS-02 review r1 INFO-1 (queued as rider R-WINDOWS-02): the
