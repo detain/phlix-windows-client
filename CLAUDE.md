@@ -63,7 +63,7 @@ The page VIEWS and base routing come from `createPhlixApp` (`@phlix/ui`'s router
 
   This rule was violated: roughly 1,900 lines of local UI accumulated across 14 components, 2 screens, 1 page and 1 store. Phase W2 deleted all of them. A rule with a scar attached is followed; a bare rule is not.
 
-  Before adding any component to `src/renderer/` or `src/components/`, check `node_modules/@phlix/ui/src/` — the component likely already exists upstream.
+  Before adding any component to `src/renderer/` or `src/components/`, check `@phlix/ui`'s export surface in `node_modules/@phlix/ui/dist/index.d.ts` — the component likely already exists upstream. (`src/` never ships to `node_modules` — ui publishes `files: ['dist']` — so the component's readable source lives in the pinned tag at `github.com/detain/phlix-ui`.)
 
 - **Device identity** via `@phlix/contracts` `buildPhlixHeaders({deviceId, deviceName:'Phlix for Windows', deviceType:'windows'})`. No token/sessionId is passed here — `@phlix/ui`'s ApiClient owns `Authorization`/session.
 - **App-mode + apiBase** are resolved once in `resolveAppConfig` (hub vs direct server). Persisted serverUrl comes from `app:get-server-url`; the stable deviceId from `app:get-device-id`.

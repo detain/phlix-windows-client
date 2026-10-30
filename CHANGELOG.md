@@ -7,6 +7,26 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### CLAUDE.md + ADR-004 False `node_modules/@phlix/ui/src/` Coordinate Re-anchored to a Shipping One — R-WINDOWS-22 (review riders W22) — 2026-10-30
+
+- **Docs-only cure, zero behavior change (R-WINDOWS-22):** two doc sites
+  (CLAUDE.md's *Thin consumer, upstream first* bullet and ADR-004's
+  *Consequences*) instructed "check `node_modules/@phlix/ui/src/`" before
+  adding a local component — a path that never ships: `@phlix/ui` publishes
+  `files: ['dist']`, and the installed tree at the current pin
+  (`#v0.99.10`) is exactly `dist/`, `LICENSE`, `package.json`, `README.md`
+  (own `ls` at this commit). The intent (look upstream first) was true; only
+  the coordinate was false. Both sites now name a check that exists:
+  `node_modules/@phlix/ui/dist/index.d.ts` — the package's export surface,
+  which names every exported component (`Icon`, `MediaCard`, `AppLayout`,
+  …) — and point at the pinned tag in `github.com/detain/phlix-ui` for
+  readable source. Whole-tree grep (tracked files, minus `node_modules`,
+  `.git`, `dist`): the false coordinate existed only at these two sites; the
+  only other hit is the gitignored `.caliber/cache/fingerprint.json`
+  generated artifact, which regenerates. AGENTS.md's sibling bullet never
+  carried the sentence. No pin, lock, test or dependency touched.
+  Review rider M-WINDOWS-22 r2+r3 MINOR-2 (carried false coordinate).
+
 ### DEVELOPER.md Consumer-Core Sentence Qualifies Navigation — R-WINDOWS-21 (review riders W21) — 2026-10-30
 
 - **Docs-only precision pass, zero behavior change (R-WINDOWS-21):** the

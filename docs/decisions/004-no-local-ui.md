@@ -12,4 +12,4 @@ Page views and application stores stay vendored from `@phlix/ui` — never fork 
 
 ## Consequences
 
-Phase W2 deleted ~1,900 lines of duplicate UI. Bumping `@phlix/ui` is the correct path for adding/changing UI. Before adding any local component, check `node_modules/@phlix/ui/src/`. (2026-10 note: the P3-S4-era overlays and the other surfaces listed in the Status line are intentional additions under this amendment, not rule violations.)
+Phase W2 deleted ~1,900 lines of duplicate UI. Bumping `@phlix/ui` is the correct path for adding/changing UI. Before adding any local component, check what `@phlix/ui` already exports: `node_modules/@phlix/ui/dist/index.d.ts` names every exported component (ui publishes `files: ['dist']`, so `node_modules/@phlix/ui/src/` never exists; readable source is the pinned tag at `github.com/detain/phlix-ui`). (2026-10 note: the P3-S4-era overlays and the other surfaces listed in the Status line are intentional additions under this amendment, not rule violations.)
