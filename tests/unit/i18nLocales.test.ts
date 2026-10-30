@@ -510,16 +510,17 @@ describe('fr typographic apostrophe law (windows-own + main catalogs)', () => {
 });
 
 // ---------------------------------------------------------------------------
-// C. MAIN-process catalog (36 chrome strings — every law pinned)
+// C. MAIN-process catalog (40 chrome strings — every law pinned; M-WINDOWS-31
+// grew it 37 → 40 with the confirm-before-consume question trio)
 // ---------------------------------------------------------------------------
 
 describe('main-process catalog ×6 — key-set, placeholders, sanity', () => {
-  it('every locale carries EXACTLY the 37 English keys (both directions)', () => {
+  it('every locale carries EXACTLY the 40 English keys (both directions)', () => {
     const reference = keySet(MAIN_EN as unknown as Table);
     for (const locale of LOCALES) {
       expect(keySet(MAIN_TABLES[locale]), `${locale} key set differs from en`).toBe(reference);
     }
-    expect(EN_MAIN.size).toBe(37);
+    expect(EN_MAIN.size).toBe(40);
   });
 
   it('the registry carries precisely the catalog files that exist', () => {

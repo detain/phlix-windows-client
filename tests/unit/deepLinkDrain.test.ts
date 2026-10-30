@@ -26,6 +26,7 @@
  */
 
 import { describe, it, expect, vi, beforeAll } from 'vitest';
+import { requiresDeepLinkConfirmation } from '../../src/main/deepLinkValidator';
 
 // ---------------------------------------------------------------------------
 // Hoisted recording state
@@ -50,7 +51,10 @@ const tracks = vi.hoisted(() => {
     deepLinkSends: [] as unknown[][],
     // M-WINDOWS-15: the user-visible failure surface. Recorded like every
     // other external effect of the drain.
-    dialogCalls: [] as unknown[][]
+    dialogCalls: [] as unknown[][],
+    // M-WINDOWS-31: the button index the mocked dialog answers back with
+    // (0 = first button = Accept, 1 = Cancel). Tests flip it per case.
+    confirmResponse: 0
   };
 });
 
@@ -212,7 +216,7 @@ vi.mock('electron', () => {
       showOpenDialog: vi.fn(() => Promise.resolve({ canceled: true, filePaths: [] })),
       showMessageBox: vi.fn((...args: unknown[]) => {
         tracks.dialogCalls.push(args);
-        return Promise.resolve({ response: 0 });
+        return Promise.resolve({ response: tracks.confirmResponse });
       })
     },
     screen: {
@@ -252,6 +256,22 @@ function enqueueViaSecondInstance(url: string): void {
     throw new Error('second-instance handler missing');
   }
   handler({} as unknown, [url], '/tmp');
+}
+
+/** The confirm-gate dialogs (type:'question'), with their options object. */
+function questionDialogOptions(): Array<Record<string, unknown>> {
+  return tracks.dialogCalls
+    .map((args) =>
+      args.find((a) => typeof a === 'object' && a !== null && (a as { type?: string }).type === 'question') as
+        | Record<string, unknown>
+        | undefined
+    )
+    .filter((o): o is Record<string, unknown> => o !== undefined);
+}
+
+/** Let pending dialog promises (microtasks) settle. */
+function tick(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
 function fireWebContentsEvent(win: (typeof tracks.windows)[number], event: string): void {
@@ -437,15 +457,22 @@ describe('M-WINDOWS-06 event-driven deeplink drain', () => {
     expect(allDialogText).toContain('[redacted]');
   });
 
-  it('duplicate URLs inside the dedupe window deliver once, and every log line stays redacted', () => {
+  it('duplicate URLs inside the dedupe window deliver once, and every log line stays redacted', async () => {
     tracks.deepLinkSends.length = 0;
     tracks.logs.length = 0;
+    tracks.dialogCalls.length = 0;
+    tracks.confirmResponse = 0; // the mocked dialog answers 'Accept'
     const win = currentWindow();
     announceReadyFrom(win);
 
     const rawToken = 'RAWTOKEN-9eX-single-delivery';
     enqueueViaSecondInstance(`phlix://accept-invite/${rawToken}`);
     enqueueViaSecondInstance(`phlix://accept-invite/${rawToken}`);
+
+    // M-WINDOWS-31: token-bearing links pass the confirm-before-consume gate;
+    // the duplicate sits behind the (answered) pump and dedupes when reached.
+    expect(questionDialogOptions().length).toBe(1);
+    await tick();
 
     expect(tracks.deepLinkSends).toEqual([['deeplink:open', `/app/accept-invite/${rawToken}`]]);
 
@@ -455,5 +482,77 @@ describe('M-WINDOWS-06 event-driven deeplink drain', () => {
     const allLogged = tracks.logs.map((args) => args.map(String).join(' ')).join('\n');
     expect(allLogged).not.toContain(rawToken);
     expect(allLogged).toContain('[redacted]');
+  });
+});
+
+describe('M-WINDOWS-31 confirm-before-consume on token-bearing links', () => {
+  it('classifies ONLY the invite-acceptance route as consuming', () => {
+    expect(requiresDeepLinkConfirmation('/app/accept-invite/anything')).toBe(true);
+    expect(requiresDeepLinkConfirmation('/app/accept-invite')).toBe(true);
+    expect(requiresDeepLinkConfirmation('/app/server/7')).toBe(false);
+    expect(requiresDeepLinkConfirmation('/app/media/x')).toBe(false);
+    expect(requiresDeepLinkConfirmation('/app/internal/settings')).toBe(false);
+  });
+
+  it('holds the accept-invite link until the user answers; forwards exactly once on Accept', async () => {
+    tracks.deepLinkSends.length = 0;
+    tracks.dialogCalls.length = 0;
+    tracks.confirmResponse = 0;
+    announceReadyFrom(currentWindow());
+
+    enqueueViaSecondInstance('phlix://accept-invite/CONFIRM-OK-1');
+    // Sync truth NOW: the question is up and the payload has NOT reached the renderer.
+    expect(tracks.deepLinkSends).toEqual([]);
+    expect(questionDialogOptions().length).toBe(1);
+
+    await tick();
+    expect(tracks.deepLinkSends).toEqual([['deeplink:open', '/app/accept-invite/CONFIRM-OK-1']]);
+  });
+
+  it('a declined link is never forwarded, and the question shows only the REDACTED form', async () => {
+    tracks.deepLinkSends.length = 0;
+    tracks.dialogCalls.length = 0;
+    tracks.confirmResponse = 1; // user answers 'Cancel'
+    announceReadyFrom(currentWindow());
+
+    const secret = 'CONFIRM-DECLINE-secret';
+    enqueueViaSecondInstance(`phlix://accept-invite/${secret}`);
+    await tick();
+
+    expect(tracks.deepLinkSends).toEqual([]);
+    expect(questionDialogOptions().length).toBe(1);
+    const dialogText = JSON.stringify(questionDialogOptions());
+    expect(dialogText).not.toContain(secret); // raw one-time token must not ride a dialog string
+    expect(dialogText).toContain('[redacted]');
+  });
+
+  it('non-consuming links still forward synchronously — no question on them', () => {
+    tracks.deepLinkSends.length = 0;
+    tracks.dialogCalls.length = 0;
+    announceReadyFrom(currentWindow());
+
+    enqueueViaSecondInstance('phlix://media/noc-1');
+    expect(questionDialogOptions()).toHaveLength(0);
+    expect(tracks.deepLinkSends).toEqual([['deeplink:open', '/app/media/noc-1']]);
+  });
+
+  it('the gate serializes: one question at a time, the queue drains behind each answer', async () => {
+    tracks.deepLinkSends.length = 0;
+    tracks.dialogCalls.length = 0;
+    tracks.confirmResponse = 0;
+    announceReadyFrom(currentWindow());
+
+    enqueueViaSecondInstance('phlix://accept-invite/SER-1');
+    enqueueViaSecondInstance('phlix://accept-invite/SER-2');
+    // The second link must wait behind the first answer — no modal pile-up.
+    expect(questionDialogOptions().length).toBe(1);
+
+    await tick();
+    expect(questionDialogOptions().length).toBe(2);
+    await tick();
+    expect(tracks.deepLinkSends).toEqual([
+      ['deeplink:open', '/app/accept-invite/SER-1'],
+      ['deeplink:open', '/app/accept-invite/SER-2']
+    ]);
   });
 });

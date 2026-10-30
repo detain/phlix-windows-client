@@ -82,3 +82,27 @@ export function setupMediaSession(): () => void {
     });
   };
 }
+/**
+ * M-WINDOWS-22 (review windows__gameux): SMTC STOP-CLEAR. The vendored store
+ * feeds metadata, playbackState (playing/paused) and positionState itself —
+ * bundle-verified at v0.99.10 — but it never returns the transport to
+ * 'none' when playback ends, so the Windows taskbar kept a stale paused
+ * thumbnail indefinitely after the player closed. Clearing is the shell's
+ * own gap to fill: the bridge calls this from its no-media arm (the same
+ * tick that zeroes the taskbar progress bar). positionState is cleared by
+ * the no-argument call per spec; older surfaces without the API no-op.
+ */
+export function clearMediaSessionTransport(): void {
+  if (typeof navigator === 'undefined' || !navigator.mediaSession) {
+    return;
+  }
+  try {
+    const ms = navigator.mediaSession as MediaSession & {
+      setPositionState?: (state?: MediaPositionState) => void;
+    };
+    ms.playbackState = 'none';
+    ms.setPositionState?.();
+  } catch {
+    // SMTC surface unavailable (old Electron, exotic embedder) — nothing to clear.
+  }
+}

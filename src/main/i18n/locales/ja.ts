@@ -69,6 +69,9 @@ export const ja = {
   },
   deeplink: {
     failedTitle: 'リンクを開けませんでした',
-    failedMessage: 'Phlix は開けなかったリンクを受け取りました。入手元を確認してから再試行してください。'
+    failedMessage: 'Phlix は開けなかったリンクを受け取りました。入手元を確認してから再試行してください。',
+    confirmMessage: 'この Phlix リンクを開きますか？',
+    confirmAccept: 'リンクを開く',
+    confirmReject: 'キャンセル'
   }
 } satisfies MainCatalog;

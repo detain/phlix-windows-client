@@ -59,7 +59,10 @@ describe('W4.12 GPU escape hatch', () => {
 
     it('check appears before app.whenReady() in source order', () => {
       const envCheckIndex = mainSource.indexOf('PHLIX_DISABLE_GPU');
-      const whenReadyIndex = mainSource.indexOf('app.whenReady()');
+      // M-WINDOWS-15 era: the real call site is `app.whenReady().then(` —
+      // prose in the GPU comments now also names app.whenReady(), so anchor
+      // on the invocation, not the mention.
+      const whenReadyIndex = mainSource.indexOf('app.whenReady().then(');
       expect(envCheckIndex).toBeLessThan(whenReadyIndex);
     });
   });
@@ -69,12 +72,18 @@ describe('W4.12 GPU escape hatch', () => {
       expect(mainSource).toContain('disableHardwareAcceleration');
     });
 
-    it('store preference is checked inside app.whenReady() callback', () => {
-      // Find the app.whenReady() block and check that store.get('disableHardwareAcceleration') appears inside it
+    it('store preference is checked at MODULE scope, never inside the ready callback (M-WINDOWS-15)', () => {
+      // The original W4.12 law was inverted by review windows__srphp: a
+      // disableHardwareAcceleration() call from inside app.whenReady() is a
+      // silent no-op on Windows (the GPU machinery has already latched). The
+      // arm therefore lives at module scope; the ready callback must be clean.
+      const whenReadyIndex = mainSource.indexOf("store.get('disableHardwareAcceleration', false)");
+      const ready = mainSource.indexOf('app.whenReady().then(');
+      expect(whenReadyIndex).toBeGreaterThan(-1);
+      expect(whenReadyIndex).toBeLessThan(ready);
       const whenReadyMatch = mainSource.match(/app\.whenReady\(\)\.then\(\(\)\s*=>\s*\{[\s\S]*?^\}\);/m);
       expect(whenReadyMatch).not.toBeNull();
-      const whenReadyBlock = whenReadyMatch![0];
-      expect(whenReadyBlock).toContain("store.get('disableHardwareAcceleration'");
+      expect(whenReadyMatch![0]).not.toContain('app.disableHardwareAcceleration()');
     });
   });
 

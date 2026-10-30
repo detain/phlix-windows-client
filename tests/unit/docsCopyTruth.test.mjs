@@ -124,3 +124,14 @@ describe('canonical naming (M-WINDOWS-48)', () => {
     expect(pkg.description).toMatch(/Phlix for Windows/);
   });
 });
+
+describe('close-to-tray exposure is documented (M-WINDOWS-45)', () => {
+  it('README tells the user what keeps running after the window closes', () => {
+    expect(readme).toMatch(/^### Closing the Window$/m);
+    const sec = readme.slice(readme.indexOf('### Closing the Window'), readme.indexOf('### Closing the Window') + 2000);
+    expect(sec).toMatch(/minimizeToTray/);
+    expect(sec).toMatch(/signed-in|session/i);
+    expect(sec).toMatch(/lock/i);
+    expect(sec).toMatch(/Quit/i);
+  });
+});

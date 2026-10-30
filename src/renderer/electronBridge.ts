@@ -8,6 +8,7 @@ import { usePlayerStore } from '@phlix/ui';
 import type { App as VueApp } from 'vue';
 import { watch } from 'vue';
 import log from 'electron-log';
+import { clearMediaSessionTransport } from './mediaSession';
 
 // Minimal structural types for the pieces of the phlix-ui player store and the
 // vue-router instance that the bridge actually touches. Keeping them local makes
@@ -107,7 +108,10 @@ interface OsSurfaceSenders {
  *
  * SMTC metadata / playbackState / positionState are deliberately NOT mirrored:
  * the vendored store already feeds them itself on every transition (the very
- * `U()`/`W()`/`setCurrent` actions), for both paths.
+ * `U()`/`W()`/`setCurrent` actions), for both paths. ONE exception holds the
+ * other side (M-WINDOWS-22): the store's feed has no STOP arm — it never
+ * clears the transport back to 'none' — so the no-media mirror below calls
+ * `clearMediaSessionTransport()` for exactly that gap.
  *
  * Returns a cleanup stopping both watchers; `wireElectronBridge` folds it into
  * its single teardown, so navigation/unmount-style re-install can never leak
@@ -133,6 +137,10 @@ function installOsPlaybackMirror(player: BridgePlayer, api: OsSurfaceSenders): (
         lastWholePosition = -1;
         lastWholeDuration = -1;
         api.setPlaybackProgress?.(0, 0);
+        // M-WINDOWS-22: the store's SMTC feed has no STOP arm — it writes
+        // playing/paused/position but never clears to 'none'. The shell owns
+        // that clear, exactly here, alongside the progress-bar zeroing.
+        clearMediaSessionTransport();
         return;
       }
       const wholePosition = Math.floor(position);

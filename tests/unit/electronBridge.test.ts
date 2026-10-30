@@ -816,6 +816,10 @@ describe('OS playback mirror (M-WINDOWS-14)', () => {
       'utf8'
     );
     expect(bridgeSource).not.toMatch(/updateMeta\s*\(/);
-    expect(bridgeSource).not.toMatch(/from\s+['"]\.\/mediaSession['"]/);
+    // M-WINDOWS-14 banned the bridge importing setupMediaSession (the stub-
+    // metadata path); M-WINDOWS-22 admits exactly one allowed import — the
+    // stop-clear helper, which writes no metadata and no playing/paused state.
+    expect(bridgeSource).not.toMatch(/setupMediaSession[^a-zA-Z]/);
+    expect(bridgeSource).toMatch(/import \{ clearMediaSessionTransport \} from '\.\/mediaSession'/);
   });
 });

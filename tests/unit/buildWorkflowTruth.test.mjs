@@ -58,3 +58,26 @@ describe('build.yml pipeline truth (M-WINDOWS-27)', () => {
     expect(mainTs).toMatch(/autoUpdater/);
   });
 });
+
+describe('workflows run least-privilege (M-WINDOWS-24)', () => {
+  const testwf = readFileSync(resolve(__dirname, '../../.github/workflows/test.yml'), 'utf-8');
+
+  it('both push workflows declare a read-only default token scope', () => {
+    for (const [name, doc] of [['build.yml', wf], ['test.yml', testwf]]) {
+      expect(doc, name).toMatch(/^permissions:\n {2}contents: read$/m);
+    }
+  });
+
+  it('the two release-scope job blocks stay (they override the default deliberately)', () => {
+    // Job-level keys only — line-anchored, so the explanatory comment naming
+    // the override cannot count as one.
+    expect((wf.match(/^ {6}contents: write$/gm) ?? []).length).toBe(2);
+  });
+
+  it('GH_TOKEN appears exactly once in build.yml — the latest-release reset', () => {
+    expect((wf.match(/GH_TOKEN/g) ?? []).length).toBe(1);
+    expect(wf).toMatch(/gh release delete latest/);
+    // the electron-builder package steps keep their zero-token posture
+    expect(wf).not.toMatch(/GH_TOKEN[^\n]*\n[^\n]*electron-builder/);
+  });
+});

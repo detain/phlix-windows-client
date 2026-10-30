@@ -226,6 +226,20 @@ While hidden there is no taskbar button, and Windows (unlike macOS) emits no
 restore event for a hidden app — the tray icon and the relaunch handoff are the
 restore surfaces, and both fully restore hidden, minimized, and combined states.
 
+### Closing the Window
+
+Clicking **×** does not quit Phlix by default: with `minimizeToTray` on (the
+default, toggleable from the **View** menu), the window hides to the tray and
+the app keeps playing. Understand what that means while it is hidden: the
+signed-in session stays live — the renderer, any open WebSocket connections
+(syncplay rooms, hub relay) and your stored tokens keep working, and anyone
+with access to your Windows session can bring the window back from the tray
+and act as you. Phlix has no app-level lock screen of its own, so treat the
+tray-minimised state like an unlocked laptop: **lock Windows** when you step
+away, or quit properly via the tray menu's **Quit** entry (media playback and
+the session both end). Turning `minimizeToTray` off in the View menu makes
+**×** quit outright instead; media-key/SMTC workflows are unaffected either way.
+
 ### Environment Variables
 
 | Variable | Default | Description |

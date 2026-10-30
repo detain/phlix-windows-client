@@ -68,6 +68,9 @@ export const es = {
   },
   deeplink: {
     failedTitle: 'No se pudo abrir el enlace',
-    failedMessage: 'Phlix recibió un enlace que no pudo abrir. Comprueba su origen e inténtalo de nuevo.'
+    failedMessage: 'Phlix recibió un enlace que no pudo abrir. Comprueba su origen e inténtalo de nuevo.',
+    confirmMessage: '¿Seguir este enlace de Phlix?',
+    confirmAccept: 'Seguir enlace',
+    confirmReject: 'Cancelar'
   }
 } satisfies MainCatalog;

@@ -7,6 +7,40 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Token Posture, SMTC Depth & Least-Privilege CI — W-min204 minors cluster (M-WINDOWS-15/22/24/31/45 cured) — 2026-10-31
+
+- **Confirm-before-consume (M-WINDOWS-31):** `phlix://accept-invite/{token}` links were
+  forwarded to the renderer the instant a link arrived — the invite redeems silently on
+  mount. The main-process drain is now a single-active async pump: token-bearing routes
+  park on a question dialog that shows only the REDACTED link, and a declined link is
+  dropped, never forwarded. Browse-only routes (`media`, `play`, `server`, `internal`)
+  still deliver synchronously — no friction added where none is earned. New
+  `requiresDeepLinkConfirmation()` classifier + 5 behavior cases on the live drain
+  harness; three new catalog keys (`deeplink.confirmMessage/confirmAccept/confirmReject`)
+  in all seven main-process locales.
+- **GPU preference timing (M-WINDOWS-15):** the stored `disableHardwareAcceleration`
+  arm ran INSIDE `app.whenReady()` — a silent no-op on Windows (Electron latches the
+  GPU decision at startup). It now runs at module scope beside the env arm, with the
+  next-launch semantics documented in the log line; structural pins in
+  `gpuPreferenceTiming.test.mjs`.
+- **SMTC stop-clear (M-WINDOWS-22):** the vendored ui store feeds playbackState
+  (playing/paused), positionState and metadata itself (bundle-verified at v0.99.10) but
+  has no STOP arm, so the taskbar thumbnail kept a stale paused tile after playback
+  ended. The bridge's no-media tick now calls `clearMediaSessionTransport()`
+  (`playbackState = 'none'` + cleared positionState, jsdom-safe).
+- **Least-privilege workflows (M-WINDOWS-24):** both push workflows declare a
+  top-level `permissions: contents: read` default; the two release jobs keep their
+  deliberate job-level `contents: write` overrides. The `GH_TOKEN` grants on the two
+  electron-builder package steps were dead weight (`--publish never` consumes none)
+  and are gone — build.yml now references the token exactly once, the latest-release
+  reset that genuinely needs it.
+- **Close-to-tray exposure documented (M-WINDOWS-45):** new README *Closing the
+  Window* section spells out what the tray-minimised default keeps alive — the
+  signed-in session, open WebSockets and stored tokens, restorable by anyone with
+  the Windows session — and how to end it (tray **Quit**, or the View-menu toggle);
+  the no-lock-screen reality is stated, not papered over (a real lock is an
+  owner-class feature, disclosed).
+
 ### End-User Disclosures & Canonical Naming — W-min203 minors cluster (M-WINDOWS-08/13/21/28/43/47/48/55 cured) — 2026-10-31
 
 - **Privacy disclosure (M-WINDOWS-08):** new README *Privacy & Update Checks* section names

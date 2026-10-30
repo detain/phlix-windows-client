@@ -16,6 +16,7 @@ import {
   parseDeepLinkUrl,
   extractDeepLinkUrl,
   redactDeepLinkUrl,
+  requiresDeepLinkConfirmation,
   createDeepLinkDeduper
 } from './deepLinkValidator';
 import { getMainLocale, setMainLocale, t } from './i18n';
@@ -29,8 +30,12 @@ import log from 'electron-log';
 import Store from 'electron-store';
 import { autoUpdater } from 'electron-updater';
 
-// W4.12: GPU escape hatch — read before the app readiness callback so it takes effect.
-// Check env var at module level (before store exists) and also check store preference after app is ready.
+// W4.12 + M-WINDOWS-15: GPU escape hatch — BOTH arms must run at module scope.
+// Electron latches the hardware-acceleration decision when the GPU machinery
+// starts; a disableHardwareAcceleration() call from inside app.whenReady() is a
+// silent no-op on Windows (review windows__srphp). The env var is checked here
+// (it always was); the stored preference is applied immediately below where the
+// store itself is constructed — still module scope, still before readiness.
 if (process.env.PHLIX_DISABLE_GPU === '1') {
   log.info('[gpu] Hardware acceleration disabled by PHLIX_DISABLE_GPU=1');
   app.disableHardwareAcceleration();
@@ -73,6 +78,9 @@ const deepLinkDeduper = createDeepLinkDeduper(DEEPLINK_DEDUPE_WINDOW_MS);
 // 'deeplink:ready' handshake) that its listener is actually live.
 const pendingDeepLinks: string[] = [];
 let deepLinkReceiverReady = false;
+// M-WINDOWS-31: one pump at a time — while a confirm dialog is up, later
+// enqueues just grow the queue and the SAME pump picks them up.
+let deepLinkDrainActive = false;
 
 /**
  * The single entry point for every deep link the app receives (cold start,
@@ -121,6 +129,7 @@ export function showDeepLinkRejectedDialog(url: string): void {
  * delivers (re-drain path per the did-start-loading re-arm in createWindow).
  */
 function drainPendingDeepLinks(): void {
+  if (deepLinkDrainActive) return; // a running pump picks up new entries itself
   if (!deepLinkReceiverReady) return; // the handshake will drain later
   if (!mainWindow || mainWindow.isDestroyed()) {
     // Stale announcement (window replaced or destroyed since): keep the
@@ -128,27 +137,70 @@ function drainPendingDeepLinks(): void {
     deepLinkReceiverReady = false;
     return;
   }
+  void pumpPendingDeepLinks(mainWindow);
+}
+
+/**
+ * M-WINDOWS-31 (review windows__exploiter MINOR-3): confirm-before-consume.
+ * A route that REDEEMS a one-time secret (invite links) must not be silently
+ * forwarded — the renderer would burn the token on mount without asking. The
+ * pump parks such a link on a question dialog whose detail carries only the
+ * REDACTED form; declining drops that entry while the queue keeps draining.
+ * The pump is single-active (deepLinkDrainActive): links enqueued during an
+ * open dialog are handled by the SAME pump's next iteration — one question at
+ * a time, never a modal pile-up, and the drain-once law stands (a URL leaves
+ * the queue before its confirm/dispatch, an answered-or-not entry is never
+ * delivered twice).
+ */
+async function pumpPendingDeepLinks(win: BrowserWindow): Promise<void> {
+  deepLinkDrainActive = true;
   const rejectedUrls: string[] = [];
-  while (pendingDeepLinks.length > 0) {
-    const url = pendingDeepLinks.shift()!;
-    if (deepLinkDeduper.suppresses(url)) {
-      log.info(`[deeplink] Duplicate delivery suppressed within ${DEEPLINK_DEDUPE_WINDOW_MS}ms: ${redactDeepLinkUrl(url)}`);
-      continue;
+  try {
+    while (pendingDeepLinks.length > 0) {
+      if (win.isDestroyed()) {
+        deepLinkReceiverReady = false; // a live window's handshake re-drains
+        break;
+      }
+      const url = pendingDeepLinks.shift()!;
+      if (deepLinkDeduper.suppresses(url)) {
+        log.info(`[deeplink] Duplicate delivery suppressed within ${DEEPLINK_DEDUPE_WINDOW_MS}ms: ${redactDeepLinkUrl(url)}`);
+        continue;
+      }
+      const path = parseDeepLinkUrl(url);
+      if (!path) {
+        // M-WINDOWS-15: the parser already logged the rejection (redacted); the
+        // USER also gets told. One dialog per drain — a burst of bad links is a
+        // single honest surface, not a modal pile-up (each rejection keeps its
+        // redacted log line for diagnosis).
+        rejectedUrls.push(url);
+        continue;
+      }
+      if (requiresDeepLinkConfirmation(path) && !(await confirmDeepLinkFollow(win, url))) {
+        log.info(`[deeplink] Follow declined: ${redactDeepLinkUrl(url)}`);
+        continue;
+      }
+      win.webContents.send('deeplink:open', path);
     }
-    const path = parseDeepLinkUrl(url);
-    if (!path) {
-      // M-WINDOWS-15: the parser already logged the rejection (redacted); the
-      // USER also gets told. One dialog per drain — a burst of bad links is a
-      // single honest surface, not a modal pile-up (each rejection keeps its
-      // redacted log line for diagnosis).
-      rejectedUrls.push(url);
-      continue;
-    }
-    mainWindow.webContents.send('deeplink:open', path);
+  } finally {
+    deepLinkDrainActive = false;
   }
   if (rejectedUrls.length > 0) {
     showDeepLinkRejectedDialog(rejectedUrls[0]!);
   }
+}
+
+/** The user's explicit YES to consuming a link-borne secret. Esc/Cancel declines. */
+async function confirmDeepLinkFollow(win: BrowserWindow, url: string): Promise<boolean> {
+  const { response } = await dialog.showMessageBox(win, {
+    type: 'question',
+    buttons: [t('deeplink.confirmAccept'), t('deeplink.confirmReject')],
+    defaultId: 0,
+    cancelId: 1,
+    title: t('deeplink.failedTitle'),
+    message: t('deeplink.confirmMessage'),
+    detail: redactDeepLinkUrl(url)
+  });
+  return response === 0;
 }
 
 function setAsDefaultProtocolClient(): void {
@@ -232,6 +284,15 @@ const store = new Store<{
   deviceId?: string;
   notificationsEnabled?: boolean;
 }>();
+
+// M-WINDOWS-15: store-preference GPU arm at MODULE scope (see the env-arm note
+// above) — applied before the app readiness callback exists, because calling
+// disableHardwareAcceleration() from inside whenReady is a no-op on Windows.
+// Effect is by definition next-launch: a running app has already chosen.
+if (store.get('disableHardwareAcceleration', false)) {
+  log.info('[gpu] Hardware acceleration disabled by preference (effective from next launch)');
+  app.disableHardwareAcceleration();
+}
 
 // M-WINDOWS-11: safeStorage (DPAPI) custody for the persisted quasi-secrets.
 // `deviceId` is the stable installation identifier echoed on the wire as
@@ -1347,12 +1408,6 @@ app.whenReady().then(() => {
   const mainLocale = typeof app.getLocale === 'function' ? app.getLocale() : 'en';
   setMainLocale(mainLocale);
   log.info(`[i18n] Main-process UI locale: ${mainLocale} (active: ${getMainLocale()})`);
-
-  // W4.12: GPU escape hatch — also check store preference (env var already checked at module level)
-  if (store.get('disableHardwareAcceleration', false)) {
-    log.info('[gpu] Hardware acceleration disabled by preference');
-    app.disableHardwareAcceleration();
-  }
 
   setupAppProtocolHandler();
   setAsDefaultProtocolClient();

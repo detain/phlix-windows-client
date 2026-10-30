@@ -10,6 +10,12 @@ concurrency:
   group: test-${{ github.ref }}
   cancel-in-progress: true
 
+# M-WINDOWS-24 (review windows__secaudit): least-privilege default — ordinary CI
+# needs only read access to the repository. The two release jobs carry their own
+# job-level `contents: write` (deliberate overrides); nothing else gets a write token.
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Test on ${{ matrix.os }}

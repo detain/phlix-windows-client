@@ -24,6 +24,12 @@ concurrency:
 env:
   NODE_VERSION: '24.x'
 
+# M-WINDOWS-24 (review windows__secaudit): least-privilege default — ordinary CI
+# needs only read access to the repository. The two release jobs carry their own
+# job-level `contents: write` (deliberate overrides); nothing else gets a write token.
+permissions:
+  contents: read
+
 jobs:
   lint:
     name: Lint
@@ -214,14 +220,10 @@ jobs:
       - name: Package NSIS installer
         if: matrix.target == 'nsis'
         run: npx electron-builder --win nsis --publish never
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Package APPX
         if: matrix.target == 'appx'
         run: npx electron-builder --win appx --publish never
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate SHA256 checksums
         # sha256sum is available on windows-latest; output goes to release/

@@ -205,6 +205,19 @@ export function parseDeepLinkUrl(url: string): string | null {
 /**
  * Finds the first `phlix://` argument in an argv-style array.
  */
+/**
+ * M-WINDOWS-31 (review windows__exploiter MINOR-3): which parsed routes
+ * CONSUME a secret and therefore need explicit user confirmation before the
+ * shell forwards them. Today that is exactly one route — invite acceptance,
+ * whose renderer view redeems the one-time token on mount. Everything else
+ * (`media`, `play`, `server`, `internal`) is browse-only: the worst a stray
+ * link can do is navigate. The gate lives in the MAIN process on purpose:
+ * the renderer (vendored ui) has no concept of "ask first".
+ */
+export function requiresDeepLinkConfirmation(path: string): boolean {
+  return path === '/app/accept-invite' || path.startsWith('/app/accept-invite/');
+}
+
 export function extractDeepLinkUrl(argv: string[]): string | null {
   for (const arg of argv) {
     if (typeof arg === 'string' && arg.startsWith('phlix://')) {

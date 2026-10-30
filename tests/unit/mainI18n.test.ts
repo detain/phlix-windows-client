@@ -83,7 +83,12 @@ const ORIGINAL_MAIN_PROCESS_STRINGS: Record<MainMessageKey, string> = {
   // M-WINDOWS-15 additions (born in the catalog, same precedent): the honest
   // failure surface for a deep link the app could not route.
   'deeplink.failedTitle': 'Could Not Open Link',
-  'deeplink.failedMessage': 'Phlix received a link it could not open. Check where you got it and try again.'
+  'deeplink.failedMessage': 'Phlix received a link it could not open. Check where you got it and try again.',
+  // M-WINDOWS-31 additions (born in the catalog): the confirm-before-consume
+  // question for token-bearing (invite) links and its two buttons.
+  'deeplink.confirmMessage': 'Follow this Phlix link?',
+  'deeplink.confirmAccept': 'Follow link',
+  'deeplink.confirmReject': 'Cancel'
 };
 
 function flattenedCatalogKeys(): MainMessageKey[] {

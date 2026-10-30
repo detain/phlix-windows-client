@@ -64,6 +64,9 @@ export const en = {
   },
   deeplink: {
     failedTitle: 'Could Not Open Link',
-    failedMessage: 'Phlix received a link it could not open. Check where you got it and try again.'
+    failedMessage: 'Phlix received a link it could not open. Check where you got it and try again.',
+    confirmMessage: 'Follow this Phlix link?',
+    confirmAccept: 'Follow link',
+    confirmReject: 'Cancel'
   }
 } as const;

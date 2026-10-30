@@ -71,6 +71,9 @@ export const pt_BR = {
   },
   deeplink: {
     failedTitle: 'Não foi possível abrir o link',
-    failedMessage: 'O Phlix recebeu um link que não pôde abrir. Verifique a origem e tente novamente.'
+    failedMessage: 'O Phlix recebeu um link que não pôde abrir. Verifique a origem e tente novamente.',
+    confirmMessage: 'Seguir este link do Phlix?',
+    confirmAccept: 'Seguir link',
+    confirmReject: 'Cancelar'
   }
 } satisfies MainCatalog;
