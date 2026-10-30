@@ -7,6 +7,18 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Disposition Table Gains Its r2 Deep-Links Row — R-WINDOWS-17 (review riders W17) — 2026-10-30
+
+- **Docblock-only, zero behavior change (R-WINDOWS-17):** the
+  M-WINDOWS-17 claim → disposition table in
+  `tests/unit/hubModeStatus.test.ts` stopped at row 6; the r2 survivor
+  cure in `docs/deep-links.md` (mode-conditional rider note + per-arm
+  "404-views today" annotations, landed at 0034662f2) never gained a row
+  of its own. Row 7 added; like row 6 it is explicitly *not pinned
+  here* — deep-links.md is parsed by zero tests, as the r2 review's
+  probe A disclosed honestly. Ledger currency only; every pin and
+  assertion in the file is untouched.
+
 ### Hub-Mode Bundle Tripwire Now Pins Every Chunk Format — R-WINDOWS-15 (review riders W15) — 2026-10-31
 
 - **Test-hardening only, zero behavior change (R-WINDOWS-15):** the

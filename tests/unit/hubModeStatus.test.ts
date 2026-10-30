@@ -29,6 +29,7 @@
  * | 4 | README.md:61/161/164 ("(or Hub)" / "server or Hub" / "configured at runtime") | Hub URL usable at Connect / configures at runtime | hub URL at Connect lands server mode; channel never fired | re-attributed to server-only truth; literals forbidden |
  * | 5 | src/main/index.ts hub handlers                     | (silent)                  | enterability gap undiscoverable | rider comment naming M-WINDOWS-17 pinned |
  * | 6 | docs/ui-surface.md hub-mode summary                | 11 OK (mode-conditional)  | mode unreachable               | rider sentence (fixed by this lane; not pinned here) |
+ * | 7 | docs/deep-links.md:23 + Examples :74/:77 (r1-era)  | hub-mode routes "registered by this repo" (enterability implied) | mode unreachable — both arms parse fine yet 404-view in the shipped build | rider note + per-arm "404-views today" annotations (cured in r2, 0034662f2; not pinned here) |
  *
  * The zero-caller and seam-absence pins are TRIPWIRES: the moment an upstream re-pin
  * ships a hub-connection form or a lane wires the writer, they redden and their
