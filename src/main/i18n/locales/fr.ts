@@ -32,8 +32,8 @@ export const fr = {
     playback: 'Lecture',
     playPause: 'Lecture/Pause',
     stop: 'Arrêter',
-    rewind: 'Retour arrière',
-    fastForward: 'Avance rapide',
+    rewind: 'Retour 10 s',
+    fastForward: 'Avance 10 s',
     fullscreen: 'Plein écran',
     view: 'Affichage',
     help: 'Aide',
@@ -41,10 +41,10 @@ export const fr = {
     checkForUpdates: 'Rechercher des mises à jour'
   },
   thumbar: {
-    previous: 'Précédent / Retour 10 s',
+    previous: 'Retour 10 s',
     play: 'Lecture',
     pause: 'Pause',
-    next: 'Suivant / Avance 10 s'
+    next: 'Avance 10 s'
   },
   updater: {
     availableTitle: 'Mise à jour disponible',

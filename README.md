@@ -18,7 +18,7 @@ Phlix Windows provides a full-featured media server client for Windows, enabling
 - **Video Player** - Full-featured video playback with controls
 - **System Tray Integration** - Minimize to tray with media controls
 - **Native Menus** - Full application menu with keyboard shortcuts
-- **Media Key Support** - Media key support via thumbar buttons and tray/menu keyboard accelerators (Play/Pause, Stop, Rewind/Fast-Forward ±10s bridged into the player)
+- **Media Key Support** - Media key support via thumbar buttons and tray/menu keyboard accelerators (Play/Pause, Stop, Rewind/Forward 10s bridged into the player)
 - **Authentication** - Secure login with session persistence (handled by `@phlix/ui`)
 - **Shared UI** - Modern Vue 3 interface from `@phlix/ui` with the Nocturne theme
 - **Settings Management** - Configurable preferences including minimize-to-tray behavior
@@ -435,7 +435,7 @@ MIT License - see project repository for details.
 - **Thin renderer + local surfaces** — Boots `@phlix/ui` via `createPhlixApp()`; ships local player overlays (SleepTimer/PiP via `overlay.tsx`), a boot-failure screen with Retry, own i18n catalogs, and a DPAPI token-store adapter awaiting its ui seam
 - **System tray** — Minimize-to-tray, tray menu with media controls
 - **Native menus** — Full File/Playback/View/Help menu bar with keyboard accelerators
-- **Media keys** — Thumbar buttons and tray/menu keyboard accelerators (Play/Pause, Stop, Rewind/Forward ±10s)
+- **Media keys** — Thumbar buttons and tray/menu keyboard accelerators (Play/Pause, Stop, Rewind/Forward 10s)
 - **Packaging** — NSIS x64 installer and APPX via `electron-builder`
 - **CI pipeline** — ESLint, vue-tsc, tsc -p tsconfig.main.json, vitest, npm audit, smoke test gate on every PR/push
 - **Coverage** — Reports generated and uploaded to Codecov and Codacy on each CI run

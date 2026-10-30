@@ -33,8 +33,8 @@ export const it = {
     playback: 'Riproduzione',
     playPause: 'Riproduci/Pausa',
     stop: 'Stop',
-    rewind: 'Riavvolgi',
-    fastForward: 'Avanzamento rapido',
+    rewind: 'Riavvolgi 10 s',
+    fastForward: 'Avanza 10 s',
     fullscreen: 'Schermo intero',
     view: 'Visualizza',
     help: 'Guida',
@@ -42,10 +42,10 @@ export const it = {
     checkForUpdates: 'Controlla aggiornamenti'
   },
   thumbar: {
-    previous: 'Precedente / Riavvolgi 10 s',
+    previous: 'Riavvolgi 10 s',
     play: 'Riproduci',
     pause: 'Pausa',
-    next: 'Successivo / Avanza 10 s'
+    next: 'Avanza 10 s'
   },
   updater: {
     availableTitle: 'Aggiornamento disponibile',

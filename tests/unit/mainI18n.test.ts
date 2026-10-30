@@ -10,6 +10,13 @@
  * born-in-the-catalog additions. Either way, if someone edits a catalog value,
  * this test goes red — exactly the point.
  *
+ * DELIBERATE ROTATIONS recorded in the table below (each a shipped copy fix,
+ * not drift): the M-WINDOWS-49/50 single-label pass — the seek action is
+ * 'Rewind 10s'/'Forward 10s' in menu + thumbar alike (the former
+ * 'Previous / …'/'Next / …' tooltips mislabeled the 10-second SEEK as a track
+ * change, and 'Fast Forward' was a third name for the same action), and
+ * tray.minimizeToTray went to sentence case per Windows HIG.
+ *
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
 
@@ -23,7 +30,7 @@ const ORIGINAL_MAIN_PROCESS_STRINGS: Record<MainMessageKey, string> = {
   'tray.show': 'Show Phlix',
   'tray.playPause': 'Play/Pause',
   'tray.stop': 'Stop',
-  'tray.minimizeToTray': 'Minimize to Tray',
+  'tray.minimizeToTray': 'Minimize to tray',
   'tray.quit': 'Quit',
   'tray.tooltip': 'Phlix Media Server',
 
@@ -32,18 +39,18 @@ const ORIGINAL_MAIN_PROCESS_STRINGS: Record<MainMessageKey, string> = {
   'menu.playback': 'Playback',
   'menu.playPause': 'Play/Pause',
   'menu.stop': 'Stop',
-  'menu.rewind': 'Rewind',
-  'menu.fastForward': 'Fast Forward',
+  'menu.rewind': 'Rewind 10s',
+  'menu.fastForward': 'Forward 10s',
   'menu.fullscreen': 'Fullscreen',
   'menu.view': 'View',
   'menu.help': 'Help',
   'menu.about': 'About Phlix',
   'menu.checkForUpdates': 'Check for updates',
 
-  'thumbar.previous': 'Previous / Rewind 10s',
+  'thumbar.previous': 'Rewind 10s',
   'thumbar.play': 'Play',
   'thumbar.pause': 'Pause',
-  'thumbar.next': 'Next / Forward 10s',
+  'thumbar.next': 'Forward 10s',
 
   'updater.availableTitle': 'Update Available',
   'updater.availableBody': 'Phlix {version} is available. Click to download.',

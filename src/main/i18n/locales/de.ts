@@ -32,8 +32,8 @@ export const de = {
     playback: 'Wiedergabe',
     playPause: 'Wiedergabe/Pause',
     stop: 'Stopp',
-    rewind: 'Zurückspulen',
-    fastForward: 'Vorspulen',
+    rewind: '10 s zurückspulen',
+    fastForward: '10 s vorspulen',
     fullscreen: 'Vollbild',
     view: 'Ansicht',
     help: 'Hilfe',
@@ -41,10 +41,10 @@ export const de = {
     checkForUpdates: 'Nach Updates suchen'
   },
   thumbar: {
-    previous: 'Zurück / 10 s zurückspulen',
+    previous: '10 s zurückspulen',
     play: 'Wiedergabe',
     pause: 'Pause',
-    next: 'Weiter / 10 s vorspulen'
+    next: '10 s vorspulen'
   },
   updater: {
     availableTitle: 'Update verfügbar',

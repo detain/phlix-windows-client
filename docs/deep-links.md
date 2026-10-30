@@ -55,7 +55,7 @@ All rejections are logged with `[deeplink]` prefix at warn level.
 ## Arrival Paths
 
 ### Windows Cold Start
-When the app is launched via a `phlix://` URL (e.g., from a browser link or another app), the URL appears in `process.argv[1]` before `app.whenReady()` fires. The URL is parsed and queued for routing after the app initializes.
+When the app is launched via a `phlix://` URL (e.g., from a browser link or another app), the URL arrives somewhere in `process.argv` before `app.whenReady()` fires — its index varies with the launch shape, so `extractDeepLinkUrl` (`src/main/deepLinkValidator.ts`) scans **every** argv entry for the `phlix://` prefix rather than trusting a fixed slot. The first matching entry is parsed and held in a pending queue; it is delivered when the renderer announces its listener via the `deeplink:ready` handshake, never by a fixed-delay timer.
 
 ### Windows Warm Start
 When a second instance is launched with a `phlix://` URL while the app is already running, the `second-instance` event fires with the URL in its argv. The app focuses the existing window and routes the deep link.

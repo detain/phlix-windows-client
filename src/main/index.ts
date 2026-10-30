@@ -20,6 +20,7 @@ import {
 } from './deepLinkValidator';
 import { getMainLocale, setMainLocale, t } from './i18n';
 import { restoreWindow } from './windowRestore';
+import { validateNotificationText, createToastThrottle } from './notificationGuard';
 import { createSecretCustody } from './secretStore';
 import type { SettingsSink } from './secretStore';
 import log from 'electron-log';
@@ -449,7 +450,14 @@ function createWindow(): void {
 }
 
 /**
- * Creates the taskbar thumbnail toolbar buttons (previous track, play/pause, next track).
+ * Creates the taskbar thumbnail toolbar buttons (rewind | play-pause |
+ * forward — M-WINDOWS-50 truth pass: the outer buttons are 10-second SEEKS.
+ * Clicks send media-rewind/media-forward and the renderer resolves them to
+ * player.seekBy(±SEEK_STEP_SECONDS) (src/renderer/electronBridge.ts); they do
+ * NOT change tracks. Real SMTC previous/next exist separately and are the
+ * documented no-op arm (playlist management lives in @phlix/ui). All three
+ * buttons share the resized app icon today, so the tooltips carry the whole
+ * differentiation — kept honest in the i18n catalog (thumbar.*).
  * Called once after createWindow() and updated via thumbar:update IPC events.
  */
 export function setupThumbarButtons(): void {
@@ -717,9 +725,11 @@ export function buildPlaybackMenuTemplate(): Electron.MenuItemConstructorOptions
 }
 
 function createMenu(): void {
-  // Role items below (quit/reload/forceReload/toggleDevTools/zoom/fullscreen)
+  // Role items below (quit/reload/forceReload/toggleDevTools/zoom)
   // intentionally keep no explicit label — Electron renders roles with native,
   // already-localized strings, which beats anything this catalog could ship.
+  // Fullscreen is NOT on that list: M-WINDOWS-41 removed its View-submenu role
+  // entry so the labeled Playback row owns the F11 binding alone.
   const template: Electron.MenuItemConstructorOptions[] = [
     {
       label: t('menu.file'),
@@ -742,9 +752,14 @@ function createMenu(): void {
         { type: 'separator' },
         { role: 'resetZoom' },
         { role: 'zoomIn' },
-        { role: 'zoomOut' },
-        { type: 'separator' },
-        { role: 'togglefullscreen' }
+        { role: 'zoomOut' }
+        // M-WINDOWS-41: deliberately no togglefullscreen role entry here.
+        // On Windows that role defaults to F11 — the same accelerator the
+        // Playback submenu's labeled fullscreen row (above) binds explicitly —
+        // so the old shape shipped one key on two menu rows with
+        // last-registration-wins as Electron-internal trivia. The custom row
+        // is now the single fullscreen entry: its label flows through the i18n
+        // catalog, which native role labels cannot reach.
       ]
     },
     {
@@ -1036,7 +1051,13 @@ ipcMain.on('power:update', (_event, { playing }: { playing: boolean }) => {
 // M-WINDOWS-15 law for producers: `clickAction` MUST be an /app-rooted router
 // path (e.g. '/app/settings'); anything else fails parseDeepLinkUrl's internal
 // /app gate and surfaces as a rejection dialog instead of a silent no-op.
-ipcMain.handle('notification:show', (_event, { title, body, clickAction }: { title: string; body: string; clickAction?: string }) => {
+//
+// M-WINDOWS-33: 8 toasts per minute is generous against every legitimate
+// producer (the updater flow emits at most one per terminal event) and
+// collapses a sustained hostile stream. The clock is injected (Date.now here,
+// a fake in tests) so the window edges are unit-deterministic.
+const allowNotificationToast = createToastThrottle({ limit: 8, windowMs: 60_000 });
+ipcMain.handle('notification:show', (_event, raw: { title?: unknown; body?: unknown; clickAction?: string } | null | undefined) => {
   if (!Notification.isSupported()) {
     log.warn('[notification] Notifications not supported on this platform');
     return false;
@@ -1045,6 +1066,24 @@ ipcMain.handle('notification:show', (_event, { title, body, clickAction }: { tit
     log.info('[notification] Notifications disabled by user preference');
     return false;
   }
+  // M-WINDOWS-33 (review windows__exploiter MINOR-5): the renderer is a
+  // boundary, not an authority. Payload text is type-checked and length-capped
+  // HERE — over-cap payloads are rejected, never truncated (an attacker that
+  // controlled the shell's cut point controlled the surviving sentence) — and
+  // the toast stream is rate-limited, closing the desktop-spam/phishing vector
+  // a malicious server could otherwise drive through the UI's notification
+  // flows behind the user's back.
+  const text = validateNotificationText(raw?.title, raw?.body);
+  if (!text.ok) {
+    log.warn(`[notification] Rejected payload: ${text.reason}`);
+    return false;
+  }
+  if (!allowNotificationToast(Date.now())) {
+    log.warn('[notification] Toast rate limit reached — dropped');
+    return false;
+  }
+  const { title, body } = text;
+  const { clickAction } = raw ?? {};
   const notification = new Notification({ title, body });
   notification.on('click', () => {
     // M-WINDOWS-03: a notification click is a re-entry surface too — the

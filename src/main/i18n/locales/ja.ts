@@ -32,8 +32,8 @@ export const ja = {
     playback: '再生',
     playPause: '再生/一時停止',
     stop: '停止',
-    rewind: '早戻し',
-    fastForward: '早送り',
+    rewind: '10秒戻す',
+    fastForward: '10秒進める',
     fullscreen: '全画面',
     view: '表示',
     help: 'ヘルプ',
@@ -41,10 +41,10 @@ export const ja = {
     checkForUpdates: '更新を確認'
   },
   thumbar: {
-    previous: '前へ / 10秒戻す',
+    previous: '10秒戻す',
     play: '再生',
     pause: '一時停止',
-    next: '次へ / 10秒進める'
+    next: '10秒進める'
   },
   updater: {
     availableTitle: '更新があります',

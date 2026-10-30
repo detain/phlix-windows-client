@@ -19,7 +19,7 @@ export const en = {
     show: 'Show Phlix',
     playPause: 'Play/Pause',
     stop: 'Stop',
-    minimizeToTray: 'Minimize to Tray',
+    minimizeToTray: 'Minimize to tray',
     quit: 'Quit',
     tooltip: 'Phlix Media Server'
   },
@@ -29,8 +29,8 @@ export const en = {
     playback: 'Playback',
     playPause: 'Play/Pause',
     stop: 'Stop',
-    rewind: 'Rewind',
-    fastForward: 'Fast Forward',
+    rewind: 'Rewind 10s',
+    fastForward: 'Forward 10s',
     fullscreen: 'Fullscreen',
     view: 'View',
     help: 'Help',
@@ -38,10 +38,10 @@ export const en = {
     checkForUpdates: 'Check for updates'
   },
   thumbar: {
-    previous: 'Previous / Rewind 10s',
+    previous: 'Rewind 10s',
     play: 'Play',
     pause: 'Pause',
-    next: 'Next / Forward 10s'
+    next: 'Forward 10s'
   },
   updater: {
     availableTitle: 'Update Available',

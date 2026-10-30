@@ -64,7 +64,7 @@ The main process is responsible for:
 
 3. **Application Menu**
    - File menu (Settings, Quit)
-   - Playback menu (Play/Pause, Stop, Rewind, Forward, Fullscreen)
+   - Playback menu (Play/Pause, Stop, Rewind 10s, Forward 10s, Fullscreen)
    - View menu (Reload, DevTools, Zoom, Fullscreen)
    - Help menu (About)
 

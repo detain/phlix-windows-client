@@ -7,6 +7,43 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Security & Copy — W-min199 minors cluster (M-WINDOWS-12/33/41/49/50 cured, 05/36/38 stale-verified) — 2026-10-31
+
+- **M-33 (exploiter MINOR-5).** `notification:show` forwarded renderer strings
+  into OS toasts unbounded and unthrottled. New pure guard module
+  `src/main/notificationGuard.ts` (windowRestore extraction law): type +
+  length validation (256/2048 caps, reject-not-truncate) and a
+  sliding-window throttle (8/minute, injected clock); the handler consults
+  both BEFORE constructing, returning false on every rejection. Pins:
+  `tests/unit/notificationGuard.test.ts` (11, behavior) + wiring legs on the
+  handler shape; pre-existing textual pins held untouched and stayed green.
+- **M-41 (gameux m7).** F11 was bound twice at the menu level (explicit
+  Playback row + View-submenu `togglefullscreen` role, same Windows default
+  accelerator). The role entry is removed — the i18n-labeled custom row is
+  the single fullscreen entry; `tests/unit/fullscreenMenuDedupe.test.ts`
+  (4) pins uniqueness, role-absence, the surviving row's shape, and the
+  guard comment. The third vocabulary (vendored ui's in-page `f` → HTML5
+  fullscreen) is an upstream seam — recorded as a rider, not curable here.
+- **M-49 + M-50 (writer m5/m6).** One action, one label: the seek cluster
+  ships as `Rewind 10s`/`Forward 10s` across menu, thumbar, README and
+  DEVELOPER, in en + all six locale mirrors (the former `Previous / …` and
+  `Next / …` tooltips mislabeled 10-second seeks as track changes — doubly
+  wrong, since real previous/next is the separate documented SMTC no-op
+  arm); `tray.minimizeToTray` follows sentence case per Windows HIG. The
+  thumbar factory docblock now tells the truth (rewind/play-pause/forward
+  seeks, identical icons ⇒ tooltips carry the differentiation).
+  `mainI18n.test.ts` byte-identity table rotated for the five values with a
+  header amendment recording the deliberate copy fix.
+- **M-12 (casualgamer m12).** `docs/deep-links.md` claimed the cold-start URL
+  arrives in `process.argv[1]`; the parser scans every argv entry (launch
+  shapes vary the index). Paragraph rewritten to the shipped contract, incl.
+  the `deeplink:ready` handshake that replaced the old fixed-delay timer.
+- **Stale-verified (majors era subsumed):** M-05 (README `Connection Modes`
+  block deleted by 7709e31's Hub-Mode demotion), M-36 (all five re-entry
+  surfaces route `restoreWindow()` since 1fa7694), M-38 (the 1 s setTimeout
+  race died with the `deeplink:ready` handshake, 4e95cac) — ancestor +
+  content-proved at tip, not re-cured.
+
 ### Security — R-W8 rider R-WINDOWS-08: packaged shells deny the dev-server preload entry (isPackaged-aware trust gate) — 2026-10-30
 
 - **The residual (M-WINDOWS-10__r1 P4-2, honestly unclaimed then).** The trust

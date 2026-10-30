@@ -34,8 +34,8 @@ export const pt_BR = {
     playback: 'Reprodução',
     playPause: 'Reproduzir/Pausar',
     stop: 'Parar',
-    rewind: 'Retroceder',
-    fastForward: 'Avanço rápido',
+    rewind: 'Retroceder 10s',
+    fastForward: 'Avançar 10s',
     fullscreen: 'Tela cheia',
     view: 'Exibir',
     help: 'Ajuda',
@@ -43,10 +43,10 @@ export const pt_BR = {
     checkForUpdates: 'Verificar atualizações'
   },
   thumbar: {
-    previous: 'Anterior / Retroceder 10s',
+    previous: 'Retroceder 10s',
     play: 'Reproduzir',
     pause: 'Pausar',
-    next: 'Próximo / Avançar 10s'
+    next: 'Avançar 10s'
   },
   updater: {
     availableTitle: 'Atualização disponível',
