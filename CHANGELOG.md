@@ -7,6 +7,27 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Tests — R-W2 rider R-WINDOWS-02: the ServerVersionCheck mirror finally has its parity tripwire — 2026-10-30
+
+- **The gap.** M-WINDOWS-02 review r1 INFO-1 (queued as rider R-WINDOWS-02): the
+  renderer-side `ServerVersionCheck` in `src/renderer/types/electron.d.ts` is a
+  hand-carried mirror of the SSOT in `src/main/versionCheck.ts` (the renderer
+  cannot import from main), and its docblock CLAIMED to be pinned while nothing
+  pinned it — a field added, removed or re-typed on one side of the IPC boundary
+  alone compiled green and silently desynced the verdict shape.
+- **The cure.** `tests/unit/serverVersionCheckParity.test.ts` — the ratified
+  cross-boundary pairing idiom from `tests/unit/ipcChannels.test.ts` (fail-loud
+  fs-parse, no silent voiding): both interface bodies are extracted from source
+  text, normalized (per-field prose and whitespace stripped — the contract is
+  the member set), sorted and asserted EXACTLY equal, plus a self-presence pin
+  naming the current three-member shape. Mutation-proven: an extra mirror field,
+  a narrowed `serverVersion` type and an SSOT rename each redden it, and the
+  absence of either declaration throws rather than vacates the guard.
+- **Teeth.** Full serial suite 54 files / 668 tests (exact baseline 53/666 at
+  `3832e1c` plus my +1/+2, zero other deltas); `npm run typecheck` and
+  `npm run lint` exit 0; `node scripts/lockwalk.mjs --live` 4/0. Test-only
+  addition — no shipped-code, wire or dist surface touched, so no consumer seam.
+
 ### Docs — R-W1 rider R-WINDOWS-01: hash-verify recipe regains its cwd phrase — 2026-10-30
 
 - **The gap.** M-WINDOWS-01 review r2 MINOR-1 (queued as rider R-WINDOWS-01): the
