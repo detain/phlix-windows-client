@@ -7,6 +7,27 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### README + AGENTS/CLAUDE Routing Nav-Builder Conflation Cured (nav = `buildMenu`, routes = `buildExtraRoutes`) — R-WINDOWS-23 (review riders W23) — 2026-10-30
+
+- **Docs-only cure, zero behavior change (R-WINDOWS-23):** three Routing/
+  UI-surface sentences (README's *UI & State* paragraph and the AGENTS.md +
+  CLAUDE.md *Routing* sections) attributed the top-bar "nav entries"/"nav
+  items" to `buildExtraRoutes`. That is a conflation: in `src/renderer/main.ts`
+  the nav builder is `buildMenu(appMode): MenuItem[]` (the per-mode top-bar
+  catalog incl. the `requiresAdmin`-gated "Admin" entry), while
+  `buildExtraRoutes(appMode): RouteRecordRaw[]` builds the `/app/*` route
+  table (admin sections, hub/server mode pages, `LibraryScanPage`'s
+  `meta.requiresAdmin`). Both were authored locally, but only `buildMenu`
+  makes nav. The sentences now name each builder for what it builds
+  (routes+gating → `buildExtraRoutes`, nav entries → `buildMenu`). A fourth
+  same-family site surfaced in a whole-tree grep — DEVELOPER.md's
+  "add nav entries … extend `buildExtraRoutes`" instruction (:353, which
+  contradicted DEVELOPER.md's own correct :45) — corrected to split them the
+  same way. README's hub-mode sentence (:445) and the AGENTS/CLAUDE `main.ts`
+  file-table rows already credited `buildExtraRoutes` for ROUTES only (true)
+  and were left intact. No pin, lock, test or dependency touched.
+  Review rider M-WINDOWS-22 r2 INFO-1.
+
 ### CLAUDE.md + ADR-004 False `node_modules/@phlix/ui/src/` Coordinate Re-anchored to a Shipping One — R-WINDOWS-22 (review riders W22) — 2026-10-30
 
 - **Docs-only cure, zero behavior change (R-WINDOWS-22):** two doc sites

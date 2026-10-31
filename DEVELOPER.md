@@ -349,8 +349,9 @@ change a screen, store, or theme:
 2. Cut a new `@phlix/ui` release and bump the pinned
    `"@phlix/ui": "github:detain/phlix-ui#vX.Y.Z"` in `package.json`.
 
-To place a vendored screen under a new route, or add nav entries / admin gating for one, extend
-`buildExtraRoutes` in `src/renderer/main.ts` — that wiring is authored locally.
+To place a vendored screen under a new route, or add admin gating for one, extend
+`buildExtraRoutes` in `src/renderer/main.ts`; to add or change top-bar nav entries, extend
+`buildMenu` (same file) — that wiring is authored locally.
 
 If a new screen needs to be driven by an Electron tray/menu event, wire that event into the relevant
 `@phlix/ui` store inside `src/renderer/electronBridge.ts` (and add the IPC per the section above).

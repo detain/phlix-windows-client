@@ -55,7 +55,7 @@ Three Electron processes wired by `contextBridge`. The renderer boots `@phlix/ui
 
 ### Routing
 
-The page VIEWS and base routing come from `createPhlixApp` (`@phlix/ui`'s router); the windows-side route table itself is authored here — `buildExtraRoutes` (`src/renderer/main.ts`) registers the `/app/*` entries, nav items, and admin gating around the vendored views. The router base is `/app`; the Electron bridge navigates with full paths such as `router.push('/app/settings')`.
+The page VIEWS and base routing come from `createPhlixApp` (`@phlix/ui`'s router); the windows-side route table itself is authored here — `buildExtraRoutes` (`src/renderer/main.ts`) registers the `/app/*` entries and admin gating around the vendored views, while `buildMenu` (same file) supplies the nav items. The router base is `/app`; the Electron bridge navigates with full paths such as `router.push('/app/settings')`.
 
 ## Conventions
 
