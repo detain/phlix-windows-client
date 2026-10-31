@@ -7,6 +7,53 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### electron-ipc-handler SKILL.md r2 Residuals Cured (useEffect trio + dead file-dialog leg + stale coords) — R-WINDOWS-24 r2 (review riders W24 r2) — 2026-10-30
+
+- **Forward correction (R-WINDOWS-24 r2, per fixlog/W-rW24w__r1.md):** the entry
+  below claimed the Electron-relevant skills "had React renderer idioms replaced
+  with the repo's Vue equivalents (`onMounted`/`onUnmounted` listener cleanup,
+  real `window.electronAPI` members, the actual `src/` tree)". For
+  `electron-ipc-handler` that was overbroad: r1 converted ONLY Step 6 and left
+  three live `useEffect` idioms (the Critical cleanup rule, Example 2's renderer
+  step, and a Common Issues entry whose "Step 6 (`return unsubscribe;` inside
+  `useEffect`)" pointer contradicted the same commit's own Vue Step 6), plus
+  drifted tree coordinates (`webPreferences` gate cited at :28-29 — real
+  :416-417; `// IPC Handlers` at "after line 184" — real section opens :1003;
+  the tray/menu pattern at :77/:109 — real `createTray()` contextMenu region;
+  `export {};` "see line 1" — real :7 after the copyright header) and an entire
+  DEAD file-dialog walkthrough (`openFile()` / `onFileOpened()` /
+  `// File handling` — code removed at 356cf04, grep-zero in the tree since; the
+  bullet's `removeAllListeners` prescription died with it — zero uses repo-wide).
+  The r1 report's blanket "no phantom coordinate survives in the family" is
+  likewise corrected — Round-2 attestation appended in
+  `.reviews/W-rW24w__report.md`. Historical entry kept verbatim above per the
+  verbatim-history rule; this entry is the correction.
+- **r2 cures (docs-only, same file):** the three `useEffect` sites now state the
+  file's own `onMounted`/`onUnmounted` law (Example 2's renderer step follows the
+  repo bridge law — media IPC wires in `src/renderer/electronBridge.ts`, where
+  `wireElectronBridge` folds every cleanup into one `cleanups` array); every
+  stale pointer re-anchored to current real code (content anchors first,
+  current-tip line numbers as secondary citation); the dead file-dialog leg
+  replaced by the live auto-updater `update:available` walkthrough with a
+  do-not-revive tombstone; Step 3 now names the real `electronApiSurface` object
+  and the M-WINDOWS-10 trust gate with the shipped section comments; the
+  on-with-payload example mirrors the shipped named-listener `removeListener`
+  idiom (`onDeeplink` / `onUpdateAvailable`); the "electronAPI is undefined"
+  remedy cites the real preload string `path.join(__dirname,
+  '../preload/index.js')` (:415) and `scripts/assert-preload.mjs`; Step 4/5
+  verification corrected from `npm run build` (which does NOT typecheck the
+  renderer — vite strips types) to the repo's `npm run typecheck`. The six
+  wrong-stack guards and the electron-desktop/electron-development cures are
+  untouched (r1-certified).
+- **Gates:** docs-only under `.opencode/skills/` — no test/CI leg reads the tree
+  (grep `.opencode` over tests/, scripts/, package.json: zero hits; same posture
+  as the r1 9-file commit). Every replacement idiom/coordinate read-verified
+  against `src/main/index.ts`, `src/preload/index.ts`,
+  `src/renderer/types/electron.d.ts`, `src/renderer/electronBridge.ts` at this
+  tip BEFORE writing; residual sweep grep-zero (`useEffect` as an idiom,
+  `openFile`/`onFileOpened`/`file-opened`/`// File handling`/`handleOpen`); LF
+  law held (zero CR).
+
 ### `.opencode/skills/` React/Zustand Misdirection Family Cured (in-place truth guards, no deletions) — R-WINDOWS-24 (review riders W24) — 2026-10-30
 
 - **Docs-hygiene cure, zero behavior change (R-WINDOWS-24, from

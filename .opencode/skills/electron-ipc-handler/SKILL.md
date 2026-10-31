@@ -11,10 +11,10 @@ description: Adds a new Electron IPC channel coordinated across main, preload, a
   1. `src/main/index.ts` — register the handler/sender
   2. `src/preload/index.ts` — expose via `contextBridge.exposeInMainWorld('electronAPI', ...)`
   3. `src/renderer/types/electron.d.ts` — add the method to the `Window.electronAPI` interface
-- Channel names use **kebab-case** (e.g. `get-app-path`, `media-play-pause`, `file-opened`). NEVER use camelCase or snake_case for channel strings.
+- Channel names use **kebab-case** (e.g. `get-app-path`, `media-play-pause`, `open-settings`). NEVER use camelCase or snake_case for channel strings.
 - `electronAPI` methods use **camelCase** (e.g. `getAppPath`, `onMediaPlayPause`).
-- Main-to-renderer event listeners MUST return a cleanup function. The renderer uses this for `useEffect` cleanup.
-- `contextIsolation: true` and `nodeIntegration: false` are enforced in `src/main/index.ts:28-29`. NEVER bypass these. The preload is the only legitimate bridge.
+- Main-to-renderer event listeners MUST return a cleanup function. The renderer stores it at `onMounted` subscription time and calls it in `onUnmounted` — this renderer is Vue 3, there is no React `useEffect` (see Step 6).
+- `contextIsolation: true` and `nodeIntegration: false` are enforced in the `webPreferences` block of the main `BrowserWindow` in `src/main/index.ts` (current tip: :416-417, beside `sandbox: true`). NEVER bypass these. The preload is the only legitimate bridge.
 - Do NOT import `ipcRenderer` directly in renderer code — only `window.electronAPI` is allowed.
 
 ## Instructions
@@ -27,13 +27,13 @@ Pick exactly one pattern based on data flow:
 |-----------|----------|-------------|---------|
 | Renderer → Main (request/response) | `ipcMain.handle('channel', () => value)` | `() => ipcRenderer.invoke('channel')` | Returning data (versions, paths, async queries) |
 | Renderer → Main (fire-and-forget) | `ipcMain.on('channel', (_, arg) => ...)` | `(arg) => ipcRenderer.send('channel', arg)` | Window controls, state mutations |
-| Main → Renderer (event) | `mainWindow?.webContents.send('channel', arg)` from menu/tray click or callback | `onXxx: (callback) => { ipcRenderer.on(...); return () => ipcRenderer.removeListener(...) }` | Menu/tray actions, file dialog results |
+| Main → Renderer (event) | `mainWindow?.webContents.send('channel', arg)` from menu/tray click or callback | `onXxx: (callback) => { ipcRenderer.on(...); return () => ipcRenderer.removeListener(...) }` | Menu/tray actions, deep links, update events |
 
-Verify the direction matches an existing example in `src/main/index.ts:185-195` before proceeding.
+Verify the direction matches an existing example in the `// IPC Handlers` section of `src/main/index.ts` (e.g. `ipcMain.handle('get-version', ...)`, `ipcMain.on('set-always-on-top', ...)`, or the tray's `media-play-pause` send) before proceeding.
 
 ### Step 2: Add the main-process side in `src/main/index.ts`
 
-- For **request/response** handlers, add to the `// IPC Handlers` section (after line 184):
+- For **request/response** handlers, add to the `// IPC Handlers` section of `src/main/index.ts` (the block introduced by `get-app-path` / `get-version`; currently starts near :1003):
   ```ts
   ipcMain.handle('my-channel', () => /* return value or Promise */);
   ```
@@ -43,18 +43,18 @@ Verify the direction matches an existing example in `src/main/index.ts:185-195` 
     mainWindow?.someMethod(arg);
   });
   ```
-- For **menu/tray-triggered events**, add a `click` handler that sends to the renderer. Follow the pattern at `src/main/index.ts:77` and `:109`:
+- For **menu/tray-triggered events**, add a `click` handler that sends to the renderer. Follow the tray `contextMenu` items in `createTray()` and the application-menu Playback items (current tip: the `tray.playPause` / `menu.playPause` entries sending `media-play-pause`):
   ```ts
   { label: 'My Action', click: () => mainWindow?.webContents.send('my-channel', data) }
   ```
-- For events that come from an async source (e.g. dialog result), follow `openFile()` at `src/main/index.ts:144-158` — use `mainWindow?.webContents.send('channel-name', payload)`.
+- For events driven by an async main-process source, follow the auto-updater notifications — the `update-available` callback sends `update:available` to the renderer (`mainWindow?.webContents.send('update:available', { version: info.version })`). The dead Open File / `openFile()` dialog leg was removed at 356cf04 — do not revive it.
 - Use `log.info(...)` / `log.error(...)` from the already-imported `electron-log` for any non-trivial action. Do NOT use `console.log`.
 
 Verify by running `npx tsc -p tsconfig.main.json --noEmit` before proceeding.
 
 ### Step 3: Expose via `src/preload/index.ts`
 
-Add a new property inside the `exposeInMainWorld('electronAPI', { ... })` object. Group it under an existing comment section (`// App info`, `// Window controls`, `// Media controls from main process`, `// File handling`, `// Settings`) or add a new comment section.
+Add a new property to the `electronApiSurface` object in `src/preload/index.ts` — it is exposed at the bottom of the file via `contextBridge.exposeInMainWorld('electronAPI', electronApiSurface)`, behind the M-WINDOWS-10 trust gate (only the shell's own boot documents receive the bridge). Group it under an existing comment section (`// App info`, `// Window controls`, `// Media controls from main process`, `// Settings`, `// Hub configuration handlers`, `// Deep links (W4.4)`, `// W4.9: Auto-updater`) or add a new comment section.
 
 - **invoke** (request/response):
   ```ts
@@ -71,11 +71,12 @@ Add a new property inside the `exposeInMainWorld('electronAPI', { ... })` object
     return () => ipcRenderer.removeListener('my-channel', callback);
   },
   ```
-- **on** with payload — when wrapping with `(_, arg) => callback(arg)`, use `removeAllListeners` (see `onFileOpened` at `src/preload/index.ts:32-35`):
+- **on** with payload — wrap in a NAMED listener and remove exactly that listener (see `onDeeplink` and `onUpdateAvailable` in `src/preload/index.ts` — the shipped idiom; `removeAllListeners` appears nowhere in this repo):
   ```ts
   onMyEvent: (callback: (payload: string) => void) => {
-    ipcRenderer.on('my-channel', (_, payload) => callback(payload));
-    return () => ipcRenderer.removeAllListeners('my-channel');
+    const listener = (_event: Electron.IpcRendererEvent, payload: string) => callback(payload);
+    ipcRenderer.on('my-channel', listener);
+    return () => ipcRenderer.removeListener('my-channel', listener);
   },
   ```
 
@@ -90,7 +91,7 @@ Add a line to the `electronAPI` interface inside `declare global { interface Win
 - on: `onMyEvent: (callback: () => void) => () => void;` (the trailing `() => void` is the cleanup function)
 - on with payload: `onMyEvent: (callback: (payload: string) => void) => () => void;`
 
-Verify by running `npm run build` (or the project's `tsc` target) — TypeScript errors here mean the three files are out of sync.
+Verify by running `npm run typecheck` (`vue-tsc --noEmit && tsc -p tsconfig.main.json --noEmit`). The renderer `tsconfig.json` includes `src/renderer`, so `vue-tsc` covers `electron.d.ts` — `npm run build` does NOT typecheck it (vite strips types; `tsc -p tsconfig.main.json` sees only main+preload). TypeScript errors here mean the three files are out of sync.
 
 ### Step 5: Verify cross-file consistency
 
@@ -99,16 +100,20 @@ Run this verification before claiming completion:
 ```sh
 grep -n "'my-channel'" src/main/index.ts src/preload/index.ts
 grep -n "myMethod\|onMyEvent" src/preload/index.ts src/renderer/types/electron.d.ts
-npm run build
+npm run typecheck
 ```
 
-All three files must reference the channel/method. Build must pass with zero TS errors.
+All three files must reference the channel/method. Typecheck must pass with zero TS errors.
 
 ### Step 6: (Optional) Consume from renderer
 
 In a Vue component (this renderer is Vue 3 — there is no React here), call via
-`window.electronAPI`. Listener helpers return a cleanup function — ALWAYS register in
-`onMounted` and unregister in `onUnmounted`:
+`window.electronAPI`. Media/window IPC is bridged centrally in
+`src/renderer/electronBridge.ts` (`wireElectronBridge(player, api)` folds every
+subscription's cleanup into one `cleanups` array) — per the repo bridge law, new
+media channels wire THERE, not in page components; the component pattern below is
+for renderer-local subscriptions. Listener helpers return a cleanup function —
+ALWAYS register in `onMounted` and unregister in `onUnmounted`:
 
 ```ts
 import { onMounted, onUnmounted } from 'vue';
@@ -135,7 +140,7 @@ window.electronAPI.setAlwaysOnTop(true);
 User says: "Add an IPC method so the renderer can get the OS platform."
 
 Actions:
-1. `src/main/index.ts` after line 187:
+1. `src/main/index.ts`, in the `// IPC Handlers` section (next to the existing `get-version` handler):
    ```ts
    ipcMain.handle('get-platform', () => process.platform);
    ```
@@ -155,7 +160,7 @@ Result: `await window.electronAPI.getPlatform()` returns `'win32' | 'darwin' | '
 User says: "Add a 'Next Track' tray menu item that the player listens to."
 
 Actions:
-1. `src/main/index.ts` add to tray `contextMenu` template (around line 77):
+1. `src/main/index.ts` add to the tray `contextMenu` template in `createTray()` (beside the `tray.playPause` / `tray.stop` items):
    ```ts
    { label: 'Next Track', click: () => mainWindow?.webContents.send('media-next') },
    ```
@@ -170,17 +175,25 @@ Actions:
    ```ts
    onMediaNext: (callback: () => void) => () => void;
    ```
-4. Player component:
+4. New media channels wire in the Electron bridge — `src/renderer/electronBridge.ts`,
+   where `wireElectronBridge(player, api)` pushes each subscription's cleanup into its
+   `cleanups` array (repo bridge law: media commands go there, not into page components):
    ```ts
-   useEffect(() => window.electronAPI.onMediaNext(handleNext), [handleNext]);
+   cleanups.push(
+     api.onMediaNext(() => {
+       // delegate to the vendored @phlix/ui player store (command bus)
+     })
+   );
    ```
+   A renderer-LOCAL subscription (not a media command) instead follows Step 6's
+   `onMounted` / `onUnmounted` pattern.
 
 ## Common Issues
 
 - **`Property 'myMethod' does not exist on type 'Window['electronAPI']'`**: You added the preload entry but skipped Step 4. Add the signature to `src/renderer/types/electron.d.ts`. Restart `vite` dev server after editing `.d.ts` files.
-- **`window.electronAPI is undefined` in renderer**: The preload script failed to load. Check `src/main/index.ts:27` — `preload: path.join(__dirname, 'preload.js')`. Verify the build emitted `dist/main/preload.js`. Run `npm run build` and inspect the `dist/` output.
-- **Listener fires multiple times after HMR or remount**: The cleanup function was not returned, or the renderer didn't return it from `useEffect`. Confirm both Step 3 (preload returns `() => ipcRenderer.removeListener(...)`) and Step 6 (`return unsubscribe;` inside `useEffect`).
+- **`window.electronAPI is undefined` in renderer**: Either the preload script failed to load, or the current document sits outside the M-WINDOWS-10 preload trust gate (only the shell's own boot documents receive the bridge). Check the `preload` entry in the `webPreferences` block of `src/main/index.ts` (current tip: :415 — `preload: path.join(__dirname, '../preload/index.js')`). Verify the build emitted `dist/preload/index.js` — `npm run build:electron` runs `scripts/assert-preload.mjs`, which fails the build when that file is missing.
+- **Listener fires multiple times after HMR or remount**: The cleanup function was not returned, or the renderer never called it on unmount. Confirm both Step 3 (preload returns the `removeListener` cleanup) and Step 6 (`onMounted` stores the unsubscribe; `onUnmounted(() => unsubscribe?.())` calls it).
 - **`An object could not be cloned` when sending data**: IPC uses structured clone — you tried to send a function, class instance, or DOM node. Send plain JSON-serializable objects only.
 - **`No handler registered for 'my-channel'`**: Channel name typo. Run `grep -n "'my-channel'" src/main/index.ts src/preload/index.ts` — both files must show a match with identical strings.
 - **Used `ipcRenderer.invoke` but main uses `ipcMain.on`** (or vice versa): Mismatch. `invoke` ↔ `handle`, `send` ↔ `on`. Fix one side to match. See Step 1 table.
-- **TypeScript build fails after editing `electron.d.ts`**: The file MUST start with `export {};` to be treated as a module (see line 1). Without it, `declare global` is ignored.
+- **TypeScript build fails after editing `electron.d.ts`**: The file MUST contain `export {};` to be treated as a module — it follows the file's copyright header (current tip: :7; the `export {};` is what enables the `declare global` block). Without it, `declare global` is ignored.
