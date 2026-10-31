@@ -28,7 +28,7 @@ my-app/
 │   │   └── ipc.ts           # IPC handlers
 │   ├── renderer/
 │   │   ├── index.html
-│   │   ├── App.tsx
+│   │   ├── main.ts
 │   │   └── components/
 │   └── shared/
 │       └── types.ts
@@ -201,62 +201,46 @@ export function setupIPC() {
 
 ---
 
-## Renderer Process (React)
+## Renderer Process (this repo: Vue 3, thin consumer)
 
 ### Using Exposed APIs
 
-```tsx
-// src/renderer/App.tsx
-import { useState, useEffect } from "react";
+The windows renderer is a `@phlix/ui` Vue 3 app booted by `createPhlixApp(config)`
+in `src/renderer/main.ts`; local surfaces are Vue (SFC or JSX via
+`@vitejs/plugin-vue-jsx` — the `.tsx` files are Vue JSX, not React). Consume the
+preload bridge (`window.electronAPI`, typed in `src/renderer/types/electron.d.ts`)
+from a Vue component; listener helpers return a cleanup function, so unregister
+in `onUnmounted`:
 
-function App() {
-  const [version, setVersion] = useState("");
-  const [content, setContent] = useState("");
+```vue
+<script setup lang="ts">
+import { onMounted, onUnmounted, ref } from "vue";
 
-  useEffect(() => {
-    window.electronAPI.getVersion().then(setVersion);
+const version = ref("");
+let unsubscribe: (() => void) | undefined;
 
-    const unsubscribe = window.electronAPI.onUpdateAvailable(() => {
-      alert("Update available!");
-    });
+onMounted(async () => {
+  version.value = await window.electronAPI.getVersion();
+  unsubscribe = window.electronAPI.onMediaPlayPause(() => {
+    // media/window commands are bridged centrally in src/renderer/electronBridge.ts
+  });
+});
 
-    return unsubscribe;
-  }, []);
+onUnmounted(() => unsubscribe?.());
+</script>
 
-  const handleOpen = async () => {
-    const fileContent = await window.electronAPI.openFile();
-    if (fileContent) {
-      setContent(fileContent);
-    }
-  };
-
-  const handleSave = async () => {
-    await window.electronAPI.saveFile(content);
-  };
-
-  return (
-    <div className="app">
-      <header className="titlebar">
-        <span>My App v{version}</span>
-        <div className="window-controls">
-          <button onClick={window.electronAPI.minimize}>−</button>
-          <button onClick={window.electronAPI.maximize}>□</button>
-          <button onClick={window.electronAPI.close}>×</button>
-        </div>
-      </header>
-
-      <main>
-        <button onClick={handleOpen}>Open File</button>
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-        />
-        <button onClick={handleSave}>Save File</button>
-      </main>
-    </div>
-  );
-}
+<template>
+  <div class="app">
+    <header class="titlebar">
+      <span>Phlix v{{ version }}</span>
+    </header>
+  </div>
+</template>
 ```
+
+Do not author local page views or app state — those are vendored from `@phlix/ui`
+(AGENTS.md *Conventions*, `docs/decisions/004-no-local-ui.md`); extend upstream and
+bump the pin instead.
 
 ### Custom Title Bar CSS
 

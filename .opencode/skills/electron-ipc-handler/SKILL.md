@@ -106,15 +106,20 @@ All three files must reference the channel/method. Build must pass with zero TS 
 
 ### Step 6: (Optional) Consume from renderer
 
-In a React component, call via `window.electronAPI`. For event listeners, ALWAYS wire cleanup in `useEffect`:
+In a Vue component (this renderer is Vue 3 — there is no React here), call via
+`window.electronAPI`. Listener helpers return a cleanup function — ALWAYS register in
+`onMounted` and unregister in `onUnmounted`:
 
 ```ts
-useEffect(() => {
-  const unsubscribe = window.electronAPI.onMyEvent((payload) => {
+import { onMounted, onUnmounted } from 'vue';
+
+let unsubscribe: (() => void) | undefined;
+onMounted(() => {
+  unsubscribe = window.electronAPI.onMyEvent((payload) => {
     // handle
   });
-  return unsubscribe;
-}, []);
+});
+onUnmounted(() => unsubscribe?.());
 ```
 
 For invoke/send, call directly:

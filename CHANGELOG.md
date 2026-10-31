@@ -7,6 +7,41 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### `.opencode/skills/` React/Zustand Misdirection Family Cured (in-place truth guards, no deletions) — R-WINDOWS-24 (review riders W24) — 2026-10-30
+
+- **Docs-hygiene cure, zero behavior change (R-WINDOWS-24, from
+  fixlog/M-WINDOWS-22__r2.md INFO-2):** the May 2026 template import (commit
+  `019044b`) tracked a family of generic React-era agent skills under
+  `.opencode/skills/` whose instructions contradict the shipped Vue thin-consumer
+  repo. `react-page-route` instructed creating `src/renderer/pages/*.tsx` +
+  `src/renderer/App.tsx` — nonexistent coordinates, contrary to the ADR-004
+  no-forking law; `zustand-store` taught `src/renderer/stores/` conventions for
+  files that never existed here; `zustand-5` and `react` were generic
+  third-party references for libraries not in `package.json`;
+  `api-client-method` documented a local `ApiClient` at
+  `src/renderer/utils/api.ts` that does not exist (HTTP is owned by the vendored
+  `@phlix/ui` ApiClient upstream); `vitest-renderer-test` mirrored a phantom
+  `tests/unit/api.test.ts` and prescribed React Testing Library + three
+  phantom `localStorage` keys. Cured **in place** (forward correction; no file
+  removed, nothing reverted): the five wrong-stack skills rewritten as
+  honest NOT-APPLICABLE guards pointing at the real thin-consumer law;
+  `vitest-renderer-test` rewritten to the repo's actual test bed (Vue JSX via
+  `@vitejs/plugin-vue-jsx` + `@vue/test-utils`, `createMemoryHistory`, the
+  three real include globs in `vitest.config.mts`, `clearMocks: false` pin, and
+  the existing `vi.mock('electron')` main-process pattern); the Electron-
+  relevant skills (`electron-desktop`, `electron-ipc-handler`,
+  `electron-development`) keep their useful guidance but had React renderer
+  idioms replaced with the repo's Vue equivalents (`onMounted`/`onUnmounted`
+  listener cleanup, real `window.electronAPI` members, the actual `src/` tree).
+  `find-skills`/`vite`/`vitest`/`save-learning`/`setup-caliber` not convicted
+  (generic tool docs without false repo-stack claims).
+- **Gates:** vue-tsc 0, tsc main 0, eslint 0, `npm test` 71 files / 823 tests
+  green (docs-only change — no test reads `.opencode/skills/`), lockwalk
+  4 edges / 0 mismatches. `audit-gate.mjs` red is PRE-EXISTING on the clean tip
+  (stash-probe): three newly published advisories (glob/joi/minimatch) with no
+  allow-list entry; frozen tag-pins + dependency re-green belong to a separate
+  lane (74fc744/d991d74 precedent), not this docs rider.
+
 ### README + AGENTS/CLAUDE Routing Nav-Builder Conflation Cured (nav = `buildMenu`, routes = `buildExtraRoutes`) — R-WINDOWS-23 (review riders W23) — 2026-10-30
 
 - **Docs-only cure, zero behavior change (R-WINDOWS-23):** three Routing/

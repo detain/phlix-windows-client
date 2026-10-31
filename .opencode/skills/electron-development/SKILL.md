@@ -16,20 +16,26 @@ You are an expert in Electron development for building cross-platform desktop ap
 
 ## Project Structure
 
+The real tree of this repo (see AGENTS.md *Architecture* for the authoritative layout):
+
 ```
 src/
-├── main/              # Main process code
-│   ├── index.ts      # Entry point
-│   ├── ipc/          # IPC handlers
-│   └── utils/        # Utilities
-├── renderer/          # Renderer process code
-│   ├── components/   # UI components
-│   ├── pages/        # Application pages
-│   └── styles/       # Stylesheets
-├── preload/          # Preload scripts
-│   └── index.ts     # Expose APIs to renderer
-└── shared/           # Shared types and utilities
+├── main/              # Electron main process
+│   ├── index.ts       # Entry: window, tray, menu, IPC handlers
+│   ├── deepLinkValidator.ts · versionCheck.ts · secretStore.ts · windowRestore.ts · ...
+├── preload/
+│   └── index.ts       # contextBridge → window.electronAPI
+└── renderer/          # Vue 3 thin consumer of @phlix/ui
+    ├── main.ts        # boot(): createPhlixApp + buildExtraRoutes + buildMenu
+    ├── overlay.tsx    # second Vue app entry (player overlays)
+    ├── components/    # local Vue JSX overlays (PlayerSupplement, ...)
+    ├── i18n/          # windows-own catalogs + vendored ui locale bundles
+    └── types/         # electron.d.ts (window.electronAPI typings)
 ```
+
+No local `pages/` directory exists: page views are vendored from `@phlix/ui`
+and the windows-side route table is `buildExtraRoutes` in `src/renderer/main.ts`
+(ADR-004 no-forking law).
 
 ## Security Best Practices
 
@@ -160,7 +166,7 @@ app.whenReady().then(() => {
 
 ## Testing
 
-- Use Spectron or Playwright for E2E tests
+- Use Playwright for E2E/smoke tests (`npm run smoke`; Spectron is deprecated and not used here)
 - Unit test main process logic
 - Test IPC handlers
 - Test on all target platforms
