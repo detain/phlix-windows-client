@@ -7,6 +7,30 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Docs — CHANGELOG venue-note currency: the M-WINDOWS-22 r2 sibling-less figure corrected in place — R-WINDOWS-25 (review riders W25) — 2026-10-30
+
+- **Why (fixlog/M-WINDOWS-22__r3.md MINOR-3):** that entry's Gates note claimed "a sibling-less
+  fresh clone reports **655P|1S** for the same tree — … totals equal", but 655+1=656 is the
+  PARENT-era total and contradicts the entry's own "659 passed" headline — the venue breakdown
+  had been carried over from the previous era while the headline and the delta ("656-era +3
+  exact") were current. Structural era-misapplication, not an arithmetic slip; only the
+  parenthetical figure was stale.
+- **Cure (minimal in-place truth fix of that one note per the rider's ask; every other
+  historical entry untouched):** both venues re-measured independently in scratch worktrees on
+  the 75d57a5 tree (`dist/main` built, serial `--no-file-parallelism`): sibling-less fresh clone
+  **658P|1S** and sibling-present **659P|0S** — totals equal 659 either way, matching the
+  reviewer's MINOR-3 figure exactly. The note now reads "658P|1S … totals equal 659". The later
+  M-WINDOWS-16 r2 venue note ("660P|1S" under its "661 passed" headline) was re-checked and is
+  era-consistent (660+1=661) — left as recorded.
+- **Gates (measured at this tip):** vitest FULL serial (`--no-file-parallelism`) **823 passed |
+  0 skipped (823 total), 71 files, exit 0** in the sibling-present shared tree; sibling-less
+  venue **822P|1S — totals equal 823** (the sole skip is the "vendored bundles — SOURCE parity"
+  describe in `tests/unit/i18nLocales.test.ts`, by design with no `phlix-ui` sibling checked
+  out). Docs-only (`CHANGELOG.md`) — `npm run lint` 0 across the repo (no JS/TS changed); no
+  lock moves, so lockwalk is not owed; the audit-gate allow-list stays EMPTY
+  (`ALLOWED_ADVISORIES = new Map([])`, untouched); frozen pins (`@phlix/contracts #v0.5.3`,
+  `@phlix/ui #v0.99.10`) un-bumped; no new wire codes; no tags.
+
 ### electron-ipc-handler SKILL.md r2 Residuals Cured (useEffect trio + dead file-dialog leg + stale coords) — R-WINDOWS-24 r2 (review riders W24 r2) — 2026-10-30
 
 - **Forward correction (R-WINDOWS-24 r2, per fixlog/W-rW24w__r1.md):** the entry
@@ -816,8 +840,8 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   AGENTS 1F, CLAUDE 1F, DEVELOPER 1F, ADR-004 2F (literal + marker), hubModeStatus 1F; every other
   pin stayed green on each swap; files restored byte-identical.
 - **Gates (measured):** vitest FULL serial (`--no-file-parallelism`) **659 passed** (656-era +3
-  exact, 52 files, no new files; venue note: a sibling-less fresh clone reports 655P|1S for the same
-  tree — the i18nLocales sibling-context describe skips there and runs here; totals equal);
+  exact, 52 files, no new files; venue note: a sibling-less fresh clone reports 658P|1S for the same
+  tree — the i18nLocales sibling-context describe skips there and runs here; totals equal 659);
   vue-tsc 0; `tsc -p tsconfig.main.json --noEmit` 0; `npm run lint` 0; `npm run build` 0. Diff is
   docs + two test files only — zero src/, build.yml, or package.json changes.
 
