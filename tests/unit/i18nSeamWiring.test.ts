@@ -130,7 +130,12 @@ describe('createPhlixApp messages wiring', () => {
  * R-review fix F2: buildMenu's labels are client-supplied MenuItem.label raw
  * strings the ui seam cannot reach — they now come from the windows-own
  * catalog. The English table below is copied VERBATIM from the literals that
- * buildMenu hardcoded before feat/i18n-locales: any drift goes red.
+ * buildMenu hardcoded before feat/i18n-locales: any drift goes red. The one
+ * exception is `syncplay` — it postdates that pre-catalog literal era (born
+ * with the windows-own catalog in the M-WINDOWS-04 rider leg 2, tag-wave C4
+ * v0.99.12 re-pin) and its value is the estate brand term 'SyncPlay' exactly
+ * as EN_WindowsOwn catalogued it; the law (labels == this table) still binds
+ * every entry.
  */
 const ORIGINAL_RENDERER_NAV_LABELS: Record<string, string> = {
   'my-servers': 'My Servers',
@@ -148,7 +153,8 @@ const ORIGINAL_RENDERER_NAV_LABELS: Record<string, string> = {
   audiobooks: 'Audiobooks',
   photos: 'Photos',
   search: 'Search',
-  settings: 'Settings'
+  settings: 'Settings',
+  syncplay: 'SyncPlay'
 };
 
 describe('buildMenu windows-own nav labels', () => {
@@ -156,7 +162,7 @@ describe('buildMenu windows-own nav labels', () => {
     vi.unstubAllEnvs();
   });
 
-  it('renders the 16 English labels byte-identically by default', async () => {
+  it('renders the 17 English labels byte-identically by default', async () => {
     const { setWindowLocale } = await import('@/i18n/windows-own');
     setWindowLocale('en');
     const { buildMenu } = await import('@/main');

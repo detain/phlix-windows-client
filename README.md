@@ -42,9 +42,9 @@ as "[[Phlix Media Server] Client] for Windows", and only humans should parse pro
 
 Phlix for Windows requires Phlix Media Server **1.1.0** or later — the first server release
 where the capabilities this client drives are stable: skip-intro markers, media facets,
-and schema-driven settings. (Servers ≥ 1.1.0 also expose SyncPlay group endpoints; those
-power the **web player your server hosts**, not this desktop app — see
-[Watching with friends (SyncPlay)](#watching-with-friends-syncplay) for why.)
+and schema-driven settings. (Servers ≥ 1.1.0 also expose SyncPlay group endpoints —
+desktop watch parties ride them in server mode; see
+[Watching with friends (SyncPlay)](#watching-with-friends-syncplay).)
 
 ## Install (end users)
 
@@ -386,7 +386,7 @@ phlix-windows-client/
 3. **Renderer Process** (`src/renderer/`)
    - A thin consumer of the shared `@phlix/ui` Vue app, booted via `createPhlixApp(config)` — plus enumerated local surfaces: player overlay components, a boot-failure screen, i18n catalogs, a DPAPI token-store adapter (see *UI & State* below)
    - Vue 3 + Pinia + vue-router (peer deps of `@phlix/ui`)
-     - Pinned to `@phlix/ui` `github:detain/phlix-ui#v0.99.10` and `@phlix/contracts` `github:detain/phlix-contracts#v0.5.3`
+     - Pinned to `@phlix/ui` `github:detain/phlix-ui#v0.99.12` and `@phlix/contracts` `github:detain/phlix-contracts#v0.5.4`
    - Vite (`@vitejs/plugin-vue`) for development and bundling
 
 ### UI & State
@@ -537,37 +537,39 @@ MIT License - see project repository for details.
 - App boots to Connect screen on first launch (no default server URL; user must configure a server URL)
 - **Hub Mode** — the shipped machinery (config IPC, resolver branch, hub nav + routes) cannot be entered today: `hub:set-config` has zero callers and the pinned `@phlix/ui` bundle ships no hub-connection form — see [Hub Mode (not yet enterable)](#hub-mode-not-yet-enterable)
 - Offline Downloads have no surface in this client — the shared `@phlix/ui` bundle carries no offline/download page
-- Watching with friends (SyncPlay): the shared UI ships the room page and the in-player SyncPlay controls, but the room's live-sync socket dials the *page's own host*, which the desktop app can never satisfy — see [Watching with friends (SyncPlay)](#watching-with-friends-syncplay)
+- Watching with friends (SyncPlay): LIVE in server mode (nav entry + boot-derived socket hint); hub mode still has no SyncPlay entry — see [Watching with friends (SyncPlay)](#watching-with-friends-syncplay)
 
 ## Watching with friends (SyncPlay)
 
-**Today, watch with friends from the web player your server serves** — open your Phlix
-server's URL in a browser and use its player; SyncPlay rooms are fully live there. The
-Phlix for Windows is not yet a usable SyncPlay client.
+**Watch with friends from the desktop app, in server mode.** The `SyncPlay` page
+(`/app/syncplay`) is registered by the shared shell, the video player carries the
+SyncPlay controls (create/join room), and the top-bar nav now shows the entry. Room
+listing, create and join ride ordinary REST calls to your server; playback sync runs
+over the WebSocket your server exposes on port 8097.
 
-What is true about SyncPlay inside this desktop app, measured against the exact shared
-UI bundle it ships (`@phlix/ui`, see `package.json`):
+How the desktop reaches that socket, measured against the exact shared UI bundle it
+ships (`@phlix/ui` v0.99.12, see `package.json`):
 
-- **The surface exists.** The `SyncPlay` page (`/app/syncplay`) is registered by the
-  shared shell, and the video player carries SyncPlay controls (create/join room).
-  Room listing, create and join ride ordinary REST calls to your server, which work.
-- **The party never goes live.** Playback sync runs over a WebSocket whose address is
-  derived from the page's *own* host and port `8097` — an assumption made for the web
-  player your server hosts itself. This app is served from an internal desktop origin,
-  so from a packaged build that socket can only ever dial a machine named `-`: rooms
-  still list, create and join over REST, but the connection that makes a party watch
-  together never comes up.
-- **That is why there is no SyncPlay entry in the navigation bar.** The page and the
-  player's SyncPlay button do render — but surfacing a destination whose core promise
-  fails from this origin would just be the next broken promise, so the nav omits it and
-  the limitations above say so plainly.
+- **The host-configurable seam.** The shared room socket prefers a `wsUrl` socket
+  hint (upstream `phlix-ui` `94579936`, R12-02) over its legacy same-origin
+  derivation. This app's boot derives the hint — `ws(s)://<your-server-host>:8097` —
+  from the connected server's URL and hands it to the shell before mount; changing
+  the connection updates it live (the shell reads it at every dial). The legacy
+  same-origin path survives only as the fail-soft fallback when nothing is
+  connected yet.
+- **Hub mode stays withheld.** No SyncPlay nav entry there on purpose: hub rooms
+  run over the :8804 relay, and the same seam would override those relay dials —
+  surfacing watch parties in hub mode needs relay-aware evidence first. This is
+  rider leg 4 of `M-WINDOWS-04`; until it lands, hub users can still SyncPlay from
+  the web player their server serves.
 
-The cure has a known shape: the shared UI has gained a host-configurable socket
-endpoint (upstream `phlix-ui` commit `94579936`), so a future release of this app can
-point the room socket at your configured server and add the nav entry for real. That
-re-pin is tracked as the **M-WINDOWS-04 rider**; this repo's test suite
-(`tests/unit/syncplayDesktopStatus.test.ts`) reddens on purpose the moment the
-installed bundle gains the capability, so the docs above cannot silently go stale.
+The withheld-nav era this section used to document ended with the @phlix/ui
+v0.99.12 re-pin (2026-11-02), which executed the **M-WINDOWS-04 rider**: seam
+wired at boot, nav entry added in server mode, docs flipped in the same change.
+The tripwire stands: `tests/unit/syncplayDesktopStatus.test.ts` (and the nav/reachability
+pins in `main.test.ts` / `routeReachability.test.ts`) redden the moment the installed
+bundle or this repo's wiring drifts from the story above, so these docs cannot silently
+go stale.
 
 ## Support
 

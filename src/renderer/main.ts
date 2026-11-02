@@ -4,7 +4,7 @@
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
 
-import type { MenuItem } from '@phlix/ui';
+import type { MenuItem, PhlixAppConfig } from '@phlix/ui';
 import type { RouteRecordRaw } from 'vue-router';
 import {
   createPhlixApp,
@@ -47,6 +47,52 @@ function cleanupRenderer(): void {
   _cleanupDeeplink = null;
 }
 
+/** The boot-time config this renderer hands to createPhlixApp (typed alias for the mirror below). */
+type BootConfig = PhlixAppConfig;
+
+declare global {
+  interface Window {
+    /**
+     * Written by boot() in SERVER mode before createPhlixApp runs: a verbatim
+     * mirror of the boot config (so the upstream readConfig() spread stays
+     * byte-identical) carrying the live SyncPlay socket hint. Upstream reads
+     * this global at EVERY dial (src/api/socketHint.ts at the pinned peel),
+     * which is why connection changes rewrite it instead of needing a remount.
+     */
+    __PHLIX__?: PhlixAppConfig;
+  }
+}
+
+/**
+ * M-WINDOWS-04 rider, second leg (tag-wave C4, @phlix/ui v0.99.12): derive
+ * the `ws(s)://<serverHost>:8097` socket hint from the effective server base.
+ *
+ * Upstream contract: the vendored SyncPlay client prefers a valid
+ * `window.__PHLIX__.wsUrl` (grammar /^wss?:\/\/[^/?#@]+$/i — no path, query
+ * or userinfo) over ALL same-origin derivations. A browser tab gets that host
+ * for free from its own origin; the app:// desktop renderer sees origin
+ * hostname '-' with no :8097 to read — precisely why M-WINDOWS-04 withheld
+ * the surface. The connected server URL is the desktop's only authoritative
+ * source for the media server's host, so flip its scheme (https→wss, http→ws)
+ * and pin :8097 — the same estate port law the web fallback applies
+ * regardless of page or server port. No wsPath: the direct :8097 socket
+ * carries no path prefix (that seam is for the hub relay only).
+ *
+ * Fail-soft by design: null or unparseable input yields null, which
+ * socketHint treats as NO_HINT — the vendored dial stays byte-identical to
+ * every pre-seam build.
+ */
+export function deriveSyncPlayWsUrl(serverBase: string | null): string | null {
+  if (!serverBase) return null;
+  try {
+    const url = new URL(serverBase);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+    return `${url.protocol === 'https:' ? 'wss' : 'ws'}://${url.hostname}:8097`;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Top-bar nav for the current app mode. Mirrors the server and hub web-uis so the
  * desktop client gets the same surfaces — crucially the gated "Admin" entry,
@@ -73,7 +119,9 @@ export function buildMenu(appMode: 'server' | 'hub'): MenuItem[] {
       { id: 'admin', label: tWin('nav.admin'), to: '/app/admin/dashboard', requiresAdmin: true }
     ];
   }
-  // Server mode: mirrors web-ui/src/main.ts:30-77 entry for entry.
+  // Server mode: mirrors web-ui/src/main.ts:30-77 entry for entry, plus the
+  // desktop SyncPlay entry below it (measured: that web-ui nav carries no
+  // syncplay item — the web player reaches rooms through its own chrome).
   // `libraryLinks` expands Browse into one nav link per library (fetched from
   // /api/v1/libraries), matching the per-library Browse sections.
   // `requiresLibraryType` hides each media-type entry unless a library of that
@@ -88,6 +136,14 @@ export function buildMenu(appMode: 'server' | 'hub'): MenuItem[] {
     { id: 'history', label: tWin('nav.history'), to: '/app/history' },
     { id: 'explore', label: tWin('nav.explore'), to: '/app/explore' },
     { id: 'recommendations', label: tWin('nav.recommendations'), to: '/app/recommendations' },
+    // M-WINDOWS-04 rider, second leg (v0.99.12 wave): the vendored shell
+    // registers /app/syncplay and boot() now feeds the wsUrl socket hint the
+    // app:// origin could never derive — the surface is LIVE in server mode.
+    // Hub mode deliberately has NO entry: its transport runs the :8804 hub
+    // relay, and the same wsUrl seam overrides relay dials wholesale
+    // (hubRelay.ts) — surfacing a watch party there needs relay-aware
+    // evidence first (rider leg 4).
+    { id: 'syncplay', label: tWin('nav.syncPlay'), to: '/app/syncplay' },
     { id: 'settings', label: tWin('nav.settings'), to: '/app/settings' },
     { id: 'admin', label: tWin('nav.admin'), to: '/app/admin/dashboard', requiresAdmin: true }
   ];
@@ -377,7 +433,34 @@ export async function boot(): Promise<void> {
     log.info(`[Boot] Windows-own nav catalog: ${windowLocale}`);
   }
 
-  const app = createPhlixApp({
+  // M-WINDOWS-04 rider, second leg (tag-wave C4, @phlix/ui v0.99.12): the
+  // SyncPlay socket hint. Server mode ONLY — in hub mode the same wsUrl seam
+  // overrides the :8804 relay dial wholesale (upstream hubRelay.ts), so the
+  // global stays untouched there. Derived from the EFFECTIVE base (persisted
+  // URL or env seed); '' (Connect screen) derives null = NO_HINT.
+  const syncPlayWsUrl = isHub ? null : deriveSyncPlayWsUrl(apiBase);
+
+  // Verbatim window mirror. Its starting shape is the ui-side readConfig()
+  // defaults (measured at the pinned peel) so the merged fullConfig stays
+  // byte-identical to a default-path boot; bootConfig is folded in right
+  // below it is built. Rewritten WHOLE on every connection change — no partial
+  // merge, no stale residue across re-boots (the M-WINDOWS-16 Retry path
+  // re-runs boot(), reassigning fresh). In hub mode it is never written.
+  const syncPlayHintBase: BootConfig = {
+    app: 'server',
+    apiBase: '',
+    routerBase: '/app',
+    menu: [],
+    extraRoutes: [],
+    features: {},
+    deviceHeaders: {}
+  };
+  const applySyncPlaySocketHint = (wsUrl: string | null): void => {
+    if (isHub || typeof window === 'undefined') return;
+    window.__PHLIX__ = { ...syncPlayHintBase, wsUrl };
+  };
+
+  const bootConfig: BootConfig = {
     app: appMode,
     apiBase,
     // This desktop app ships with no server baked in. When `apiBase` is empty
@@ -390,6 +473,13 @@ export async function boot(): Promise<void> {
         void api.setServerUrl(url ?? '');
       } else {
         log.warn('[Phlix] Cannot persist server URL: Electron bridge unavailable, URL was:', url);
+      }
+      // Keep the hint in lock-step with the user's choice: socketHint.ts reads
+      // window.__PHLIX__ live at EVERY dial, so this rewrite takes effect on
+      // the next SyncPlay connection without a restart. Hub mode never
+      // touched the global and must keep not touching it (relay hijack).
+      if (!isHub) {
+        applySyncPlaySocketHint(deriveSyncPlayWsUrl(url ?? null));
       }
     },
     // In hub mode, land on the servers directory (not the media-server Browse page,
@@ -407,8 +497,19 @@ export async function boot(): Promise<void> {
     // exists in in-app Settings and flows from the server, never from the OS.
     defaultTheme: 'nocturne',
     branding: { wordmark: 'Phlix' },
-    ...(messages ? { messages } : {})
-  });
+    ...(messages ? { messages } : {}),
+    // Mirror the hint into the config too (one source; socketHint still reads
+    // the global live, which is what makes connection changes work). Hub
+    // config carries NO wsUrl key at all — the seam-free state stays seam-free.
+    ...(isHub ? {} : { wsUrl: syncPlayWsUrl })
+  };
+
+  if (!isHub) {
+    Object.assign(syncPlayHintBase, bootConfig);
+    applySyncPlaySocketHint(syncPlayWsUrl);
+  }
+
+  const app = createPhlixApp(bootConfig);
 
   app.mount('#phlix-app');
 

@@ -23,6 +23,7 @@ export const WIN_IT = {
     history: 'Cronologia',
     explore: 'Esplora',
     recommendations: 'Per te',
+    syncPlay: 'SyncPlay',
     admin: 'Amministrazione',
     browse: 'Sfoglia',
     music: 'Musica',

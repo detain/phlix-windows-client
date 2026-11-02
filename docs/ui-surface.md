@@ -2,7 +2,7 @@
 
 > **Era snapshot (M-WINDOWS-54, 2026-10-31):** every row below was measured against
 > `@phlix/ui` **v0.98.39**. The runtime this repo pins today is
-> `github:detain/phlix-ui#v0.99.10`; the v0.99.x wave (playlist management, theme
+> `github:detain/phlix-ui#v0.99.12`; the v0.99.x wave (playlist management, theme
 > sources, socket-hint seams, …) has NOT been re-inventoried here. Use this table
 > as the historical baseline and the method to re-derive it — do not trust an
 > individual row as live truth without re-running the headless dist analysis
@@ -75,7 +75,7 @@ in the reference web-ui (`phlix-server/web-ui`), and which are wired in this rep
 | SettingsPage | `/app/settings` | OK (menu) | OK (buildMenu) |
 | SharedWithMePage | `/app/shared` | MISSING | MISSING |
 | SignupPage | `/app/signup` | UNREACHABLE | UNREACHABLE |
-| SyncPlayPage | `/app/syncplay` | UNREACHABLE | Registered (v0.99.10 shell) but no nav entry — room socket dials the page host, inert from the desktop origin; status pinned by `tests/unit/syncplayDesktopStatus.test.ts`, story in README "Watching with friends (SyncPlay)" [M-WINDOWS-04] |
+| SyncPlayPage | `/app/syncplay` | OK (menu) | Registered + nav entry since the v0.99.12 re-pin (M-WINDOWS-04 rider leg 2): boot feeds the room socket a `wsUrl` hint derived from the connected server; status pinned by `tests/unit/syncplayDesktopStatus.test.ts`, story in README "Watching with friends (SyncPlay)" |
 | WatchHistoryPage | `/app/history` | UNREACHABLE | MISSING |
 
 ---
@@ -160,7 +160,7 @@ No navigation link exists for any of them:
 | WatchHistoryPage | `/app/history` | UNREACHABLE | `createPhlixApp.ts:280` |
 | ExplorePage | `/app/explore` | UNREACHABLE | `createPhlixApp.ts:286` |
 | RecommendationsPage | `/app/recommendations` | UNREACHABLE | `createPhlixApp.ts:292` |
-| SyncPlayPage | `/app/syncplay` | UNREACHABLE | registered in hub mode too, but hub-mode rooms need the relay-aware socket that the pinned bundle lacks — withheld with the same M-WINDOWS-04 rider; see `syncplayDesktopStatus.test.ts` |
+| SyncPlayPage | `/app/syncplay` | UNREACHABLE | registered in hub mode too, but the nav entry is deliberately withheld (rider leg 4): hub rooms run over the :8804 relay and the wsUrl seam would override relay dials wholesale — needs relay-aware evidence; see `syncplayDesktopStatus.test.ts` |
 
 ---
 

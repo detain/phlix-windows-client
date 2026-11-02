@@ -27,6 +27,7 @@ export const WIN_PT_BR = {
     history: 'Histórico de reprodução',
     explore: 'Explorar',
     recommendations: 'Para você',
+    syncPlay: 'SyncPlay',
     admin: 'Administração',
     browse: 'Navegar',
     music: 'Música',

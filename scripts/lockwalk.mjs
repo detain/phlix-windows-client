@@ -85,7 +85,12 @@
  *     manifest requests the direct pin `#v0.5.3` outright (measured via git show at
  *     cc931723), the key misses, the entry retires per its own written rule — the fourth
  *     retirement under this same law — the map sits present-but-empty again, and the
- *     ui→contracts edge walks plain rule 1 from here.
+ *     ui→contracts edge walks plain rule 1 from here. CARRIED at the contracts v0.5.4 +
+ *     ui v0.99.12 re-pin (2026-11-02): ui v0.99.12's manifest requests the new direct pin
+ *     `#v0.5.4` outright (measured via git show at 1f0046c5) and root advanced to the same
+ *     tag — byte-equality holds on BOTH edges, nothing to retire, the map stays
+ *     present-but-empty, and both contracts edges walk plain rule 1 onto the one hoisted
+ *     0.5.4@c4919853 copy (the v0.5.4 registry is FROZEN — trio md5s byte-ident to v0.5.3).
  *  3. No nested @phlix copies (no `node_modules/@phlix/<dep>/node_modules/@phlix/<dep>`)
  *     — single-resolution invariant, mirrors S447's "no consumer may read the
  *     stale nested copy" ruling.
@@ -112,55 +117,59 @@ const NESTED_NODE_RE = /\/node_modules\/@phlix\/[\w-]+$/;
 
 // Single resolutions: package -> the tag this repo standardizes on and
 // the commit that tag peels to (re-verified against the live remotes via
-// `git ls-remote ... refs/tags/<tag>^{}` on 2026-10-14, ui v0.99.10 re-pin):
-//   phlix-contracts v0.5.3 -> 430981e3  (annotated tag object eb90e6d; its manifest `version` field is
-//                                         HONEST - reads 0.5.3 at the tag (measured via git show; npm 12.0.2
-//                                         accordingly writes lock version 0.5.3), CARRYING the normalization
+// `git ls-remote ... refs/tags/<tag>^{}` on 2026-11-02, contracts v0.5.4 + ui v0.99.12 re-pin):
+//   phlix-contracts v0.5.4 -> c4919853  (annotated tag object eb649cd9; its manifest `version` field is
+//                                         HONEST - reads 0.5.4 at the tag (measured via git show; npm 11
+//                                         accordingly writes lock version 0.5.4), CARRYING the normalization
 //                                         the v0.5.2 release commit ac669ca opened, so the `manifestVersion`
 //                                         override stays RETIRED and the contracts row walks the plain
-//                                         tag-derived version. Since the ui v0.99.9 re-pin (2026-10-03) the
-//                                         equality era is RESTORED and CARRIED at v0.99.10: ui's manifest
-//                                         requests `#v0.5.3` outright (measured via git show at cc931723 and
-//                                         again at 18c76eb0) - both the root->contracts
-//                                         and ui->contracts edges walk plain rule 1 onto the one hoisted
-//                                         0.5.3@430981e copy; the RATIFIED_HOISTS waiver retired per its own
-//                                         written law (see rule 2))
-//   phlix-syncplay  v0.1.5 -> b82d4f36  (unchanged; ui v0.99.10 still requests #v0.1.5, measured via git show)
-//   phlix-ui        v0.99.10 -> 18c76eb0  (annotated tag object 5898effc; its manifest `version` field stays
-//                                         HONEST - reads 0.99.10 at the tag (measured via git show; the
+//                                         tag-derived version. The equality era RESTORED at the ui v0.99.9
+//                                         re-pin CARRIES through v0.99.10 and this v0.99.12 move: ui's
+//                                         manifest requests `#v0.5.4` outright (measured via git show at
+//                                         1f0046c5) - both the root->contracts and ui->contracts edges walk
+//                                         plain rule 1 onto the one hoisted 0.5.4@c4919853 copy; the
+//                                         RATIFIED_HOISTS waiver stays retired per its own written law)
+//   phlix-syncplay  v0.1.6 -> 08168774  (annotated tag object 24e51a95; ui v0.99.12 requests #v0.1.6, measured
+//                                         via git show; the hoisted node advanced 0.1.5->0.1.6 through the
+//                                         S450-class targeted `npm update @phlix/syncplay --package-lock-only`
+//                                         because npm does NOT self-heal unsatisfied git-tag edges)
+//   phlix-ui        v0.99.12 -> 1f0046c5  (annotated tag object 93b6d186; its manifest `version` field stays
+//                                         HONEST - reads 0.99.12 at the tag (measured via git show; the
 //                                         version-field alignment law has held since v0.99.7, when the
 //                                         `manifestVersion: '0.99.4'` skew override's own written retirement
-//                                         condition fired at bc1d29bf; v0.99.8, v0.99.9 and now v0.99.10 CARRY it) -
+//                                         condition fired at bc1d29bf; v0.99.8 through v0.99.12 CARRY it) -
 //                                         the ui row keeps walking the plain tag-derived version and that
 //                                         override stays RETIRED, mirroring the contracts-row retirement at
 //                                         v0.5.2. No manifestVersion override is active anywhere now; the
 //                                         mechanism stays armed for a future stale-field tag)
 export const EXPECTED = {
   '@phlix/contracts': {
-    tag: 'v0.5.3',
-    sha: '430981e3b231a04c9464382642f54c2eeea33c1c',
-    // v0.5.3 re-pin (2026-10-01): registry expansion is REAL this time (202->204 error codes,
-    // dist/error-codes.json md5 40c1da48...; route manifest 412 tuples md5 91579683...). The
-    // `manifestVersion` skew override stays RETIRED — v0.5.3 carries the honest field (reads
-    // 0.5.3 at 430981e, measured via git show; the normalization the v0.5.2 release commit
-    // ac669ca opened carries through), so this row walks the plain tag-derived version. The
-    // override MECHANISM stays armed for a future stale-field tag; none is active — the ui row
-    // retired its own at v0.99.7 (field honest at bc1d29bf) and v0.99.8/v0.99.9/v0.99.10 carry it.
+    tag: 'v0.5.4',
+    sha: 'c491985317ac9844bcf24caea2f3af6dea556fe1',
+    // v0.5.4 re-pin (2026-11-02): registry FROZEN this mint — the trio is byte-identical to v0.5.3's
+    // (dist/error-codes.json md5 40c1da48... still 204 codes; route manifest 412 tuples md5 91579683...;
+    // mcp-scopes 8c92c070...; all three md5-verified at the tag AND off the installed node). The move is
+    // additive surface: exports map JSON-subpath, library.d.ts/routeManifest typings, bundle rebuild. The
+    // `manifestVersion` skew override stays RETIRED — v0.5.4 carries the honest field (reads 0.5.4 at
+    // c4919853, measured via git show; the normalization the v0.5.2 release commit ac669ca opened carries
+    // through), so this row walks the plain tag-derived version. The override MECHANISM stays armed for a
+    // future stale-field tag; none is active — the ui row retired its own at v0.99.7 (field honest at
+    // bc1d29bf) and v0.99.8 through v0.99.12 carry it.
     repo: 'git+ssh://git@github.com/detain/phlix-contracts.git',
   },
   '@phlix/syncplay': {
-    tag: 'v0.1.5',
-    sha: 'b82d4f361e9b1e3097f37ee2d1dfedf337fd4107',
+    tag: 'v0.1.6',
+    sha: '081687742cdf03e8e362548de231bd0e45413d6b',
     repo: 'git+ssh://git@github.com/detain/phlix-syncplay.git',
   },
   '@phlix/ui': {
-    tag: 'v0.99.10',
-    sha: '18c76eb0a74463344beec4781e756e97c83f0666',
-    // v0.99.10 re-pin (2026-10-14): the honest-field era OPENED at v0.99.7, when the
+    tag: 'v0.99.12',
+    sha: '1f0046c5ed8d52c3936435310dbb3c5b1cfe2220',
+    // v0.99.12 re-pin (2026-11-02): the honest-field era OPENED at v0.99.7, when the
     // `manifestVersion: '0.99.4'` skew override's own written condition fired (field
-    // re-normalized to 0.99.7 at bc1d29bf, measured via git show). v0.99.8, v0.99.9 and
-    // now the v0.99.10 tag CARRY it — reads 0.99.10 at 18c76eb0 (measured via git show;
-    // npm writes lock version 0.99.10) — so this row keeps walking the plain
+    // re-normalized to 0.99.7 at bc1d29bf, measured via git show). v0.99.8 through this
+    // v0.99.12 tag CARRY it — reads 0.99.12 at 1f0046c5 (measured via git show;
+    // npm writes lock version 0.99.12) — so this row keeps walking the plain
     // tag-derived version; the override stays RETIRED. No manifestVersion
     // override is active anywhere now; the MECHANISM stays armed for a future
     // stale-field tag.
@@ -219,6 +228,11 @@ export const EXPECTED = {
 // v0.5.2-edge era). The map sits present-but-empty again; both contracts edges dedupe onto
 // the one hoisted 0.5.3@430981e copy and walk plain rule 1. A future divergence must return
 // as a fresh exact-match entry (version AND sha), never a wildcard.
+// CARRIED at the contracts v0.5.4 + ui v0.99.12 re-pin (2026-11-02): root advanced to `#v0.5.4`
+// and ui v0.99.12's manifest requests that same tag outright (measured via git show at 1f0046c5;
+// the lock's ui node records the same words) — byte-equality holds on both contracts edges onto
+// the one hoisted 0.5.4@c4919853 copy. No waiver existed to retire; the written condition simply
+// continues to hold (its fifth straight equality-era move since the v0.99.9 retirement).
 export const RATIFIED_HOISTS = {};
 
 export function readRepoJson(name) {

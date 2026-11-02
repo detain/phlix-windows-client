@@ -2,28 +2,32 @@
  * M-WINDOWS-04 status pins — friend-watch (SyncPlay) on the desktop.
  *
  * The four docs sources disagreed about whether Windows ships SyncPlay at all.
- * The ground truth, measured against the installed `@phlix/ui` bundle:
+ * The ground truth, re-measured at the @phlix/ui v0.99.12 pin (tag-wave C4,
+ * 2026-11-02): the surface is LIVE in SERVER mode.
  *
  *  1. The shell DOES register `/app/syncplay` and the player DOES ship the
  *     SyncPlay room modal — the surface exists (it was never "dropped").
- *  2. The room socket, however, dials `window.location.hostname + :8097` — a
- *     same-origin assumption built for the web player the server itself hosts.
- *     This renderer is served from the internal `app://-/` origin, whose
- *     hostname is the literal `-`, so from a packaged desktop build the socket
- *     can never reach a remote server: rooms list/join over REST but never go
- *     live. The surface is therefore deliberately NOT in `buildMenu` —
- *     advertising a control that cannot connect would recreate the very
- *     docs-vs-reality gap this file pins shut.
- *  3. The cure is an installed-bundle capability, not a windows-side patch:
- *     the `__PHLIX__.wsUrl` socket seam (phlix-ui `94579936`, R12-02) lets the
- *     host point the room socket at the persisted server instead of the page
- *     origin. It is absent from every chunk today.
+ *  2. The historical inertness: the room socket's legacy derivation dials
+ *     `window.location.hostname + :8097` — a same-origin assumption built for
+ *     the web player the server itself hosts. This renderer is served from the
+ *     internal `app://-/` origin (hostname the literal `-`), so on that path a
+ *     packaged desktop build could never reach a remote server.
+ *  3. THE CURE LANDED: the `__PHLIX__.wsUrl` socket seam (phlix-ui 94579936,
+ *     R12-02) ships in every v0.99.12 chunk set, and this repo's boot() now
+ *     feeds it from the effective server URL (deriveSyncPlaySocketHint →
+ *     window.__PHLIX__.wsUrl, pinned in tests/unit/main.test.ts). The legacy
+ *     same-origin path stays in the bundle as the NO_HINT fallback — the seam
+ *     only PRECEDES it. The nav entry buildMenu('server') added in this wave
+ *     is therefore honest, and routeReachability.test.ts keeps the syncplay
+ *     allow-list entry for hub mode only.
+ *  4. Hub mode stays withheld (rider leg 4): the hub transport runs the :8804
+ *     relay and the same wsUrl seam overrides relay dials wholesale (upstream
+ *     hubRelay.ts) — surfacing a watch party there needs relay-aware evidence,
+ *     not just the seam.
  *
- * These tests are tripwires, not decoration: each one REDS exactly when the
- * underlying bundle reality flips, at which point the rider in
- * `.reviews/fixlog/M-WINDOWS-04__fix.md` (and the README "Watching with
- * friends" section) must be re-landed: wire the seam at boot, add the nav
- * entry, retire the allow-list carve-out in routeReachability.test.ts.
+ * These tests remain tripwires, not decoration: each one REDS exactly when the
+ * underlying bundle reality flips — the vendored dial changing shape, the seam
+ * disappearing (re-pin to a pre-seam era), or the nav posture changing.
  *
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
@@ -55,10 +59,11 @@ function readInstalledEsmBundle(): string {
 const BUNDLE = readInstalledEsmBundle();
 
 /**
- * The same-origin room-socket derivation, as it appears minified:
+ * The same-origin room-socket LEGACY derivation, as it appears minified:
  * `const host = … ? window.location.hostname : "localhost"` … `…//${host}:8097?room=…`
  * (chunk hashes rotate on every re-pin, so the scan is over all chunks, never
- * a named file).
+ * a named file). Post-seam this is the NO_HINT fallback — it must SURVIVE
+ * (the fail-soft promise is that non-hinted boots behave exactly as before).
  */
 const SAME_ORIGIN_ROOM_DIAL = /location\.hostname\s*:\s*"localhost"[\s\S]{0,200}:8097\?room=/;
 
@@ -78,37 +83,49 @@ describe('SyncPlay desktop status (M-WINDOWS-04)', () => {
     expect(syncplay[0].name).toBe('syncplay');
   });
 
-  it('the room socket still dials the PAGE host — the desktop origin can never reach a remote server', () => {
-    expect(
-      SAME_ORIGIN_ROOM_DIAL.test(BUNDLE),
-      'the same-origin :8097 room dial is gone from the vendored bundle — the socket endpoint ' +
-      'changed shape: re-measure the README "Watching with friends (SyncPlay)" story and the ' +
-      'routeReachability.test.ts carve-out before anything else trusts this file'
-    ).toBe(true);
-  });
-
-  it('the __PHLIX__.wsUrl socket seam is NOT in the installed bundle — nav entry stays withheld until it is', () => {
+  it('the wsUrl/wsPath socket seam IS in the installed bundle — the desktop ride is live, not withheld', () => {
+    // v0.99.12 rider condition MET (this pin was the rider's tripwire; it
+    // reddened on 2026-11-02 and the second leg was executed in the same
+    // wave). Inverse hazard it now guards: a re-pin to a pre-seam ui era
+    // would flip this red — and boot()'s hint would then advertise a dead
+    // surface again, exactly the docs-vs-reality gap this file exists to shut.
     const seamCarriers = ['wsUrl', 'wsPath'];
     const found = seamCarriers.filter((literal) => BUNDLE.includes(literal));
 
     expect(
       found,
-      'the installed @phlix/ui bundle now carries the wsUrl/wsPath socket seam ' +
-      `(literals: ${found.join(', ')}). M-WINDOWS-04 rider condition MET: derive the room ` +
-      'endpoint from the persisted serverUrl at boot (phlix-ui 94579936 / R12-02), add the ' +
-      "SyncPlay entry to buildMenu('server'), retire the routeReachability carve-out, and " +
-      'flip the README limitation to the live-party story — then delete this red pin.'
-    ).toEqual([]);
+      'the installed @phlix/ui bundle lost the wsUrl/wsPath socket seam literals ' +
+      `(found: ${found.join(', ') || 'none'}). The vendored room socket is inert from the ` +
+      'app:// origin again — re-withhold buildMenu syncplay + flip the README section back ' +
+      'to the limitation story (see git log for this wave) before anything else ships.'
+    ).toEqual(['wsUrl', 'wsPath']);
   });
 
-  it('neither desktop nav advertises SyncPlay while its room socket cannot connect', () => {
-    for (const mode of ['server', 'hub'] as const) {
-      const ids = buildMenu(mode).map((item) => item.id);
-      expect(
-        ids,
-        `buildMenu('${mode}') advertises a SyncPlay nav entry whose room socket is proven ` +
-        'inert from the app:// origin by the pin above — withheld until the wsUrl seam rider lands'
-      ).not.toContain('syncplay');
-    }
+  it('the legacy same-origin room fallback survives the seam (fail-soft promise)', () => {
+    expect(
+      SAME_ORIGIN_ROOM_DIAL.test(BUNDLE),
+      'the same-origin :8097 room dial is gone from the vendored bundle — the socket endpoint ' +
+      'changed shape: re-measure the README "Watching with friends (SyncPlay)" story and the ' +
+      'boot hint in src/renderer/main.ts before anything else trusts this file'
+    ).toBe(true);
+  });
+
+  it('server nav advertises the now-live SyncPlay room; hub nav stays withheld (rider leg 4)', () => {
+    const serverIds = buildMenu('server').map((item) => item.id);
+    expect(
+      serverIds,
+      "buildMenu('server') lost its syncplay entry — the seam ships in the installed bundle " +
+      '(pinned above) and boot() feeds it (main.test.ts), so the room page is reachable; a ' +
+      'silent nav removal is the docs-vs-reality gap this file exists to catch'
+    ).toContain('syncplay');
+
+    const hubIds = buildMenu('hub').map((item) => item.id);
+    expect(
+      hubIds,
+      "buildMenu('hub') advertises SyncPlay without relay-aware evidence: the hub transport " +
+      'runs the :8804 relay and a wsUrl hint would override those dials wholesale ' +
+      '(upstream hubRelay.ts). Leg 4 demands new evidence before this flips — see ' +
+      '.reviews/fixlog/M-WINDOWS-04__fix.md'
+    ).not.toContain('syncplay');
   });
 });

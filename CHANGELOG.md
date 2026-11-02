@@ -7,6 +7,76 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Deps — wave-2 re-pin: @phlix/contracts #v0.5.4 + @phlix/ui #v0.99.12 — true locale re-vendor + M-WINDOWS-04 rider second leg executed [tag-wave C4] — 2026-11-02
+
+- **What:** the tag-wave consumer re-pin. `@phlix/contracts #v0.5.3→#v0.5.4` (peel
+  `c491985317ac9844bcf24caea2f3af6dea556fe1`, tag object `eb649cd9…`) and `@phlix/ui
+  #v0.99.10→#v0.99.12` (peel `1f0046c5ed8d52c3936435310dbb3c5b1cfe2220`, tag object
+  `93b6d186…`); package.json 2+/2−, package-lock.json 10+/10− touching ONLY the four
+  `@phlix` tarball nodes (root deps ×2, contracts, ui, ui's deps lines + the transitive
+  `@phlix/syncplay` node 0.1.5→0.1.6@`081687742…`, which rides the ui edge — syncplay is
+  NOT a root pin here, per the matrix C4 row). Contracts v0.5.4 is an additive-surface
+  mint: the frozen trio (`dist/error-codes.json 40c1da48…`, route-manifest `91579683…`,
+  mcp-scopes `8c92c070…`) is byte-identical at the peel — registry UNCHANGED, 204 codes
+  carried (re-measured off the installed node), so the TS2741 exhaustive-Record hazard
+  class is absent this wave.
+- **Hoist-era premise corrected from disk:** the wave brief expected a live v0.5.3-era
+  `RATIFIED_HOISTS` divergence entry to retire. It was already `{}` — the 4th retirement
+  fired at the v0.99.9 re-pin (344b9bb) and has carried since; ui v0.99.12 requests
+  `@phlix/contracts#v0.5.4` outright, the root pins the same, equality CARRIES (fifth
+  move). `scripts/lockwalk.mjs` EXPECTED rows rotated to the new peels with the carry
+  narratives; walker structural + `--live` exit 0 with all three tag-object peel proofs
+  verified against origin.
+- **Locale re-vendor (TRUE, second one since the vendor began):** `sync-ui-locale-bundles.mjs`
+  SOURCE_REF `a580410f…`→`1f0046c5…`; the ui locales tree MOVED this era (a0f018cf→3469b62e,
+  messages 574b98e5→d984098c) — six bundles + PIN re-vendored, 12/14 content hashes advanced,
+  index.ts pair held; installed DEFAULT_MESSAGES measured 477 flattened keys / 23 groups
+  (was 441). `docs/i18n.md`, `tests/unit/i18nLocales.test.ts` era narratives and
+  `README`/`DEVELOPER`/`AGENTS`/`CLAUDE`/`docs/ui-surface.md` pin statements carried to the
+  new era in the same commit.
+- **M-WINDOWS-04 rider, second leg EXECUTED (the v0.99.12 seam condition MET):** boot() now
+  derives `ws(s)://<connectedHost>:8097` (`deriveSyncPlayWsUrl`, exported) from the effective
+  server URL and feeds the upstream `window.__PHLIX__.wsUrl` socket seam — server-mode ONLY,
+  mirror written pre-mount and rewritten live on every `onConnectionChange` (socketHint.ts
+  reads the global at each dial). Hub mode deliberately never touches the seam: the same
+  wsUrl would override the :8804 relay dials wholesale (upstream hubRelay.ts) — rider leg 4
+  stands until relay-aware evidence lands. `buildMenu('server')` gains the honest
+  `{ id: 'syncplay' }` entry (leg 2) with the windows-own `nav.syncPlay` label across all
+  seven locales ('SyncPlay' brand verbatim in Latin per the ui bundles' own brand law;
+  ja composes `SyncPlay同期視聴`, preserving the 100%-CJK catalog law); routeReachability's
+  syncplay carve-out is re-scoped to hub-only withholding and gains the two v0.99.12
+  playlist routes (R13-01 — entered from the MediaCard picker footer, measured in the
+  installed dist, never a nav target). `syncplayDesktopStatus.test.ts` flipped per its own
+  rider instruction (seam PRESENT; legacy same-origin dial pinned as the surviving NO_HINT
+  fallback; server-HAS/hub-LACKS nav). README/AGENTS/CLAUDE/ui-surface SyncPlay stories
+  flipped from limitation to live-server-mode. The `safeStorageTokenStore` docblock now
+  records the seam as landed with the windows-side wiring of THAT (tokenStore) still open —
+  the adapter ships unused, unchanged by this wave.
+- **Era tests rotated from MEASURED REDS only:** the full serial run first reddened exactly
+  two own-wave findings — `i18nSeamWiring`'s frozen ORIGINAL_RENDERER_NAV_LABELS oracle (16→17
+  labels; syncplay disclosed in-file as the catalog-first exception, born in rider leg 2) and
+  `ipcChannels`' doc-currency cited-line law (this commit's main.ts/tokenstore line shifts);
+  twelve coordinates re-measured and rotated in `docs/ipc-channels.md`. The contractsPin/lockwalk
+  era suites rotated to the v0.5.4/v0.99.12 words with mutation cases re-cut against the REAL
+  superseded peels (v0.5.3@430981e rollback case). Nothing was pre-emptively edited.
+- **Gates (measured at this tip):** `npx --yes npm@11 ci` (NPM_CONFIG_USERCONFIG=/dev/null)
+  reproduced the committed lock BYTE-IDENTICAL (md5 `c9ededd3…`); `npm run typecheck`
+  (vue-tsc + tsc main) 0; `npm run lint` 0; vitest FULL serial **826 passed | 0 failed |
+  0 skipped, 71 files, exit 0** (floor 823 + 3 = the deriveSyncPlayWsUrl units; sibling-present
+  venue, the SOURCE-parity describe RUNS not skips); `node scripts/lockwalk.mjs --live` 0
+  mismatches; `npm run build` 0; xvfb smoke **1 passed**. AUDIT: `node scripts/audit-gate.mjs`
+  exits 1 on three EXTERNAL advisories — GHSA-3g3m-2fjr-6pw4 (glob 13.0.6, electron-builder
+  dev chain, patched only cross-major), GHSA-g3hv-75wg-m249 (minimatch, patched only ≥11.0.1
+  vs declared ^3/^5/^9/^10.2 ranges), GHSA-4528-x5fx-h6hg (joi 17.13.8 via devDep wait-on —
+  the sole IN-RANGE clearance candidate, 17.13.9). The allow-list stays EMPTY
+  (`ALLOWED_ADVISORIES = new Map([])` untouched — adding entries is an owner-grade gate
+  weakening, bb9276d precedent; the joi lock-only bump is left out of this commit to keep the
+  lock diff provably @phlix-nodes-only). This red is INHERITED, not introduced: the identical
+  "Security audit" step failed on both matrix legs at the parent tips bca289c79/63b3123/df472e7
+  (advisories published 2026-10-30, after their waves' pins were cut) and is stash-proven at
+  tip in the R-WINDOWS-24 entry above; this wave moved ZERO registry nodes. No new wire codes;
+  no tags; trio frozen.
+
 ### Docs — CHANGELOG venue-note currency: the M-WINDOWS-22 r2 sibling-less figure corrected forward — R-WINDOWS-25 r2 (review riders W25 r2) — 2026-10-30
 
 - **Why (fixlog/M-WINDOWS-22__r3.md MINOR-3):** that entry's Gates note claimed "a sibling-less

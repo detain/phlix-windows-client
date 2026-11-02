@@ -25,6 +25,7 @@ export const WIN_JA = {
     history: '視聴履歴',
     explore: '見つける',
     recommendations: 'あなたへのおすすめ',
+    syncPlay: 'SyncPlay同期視聴',
     admin: '管理',
     browse: 'ブラウズ',
     music: '音楽',

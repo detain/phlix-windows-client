@@ -24,6 +24,7 @@ export const WIN_DE = {
     history: 'Wiedergabeverlauf',
     explore: 'Entdecken',
     recommendations: 'Für dich',
+    syncPlay: 'SyncPlay',
     admin: 'Admin',
     browse: 'Stöbern',
     music: 'Musik',

@@ -123,6 +123,13 @@ describe('boot (renderer entry)', () => {
         branding: { wordmark: 'Phlix' }
       })
     );
+    // M-WINDOWS-04 rider, leg 4 (seam-free posture): hub mode writes NOTHING to
+    // window.__PHLIX__ — an wsUrl hint there would override the :8804 relay
+    // dials wholesale (upstream hubRelay.ts) — and its config carries no
+    // wsUrl key at all.
+    const hubCfg = (createPhlixApp.mock.calls as any).at(-1)?.[0] as Record<string, unknown>;
+    expect(hubCfg).not.toHaveProperty('wsUrl');
+    expect((getWindow().window as unknown as { __PHLIX__?: unknown }).__PHLIX__).toBeUndefined();
 
     expect(mountSpy).toHaveBeenCalledWith('#phlix-app');
     expect(installElectronBridge).toHaveBeenCalledWith(fakeApp);
@@ -426,6 +433,14 @@ describe('boot (renderer entry)', () => {
     expect(createPhlixApp).toHaveBeenLastCalledWith(
       expect.objectContaining({ app: 'server', apiBase: 'http://my-server:8096' })
     );
+    // M-WINDOWS-04 rider, second leg: the wsUrl socket hint rides BOTH the
+    // config and the live window mirror — socketHint.ts reads the global at
+    // every dial, so this is what makes the vendored /app/syncplay page
+    // connect to the real server host instead of the app:// dead origin.
+    const cfg = (createPhlixApp.mock.calls as any).at(-1)?.[0] as Record<string, unknown>;
+    expect(cfg).toHaveProperty('wsUrl', 'ws://my-server:8097');
+    expect((getWindow().window as unknown as { __PHLIX__?: { wsUrl?: string | null } }).__PHLIX__)
+      .toMatchObject({ wsUrl: 'ws://my-server:8097' });
     expect(installElectronBridge).toHaveBeenLastCalledWith(fakeApp);
   });
 
@@ -513,14 +528,20 @@ describe('boot (renderer entry)', () => {
     };
     cfg.onConnectionChange('http://chosen:8096');
     expect(api.setServerUrl).toHaveBeenCalledWith('http://chosen:8096');
+    // M-WINDOWS-04 rider, second leg: the live hint follows the choice —
+    // boot started seam-free (serverUrl null → wsUrl null), the callback
+    // rewrites it, and socketHint picks the new value up on the NEXT dial.
+    const hintWindow = () => (getWindow().window as unknown as { __PHLIX__?: { wsUrl?: string | null } }).__PHLIX__;
+    expect(hintWindow()).toMatchObject({ wsUrl: 'ws://chosen:8097' });
     // A clear (null) writes an empty string so resolveAppConfig re-seeds cleanly.
     cfg.onConnectionChange(null);
     expect(api.setServerUrl).toHaveBeenLastCalledWith('');
+    expect(hintWindow()).toMatchObject({ wsUrl: null });
   });
 });
 
 describe('buildMenu', () => {
-  it('server mode: Browse, Music, Books, Audiobooks, Photos, Search, Watch History, Explore, Recommendations, Settings, Admin', async () => {
+  it('server mode: Browse, Music, Books, Audiobooks, Photos, Search, Watch History, Explore, Recommendations, SyncPlay, Settings, Admin', async () => {
     const { buildMenu, buildExtraRoutes } = await import('@/main');
     const menu = buildMenu('server');
     const menuIds = menu.map((m) => m.id);
@@ -532,7 +553,7 @@ describe('buildMenu', () => {
 
     // Membership: all entries required for a usable server-mode nav are present.
     for (const id of ['browse', 'music', 'books', 'audiobooks', 'photos', 'search',
-                       'history', 'explore', 'recommendations', 'settings', 'admin']) {
+                       'history', 'explore', 'recommendations', 'syncplay', 'settings', 'admin']) {
       expect(menuIds).toContain(id);
     }
 
@@ -549,6 +570,10 @@ describe('buildMenu', () => {
           !item.to.startsWith('/app/photo') && !item.to.startsWith('/app/search') &&
           !item.to.startsWith('/app/history') && !item.to.startsWith('/app/explore') &&
           !item.to.startsWith('/app/recommendations') &&
+          // M-WINDOWS-04 second leg: the SyncPlay route is registered by the
+          // vendored shell (ui router), not by buildExtraRoutes — same skip-list
+          // family as the ui-provided history/explore/recommendations above.
+          !item.to.startsWith('/app/syncplay') &&
           !item.to.startsWith('/app/settings')) {
         expect(extraRoutePaths).toContain(item.to);
       }
@@ -563,6 +588,9 @@ describe('buildMenu', () => {
     expect(menu.find((m) => m.id === 'history')).toMatchObject({ to: '/app/history' });
     expect(menu.find((m) => m.id === 'explore')).toMatchObject({ to: '/app/explore' });
     expect(menu.find((m) => m.id === 'recommendations')).toMatchObject({ to: '/app/recommendations' });
+    // M-WINDOWS-04 rider, second leg (v0.99.12 wave): the desktop nav entry —
+    // present ONLY in server mode, its hub counterpart pinned below.
+    expect(menu.find((m) => m.id === 'syncplay')).toMatchObject({ to: '/app/syncplay' });
     expect(menu.find((m) => m.id === 'settings')).toMatchObject({ to: '/app/settings' });
     const admin = menu.find((m) => m.id === 'admin');
     expect(admin).toMatchObject({ to: '/app/admin/dashboard', requiresAdmin: true });
@@ -597,6 +625,11 @@ describe('buildMenu', () => {
     expect(menu.find((m) => m.id === 'explore')).toMatchObject({ to: '/app/explore' });
     expect(menu.find((m) => m.id === 'recommendations')).toMatchObject({ to: '/app/recommendations' });
     expect(menu.find((m) => m.id === 'admin')?.requiresAdmin).toBe(true);
+    // M-WINDOWS-04 rider, leg 4: watch-party nav is SERVER-mode only. The hub
+    // transport runs the :8804 relay and the same wsUrl seam would override
+    // relay dials wholesale (upstream hubRelay.ts) — no hub entry until
+    // relay-aware evidence lands. This pin FAILS if someone adds one casually.
+    expect(menuIds).not.toContain('syncplay');
   });
 
   it('hub entries appear only in hub mode — server mode must not include them', async () => {
@@ -607,6 +640,41 @@ describe('buildMenu', () => {
     for (const id of hubOnlyIds) {
       expect(serverMenuIds).not.toContain(id);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// M-WINDOWS-04 rider, second leg (tag-wave C4, @phlix/ui v0.99.12): the
+// SyncPlay socket-hint derivation. Upstream socketHint.ts accepts a valid
+// window.__PHLIX__.wsUrl over EVERY same-origin derivation, grammar
+// /^wss?:\/\/[^/?#@]+$/i — anything else (malformed, absent, null) is NO_HINT
+// and the vendored dial stays byte-identical to pre-seam builds. These pins
+// hold deriveSyncPlayWsUrl inside that contract.
+// ---------------------------------------------------------------------------
+describe('deriveSyncPlayWsUrl (SyncPlay socket hint)', () => {
+  const SEAM_GRAMMAR = /^wss?:\/\/[^/?#@]+$/i;
+
+  it('maps http→ws and https→wss, pinning :8097 regardless of the server port', async () => {
+    const { deriveSyncPlayWsUrl } = await import('@/main');
+    expect(deriveSyncPlayWsUrl('http://my-server:8096')).toBe('ws://my-server:8097');
+    expect(deriveSyncPlayWsUrl('https://media.example.com')).toBe('wss://media.example.com:8097');
+    expect(deriveSyncPlayWsUrl('https://media.example.com:9443/base')).toBe('wss://media.example.com:8097');
+  });
+
+  it('output satisfies the upstream seam grammar (no path/query/userinfo survives)', async () => {
+    const { deriveSyncPlayWsUrl } = await import('@/main');
+    const hint = deriveSyncPlayWsUrl('http://user:pw@evil.example:1/top?q=1');
+    expect(hint).toBe('ws://evil.example:8097');
+    expect(hint).toMatch(SEAM_GRAMMAR);
+  });
+
+  it('fail-soft to null on anything unusable — the legacy dial stays byte-identical', async () => {
+    const { deriveSyncPlayWsUrl } = await import('@/main');
+    expect(deriveSyncPlayWsUrl(null)).toBeNull();
+    expect(deriveSyncPlayWsUrl('')).toBeNull();
+    expect(deriveSyncPlayWsUrl('not a url')).toBeNull();
+    expect(deriveSyncPlayWsUrl('ftp://host:8096')).toBeNull();
+    expect(deriveSyncPlayWsUrl('app://-/')).toBeNull();
   });
 });
 

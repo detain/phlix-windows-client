@@ -33,7 +33,7 @@ Three Electron processes wired by `contextBridge`. The renderer boots `@phlix/ui
 
 - **Main** (`src/main/index.ts`): `BrowserWindow` creation, `Tray`, `Menu` (File/Playback/View/Help), `electron-log` init, `electron-store`. IPC handlers: existing `get-app-path` / `get-version` / `set-always-on-top` / `minimize-to-tray` / `hub:get-config` / `hub:set-config`, **plus** `app:get-server-url` (`store.get('serverUrl', null)`), `app:set-server-url` (`store.set('serverUrl', url)`), `app:get-device-id` (returns persisted `deviceId` or generates+persists `windows-<randomUUID()>`). Sends `media-play-pause` / `media-stop` / `media-rewind` / `media-forward` / `open-settings` to the renderer. Tray/menu/existing IPC unchanged.
 - **Preload** (`src/preload/index.ts`): exposes `window.electronAPI` via `contextBridge.exposeInMainWorld`. Adds `getServerUrl()` / `setServerUrl(url)` / `getDeviceId()` (all `ipcRenderer.invoke`) alongside the existing app-info / window-control / media-event / hub-config members. Listener helpers return cleanup functions.
-- **Renderer** (`src/renderer/`): a thin `@phlix/ui` consumer PLUS enumerated local surfaces (player overlay components + their `overlay.tsx` app entry, boot-failure screen, i18n catalogs, media-session handlers, DPAPI token-store adapter). Pinned to `@phlix/ui` (`github:detain/phlix-ui#v0.99.10`) + `@phlix/contracts` (`github:detain/phlix-contracts#v0.5.3`); Vue 3 / Pinia / vue-router are peer deps. Built with Vite + `@vitejs/plugin-vue`.
+- **Renderer** (`src/renderer/`): a thin `@phlix/ui` consumer PLUS enumerated local surfaces (player overlay components + their `overlay.tsx` app entry, boot-failure screen, i18n catalogs, media-session handlers, DPAPI token-store adapter). Pinned to `@phlix/ui` (`github:detain/phlix-ui#v0.99.12`) + `@phlix/contracts` (`github:detain/phlix-contracts#v0.5.4`); Vue 3 / Pinia / vue-router are peer deps. Built with Vite + `@vitejs/plugin-vue`.
 
 ### Renderer layout
 
@@ -74,7 +74,7 @@ The page VIEWS and base routing come from `createPhlixApp` (`@phlix/ui`'s router
 - **IPC**: never use `ipcRenderer` directly in the renderer — extend `window.electronAPI` via `src/preload/index.ts` and type it in `src/renderer/types/electron.d.ts`.
 - **CSP** in `src/renderer/index.html` allows `https: http: blob:` for media and `ws:` for connect — preserve when adding sources.
 
-> Offline Downloads and realtime SyncPlay UIs were removed in the migration and are TEMPORARILY DROPPED, to be re-added later as shared `@phlix/ui` seams (tray Rewind/Forward now relative-seek via v0.52.0's player command bus).
+> Offline Downloads remain TEMPORARILY DROPPED from the migration, to be re-added later as a shared `@phlix/ui` seam. Realtime SyncPlay UIs RETURNED with the @phlix/ui v0.99.12 re-pin (2026-11-02, M-WINDOWS-04 rider): server-mode nav entry + boot-derived `wsUrl` socket seam wiring — hub mode stays withheld pending relay-aware evidence (README "Watching with friends (SyncPlay)"). Tray Rewind/Forward are relative-seek via v0.52.0's player command bus.
 
 ## Testing
 

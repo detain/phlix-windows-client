@@ -18,12 +18,15 @@ import type { TokenStore } from '@phlix/ui';
  * secrets.json (src/main/secretStore.ts + the vault channels in
  * src/main/index.ts).
  *
- * Wiring status (honest): @phlix/ui v0.99.10's `createPhlixApp` hardcodes
- * `LocalStorageTokenStore` — `PhlixAppConfig` exposes no tokenStore seam
- * yet. This adapter therefore SHIPS UNUSED: it compiles, is unit-pinned,
- * and awaits the v0.99.12-wave rider that threads `config.tokenStore`
- * through client construction. The moment that seam lands, boot() passes
- * `new SafeStorageTokenStore()` and tokens stop touching localStorage.
+ * Wiring status (honest): @phlix/ui v0.99.10's `createPhlixApp` hardcoded
+ * `LocalStorageTokenStore` with no tokenStore seam; the awaited v0.99.12-wave
+ * rider LANDED upstream — v0.99.12 (pinned here since 2026-11-02) accepts
+ * `config.tokenStore` (measured at 1f0046c5: `createPhlixApp` threads
+ * `fullConfig.tokenStore ?? null` into the default-token-store setter). The
+ * remaining half is windows-side: a follow-up rider must have boot() pass
+ * `new SafeStorageTokenStore()` into `createPhlixApp`, at which point tokens
+ * stop touching localStorage. Until that wiring ships, this adapter still
+ * SHIPS UNUSED (it compiles and is unit-pinned).
  * Vendored ui files are not edited (thin-consumer law).
  *
  * The vault VALUES are already encrypted at rest by main; this layer adds

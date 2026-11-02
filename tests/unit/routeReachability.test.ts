@@ -93,15 +93,26 @@ const DEEP_LINK_ALLOW_LIST: Array<{ pattern: RegExp; reason: string }> = [
   // The root /app path is the browse page - in hub mode home is /app/servers
   { pattern: /^\/app$/, reason: 'browse page root, hub uses /app/servers as home instead' },
 
-  // SyncPlay (M-WINDOWS-04): the vendored shell genuinely registers /app/syncplay and
-  // ships the room page + player modal — the W2 "UI removed" story this carve-out used
-  // to tell was false. It stays nav-less for a real reason: the room socket dials
-  // window.location.hostname + :8097 (the same-origin assumption of the server-hosted
-  // web player), which from this app:// desktop origin can never reach a remote server,
-  // so surfacing the page would advertise rooms that never go live. Withheld until the
-  // installed bundle carries the __PHLIX__.wsUrl socket seam (phlix-ui 94579936); the
-  // whole status is pinned by tests/unit/syncplayDesktopStatus.test.ts.
-  { pattern: /^\/app\/syncplay$/, reason: 'registered by the vendored shell but inert on desktop until the wsUrl seam ships — see syncplayDesktopStatus.test.ts' },
+  // SyncPlay (M-WINDOWS-04 rider, second leg executed @v0.99.12): server mode
+  // now HAS a nav entry (buildMenu 'syncplay' + the boot-derived
+  // window.__PHLIX__.wsUrl socket hint — the surface is LIVE), so this
+  // carve-out exists for HUB mode only: the shell registers /app/syncplay in
+  // both routers, and leg 4 deliberately keeps the hub nav-less — the hub
+  // transport runs the :8804 relay and the same wsUrl seam would override
+  // relay dials wholesale (upstream hubRelay.ts); surfacing a watch party
+  // there needs relay-aware evidence. Live status is pinned by
+  // tests/unit/syncplayDesktopStatus.test.ts.
+  { pattern: /^\/app\/syncplay$/, reason: 'shell-registered route; nav entry is server-mode only (M-WINDOWS-04 leg 4) — hub mode stays withheld pending relay-aware transport evidence' },
+
+  // Playlists (R13-01, @phlix/ui v0.99.12 — arrived with this pin's re-pin): the
+  // shell registers /app/playlists + /app/playlists/:id in both routers. The
+  // entry point ships INSIDE the ui chrome — the add-to-playlist picker's
+  // footer 'Manage playlists →' RouterLink (string verified in the installed
+  // dist/MediaCard-*.js) — and neither the server nor the hub web-ui nav
+  // carries a playlists item (measured on origin/master web-ui/src/main.ts),
+  // so it can never appear in this repo's buildMenu, which only seeds nav items.
+  { pattern: /^\/app\/playlists$/, reason: '@phlix/ui built-in playlists route; entered from the MediaCard playlist-picker footer (Manage playlists →), not a nav-menu target' },
+  { pattern: /^\/app\/playlists\//, reason: '@phlix/ui playlist detail route (/app/playlists/:id), reached from the playlists list page' },
 ];
 
 /**

@@ -7,7 +7,12 @@
  *     SET EQUALITY (closed at the v0.99.5 re-pin, CARRIED untouched at v0.99.6 and
  *     v0.99.7 — locale tree byte-identical across those peels, messages.ts
  *     unmoved — and RE-CARRIED at v0.99.8, where the tree genuinely moved
- *     (+29 keys) and the six bundles + PIN were re-vendored from a580410f; the
+ *     (+29 keys) and the six bundles + PIN were re-vendored from a580410f, then HELD
+ *     at the v0.99.9/v0.99.10 npm-pin bumps (locale tree byte-identical across those
+ *     peels — deliberate vendor holds), and RE-VENDORED AGAIN at v0.99.12 (2026-11-02),
+ *     where the tree genuinely moved once more (+36 keys, 441→477, locales
+ *     a0f018cf→3469b62e, messages.ts 574b98e5→d984098c; PIN advanced to the 1f0046c5
+ *     peel, 12/14 content hashes moving — only the index.ts pair held); the
  *     formerly-ahead keys keep focused cross-bundle laws),
  *     placeholder parity, CLDR segment law (incl. the documented
  *     additive exception), diacritics/CJK sanity, and PIN/hash drift guards
@@ -141,18 +146,23 @@ const FORMER_AHEAD_KEYS: readonly string[] = [
 // non-English allow-list is owned by the ui SSOT suite (src/i18n/locales.test.ts
 // upstream); client-side they ride the ≥90%-differ bulk law above.
 // windows-own renderer nav: 'Photos' is the French word too (fr), 'Admin' the
-// accepted German desktop short form (de). Nothing else collides.
+// accepted German desktop short form (de). nav.syncPlay is the estate BRAND
+// term — every Latin windows-own locale keeps 'SyncPlay' verbatim, mirroring
+// the ui bundles' own "brand/product terms kept verbatim in Latin" policy
+// (M-WINDOWS-04 rider leg 2). The ja catalog likewise honours the brand but
+// composes it CJK-side ('SyncPlay同期視聴', the ui-ja 'SyncPlayルーム…' style),
+// so ja passes the 100%-CJK law WITHOUT a leak-list entry.
 // overlay.unitMin 'min' is the SI time symbol — written identically in these
 // orthographies (ja uses 分, de too keeps 'min'); it's overlay.sleepTimer
 // 'Sleep timer' is the established Italian loanword (menuHeading renders the
 // native 'Timer per dormire'). EN 'hr'/'hrs' are NOT mirrored anywhere
 // (de 'Std', the rest 'h', ja '時間').
 const WIN_EN_LEAK_OK: Record<Locale, readonly string[]> = {
-  es: ['overlay.unitMin'],
-  fr: ['nav.photos', 'overlay.unitMin'],
-  de: ['nav.admin', 'overlay.unitMin'],
-  it: ['overlay.unitMin', 'overlay.sleepTimer'],
-  pt_BR: ['overlay.unitMin'],
+  es: ['overlay.unitMin', 'nav.syncPlay'],
+  fr: ['nav.photos', 'overlay.unitMin', 'nav.syncPlay'],
+  de: ['nav.admin', 'overlay.unitMin', 'nav.syncPlay'],
+  it: ['overlay.unitMin', 'overlay.sleepTimer', 'nav.syncPlay'],
+  pt_BR: ['overlay.unitMin', 'nav.syncPlay'],
   ja: [],
 };
 // main-process chrome: the brand 'Phlix' (tray.tooltip) and the product name
@@ -203,18 +213,20 @@ describe('ui bundles — key-set identity and installed coverage', () => {
     }
   });
 
-  it('bundle key set EQUALS the installed pin (gap closed at v0.99.5, carried at v0.99.6/v0.99.7, re-carried via the v0.99.8 re-vendor and held at the v0.99.9/v0.99.10 npm-pin bumps)', () => {
-    // Vendor @ a580410f (tag v0.99.8) vs installed @phlix/ui (v0.99.8 at the
-    // re-vendor; v0.99.9 since the 2026-10-03 npm-pin bump and v0.99.10 since
-    // the 2026-10-14 one — the locale tree is
-    // byte-identical across those peels, so equality holds untouched) — the
-    // dc1df7d5-era 7-key ahead-of-pin gap closed at the v0.99.5 re-pin and the
-    // equality CARRIED untouched at v0.99.6 and v0.99.7 (tree f8b090a6,
-    // messages.ts d0094683 unmoved across those peels, 14/14 PIN hashes riding
-    // through). At v0.99.8 the locale tree genuinely MOVED (→ a0f018cf;
+  it('bundle key set EQUALS the installed pin (gap closed at v0.99.5, carried at v0.99.6/v0.99.7, re-carried via the v0.99.8 re-vendor, held at the v0.99.9/v0.99.10 npm-pin bumps, re-carried via the v0.99.12 re-vendor)', () => {
+    // Vendor @ 1f0046c5 (tag v0.99.12) vs installed @phlix/ui (v0.99.12 at this
+    // re-pin; the vendor rode v0.99.9/v0.99.10 as deliberate holds because the locale
+    // tree is
+    // byte-identical across those peels — see docs/i18n.md). The dc1df7d5-era 7-key
+    // ahead-of-pin gap closed at the v0.99.5 re-pin and the equality CARRIED untouched at
+    // v0.99.6 and v0.99.7 (tree f8b090a6, messages.ts d0094683 unmoved across those peels,
+    // 14/14 PIN hashes riding through). At v0.99.8 the locale tree genuinely MOVED (→ a0f018cf;
     // messages.ts → 574b98e5; +29 keys across the six locales), so the sync
     // script was re-run at the .8 peel: 12/14 PIN content hashes advanced
-    // (only the index.ts pair held) and BOTH sides land at 441 flattened keys.
+    // (only the index.ts pair held) and BOTH sides landed at 441 flattened keys. At
+    // v0.99.12 the tree MOVED AGAIN (→ 3469b62e; messages.ts → d984098c; six locale files
+    // differ, index.ts unmoved) and the re-vendor landed the same way — 12/14 hashes
+    // advanced — with BOTH sides now at 477 flattened keys.
     // The relation stays exact set equality in BOTH directions (installed ⊆ bundle
     // is separately pinned above; this pins bundle ⊆ installed and, with it,
     // the empty extras set). The seven keys are additionally pinned present
@@ -397,12 +409,12 @@ describe.skipIf(!SIBLING_PRESENT)(
 // ---------------------------------------------------------------------------
 
 describe('windows-own catalog (nav + boot + overlay) — key-set, baseline, leaks', () => {
-  it('every locale table has EXACTLY the 34 English keys — 16 nav + 6 boot + 12 overlay (both directions)', () => {
+  it('every locale table has EXACTLY the 35 English keys — 17 nav + 6 boot + 12 overlay (both directions)', () => {
     const reference = keySet(WIN_EN as unknown as Table);
     for (const locale of LOCALES) {
       expect(keySet(WIN_TABLES[locale]), `${locale} key set differs from en`).toBe(reference);
     }
-    expect(EN_WIN.size).toBe(34);
+    expect(EN_WIN.size).toBe(35);
   });
 
   it('the registry carries precisely the catalog files that exist', () => {

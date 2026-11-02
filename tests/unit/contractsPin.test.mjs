@@ -5,8 +5,8 @@
  *
  * This is a plain Node .mjs test (not .ts): it reads package.json and
  * package-lock.json off disk and asserts the direct `@phlix/contracts` pin has
- * been advanced to the current tag (v0.5.3, re-pinned 2026-10-01 atop the
- * registry-expansion release 430981e — 204 error codes, route manifest 412 tuples).
+ * been advanced to the current tag (v0.5.4, re-pinned 2026-11-02 atop the additive-surface release
+ * c4919853 — registry FROZEN: trio md5s byte-identical to v0.5.3's, 204 error codes carried).
  * The ui v0.99.7 re-pin (2026-09-25) had restored BYTE-EQUALITY on the ui→contracts
  * edge (ui v0.99.7 requests `#v0.5.2` outright), retiring the exact-match waiver per
  * its own written law and flipping the second describe to the #50-era three-way
@@ -16,10 +16,11 @@
  * DIVERGENCE law (ui line byte-pinned to its own `#v0.5.2` words, .not-to-root
  * inversion, one exact-match waiver entry). The divergence era itself ENDED at the
  * ui v0.99.9 re-pin (2026-10-03, cc931723): ui v0.99.9 requests `#v0.5.3` outright —
- * and the v0.99.10 re-pin (2026-10-14, 18c76eb0) CARRIES that equality era unchanged
- * (same `#v0.5.3` request measured via git show), so
+ * and the v0.99.10 re-pin (2026-10-14, 18c76eb0) CARRIED that equality era unchanged, as does
+ * this contracts v0.5.4 + ui v0.99.12 re-pin (2026-11-02): ui v0.99.12 requests the new direct pin
+ * `#v0.5.4` outright (same-words request measured via git show at 1f0046c5), so
  * the second describe stays on the EQUALITY law (ui line byte-pinned to the SAME
- * `#v0.5.3` words as root, .toBe, zero waivers — installed tree as the witness). Like
+ * `#v0.5.4` words as root, .toBe, zero waivers — installed tree as the witness). Like
  * tests/unit/copyright.test.mjs it lives outside the
  * TypeScript project (tsconfig.json's `include` is ["src/renderer"]), so
  * `npm run typecheck` never sees it, while vitest's `include` glob for
@@ -39,19 +40,19 @@ import { EXPECTED, RATIFIED_HOISTS } from '../../scripts/lockwalk.mjs';
 // Self-identifying lane marker (survives tokenisation as a plain string const).
 const LANE_TOKEN = 'S442WINDOWSPINX5V2';
 
-// The state the contracts v0.5.3 re-pin (2026-10-01) pins the repo to. v0.5.3 is the
-// newest contracts tag; its annotated tag (object eb90e6d) peels to this commit (live
-// ls-remote, 2026-10-01), which must be what the lockfile resolves.
-// The `version` constant MOVES to 0.5.3 with the tag: the honest-field era opened at
+// The state the contracts v0.5.4 re-pin (2026-11-02) pins the repo to. v0.5.4 is the
+// newest contracts tag; its annotated tag (object eb649cd9) peels to this commit (live
+// ls-remote, 2026-11-02), which must be what the lockfile resolves.
+// The `version` constant MOVES to 0.5.4 with the tag: the honest-field era opened at
 // v0.5.2 — commit ac669ca re-normalized the manifest `version` at the tag (measured via
 // git show), firing the lockwalk `manifestVersion: '0.4.7'` override's written retirement
-// condition — and v0.5.3 CARRIES the honest field (reads 0.5.3 at 430981e, measured via
-// git show), so npm writes version 0.5.3 in the lock with no override.
+// condition — and v0.5.3/v0.5.4 CARRY the honest field (reads 0.5.4 at c4919853, measured via
+// git show), so npm writes version 0.5.4 in the lock with no override.
 // The identity proof remains the `resolved` peel sha.
-const EXPECTED_CONTRACTS_RANGE = 'github:detain/phlix-contracts#v0.5.3';
+const EXPECTED_CONTRACTS_RANGE = 'github:detain/phlix-contracts#v0.5.4';
 const EXPECTED_CONTRACTS_RESOLVED =
-  'git+ssh://git@github.com/detain/phlix-contracts.git#430981e3b231a04c9464382642f54c2eeea33c1c';
-const EXPECTED_CONTRACTS_VERSION = '0.5.3';
+  'git+ssh://git@github.com/detain/phlix-contracts.git#c491985317ac9844bcf24caea2f3af6dea556fe1';
+const EXPECTED_CONTRACTS_VERSION = '0.5.4';
 
 const root = new URL('../../', import.meta.url);
 const readJson = (rel) => JSON.parse(readFileSync(fileURLToPath(new URL(rel, root)), 'utf8'));
@@ -64,7 +65,7 @@ describe('S442 — @phlix/contracts direct pin is current', () => {
     expect(LANE_TOKEN).toMatch(/^S442/);
   });
 
-  it('declares the v0.5.3 tag in package.json', () => {
+  it('declares the v0.5.4 tag in package.json', () => {
     expect(pkg.dependencies['@phlix/contracts']).toBe(EXPECTED_CONTRACTS_RANGE);
   });
 
@@ -72,24 +73,24 @@ describe('S442 — @phlix/contracts direct pin is current', () => {
     expect(lock.packages[''].dependencies['@phlix/contracts']).toBe(EXPECTED_CONTRACTS_RANGE);
   });
 
-  it('resolves the hoisted @phlix/contracts to the v0.5.3 target, not a drifted commit', () => {
+  it('resolves the hoisted @phlix/contracts to the v0.5.4 target, not a drifted commit', () => {
     const entry = lock.packages['node_modules/@phlix/contracts'];
     expect(entry.version).toBe(EXPECTED_CONTRACTS_VERSION);
     expect(entry.resolved).toBe(EXPECTED_CONTRACTS_RESOLVED);
     // The three sources of truth must agree, not just the two on disk: lockwalk's
     // EXPECTED row carries the same tag/peel — and the manifestVersion skew override
     // stays GONE: v0.5.2's release commit re-normalized the manifest `version` field
-    // (measured via git show) and v0.5.3 carries the honest field (reads 0.5.3 at
-    // 430981e). Rule 1 checks this row against the plain tag-derived version; a
+    // (measured via git show) and v0.5.3/v0.5.4 carry the honest field (reads 0.5.4 at
+    // c4919853). Rule 1 checks this row against the plain tag-derived version; a
     // hand-revived override goes red here.
     const contracts = EXPECTED['@phlix/contracts'];
-    expect(contracts.tag).toBe('v0.5.3');
-    expect(contracts.sha).toBe('430981e3b231a04c9464382642f54c2eeea33c1c');
+    expect(contracts.tag).toBe('v0.5.4');
+    expect(contracts.sha).toBe('c491985317ac9844bcf24caea2f3af6dea556fe1');
     expect(contracts.manifestVersion).toBeUndefined();
   });
 });
 
-describe('ui v0.99.9 re-pin, carried at v0.99.10 — equality era: ui line byte-pinned to the same #v0.5.3 words as root, zero waivers, zero nested copies', () => {
+describe('ui v0.99.9 re-pin carried through v0.99.10 and the contracts v0.5.4 + ui v0.99.12 re-pin — equality era: ui line byte-pinned to the same #v0.5.4 words as root, zero waivers, zero nested copies', () => {
   // History of this guard: ui's manifest once requested contracts #v0.4.5 while
   // this repo's direct pin rode higher — the divergence S442 documented and the
   // lockwalk ratified until W82 retired that exception; the W85 dual-repin restored
@@ -97,33 +98,34 @@ describe('ui v0.99.9 re-pin, carried at v0.99.10 — equality era: ui line byte-
   // returned at the ui v0.99.6 re-pin, ended again at the contracts v0.5.2 re-pin,
   // ENDED A THIRD TIME at the ui v0.99.7 re-pin (carried at v0.99.8), the divergence
   // era returned at the contracts v0.5.3 re-pin (2026-10-01), and the DIVERGENCE ERA
-  // ITSELF ENDED at the ui v0.99.9 re-pin (2026-10-03) and CARRIED at v0.99.10
-  // (2026-10-14): installed ui requests
-  // `#v0.5.3` outright (measured via git show at cc931723 and 18c76eb0 AND independently off the
-  // installed node_modules/@phlix/ui/package.json), byte-equality with the direct pin
-  // restored — the @v0.5.2 waiver retired per its own written law, map
-  // present-but-empty. npm dedupes ui's edge onto the single hoisted 0.5.3 copy (no
+  // ITSELF ENDED at the ui v0.99.9 re-pin (2026-10-03), CARRIED at v0.99.10 (2026-10-14)
+  // and re-CARRIED by this contracts v0.5.4 + ui v0.99.12 re-pin (2026-11-02): installed ui
+  // requests
+  // `#v0.5.4` outright (measured via git show at 1f0046c5 AND independently off the installed
+  // node_modules/@phlix/ui/package.json), byte-equality with the direct pin
+  // restored — the @v0.5.2 waiver retired per its own written law at v0.99.9, map
+  // present-but-empty ever since. npm dedupes ui's edges onto the single hoisted 0.5.4 copy (no
   // nested node in the lock, no nested dir on disk).
   // Fail-loud on every face of the new truth, BOTH directions: FALSELY-DIVERGENT —
   // root and ui lock lines hand-edited apart while the installed manifest agrees;
-  // STALE-DRIFT — ui's words changing from `#v0.5.3` without a live waiver (the
+  // STALE-DRIFT — ui's words changing from `#v0.5.4` without a live waiver (the
   // installed tree is the independent witness).
-  it("keeps ui's lock-declared contracts request byte-pinned to its manifest's #v0.5.3 words — EQUAL to root", () => {
+  it("keeps ui's lock-declared contracts request byte-pinned to its manifest's #v0.5.4 words — EQUAL to root", () => {
     const ui = lock.packages['node_modules/@phlix/ui'];
-    expect(ui.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.5.3');
-    // Equality era (carried at v0.99.10): ui declares the identical words to the root pin — the
-    // divergence-era .not.toBe law flips back to .toBe, and a hand-split of the two
-    // lines (or a ui downgrade to a #v0.5.2-era tag without re-ratifying a waiver)
-    // goes red on both lines until this file is re-measured.
+    expect(ui.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.5.4');
+    // Equality era (carried since v0.99.9, re-confirmed at this move): ui declares the identical
+    // words to the root pin — the divergence-era .not.toBe law stays flipped back to .toBe, and
+    // a hand-split of the two lines (or a ui downgrade to a pre-#v0.5.4-era tag without
+    // re-ratifying a waiver) goes red on both lines until this file is re-measured.
     expect(ui.dependencies['@phlix/contracts']).toBe(pkg.dependencies['@phlix/contracts']);
     // The installed tree independently proves the lock line is the manifest's verbatim
     // words, not a hand-edit: falsifying either tag here trips this witness.
     const installed = readJson('node_modules/@phlix/ui/package.json');
-    expect(installed.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.5.3');
-    expect(installed.dependencies['@phlix/syncplay']).toBe('github:detain/phlix-syncplay#v0.1.5');
+    expect(installed.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.5.4');
+    expect(installed.dependencies['@phlix/syncplay']).toBe('github:detain/phlix-syncplay#v0.1.6');
     // The equality era's steady state: zero ratified hoists — the waiver's written
     // retirement condition (#v0.5.3-or-newer requested outright) fired at ui v0.99.9
-    // and holds at v0.99.10.
+    // and holds through v0.99.12/#v0.5.4.
     expect(RATIFIED_HOISTS).toEqual({});
     expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.5.2']).toBeUndefined();
     expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.4.7']).toBeUndefined();
@@ -143,17 +145,20 @@ describe('ui v0.99.9 re-pin, carried at v0.99.10 — equality era: ui line byte-
     ).toBe(false);
   });
 
-  it('hoists a single @phlix/contracts resolution at the pinned version, v0.5.3 content on disk', () => {
+  it('hoists a single @phlix/contracts resolution at the pinned version, v0.5.4 content on disk', () => {
     const entry = lock.packages['node_modules/@phlix/contracts'];
     expect(entry.version).toBe(EXPECTED_CONTRACTS_VERSION);
     const installed = readJson('node_modules/@phlix/contracts/package.json');
     expect(installed.version).toBe(EXPECTED_CONTRACTS_VERSION);
     // Both stale-manifest skews stay over (contracts re-normalized at v0.5.2 by
-    // ac669ca — carried at v0.5.3 — and ui re-normalized at v0.99.7), so the version
+    // ac669ca — carried at v0.5.3/v0.5.4 — and ui re-normalized at v0.99.7), so the version
     // fields themselves tell the pins apart — and the census marker is load-bearing
     // in a NEW way this era: v0.5.3 (release 430981e) genuinely EXPANDED the registry
     // additively 202→204 (unlike v0.5.2, whose dist/error-codes.json was byte-identical
-    // to v0.5.1's), and the route manifest moved to 412 tuples (md5 91579683...). The
+    // to v0.5.1's), and the route manifest moved to 412 tuples (md5 91579683...). v0.5.4
+    // (c4919853) is the FROZEN-registry mint: the trio md5s are byte-identical to v0.5.3's at
+    // the tag AND off the installed node (measured), so the count CARRIES — the pin's job is
+    // to make any future movement a conscious rotation again. The
     // count must be rotated by MEASUREMENT at every future re-pin — a resolution rolled
     // back to any older peel, a newer expansion silently mis-labelled, or this line left
     // at an inherited count goes RED here, field or no field.

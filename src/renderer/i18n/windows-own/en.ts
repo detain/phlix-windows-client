@@ -23,6 +23,7 @@ export const WIN_EN = {
     history: 'Watch History',
     explore: 'Explore',
     recommendations: 'Recommendations',
+    syncPlay: 'SyncPlay',
     admin: 'Admin',
     browse: 'Browse',
     music: 'Music',
