@@ -7,6 +7,57 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Deps — re-pin: @phlix/ui #v0.99.12→#v0.99.13 — hub 'UI Pin Skew' external cure, locale vendor deliberately HELD [ui13-wave] — 2026-11-02
+
+- **What:** `@phlix/ui #v0.99.12→#v0.99.13` (peel `e30bae9f096708dc43e863c2b4f4171d25d7c8e3`,
+  annotated tag object `ff9c1f91…` — ls-remote-verified; the peel is also the ui master tip at
+  re-pin time). package.json 1+/1−, package-lock.json **surgical 3+/3−** (root deps echo +
+  the ui node `version`/`resolved`; git-dep nodes carry no integrity field), produced by a
+  real scoped `npm update @phlix/ui` (npm 12.0.2 / Node 24.21.0, `NPM_CONFIG_USERCONFIG=/dev/null`
+  + `--allow-git=all`) and idempotency-proven by a second run reporting zero changes. `@phlix/contracts`
+  `#v0.5.4` and the transitive `@phlix/syncplay` `#v0.1.6` node are UNMOVED — v0.99.13's nested
+  requests are the same words (measured via git show at `e30bae9f` AND independently off the
+  installed `node_modules/@phlix/ui/package.json`). The upstream step is Select.vue's internal
+  dropdown-ref rename (`open`→`isOpen`, vue/no-dupe-keys cure under the refreshed
+  eslint-plugin-vue era; public `v-open` API unchanged) plus a toolchain-era dist rebuild.
+  Purpose: closes one of the two blocking rows in phlix-hub's 'UI Pin Skew' CI check — an
+  external cure for the hub, no hub-side change.
+- **Hoist-era: equality CARRIES (sixth straight move).** `RATIFIED_HOISTS` was and stays `{}` —
+  zero measured reds on any hoist line; the root and ui declare `#v0.5.4` byte-identically onto
+  the one hoisted `0.5.4@c4919853` copy, both contracts edges walk plain rule 1, syncplay rides
+  `#v0.1.6`. `scripts/lockwalk.mjs` EXPECTED ui row rotated to the `.13` peel with the carry
+  narratives (contracts/syncplay rows annotated as CARRIED, hedges closed); walker structural +
+  `--live` exit 0 with all three tag-object peel proofs verified against origin
+  (contracts `eb649cd9→c4919853`, syncplay `24e51a95→081687742`, ui `ff9c1f91→e30bae9f`).
+- **Locale vendor — DELIBERATE HOLD (third, after v0.99.9/v0.99.10).** The `.12→.13` diff
+  touches nothing inside the vendored surface: the `src/i18n/locales` tree (`3469b62e…`) and
+  `src/i18n/messages.ts` (`d984098c…`) are byte-identical across both peels (git blob ids
+  measured via `git rev-parse 1f0046c5:… e30bae9f:…` in the sibling — the decisive proof;
+  scratch record `/tmp/opencode/win13-proof/LOCALE-HOLD.md`). `sync-ui-locale-bundles.mjs`
+  SOURCE_REF and the seven-pair PIN therefore HOLD at `1f0046c5` — a re-vendor would be no-op
+  churn; the bundles↔installed set-equality law (477↔477 flattened keys) rides green on the new
+  lock UNMODIFIED, as does the PIN↔source leg (hard-fail locally, sibling present).
+- **Era pins rotated from MEASURED REDS only (3 convictions, all in `tests/unit/lockwalk.test.mjs`
+  driven by the stale EXPECTED row):** walk-clean on the real lock, the ui-version mutation trio
+  (literals `@phlix/ui#v0.99.13`, `pinned version line reads 0.99.13`, `not the pinned v0.99.13
+  peel e30bae9f…`; the now-behind plant moved `0.99.10`→`0.99.12`, the freshest rollback
+  material), and the EXPECTED-row pin (`uiRow.tag/sha`, `ui.version`). `contractsPin.test.mjs`
+  and `i18nLocales.test.ts` stayed green at parent+new-lock — their equality/hold laws carry
+  UNMODIFIED (names/docblocks extended only to record the `.13` state). Doc current-state pin
+  statements carried with the move per house precedent (`README`, `AGENTS`, `CLAUDE`,
+  `DEVELOPER`, `docs/ui-surface.md`, `docs/i18n.md` vendor ledger, three `.opencode` skills);
+  historical era attributions everywhere stay verbatim.
+- **Gates:** typecheck (vue-tsc + tsc main) 0, lint 0, vitest serial `--no-file-parallelism`
+  71 files **826 passed / 0 failed / 0 skipped — baseline exact** (no count delta: the step is
+  a rebuild, not an API move), electron build 0 (vite renderer + tsc main + preload assert),
+  xvfb smoke 1 passed against the freshly built dist. Audit-gate exit 1 = the INHERITED external
+  trio (glob `GHSA-3g3m-2fjr-6pw4`, minimatch `GHSA-g3hv-75wg-m249`, joi `GHSA-4528-x5fx-h6hg`) —
+  byte-same signature on the Security-audit/`Run npm audit` steps across the whole chain
+  (`bca289c`/`63b3123`/`df472e7`/`084363c`, origin-verified job logs; every other step green);
+  allow-list stays EMPTY by the C4 decision (joi is the sole in-range clearance candidate, left
+  out to keep this lock diff `@phlix`-nodes-only). The trio belongs to its own re-green lane.
+  No tags.
+
 ### Deps — wave-2 re-pin: @phlix/contracts #v0.5.4 + @phlix/ui #v0.99.12 — true locale re-vendor + M-WINDOWS-04 rider second leg executed [tag-wave C4] — 2026-11-02
 
 - **What:** the tag-wave consumer re-pin. `@phlix/contracts #v0.5.3→#v0.5.4` (peel

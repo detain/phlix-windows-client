@@ -15,7 +15,7 @@ instructions would fork UI that lawfully belongs upstream.
 ## The actual law here (thin consumer)
 
 - Page VIEWS and base routing come from `@phlix/ui`'s `createPhlixApp(config)`
-  (`src/renderer/main.ts` boots it; pinned `github:detain/phlix-ui#v0.99.12`).
+  (`src/renderer/main.ts` boots it; pinned `github:detain/phlix-ui#v0.99.13`).
 - The windows-side route table is authored in `buildExtraRoutes(appMode)`
   (`src/renderer/main.ts`) — it registers the `/app/*` entries and admin gating
   around the vendored views. The nav catalog is `buildMenu(appMode)` (same file).

@@ -39,7 +39,7 @@ Process* below).
 └─────────────────────────────────────────────────────────┘
 ```
 
-The renderer pins `@phlix/ui` (`github:detain/phlix-ui#v0.99.12`) and `@phlix/contracts`
+The renderer pins `@phlix/ui` (`github:detain/phlix-ui#v0.99.13`) and `@phlix/contracts`
 (`github:detain/phlix-contracts#v0.5.4`). Vue 3, Pinia, and vue-router are peer deps of `@phlix/ui`.
 Vendored page views, theming, application state, and the navigation chrome come from
 `@phlix/ui`; the nav entries it renders are local (the `buildMenu()` catalog in

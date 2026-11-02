@@ -18,7 +18,7 @@ Every one of those coordinates is a phantom: `src/renderer/utils/api.ts`,
 - **Server HTTP is owned upstream.** `@phlix/ui`'s `ApiClient` attaches
   `Authorization`/session headers and unwraps responses; the windows renderer
   never talks to `/api/v1` directly. New endpoint coverage = extend `@phlix/ui`
-  and bump the pin (`github:detain/phlix-ui#v0.99.12` in `package.json`), per
+  and bump the pin (`github:detain/phlix-ui#v0.99.13` in `package.json`), per
   the upstream-first convention (AGENTS.md Conventions; `docs/decisions/004-no-local-ui.md`).
 - **Device identity** is injected once at boot: `buildPhlixHeaders({ deviceId,
   deviceName: 'Phlix for Windows', deviceType: 'windows' })` from

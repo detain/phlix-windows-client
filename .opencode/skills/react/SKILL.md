@@ -14,7 +14,7 @@ into a stack this repo does not have.
 ## The actual stack
 
 - `dependencies`: `vue` ^3.5, `pinia` ^3, `vue-router`, `@phlix/ui`
-  (`github:detain/phlix-ui#v0.99.12`), `@phlix/contracts`
+  (`github:detain/phlix-ui#v0.99.13`), `@phlix/contracts`
   (`github:detain/phlix-contracts#v0.5.4`), `electron-log`/`electron-store`/`electron-updater`.
 - The renderer bootstraps `createPhlixApp(config)` from `@phlix/ui`
   (`src/renderer/main.ts`) — Vue 3 + Pinia + vue-router, all peer deps of the vendored app.

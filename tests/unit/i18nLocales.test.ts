@@ -9,10 +9,12 @@
  *     unmoved — and RE-CARRIED at v0.99.8, where the tree genuinely moved
  *     (+29 keys) and the six bundles + PIN were re-vendored from a580410f, then HELD
  *     at the v0.99.9/v0.99.10 npm-pin bumps (locale tree byte-identical across those
- *     peels — deliberate vendor holds), and RE-VENDORED AGAIN at v0.99.12 (2026-11-02),
+ *     peels — deliberate vendor holds), RE-VENDORED AGAIN at v0.99.12 (2026-11-02),
  *     where the tree genuinely moved once more (+36 keys, 441→477, locales
  *     a0f018cf→3469b62e, messages.ts 574b98e5→d984098c; PIN advanced to the 1f0046c5
- *     peel, 12/14 content hashes moving — only the index.ts pair held); the
+ *     peel, 12/14 content hashes moving — only the index.ts pair held), and HELD once
+ *     more at the v0.99.13 npm-pin bump (catalog and locales byte-identical across the
+ *     .12/.13 peels — git blobs 3469b62e/d984098c measured at both peels); the
  *     formerly-ahead keys keep focused cross-bundle laws),
  *     placeholder parity, CLDR segment law (incl. the documented
  *     additive exception), diacritics/CJK sanity, and PIN/hash drift guards
@@ -213,9 +215,12 @@ describe('ui bundles — key-set identity and installed coverage', () => {
     }
   });
 
-  it('bundle key set EQUALS the installed pin (gap closed at v0.99.5, carried at v0.99.6/v0.99.7, re-carried via the v0.99.8 re-vendor, held at the v0.99.9/v0.99.10 npm-pin bumps, re-carried via the v0.99.12 re-vendor)', () => {
-    // Vendor @ 1f0046c5 (tag v0.99.12) vs installed @phlix/ui (v0.99.12 at this
-    // re-pin; the vendor rode v0.99.9/v0.99.10 as deliberate holds because the locale
+  it('bundle key set EQUALS the installed pin (gap closed at v0.99.5, carried at v0.99.6/v0.99.7, re-carried via the v0.99.8 re-vendor, held at the v0.99.9/v0.99.10 npm-pin bumps, re-carried via the v0.99.12 re-vendor, held again at the v0.99.13 bump)', () => {
+    // Vendor @ 1f0046c5 (tag v0.99.12) vs installed @phlix/ui (v0.99.13 at this
+    // re-pin — the vendor HOLDS at the .12 peel: Select.vue internal-ref rename +
+    // toolchain-era dist rebuild only, locale tree and messages.ts byte-identical
+    // across the two peels; the vendor likewise rode v0.99.9/v0.99.10 as deliberate
+    // holds because the locale
     // tree is
     // byte-identical across those peels — see docs/i18n.md). The dc1df7d5-era 7-key
     // ahead-of-pin gap closed at the v0.99.5 re-pin and the equality CARRIED untouched at
