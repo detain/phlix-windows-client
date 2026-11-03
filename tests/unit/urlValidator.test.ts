@@ -55,7 +55,10 @@ describe('validateExternalUrl', () => {
 describe('scrubErrorForLog', () => {
   it('reduces every URL in an Error (message, stack and cause chain) to scheme+host', () => {
     const inner = new Error('connect failed https://user:pass@phlix.example.com:8097/sync?token=AB12CD')
-    const outer = new Error('undici fetch https://api.phlix.example/net/', { cause: inner })
+    const outer = new Error('undici fetch https://api.phlix.example/net/')
+    // tsconfig lib (ES2020) does not declare the ErrorOptions/cause ctor arg;
+    // direct assignment lands the same own property the scrubber reads.
+    ;(outer as { cause?: unknown }).cause = inner
     outer.stack = outer.stack + '\n  at socket (https://meta.example.internal/x/y)'
     const out = scrubErrorForLog(outer)
     expect(out).not.toContain('AB12CD')

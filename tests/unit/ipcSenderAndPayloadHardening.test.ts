@@ -22,7 +22,7 @@ const { prefs, tracks, WIN } = vi.hoisted(() => {
     wcOn: new Map<string, (event: unknown, ...args: unknown[]) => unknown>(),
     winOn: new Map<string, (event: unknown, ...args: unknown[]) => unknown>(),
     wcSend: [] as Array<[string, unknown]>,
-    notifications: [] as Array<{ onClick?: () => void }>,
+    notifications: [] as Array<{ title?: string; body?: string; onClick?: () => void }>,
     setProgressBar: [] as number[],
     setToolTip: [] as string[],
     blockerStart: [] as boolean[],
@@ -122,18 +122,18 @@ vi.mock('electron', () => ({
   },
   Notification: class {
     static isSupported = vi.fn().mockReturnValue(true);
-    onClick?: () => void;
-    title?: string;
-    body?: string;
+    // Instance members (not a constructor-returned literal): TS2409 requires a
+    // class constructor's return to be the instance type. Same observable shape
+    // the boot code consumes — on/show/close per notification, options row
+    // tracked for assertions.
+    on!: (ev: string, fn: () => void) => void;
+    show = vi.fn();
+    close = vi.fn();
     constructor(options: { title?: string; body?: string }) {
       const self = { ...options } as { title?: string; body?: string; onClick?: () => void };
       Object.defineProperty(self, 'bind', { value: () => undefined });
       tracks.notifications.push(self);
-      return {
-        on: (ev: string, fn: () => void) => { if (ev === 'click') { self.onClick = fn; } },
-        show: vi.fn(),
-        close: vi.fn()
-      };
+      this.on = (ev: string, fn: () => void) => { if (ev === 'click') { self.onClick = fn; } };
     }
   }
 }));

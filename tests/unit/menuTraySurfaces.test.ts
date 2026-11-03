@@ -187,8 +187,11 @@ beforeAll(async () => {
   menu = await import('../../src/main/index');
 });
 
-function rolesOf(template: Array<Record<string, unknown>>): string[] {
-  return template.map((item) => String(item.role ?? item.label ?? item.type));
+function rolesOf(template: ReadonlyArray<object>): string[] {
+  return template.map((raw) => {
+    const item = raw as { role?: unknown; label?: unknown; type?: unknown };
+    return String(item.role ?? item.label ?? item.type);
+  });
 }
 
 describe('M5 — Edit menu role + registered context-menu handler', () => {
@@ -259,8 +262,11 @@ describe('m10 — playback rows stop advertising unregistered accelerators', () 
 });
 
 describe('M6/m11 — preference checkboxes exist on View AND tray, write on click, stay in lockstep', () => {
-  function checkboxIn(template: Array<Record<string, unknown>>, label: string) {
-    return template.find((i) => i.label === label && i.type === 'checkbox') as
+  function checkboxIn(template: ReadonlyArray<object>, label: string) {
+    return template.find((raw) => {
+      const i = raw as { label?: unknown; type?: unknown };
+      return i.label === label && i.type === 'checkbox';
+    }) as
       | { checked?: boolean; click?: (mi: { checked: boolean }) => void }
       | undefined;
   }
