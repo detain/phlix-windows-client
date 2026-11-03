@@ -119,15 +119,15 @@ the SHA column is the pushed commit each run tested.
 ### test.yml — Runs on every push/PR to main/master/develop
 - **lint** (ubuntu-26.04): `npm ci` → `npm run lint`
 - **types** (ubuntu-26.04): `npm ci` → `vue-tsc --noEmit` → `tsc -p tsconfig.main.json --noEmit` → `vue-tsc --noEmit -p tsconfig.test.json`
-- **test** (ubuntu-26.04 + windows-latest matrix): `npm ci` → `npm run build` → `npm test` → `npm test -- --coverage` + Codecov/Codacy upload → `node scripts/audit-gate.mjs` (audit runs LAST — a red earlier step can never skip the audit signal, and the audit's own raw exit code still hard-gates the job)
-- **smoke** (ubuntu-26.04 + windows-latest matrix): `npm ci` → Playwright install → `npm run build` → `npm run smoke` (with xvfb-run on Linux)
+- **test** (ubuntu-26.04 + windows-2025 matrix): `npm ci` → `npm run build` → `npm test` → `npm test -- --coverage` + Codecov/Codacy upload → `node scripts/audit-gate.mjs` (audit runs LAST — a red earlier step can never skip the audit signal, and the audit's own raw exit code still hard-gates the job)
+- **smoke** (ubuntu-26.04 + windows-2025 matrix): `npm ci` → Playwright install → `npm run build` → `npm run smoke` (with xvfb-run on Linux)
 
 ### build.yml — Runs on push to master with tags, PRs to master (src/** changes)
 - **lint** (ubuntu-26.04): `npm ci` → `npm run lint`
 - **typecheck** (ubuntu-26.04): `npm ci` → `vue-tsc --noEmit` → `tsc -p tsconfig.main.json --noEmit` → `vue-tsc --noEmit -p tsconfig.test.json`
 - **test** (ubuntu-26.04): `npm ci` → `npm run build` → `npm test`
-- **smoke** (ubuntu-26.04 + windows-latest matrix): `npm ci` → Playwright install → `npm run build` → `npm run smoke`
-- **build** (windows-latest, needs: [lint, typecheck, test, smoke, audit]): `npm ci` → `npm run build:vite` → `npm run build:electron` → electron-builder (NSIS + APPX)
+- **smoke** (ubuntu-26.04 + windows-2025 matrix): `npm ci` → Playwright install → `npm run build` → `npm run smoke`
+- **build** (windows-2025, needs: [lint, typecheck, test, smoke, audit]): `npm ci` → `npm run build:vite` → `npm run build:electron` → electron-builder (NSIS + APPX)
 - **release-latest** / **release** (on tag push or master push)
 
 ### codeql.yml — Runs on every push/PR to main/master (src/** changes)
@@ -137,7 +137,7 @@ the SHA column is the pushed commit each run tested.
 
 - **No W5.x perf gates in CI.** Performance optimizations (W5.1-5.6) are implemented in code but not enforced via explicit CI thresholds. This is acceptable as performance was improved and there is no regression tracking infrastructure in place.
 - **Lockfile integrity** is enforced via `npm ci` (always uses package-lock.json; `npm install` is not used in CI).
-- **Matrix strategy** for smoke/test runs on both ubuntu-26.04 and windows-latest for cross-platform coverage.
+- **Matrix strategy** for smoke/test runs on both ubuntu-26.04 and windows-2025 for cross-platform coverage. Both labels are deliberately pinned (m31): no workflow anywhere floats a `-latest` label, so a hosted-image rollover can never silently change the toolchain under the release chain.
 - **Fail-fast** is enabled on all workflows via `cancel-in-progress: true` on concurrency groups.
 
 ## Mutation Proof

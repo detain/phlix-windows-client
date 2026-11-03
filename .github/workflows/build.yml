@@ -116,7 +116,13 @@ jobs:
       # two legs independent so a Linux failure cannot cancel the Windows result.
       fail-fast: false
       matrix:
-        os: [ubuntu-26.04, windows-latest]
+        # m31: labels deliberately pinned, both sides. ubuntu-26.04 follows the
+        # estate-wide rollover policy; windows-2025 is what the Windows
+        # `latest` alias resolved to at pin time (actions/runner-images, read
+        # 2026-11-03), so this freezes the current toolchain — a future image
+        # rollover has to be a decision here, never a silent swap under the
+        # release chain.
+        os: [ubuntu-26.04, windows-2025]
 
     steps:
       - name: Checkout code
@@ -142,7 +148,7 @@ jobs:
         run: xvfb-run --auto-servernum npm run smoke
 
       - name: Run smoke test (Windows)
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-2025'
         run: npm run smoke
 
   # ─── audit ────────────────────────────────────────────────────────────────────
@@ -194,9 +200,9 @@ jobs:
       matrix:
         include:
           - target: nsis
-            runs-on: windows-latest
+            runs-on: windows-2025
           - target: appx
-            runs-on: windows-latest
+            runs-on: windows-2025
 
     steps:
       - name: Checkout code
@@ -226,9 +232,9 @@ jobs:
         run: npx electron-builder --win appx --publish never
 
       - name: Generate SHA256 checksums
-        # sha256sum is available on windows-latest; output goes to release/
+        # sha256sum is available on windows-2025; output goes to release/
         # which is already gitignored so no cleanup needed.
-        # Explicit bash shell: the default on windows-latest is PowerShell,
+        # Explicit bash shell: the default on windows-2025 is PowerShell,
         # which cannot parse the POSIX redirection below.
         shell: bash
         run: |
@@ -443,7 +449,7 @@ jobs:
       #     names against the docs; the older ad-hoc names this comment used
       #     to carry contradicted the runbook and are permanently retired.
       #   • signtool.exe is a Windows SDK binary and does NOT exist on this
-      #     ubuntu-26.04 job — the steps must run on a windows-latest leg (the
+      #     ubuntu-26.04 job — the steps must run on a windows-2025 leg (the
       #     build job already is one) with signed artifacts flowing into the
       #     release uploads, not in place here.
       #   • docs/signing.md "CI Signing Configuration" carries the aligned

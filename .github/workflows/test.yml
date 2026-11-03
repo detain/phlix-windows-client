@@ -30,7 +30,11 @@ jobs:
       # cancelled the Windows results whenever the Ubuntu leg failed).
       fail-fast: false
       matrix:
-        os: [ubuntu-26.04, windows-latest]
+        # m31: pinned labels — ubuntu-26.04 follows the estate-wide rollover
+        # policy, windows-2025 freezes what the Windows `latest` alias served
+        # at pin time (actions/runner-images, read 2026-11-03). Image rollovers
+        # must be decisions here, never silent toolchain swaps.
+        os: [ubuntu-26.04, windows-2025]
         node-version: [24.x]
 
     steps:
@@ -167,7 +171,7 @@ jobs:
       # Windows leg (which has to download Electron + Playwright first).
       fail-fast: false
       matrix:
-        os: [ubuntu-26.04, windows-latest]
+        os: [ubuntu-26.04, windows-2025]
         node-version: [24.x]
 
     steps:
@@ -194,5 +198,5 @@ jobs:
         run: xvfb-run --auto-servernum npm run smoke
 
       - name: Run smoke test (Windows)
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-2025'
         run: npm run smoke

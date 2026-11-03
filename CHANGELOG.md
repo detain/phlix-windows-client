@@ -7,6 +7,12 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fix — deferred-9 lane (m31): every Windows runner leg pinned to windows-2025 — 2026-11-03
+
+- **What:** the estate's ubuntu-26.04 rollover policy (2026-10-08) never reached this repo's Windows legs — test/smoke matrices, the build-job `include` entries, both `if: matrix.os` guards, and four doc/runbook mentions floated on `windows-latest`. All now literal `windows-2025`, which is exactly what the alias resolved to at pin time (actions/runner-images, read 2026-11-03): zero toolchain change today, and a future hosted-image rollover becomes an explicit decision in these files instead of a silent swap under the release chain. This repo is the only estate client with Windows runners, so the pin completes the estate-wide no-floating-label posture. Comments/docs reworded to keep the whole-file law enforceable (the historical alias is named only inside the law test).
+- **Law:** new `tests/unit/runnerPinning.test.mjs` (7 pins) — no `windows-latest` (or `-latest` float of any kind) anywhere in `.github/workflows/`, the two matrices carry `[ubuntu-26.04, windows-2025]` in order, both smoke guards compare against the pinned label, build-matrix `runs-on` entries are literals, and the docs named in the m31 register (ci-baseline, signing) stay label-clean. 5 convictions measured red at parent in one run; the 2 greens are green-by-construction (codeql.yml has no Windows leg to float; the ubuntu pins were already literals) — disclosed.
+- **Verification:** full vitest serial 77 files / 945 (938+7 exact), vue-tsc renderer + tests-project + tsc-main 0, eslint 0, build + assert-preload green. Workflow YAMLs parse (js-yaml via the law test itself). No dependency or lock change.
+
 ### Fix — review batch 10 (m19/M7/M8; M12 deferred): the version-gate constraint + hub-shaped hint + powerMonitor signal wire — 2026-11-03
 
 - **What (m19, secnet m2):** `app:check-server-version` was a main-process fetch primitive with a RENDERER-supplied base — `isFetchableApiBase` deliberately keeps loopback legal, and a main-process fetch bypasses CORS, so a compromised trusted document got a LAN/internal timing-and-error oracle. The handler now probes ONLY the persisted `serverUrl`; the `{ apiBase }` argument stays in the wire shape (preload + docs unchanged for consumers) but is deliberately ignored, and an absent persisted base answers the byte-identical INACTIVE verdict WITHOUT touching the network.

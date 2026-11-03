@@ -185,7 +185,7 @@ error on every electron-builder run.
 **Flip gate (the only legal enablement):** WIN-08 cert provisioning —
 secrets `AUTHENTICODE_CERT` / `AUTHENTICODE_CERT_PASSWORD` (win leg) and
 `APPX_SIGNING_CERT` / `APPX_SIGNING_CERT_PASSWORD` (appx leg), signing on
-a `windows-latest` leg per the section below — and only then set
+a `windows-2025` leg per the section below — and only then set
 `build.win.forceCodeSigning: true` (the per-platform knob;
 `out/platformPackager.js`'s getter prefers `platformSpecificBuildOptions.forceCodeSigning`
 over the top-level one) **in the same change** as this doc, the root
@@ -207,7 +207,7 @@ misconfiguration this section exists to forbid: the flag on, no certs.
 >
 > **Runner leg:** `signtool.exe` is a Windows SDK binary. The `release` and
 > `release-latest` jobs run on `ubuntu-26.04` and cannot execute anything
-> here — signing steps belong on a `windows-latest` leg (the `build` job
+> here — signing steps belong on a `windows-2025` leg (the `build` job
 > already is one), with the signed artifacts flowing into the release
 > uploads. The snippets assume a `pwsh` shell, which is the GitHub Actions
 > default on Windows runners.
