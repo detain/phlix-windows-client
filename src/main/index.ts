@@ -10,7 +10,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
 import { isPathSafe } from './pathUtils';
-import { validateExternalUrl, validateNavigationUrl, isFetchableApiBase } from './urlValidator';
+import { validateExternalUrl, validateNavigationUrl, isFetchableApiBase, summarizeUrlForLog, scrubErrorForLog } from './urlValidator';
 import { checkMinServerVersion, MIN_SERVER_VERSION, type ServerVersionCheck } from './versionCheck';
 import {
   parseDeepLinkUrl,
@@ -572,6 +572,47 @@ function createWindow(): void {
     // the renderer's boot path), and the crash reason lands in the log.
     log.error(`[renderer] render process gone: ${details.reason}`);
     crashRecoveryDialog();
+  });
+
+  // M10 (review asphp MAJ-3): before this, a self-signed or corporate-MITM
+  // cert broke the wss/https dial with NO main-side trace — the failure was
+  // silently unattributable across electron-log, dialogs and the vendor's
+  // generic socket surface. Default-deny is KEPT (callback(false) is exactly
+  // what Electron does unheard); the listener adds only the diagnosis: a
+  // summarizeUrlForLog-scoped warn (M-WINDOWS-44 law — scheme+host, never
+  // path/token) plus one rate-limited toast carrying the same redaction.
+  //
+  // m7(b) (review casualgamer #4): did-fail-load was reasoned about in the
+  // boot comment at the loadURL site but never wired — a rejected boot left
+  // the pre-JS splash spinning forever. Same listener, two faces: app://
+  // boot failures get the crashRecoveryDialog reload affordance (the
+  // message wording fits: reload recovers a corrupt/partial renderer), and
+  // external main-frame failures log + toast redacted. ERR_ABORTED (-3) is
+  // every deliberate superseded navigation — Electron floods it on normal
+  // SPA use, so it must stay silent.
+  mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+    if (!isMainFrame || errorCode === -3) return;
+    const summary = summarizeUrlForLog(validatedURL);
+    log.warn(`[net] main-frame load failed: net::${errorDescription} at ${summary}`);
+    if (validatedURL.startsWith('app://')) {
+      crashRecoveryDialog();
+      return;
+    }
+    notifyUser(t('net.loadTitle'), t('net.loadBody', { url: summary }), { throttle: true });
+  });
+
+  // M11 (review crossfe #2): the preload law asserts "the SPA never runs
+  // framed" but nothing enforced it — will-navigate guards top-level only,
+  // and frame-ancestors cannot ride a <meta> tag. Header cure lives in the
+  // app:// responder below; this is the belt: an app:// document may never
+  // be the TARGET of a subframe navigation (not even from app://- itself —
+  // the SPA has no framed surfaces, so the strictest reading is the honest
+  // one). Main-frame navigations are the app's own boot/reload paths.
+  mainWindow.webContents.on('will-frame-navigate', (frameDetails) => {
+    if (frameDetails.isMainFrame) return;
+    if (!frameDetails.url.startsWith('app://')) return;
+    frameDetails.preventDefault();
+    log.warn('[net] blocked a subframe navigation into an app:// document (M11 frame-ancestor belt)');
   });
 }
 
@@ -1684,6 +1725,54 @@ export const PROD_BOOT_URL = 'app://-/app/';
  * RENDERER_DIST_DIR and verifying the result is within that directory.
  * Falls back to index.html for SPA routing (HTML5 history fallback).
  */
+// M11 (review crossfe #2): frame-ancestors cannot ride the <meta> CSP in
+// index.html (Electron ignores it for framing directives), so every app://
+// response carries it as a HEADER — an attacker page cannot frame the
+// authenticated SPA, and the webContents 'will-frame-navigate' belt in
+// createWindow refuses the navigation outright. Exported for the law test.
+export const APP_FRAME_CSP = "frame-ancestors 'none'";
+
+/**
+ * m7(c) (review casualgamer #4): a corrupt/unreadable packaged renderer
+ * answered with bare Chromium text ("Not Found"). Branded replacement —
+ * static, zero reflection of the requested path (the M-WINDOWS-44 echo law
+ * holds: refusal bodies are constants), same #1a1a2e boot background the
+ * splash uses, no script (a link back to the boot URL is the recovery).
+ */
+export function appErrorDocument(title: string, detail: string): string {
+  return (
+    '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
+    `<title>Phlix — ${title}</title>` +
+    '<meta name="viewport" content="width=device-width, initial-scale=1">' +
+    '</head><body style="margin:0;min-height:100vh;display:flex;align-items:center;' +
+    'justify-content:center;background:#1a1a2e;color:#e8e8f0;font-family:Segoe UI,system-ui,sans-serif">' +
+    '<main style="max-width:34rem;padding:2rem;text-align:center">' +
+    '<div style="font-size:1.6rem;font-weight:600;letter-spacing:.02em">Phlix</div>' +
+    `<p style="font-size:1.05rem;margin:1.2rem 0 .3rem">${title}</p>` +
+    `<p style="color:#9a9ab0;font-size:.9rem">${detail}</p>` +
+    '<p><a href="app://-/app/" style="color:#e8e8f0">Reload Phlix</a></p>' +
+    '</main></body></html>'
+  );
+}
+
+/**
+ * m7(c)+M11: error responses as app:// documents — text/html so the branded
+ * body renders, and the framing CSP on refusals too (an error document is
+ * still an app:// document; nothing under app:// may ever be framed).
+ */
+export function appError(status: 403 | 404 | 500): Response {
+  const copy =
+    status === 403
+      ? { title: 'Not allowed', detail: 'This address is outside the Phlix application.' }
+      : status === 404
+        ? { title: 'Page unavailable', detail: 'The packaged renderer could not supply this address.' }
+        : { title: 'Renderer unreadable', detail: 'Phlix could not read its installed interface files. Reloading may help; otherwise reinstall.' };
+  return new Response(appErrorDocument(copy.title, copy.detail), {
+    status,
+    headers: { 'Content-Type': 'text/html', 'Content-Security-Policy': APP_FRAME_CSP }
+  });
+}
+
 export function setupAppProtocolHandler(): void {
   protocol.handle('app', (request) => {
     const urlStr = request.url;
@@ -1693,7 +1782,7 @@ export function setupAppProtocolHandler(): void {
 
     // Validate hostname is '-' (security requirement for app:// protocol)
     if (parsedUrl.hostname !== '-') {
-      return new Response('Forbidden', { status: 403 });
+      return appError(403);
     }
 
     // Validate pathname is the SPA prefix ('/app', which routes to index.html
@@ -1704,7 +1793,7 @@ export function setupAppProtocolHandler(): void {
       // the input that must not echo into logs (deep-link tokens travel in
       // path fragments; probing paths are user data).
       log.warn(`[app protocol] Invalid path format: rejected path of length ${urlPath.length}`);
-      return new Response('Forbidden', { status: 403 });
+      return appError(403);
     }
 
     const routingPath = urlPath;
@@ -1720,11 +1809,11 @@ export function setupAppProtocolHandler(): void {
       try {
         const indexContent = fs.readFileSync(indexPath);
         return new Response(indexContent, {
-          headers: { 'Content-Type': 'text/html' }
+          headers: { 'Content-Type': 'text/html', 'Content-Security-Policy': APP_FRAME_CSP }
         });
       } catch (err) {
         log.error(`[app protocol] Failed to serve index.html: ${err}`);
-        return new Response('Not Found', { status: 404 });
+        return appError(404);
       }
     }
 
@@ -1738,7 +1827,7 @@ export function setupAppProtocolHandler(): void {
       // M-WINDOWS-44 same law: traversal probes are exactly the input that
       // must not echo — record the attempt shape, not the payload.
       log.warn(`[app protocol] Path traversal attempt blocked (relative path length ${relativePath.length}, leading segment ${relativePath.split('/')[0] ? relativePath.split('/')[0].slice(0, 8) : ''})`);
-      return new Response('Forbidden', { status: 403 });
+      return appError(403);
     }
 
     const absoluteFilePath = path.resolve(RENDERER_DIST_DIR, relativePath);
@@ -1750,11 +1839,11 @@ export function setupAppProtocolHandler(): void {
       try {
         const indexContent = fs.readFileSync(path.join(RENDERER_DIST_DIR, 'index.html'));
         return new Response(indexContent, {
-          headers: { 'Content-Type': 'text/html' }
+          headers: { 'Content-Type': 'text/html', 'Content-Security-Policy': APP_FRAME_CSP }
         });
       } catch (err) {
         log.error(`[app protocol] Failed to serve index.html: ${err}`);
-        return new Response('Not Found', { status: 404 });
+        return appError(404);
       }
     }
 
@@ -1780,11 +1869,11 @@ export function setupAppProtocolHandler(): void {
       };
       const contentType = mimeTypes[ext] || 'application/octet-stream';
       return new Response(fileContent, {
-        headers: { 'Content-Type': contentType }
+        headers: { 'Content-Type': contentType, 'Content-Security-Policy': APP_FRAME_CSP }
       });
     } catch (err) {
       log.error(`[app protocol] Failed to read file ${absoluteFilePath}: ${err}`);
-      return new Response('Internal Server Error', { status: 500 });
+      return appError(500);
     }
   });
   log.info('[app protocol] Handler registered');
@@ -1811,6 +1900,39 @@ app.whenReady().then(() => {
   // ui's copy buttons); camera/mic/geolocation/notifications-via-webapi/MIDI
   // and every unknown privilege are refused. See src/main/permissionGuard.ts.
   installPermissionGuard(session.defaultSession);
+
+  // M10: see the createWindow listeners for the full law. certificate-error
+  // fires on the session (every frame, every subsystem — REST probes, wss
+  // dials, updater fetches), so it is wired beside the permission guard it
+  // shares a philosophy with: default-deny, now WITH a diagnosis. Denying is
+  // left as Electron's own behavior past this point (explicit callback(false)
+  // documents the decision at the site that could change it).
+  //
+  // Type note: this electron.d.ts generation surfaces the typed
+  // certificate-error overload on the App interface only — Session's class
+  // event map omits it (same gap class as the m14 will-download cast, which
+  // is inverted here: Session has the real runtime emitter, App's entry is
+  // the deprecated global). Structural cast at the boundary, exact signature.
+  const certErrorSession = session.defaultSession as unknown as {
+    on(
+      event: 'certificate-error',
+      listener: (
+        event: { preventDefault: () => void },
+        webContents: unknown,
+        url: string,
+        error: string,
+        certificate: unknown,
+        callback: (isTrusted: boolean) => void
+      ) => void
+    ): void;
+  };
+  certErrorSession.on('certificate-error', (event, _webContents, url, error, _certificate, callback) => {
+    event.preventDefault();
+    callback(false);
+    const summary = summarizeUrlForLog(url);
+    log.warn(`[net] TLS certificate rejected for ${summary}: ${error}`);
+    notifyUser(t('net.tlsTitle'), t('net.tlsBody', { url: summary }), { throttle: true });
+  });
 
   createWindow();
   createMenu();
@@ -1863,9 +1985,11 @@ app.on('before-quit', () => {
 // Renderer death — the user-visible failure mode — has its own recovery
 // affordance above (render-process-gone → crashRecoveryDialog).
 process.on('uncaughtException', (error) => {
-  log.error('Uncaught exception:', error);
+  // m20: raw error objects carry undici cause-chains with full request URLs
+  // (self-hosted addresses are quasi-sensitive); scrub to scheme+host.
+  log.error('Uncaught exception:', scrubErrorForLog(error));
 });
 
 process.on('unhandledRejection', (reason) => {
-  log.error('Unhandled rejection:', reason);
+  log.error('Unhandled rejection:', scrubErrorForLog(reason));
 });

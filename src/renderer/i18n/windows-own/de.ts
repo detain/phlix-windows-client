@@ -41,6 +41,10 @@ export const WIN_DE = {
     requiredVersion: 'Phlix für Windows benötigt mindestens',
     incompatibleAction: 'Aktualisieren Sie den Phlix-Server oder verbinden Sie sich mit einem neueren, und starten Sie die App neu.',
     incompatibleRetry: 'Erneut versuchen'
+,
+    failTitle: 'Phlix konnte nicht starten',
+    failMessage: 'Die Anwendung konnte die zum Start benötigten Daten nicht laden. Möglicherweise ist der sichere Speicher nicht verfügbar oder die Installation beschädigt. Ein erneuter Versuch hilft oft; sonst Phlix für Windows neu installieren.',
+    failRetry: 'Erneut versuchen'
   },
   // M-WINDOWS-11: player-overlay labels (see en.ts law note; values are
   // this locale's translations of the shipped literals).

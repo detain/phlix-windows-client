@@ -81,5 +81,11 @@ export const es = {
     message: 'La ventana de Phlix ha dejado de responder. Recarga para recuperar tu sesión.',
     reload: 'Recargar ventana',
     dismiss: 'Descartar'
+  },
+  net: {
+    tlsTitle: 'Conexión no confiable',
+    tlsBody: 'Se ha rechazado una conexión segura con {url} porque su certificado no se pudo verificar.',
+    loadTitle: 'No se pudo cargar la página',
+    loadBody: 'Phlix no pudo cargar {url}.'
   }
 } satisfies MainCatalog;

@@ -82,5 +82,11 @@ export const fr = {
     message: 'La fenêtre Phlix a cessé de répondre. Rechargez pour reprendre votre session.',
     reload: 'Recharger la fenêtre',
     dismiss: 'Ignorer'
+  },
+  net: {
+    tlsTitle: 'Connexion non fiable',
+    tlsBody: "Une connexion sécurisée vers {url} a été rejetée, car son certificat n’a pas pu être vérifié.",
+    loadTitle: 'Échec du chargement de la page',
+    loadBody: "Phlix n’a pas pu charger {url}."
   }
 } satisfies MainCatalog;

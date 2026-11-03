@@ -84,5 +84,11 @@ export const pt_BR = {
     message: 'A janela do Phlix parou de responder. Recarregue para recuperar sua sessão.',
     reload: 'Recarregar janela',
     dismiss: 'Descartar'
+  },
+  net: {
+    tlsTitle: 'Conexão não confiável',
+    tlsBody: 'Uma conexão segura com {url} foi rejeitada porque o certificado não pôde ser verificado.',
+    loadTitle: 'Falha ao carregar a página',
+    loadBody: 'O Phlix não pôde carregar {url}.'
   }
 } satisfies MainCatalog;

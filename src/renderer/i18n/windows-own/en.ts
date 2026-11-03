@@ -43,7 +43,10 @@ export const WIN_EN = {
     reportedVersion: 'Server reports version',
     requiredVersion: 'Phlix for Windows requires at least',
     incompatibleAction: 'Update the Phlix server, or connect to a newer one, then restart this app.',
-    incompatibleRetry: 'Try again'
+    incompatibleRetry: 'Try again',
+    failTitle: 'Phlix could not start',
+    failMessage: 'The application failed to load what it needs to open. Secure storage may be unavailable, or the installation damaged. Trying again often helps; otherwise reinstall Phlix for Windows.',
+    failRetry: 'Try again'
   },
   // M-WINDOWS-11 (review windows__casualgamer m11): the player-overlay surface
   // (SleepTimer + PiPButton) shipped hardcoded English while everything else

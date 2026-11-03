@@ -83,5 +83,11 @@ export const it = {
     message: 'La finestra di Phlix ha smesso di rispondere. Ricarica per riprendere la sessione.',
     reload: 'Ricarica finestra',
     dismiss: 'Chiudi'
+  },
+  net: {
+    tlsTitle: 'Connessione non attendibile',
+    tlsBody: 'Una connessione sicura a {url} è stata rifiutata perché non è stato possibile verificare il certificato.',
+    loadTitle: 'Impossibile caricare la pagina',
+    loadBody: 'Phlix non ha potuto caricare {url}.'
   }
 } satisfies MainCatalog;

@@ -100,7 +100,7 @@ vi.mock('electron-store', () => ({
 
 vi.mock('../../src/main/pathUtils', () => ({ isPathSafe: vi.fn(() => true) }));
 // M-WINDOWS-34: extended stub set — index.ts now imports these too.
-vi.mock('../../src/main/urlValidator', () => ({ validateExternalUrl: vi.fn(() => true), validateNavigationUrl: vi.fn(() => true), isFetchableApiBase: vi.fn(() => true) }));
+vi.mock('../../src/main/urlValidator', () => ({ validateExternalUrl: vi.fn(() => true), validateNavigationUrl: vi.fn(() => true), isFetchableApiBase: vi.fn(() => true), summarizeUrlForLog: vi.fn((u: unknown) => String(u)), scrubErrorForLog: vi.fn((e: unknown) => String(e)) }));
 
 // electron-updater: setupAutoUpdater only registers listeners; the mock keeps
 // the real module's platform-specific singleton out of the test venue.
@@ -146,7 +146,7 @@ vi.mock('electron', () => {
     // destructures it at module-eval; unavailable ⇒ disclosed plaintext fallback.
     // M-WINDOWS-29: the permission guard installs on defaultSession at
     // whenReady — the mock must expose it.
-    session: { defaultSession: { setPermissionRequestHandler: vi.fn(), setPermissionCheckHandler: vi.fn() } },
+    session: { defaultSession: { on: vi.fn(), setPermissionRequestHandler: vi.fn(), setPermissionCheckHandler: vi.fn() } },
     safeStorage: {
       isEncryptionAvailable: () => false,
       encryptString: () => {

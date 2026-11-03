@@ -24,6 +24,9 @@ import { buildPhlixHeaders } from '@phlix/contracts';
 import '@phlix/ui/style.css';
 import '@phlix/ui/fonts.css';
 import { resolveAppConfig } from './resolveConfig';
+// m20: same module the main process uses for its redaction law — it depends
+// only on electron-log, so importing it into the renderer bundle is safe.
+import { summarizeUrlForLog } from '../main/urlValidator';
 import { messagesForLocale, resolveLocale } from './i18n';
 import { setWindowLocale, tWin } from './i18n/windows-own';
 import log from 'electron-log';
@@ -554,7 +557,10 @@ export async function boot(): Promise<void> {
       if (api) {
         void api.setServerUrl(url ?? '');
       } else {
-        log.warn('[Phlix] Cannot persist server URL: Electron bridge unavailable, URL was:', url);
+        // m20 (review secnet m3): the raw base is user-entered server data —
+        // electron-log's file transport persists renderer warns too, so this
+        // goes through the same scheme+host summary law as the main process.
+        log.warn(`[Phlix] Cannot persist server URL: Electron bridge unavailable, URL was: ${summarizeUrlForLog(url ?? '')}`);
       }
       // Keep the hint in lock-step with the user's choice: socketHint.ts reads
       // window.__PHLIX__ live at EVERY dial, so this rewrite takes effect on
@@ -688,5 +694,55 @@ export async function boot(): Promise<void> {
 // element and leave async work (e.g. the dynamic overlay import) that resolves
 // after the test environment is torn down.
 if (typeof document !== 'undefined' && document.getElementById('phlix-app')) {
-  void boot();
+  // m7(a) (review casualgamer #4): boot() fail-fasts on config IPC by design
+  // (a half-applied custody state must not mount), but the discarded promise
+  // meant a main-side throw — DPAPI fault, corrupt vault — left the pre-JS
+  // splash spinning forever: no explanation, no Retry, quit-only. Visible
+  // affordance now; the detail lands in the log, not on screen.
+  void boot().catch((err: unknown) => {
+    log.error('[Boot] boot() failed:', err);
+    renderBootFailure();
+  });
+}
+
+/**
+ * m7(a): the boot-failure counterpart of renderIncompatibleServerScreen —
+ * same sibling-of-#phlix-app discipline (the mount point stays intact for a
+ * resumed boot), same splash retirement, same "Retry re-arms, never strands"
+ * rule from M-WINDOWS-16 r2. No error detail is rendered: messages reaching
+ * here can carry paths/custody wording, and the screen is a dead-end user
+ * surface, not a debugger.
+ */
+export function renderBootFailure(): void {
+  if (typeof document === 'undefined') return;
+  // The catch may fire before boot()'s own locale pass ran — pin it first,
+  // exactly as the incompatible-server early-return does.
+  setWindowLocale(resolveLocale());
+  document.getElementById('boot-splash')?.remove();
+  if (document.getElementById('boot-failure')) return; // already surfaced
+  const panel = document.createElement('div');
+  panel.id = 'boot-failure';
+  panel.setAttribute('role', 'alert');
+  const title = document.createElement('h1');
+  title.textContent = tWin('boot.failTitle');
+  const message = document.createElement('p');
+  message.textContent = tWin('boot.failMessage');
+  const retry = document.createElement('button');
+  retry.type = 'button';
+  retry.textContent = tWin('boot.failRetry');
+  retry.addEventListener('click', () => {
+    // Deliberate re-run: config IPC + version gate are all re-readable, and
+    // a panel is only still mounted while nothing else owns the window —
+    // the same resumed-boot reasoning as the incompatible screen's Retry.
+    retry.disabled = true;
+    void boot().catch((err: unknown) => {
+      log.error('[Boot] retried boot() failed:', err);
+      retry.disabled = false;
+      renderBootFailure();
+    });
+  });
+  panel.appendChild(title);
+  panel.appendChild(message);
+  panel.appendChild(retry);
+  document.body.appendChild(panel);
 }

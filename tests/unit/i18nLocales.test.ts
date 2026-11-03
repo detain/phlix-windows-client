@@ -416,12 +416,12 @@ describe.skipIf(!SIBLING_PRESENT)(
 // ---------------------------------------------------------------------------
 
 describe('windows-own catalog (nav + boot + overlay) — key-set, baseline, leaks', () => {
-  it('every locale table has EXACTLY the 35 English keys — 17 nav + 6 boot + 12 overlay (both directions)', () => {
+  it('every locale table has EXACTLY the 38 English keys — 17 nav + 9 boot + 12 overlay (both directions)', () => {
     const reference = keySet(WIN_EN as unknown as Table);
     for (const locale of LOCALES) {
       expect(keySet(WIN_TABLES[locale]), `${locale} key set differs from en`).toBe(reference);
     }
-    expect(EN_WIN.size).toBe(35);
+    expect(EN_WIN.size).toBe(38);
   });
 
   it('the registry carries precisely the catalog files that exist', () => {
@@ -534,12 +534,12 @@ describe('fr typographic apostrophe law (windows-own + main catalogs)', () => {
 // ---------------------------------------------------------------------------
 
 describe('main-process catalog ×6 — key-set, placeholders, sanity', () => {
-  it('every locale carries EXACTLY the 47 English keys (both directions)', () => {
+  it('every locale carries EXACTLY the 51 English keys (both directions)', () => {
     const reference = keySet(MAIN_EN as unknown as Table);
     for (const locale of LOCALES) {
       expect(keySet(MAIN_TABLES[locale]), `${locale} key set differs from en`).toBe(reference);
     }
-    expect(EN_MAIN.size).toBe(47);
+    expect(EN_MAIN.size).toBe(51);
   });
 
   it('the registry carries precisely the catalog files that exist', () => {

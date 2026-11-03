@@ -489,9 +489,9 @@ describe('boot (renderer entry)', () => {
     };
     cfg.onConnectionChange('http://chosen:8096');
 
+    // m20: one template string, the URL already reduced to scheme+host.
     expect(warnSpy).toHaveBeenCalledWith(
-      '[Phlix] Cannot persist server URL: Electron bridge unavailable, URL was:',
-      'http://chosen:8096'
+      expect.stringContaining('Cannot persist server URL: Electron bridge unavailable, URL was: http://chosen:8096')
     );
 
     warnSpy.mockRestore();
@@ -788,5 +788,43 @@ describe('M4 vault token custody wiring (boot)', () => {
 
     const cfg = (createPhlixApp.mock.calls as any).at(-1)?.[0] as Record<string, unknown>;
     expect(cfg).not.toHaveProperty('tokenStore');
+  });
+});
+
+// m7(a) (review casualgamer #4): boot() fail-fasts by design, but until this
+// batch the auto-boot arm discarded the rejection — a main-side throw left the
+// pre-JS splash spinning forever. Surface = renderBootFailure + its call site.
+describe('m7 boot-failure surface (renderBootFailure)', () => {
+  it('replaces the splash with the catalog panel, carries Retry, and is idempotent', async () => {
+    const mod = await import('@/main');
+    const splash = document.createElement('div');
+    splash.id = 'boot-splash';
+    document.body.appendChild(splash);
+    try {
+      mod.renderBootFailure();
+      const panel = document.getElementById('boot-failure');
+      expect(panel, 'panel did not mount').toBeTruthy();
+      expect(document.getElementById('boot-splash'), 'splash must retire').toBeNull();
+      expect(panel!.textContent).toContain('Phlix could not start');
+      const button = panel!.querySelector('button');
+      expect(button, 'panel must carry a Retry affordance').toBeTruthy();
+      expect(button!.textContent).toBe('Try again');
+      expect(panel!.getAttribute('role')).toBe('alert');
+      mod.renderBootFailure();
+      expect(document.querySelectorAll('#boot-failure').length).toBe(1);
+    } finally {
+      splash.remove();
+      document.getElementById('boot-failure')?.remove();
+    }
+  });
+
+  it('the auto-boot arm catches, and the Retry re-arms instead of stranding (M-WINDOWS-16 r2 discipline)', () => {
+    const source = readFileSync(path.resolve(__dirname, '../../src/renderer/main.ts'), 'utf8');
+    expect(source).toMatch(/void boot\(\)\.catch/);
+    expect(source).toMatch(/retry\.disabled = true;/);
+    expect(source).toMatch(/retry\.disabled = false;/);
+    // No detail from the rejection reaches the screen — only the log keeps it.
+    expect(source).toMatch(/renderBootFailure\(\)/);
+    expect(source).not.toMatch(/renderBootFailure\([^)]*err/);
   });
 });

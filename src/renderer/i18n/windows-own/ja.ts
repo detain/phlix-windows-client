@@ -42,6 +42,10 @@ export const WIN_JA = {
     requiredVersion: 'Phlix for Windows の必要最低バージョン',
     incompatibleAction: 'Phlix サーバーを更新するか、より新しいサーバーに接続してから、アプリを再起動してください。',
     incompatibleRetry: '再試行する'
+,
+    failTitle: 'Phlix を起動できませんでした',
+    failMessage: 'アプリは起動に必要なデータを読み込めませんでした。安全なストレージが利用できないか、インストールが破損している可能性があります。再度試すと解決することがあります。解決しない場合は Phlix for Windows を再インストールしてください。',
+    failRetry: '再試行'
   },
   // M-WINDOWS-11: player-overlay labels (see en.ts law note; values are
   // this locale's translations of the shipped literals).

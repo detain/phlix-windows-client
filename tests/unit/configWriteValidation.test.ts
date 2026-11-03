@@ -70,7 +70,7 @@ vi.mock('electron', () => ({
   Tray: vi.fn().mockImplementation(function () {
     return { setToolTip: vi.fn(), setContextMenu: vi.fn(), on: vi.fn() };
   }),
-  session: { defaultSession: { setPermissionRequestHandler: vi.fn(), setPermissionCheckHandler: vi.fn() } },
+  session: { defaultSession: { on: vi.fn(), setPermissionRequestHandler: vi.fn(), setPermissionCheckHandler: vi.fn() } },
   safeStorage: {
     isEncryptionAvailable: () => false,
     encryptString: () => { throw new Error('mock safeStorage'); },

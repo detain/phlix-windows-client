@@ -82,5 +82,11 @@ export const de = {
     message: 'Das Phlix-Fenster reagiert nicht mehr. Laden Sie neu, um die Sitzung wiederherzustellen.',
     reload: 'Fenster neu laden',
     dismiss: 'Verwerfen'
+  },
+  net: {
+    tlsTitle: 'Verbindung nicht vertrauenswürdig',
+    tlsBody: 'Eine sichere Verbindung zu {url} wurde abgelehnt, weil ihr Zertifikat nicht überprüft werden konnte.',
+    loadTitle: 'Seite konnte nicht geladen werden',
+    loadBody: 'Phlix konnte {url} nicht laden.'
   }
 } satisfies MainCatalog;

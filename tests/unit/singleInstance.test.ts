@@ -50,10 +50,15 @@ vi.mock('../../src/main/pathUtils', () => ({
 }));
 
 // M-WINDOWS-34: extended stub set — index.ts now imports these too.
+// batch 6: index.ts imports the log-scrub law too — the stub must carry it
+// (a partial factory makes the fault handler itself throw on the missing
+// export, which is how this file used to die: exit-7 worker).
 vi.mock('../../src/main/urlValidator', () => ({
   validateExternalUrl: vi.fn(() => true),
   validateNavigationUrl: vi.fn(() => true),
-  isFetchableApiBase: vi.fn(() => true)
+  isFetchableApiBase: vi.fn(() => true),
+  summarizeUrlForLog: vi.fn((u: unknown) => String(u)),
+  scrubErrorForLog: vi.fn((e: unknown) => String(e))
 }));
 
 // ---------------------------------------------------------------------------
@@ -117,7 +122,7 @@ vi.mock('electron', () => ({
   // ⇒ disclosed plaintext fallback, so the {get,set} store stub below still sees plain values.
   // M-WINDOWS-29: src/main/index.ts installs the permission guard on
   // defaultSession inside app.whenReady — the mock must expose it.
-  session: { defaultSession: { setPermissionRequestHandler: vi.fn(), setPermissionCheckHandler: vi.fn() } },
+  session: { defaultSession: { on: vi.fn(), setPermissionRequestHandler: vi.fn(), setPermissionCheckHandler: vi.fn() } },
   safeStorage: {
     isEncryptionAvailable: () => false,
     encryptString: () => {

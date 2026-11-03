@@ -26,6 +26,30 @@ export function summarizeUrlForLog(url: string): string {
 }
 
 /**
+ * m20 (review windows__secnet m3): the redaction law governs every
+ * INTENTIONAL URL site, but two residual paths leaked raw URLs: the
+ * global fault handlers logged whole error objects, and undici error
+ * `cause` chains embed full request URLs (self-hosted server addresses
+ * are quasi-sensitive user data persisted to electron-log files).
+ * Law: anything URL-shaped inside a logged error string lands in
+ * scheme://host form. Applied ONLY on the fault-handler path — normal
+ * error.message strings are unaffected in shape, just scanned.
+ */
+const URL_IN_TEXT = /\b[a-z][a-z0-9+.-]*:\/\/[^\s'"<>)[\]]+/gi;
+
+export function scrubErrorForLog(error: unknown): string {
+  const describe = (value: unknown): string => {
+    if (value instanceof Error) {
+      const cause = (value as { cause?: unknown }).cause;
+      const causeText = cause === undefined || cause === null ? '' : `\nCaused by: ${describe(cause)}`;
+      return `${value.name}: ${value.message}${value.stack ? `\n${value.stack}` : ''}${causeText}`;
+    }
+    return String(value);
+  };
+  return describe(error).replace(URL_IN_TEXT, (match) => summarizeUrlForLog(match));
+}
+
+/**
  * M-WINDOWS-30 (W-min206) + M-34 (this batch): definition relocated from
  * versionCheck.ts to the URL-law module so BOTH the version-check fetch
  * guard and the config WRITE guards share one law. versionCheck keeps a

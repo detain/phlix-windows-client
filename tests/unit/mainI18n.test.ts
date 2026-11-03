@@ -101,7 +101,14 @@ const ORIGINAL_MAIN_PROCESS_STRINGS: Record<MainMessageKey, string> = {
   'crash.title': 'Something went wrong',
   'crash.message': 'The Phlix window stopped responding. Reload to recover your session.',
   'crash.reload': 'Reload window',
-  'crash.dismiss': 'Dismiss'
+  'crash.dismiss': 'Dismiss',
+  // Batch-6 (review M10) addition (born in the catalog, M-WINDOWS-12
+  // precedent): redacted TLS/load-failure diagnostics toasts. {url} carries
+  // only the scheme+host summary — the redaction law binds the CALLER.
+  'net.tlsTitle': 'Connection not trusted',
+  'net.tlsBody': 'A secure connection to {url} was rejected because its certificate could not be verified.',
+  'net.loadTitle': 'Page failed to load',
+  'net.loadBody': 'Phlix could not load {url}.'
 };
 
 function flattenedCatalogKeys(): MainMessageKey[] {

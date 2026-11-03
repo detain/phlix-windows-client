@@ -82,5 +82,11 @@ export const ja = {
     message: 'Phlix ウィンドウの応答が停止しました。再読み込みするとセッションに復帰できます。',
     reload: 'ウィンドウを再読み込み',
     dismiss: '閉じる'
+  },
+  net: {
+    tlsTitle: '接続を信頼できません',
+    tlsBody: '{url} への安全な接続は、証明書の検証が失敗したため拒否されました。',
+    loadTitle: 'ページを読み込めませんでした',
+    loadBody: 'Phlix は {url} を読み込めませんでした。'
   }
 } satisfies MainCatalog;

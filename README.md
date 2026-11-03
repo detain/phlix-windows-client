@@ -611,6 +611,16 @@ ships (`@phlix/ui` v0.99.13, see `package.json`):
   surfacing watch parties in hub mode needs relay-aware evidence first. This is
   rider leg 4 of `M-WINDOWS-04`; until it lands, hub users can still SyncPlay from
   the web player their server serves.
+- **TLS and proxies are visible now.** The shell inherits the Windows system
+  proxy for everything it dials itself (REST probes, the updater, and `wss://`
+  :8097 sync sockets). Self-signed or corporate-intercepted certificates still
+  fail closed — that is the security posture — but they no longer fail silent:
+  every rejected certificate and main-frame load failure lands in
+  `%APPDATA%\Phlix\logs\` as a scheme+host summary (never a path or token), a
+  redacted toast names the failure class, and a boot that never loaded offers
+  Reload instead of spinning forever. Fixing the certificate (or serving valid
+  TLS) makes them stop; the page CSP already carries the `ws:`/`wss:` pair the
+  sockets need.
 
 The withheld-nav era this section used to document ended with the @phlix/ui
 v0.99.12 re-pin (2026-11-02), which executed the **M-WINDOWS-04 rider**: seam

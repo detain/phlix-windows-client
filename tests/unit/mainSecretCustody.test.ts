@@ -202,7 +202,7 @@ vi.mock('electron', () => ({
   }),
   // M-WINDOWS-29: src/main/index.ts installs the permission guard on
   // defaultSession inside app.whenReady — the mock must expose it.
-  session: { defaultSession: { setPermissionRequestHandler: vi.fn(), setPermissionCheckHandler: vi.fn() } },
+  session: { defaultSession: { on: vi.fn(), setPermissionRequestHandler: vi.fn(), setPermissionCheckHandler: vi.fn() } },
   safeStorage: {
     isEncryptionAvailable: () => harness.ss.available,
     encryptString: (plain: string) => {

@@ -79,5 +79,11 @@ export const en = {
     message: 'The Phlix window stopped responding. Reload to recover your session.',
     reload: 'Reload window',
     dismiss: 'Dismiss'
+  },
+  net: {
+    tlsTitle: 'Connection not trusted',
+    tlsBody: 'A secure connection to {url} was rejected because its certificate could not be verified.',
+    loadTitle: 'Page failed to load',
+    loadBody: 'Phlix could not load {url}.'
   }
 } as const;

@@ -85,7 +85,7 @@ vi.mock('electron', () => ({
   // destructures it at module-eval; unavailable ⇒ disclosed plaintext fallback.
   // M-WINDOWS-29: src/main/index.ts installs the permission guard on
   // defaultSession inside app.whenReady — the mock must expose it.
-  session: { defaultSession: { setPermissionRequestHandler: vi.fn(), setPermissionCheckHandler: vi.fn() } },
+  session: { defaultSession: { on: vi.fn(), setPermissionRequestHandler: vi.fn(), setPermissionCheckHandler: vi.fn() } },
   safeStorage: {
     isEncryptionAvailable: () => false,
     encryptString: () => {
@@ -136,7 +136,7 @@ vi.mock('electron', () => ({
 // Import the security-critical path safety function and protocol handler
 // ---------------------------------------------------------------------------
 import { isPathSafe } from '../../src/main/pathUtils';
-import { setupAppProtocolHandler, PROD_BOOT_URL } from '../../src/main/index';
+import { setupAppProtocolHandler, PROD_BOOT_URL, appError } from '../../src/main/index';
 
 // ---------------------------------------------------------------------------
 // Test data
@@ -279,5 +279,56 @@ describe('app:// protocol handler path resolution', () => {
       expect(handler!({ url: 'app://-/' })!.status).toBe(403);
       expect(handler!({ url: 'app://-/etc/passwd' })!.status).toBe(403);
     });
+  });
+});
+
+// M11 (review crossfe #2) + m7(c) (review casualgamer #4): every app://
+// response carries the framing CSP as a HEADER (frame-ancestors cannot ride
+// the index.html <meta>), and refusal bodies are branded documents that
+// reflect nothing of the requested path (M-WINDOWS-44 echo law).
+describe('M11 frame-ancestors header + m7c branded refusal bodies', () => {
+  beforeEach(() => {
+    protocolHandlers.clear();
+    setupAppProtocolHandler();
+  });
+  const handler = () => protocolHandlers.get('app') as (request: { url: string }) => Response;
+
+  it('the SPA document (boot URL) ships frame-ancestors none', async () => {
+    const response = handler()({ url: PROD_BOOT_URL });
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Security-Policy')).toBe("frame-ancestors 'none'");
+  });
+
+  it('real asset responses carry it too (framing refusal is document-agnostic)', async () => {
+    const response = handler()({ url: 'app://-/app/index.html' });
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Security-Policy')).toBe("frame-ancestors 'none'");
+  });
+
+  it('a wrong-host refusal is a branded HTML document, not bare text, and echoes nothing', async () => {
+    const response = handler()({ url: 'app://evil.example.com/app/secret-page' });
+    expect(response.status).toBe(403);
+    expect(response.headers.get('Content-Type')).toContain('text/html');
+    expect(response.headers.get('Content-Security-Policy')).toBe("frame-ancestors 'none'");
+    const text = await response.text();
+    expect(text).toContain('Phlix');
+    expect(text).not.toContain('evil.example.com');
+    expect(text).not.toContain('secret-page');
+    expect(text).not.toMatch(/<script/i);
+  });
+
+  it('a traversal probe 403s with the same non-echoing body', async () => {
+    const response = handler()({ url: 'app://-/etc/passwd' });
+    expect(response.status).toBe(403);
+    expect(await response.text()).not.toContain('passwd');
+  });
+
+  it('appError is text/html + CSP for all three statuses', async () => {
+    for (const status of [403, 404, 500] as const) {
+      const response = appError(status);
+      expect(response.status).toBe(status);
+      expect(response.headers.get('Content-Type')).toContain('text/html');
+      expect(response.headers.get('Content-Security-Policy')).toBe("frame-ancestors 'none'");
+    }
   });
 });
