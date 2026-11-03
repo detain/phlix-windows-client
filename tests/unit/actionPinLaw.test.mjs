@@ -65,6 +65,7 @@ const workflowsDir = path.join(repoRoot, '.github', 'workflows');
 /** The estate-resolved pin ledger (see header for provenance). */
 const PIN_LEDGER = {
   'actions/checkout': { commit: 'd23441a48e516b6c34aea4fa41551a30e30af803', version: 'v6.1.0' },
+  'actions/cache': { commit: '55cc8345863c7cc4c66a329aec7e433d2d1c52a9', version: 'v6.1.0' },
   'actions/setup-node': { commit: '249970729cb0ef3589644e2896645e5dc5ba9c38', version: 'v6.5.0' },
   'actions/upload-artifact': { commit: 'cf430e030ddbb5b0abf93d22962f4752f3646cd9', version: 'v7.0.2' },
   'actions/download-artifact': { commit: '9000827ccba6bdab643e8b6fd33ac0654aef8333', version: 'v8.0.2' },

@@ -134,6 +134,19 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
+      # m32: version-addressed Electron/electron-builder caches; Windows-only,
+      # speed-only (full law in the test.yml `test` job and the pinned suite).
+      - name: Cache Electron tooling (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~\AppData\Local\electron\Cache
+            ~\AppData\Local\electron-builder\Cache
+          key: ${{ runner.os }}-electron-tooling-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-electron-tooling-
+
       - name: Install dependencies
         run: npm ci
 
@@ -213,6 +226,20 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+
+      # m32: the packaging legs are the heavy downloads (Electron binary +
+      # winCodeSign/nsis toolchain zips). Version-addressed, Windows-only,
+      # speed-only — see the pinned law suite.
+      - name: Cache Electron tooling (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~\AppData\Local\electron\Cache
+            ~\AppData\Local\electron-builder\Cache
+          key: ${{ runner.os }}-electron-tooling-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-electron-tooling-
 
       - name: Install dependencies
         run: npm ci
