@@ -67,7 +67,7 @@ Pick the asset that fits:
 |-------|-----------|-----------|
 | **`Phlix-Setup-1.0.0.exe`** ([direct download](https://github.com/detain/phlix-windows-client/releases/download/latest/Phlix-Setup-1.0.0.exe)) | NSIS desktop installer — per-user, no admin rights needed, lets you choose the install folder | you are almost everyone else |
 | **`Phlix.1.0.0.appx`** | APPX package for Store/sideload distribution | you know why you want this — installing an unsigned `.appx` requires a trusted certificate or Developer Mode; prefer the `.exe` otherwise |
-| **`SHA256SUMS.txt`** | SHA-256 hashes of both installers | you want to verify the download (optional) |
+| **`SHA256SUMS.txt`** | SHA-256 hashes of the installers (+ the updater .blockmap) | you want to verify the download (optional) |
 
 Filenames carry the `package.json` version (currently `1.0.0`) and are re-uploaded on each
 master push, so always take them from the release page rather than bookmarking an old link.
@@ -87,11 +87,13 @@ the file is malicious, and there is no “verified publisher” here. To proceed
    release page into the same folder, then run both lines in PowerShell from that folder:
 
    ```powershell
-   $expected = (Select-String -Path .\SHA256SUMS.txt -Pattern 'Phlix-Setup').Line.Split(' ')[0]
+   $expected = (Select-String -Path .\SHA256SUMS.txt -Pattern 'Phlix-Setup\S*\.exe$').Line.Split(' ')[0]
    (Get-FileHash .\Phlix-Setup-1.0.0.exe -Algorithm SHA256).Hash.ToLower() -eq $expected
    ```
 
-   `True` means the bytes match. Comparing by eye instead, mind the two format quirks the
+   `True` means the bytes match. The pattern is end-anchored on `.exe` because the file
+   also carries a line for the installer's `.blockmap` (differential-update map, hashed
+   for completeness — you never download it by hand). Comparing by eye instead, mind the two format quirks the
    snippet above absorbs: `Get-FileHash` prints UPPERCASE hex while `SHA256SUMS.txt` is
    lowercase — the digits must agree, not the case (that is what `.ToLower()` normalizes);
    and the installer's line in `SHA256SUMS.txt` is keyed by its staging path,

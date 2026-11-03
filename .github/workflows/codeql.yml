@@ -20,6 +20,10 @@ jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-26.04
+    # M-WINDOWS-25 family law: every job carries a deliberate bound. CodeQL's
+    # TS+Electron analysis is a ~10-minute job; 30 is generous headroom without
+    # letting a stuck runner hang the branch protection check indefinitely.
+    timeout-minutes: 30
     permissions:
       actions: read
       contents: read

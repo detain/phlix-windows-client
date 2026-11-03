@@ -286,7 +286,12 @@ jobs:
   # the tag being pushed, preventing accidental drift between code and release.
   version-check:
     name: Version drift check
-    needs: build
+    # m29: needs: [] — the drift check is a 10-second tag-vs-package.json
+    # comparison that depends on nothing from the build legs. Gating it behind
+    # `build` burned ~45 minutes of packaging before a mismatch could be
+    # rejected. Safety is preserved by the release job, which still
+    # `needs: [build, version-check]` and will not run unless both succeed.
+    needs: []
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-26.04
     timeout-minutes: 5
@@ -481,7 +486,19 @@ jobs:
         # pattern to sha256sum and fail the step under bash -e.
         run: |
           cd artifacts
-          sha256sum nsis/*.exe appx/*.appx > SHA256SUMS.txt
+          # M13/D2: GitHub release assets are NAME-UNIQUE and the Create
+          # Release step used to attach BOTH this file and the build leg's
+          # identically-named artifacts/nsis/SHA256SUMS.txt — the first tag
+          # release would collide (silent overwrite or 422, per
+          # softprops/action-gh-release semantics). The build leg's file stays
+          # inside the CI artifact (traceability) but is no longer an asset;
+          # THIS is the one human-readable companion the release page and
+          # README:419 promise. It now also hashes the .blockmap (the nsis-leg
+          # file's unique coverage) so nothing is lost by the dedupe.
+          shopt -s nullglob
+          files=(nsis/*.exe nsis/*.exe.blockmap appx/*.appx)
+          if [ ${#files[@]} -eq 0 ]; then echo "::error::release checksum found no artifacts to hash" >&2; exit 1; fi
+          sha256sum "${files[@]}" > SHA256SUMS.txt
 
       - name: Verify the updater feed is electron-builder's own
         # Fail-loud gate replacing the old hand-written feed-generation steps
@@ -517,7 +534,9 @@ jobs:
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           draft: false
-          prerelease: ${{ contains(steps.version.outputs.VERSION, 'beta') || contains(steps.version.outputs.VERSION, 'alpha') }}
+          # m30: -rc counts too — a 1.1.0-rc.1 tag must NOT publish as a
+          # STABLE release that allowPrerelease=false clients auto-install.
+          prerelease: ${{ contains(steps.version.outputs.VERSION, 'beta') || contains(steps.version.outputs.VERSION, 'alpha') || contains(steps.version.outputs.VERSION, '-rc') }}
           generate_release_notes: true
           # Authentic NSIS updater triad: installer + its .blockmap (differential
           # downloads) + builder's latest.yml — the feed electron-updater's
@@ -529,8 +548,11 @@ jobs:
             artifacts/nsis/*.exe
             artifacts/nsis/*.exe.blockmap
             artifacts/nsis/latest.yml
-            artifacts/nsis/SHA256SUMS.txt
             artifacts/appx/*.appx
+            # M13/D2: exactly ONE SHA256SUMS.txt asset (the release-job
+            # companion above). The build leg's nsis/SHA256SUMS.txt stays in
+            # the CI artifact for traceability but is not attached — two
+            # assets named SHA256SUMS.txt cannot coexist on a release.
             artifacts/SHA256SUMS.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

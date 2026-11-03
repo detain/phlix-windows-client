@@ -40,7 +40,7 @@ describe('build.yml pipeline truth (M-WINDOWS-27)', () => {
   it('checksum steps are nullglob fail-loud and never print "No artifacts found"', () => {
     expect(wf).not.toMatch(/No artifacts found/);
     const nullglobCount = (wf.match(/shopt -s nullglob/g) || []).length;
-    expect(nullglobCount).toBe(2); // build-leg per-target + release-latest
+    expect(nullglobCount).toBe(3); // build-leg per-target + release-latest + release-job SHA256SUMS (M13/D2)
     // the never-produced .nupkg pattern must not survive in a checksum step
     expect(wf).not.toMatch(/sha256sum[^|\n]*\.nupkg/);
     // both steps refuse to write an empty/misleading integrity file

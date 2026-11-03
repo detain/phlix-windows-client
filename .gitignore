@@ -2,6 +2,10 @@ dist
 node_modules
 .logs
 coverage
+# m28: electron-builder output (package.json build.directories.output) — 100 MB+
+# installers one `git add -A` away; AGENTS.md and DEVELOPER.md always documented
+# this as ignored; the ignore is now real.
+release/
 *.tsbuildinfo
 # Playwright smoke-run artifacts (config's default outputDir, see playwright.config.ts)
 test-results
