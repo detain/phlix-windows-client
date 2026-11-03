@@ -21,6 +21,9 @@ vi.mock('@phlix/ui', () => ({
 describe('SleepTimer', () => {
   beforeEach(() => {
     localStorage.clear();
+    // vitest ≥2: restoreAllMocks no longer clears vi.fn() call history —
+    // clear it explicitly so pause counts never leak across tests.
+    vi.clearAllMocks();
     vi.useFakeTimers();
   });
 
@@ -162,12 +165,19 @@ describe('SleepTimer', () => {
     expect(true).toBe(true);
   });
 
-  it('fade uses CSS transition not JS interval', () => {
-    // Create a mock video element
+  // Law (m1 cure, windows__casualgamer #2): the fade is JS-stepped — volume is
+  // NOT a CSS property, so pinning `style.transition = 'volume …'` pinned a
+  // fiction (audio slammed to mute). This replaces the pre-fix "fade uses CSS
+  // transition" test, which asserted the broken assignment.
+  it('fade steps volume down in JS, pauses at zero, restores volume after', () => {
     const mockVideoEl = {
       volume: 0.8,
-      style: { transition: '' }
+      style: {} as Record<string, string>
     };
+    let volumeAtPause = -1;
+    pauseMock.mockImplementation(() => {
+      volumeAtPause = mockVideoEl.volume;
+    });
 
     // Spy on querySelector to return our mock video element
     const querySelectorSpy = vi.spyOn(document, 'querySelector').mockReturnValue(mockVideoEl as unknown as Element);
@@ -183,11 +193,148 @@ describe('SleepTimer', () => {
     // Trigger expiration
     vi.advanceTimersByTime(200);
 
-    // Verify CSS transition was set on the video element
-    expect(mockVideoEl.style.transition).toBe('volume 3000ms ease-out');
-    expect(mockVideoEl.volume).toBe(0);
+    // No CSS transition fiction is ever assigned to the video element
+    expect(mockVideoEl.style.transition).toBeUndefined();
+
+    // Walk the fade: volume decreases every step until the pause lands
+    const samples: number[] = [];
+    for (let i = 0; i < 40 && pauseMock.mock.calls.length === 0; i++) {
+      vi.advanceTimersByTime(100);
+      samples.push(mockVideoEl.volume);
+    }
+
+    expect(pauseMock).toHaveBeenCalledTimes(1);
+    expect(volumeAtPause).toBe(0); // pause lands only once the ramp hits silence
+    // Strictly descending before the final step restored the volume:
+    const ramp = samples.slice(0, -1); // last sample is post-restore 0.8
+    expect(ramp.length).toBeGreaterThanOrEqual(25); // 3000ms / 100ms steps
+    for (let i = 0; i < ramp.length; i++) {
+      expect(ramp[i]).toBeLessThan(0.8);
+      if (i > 0) expect(ramp[i]).toBeLessThan(ramp[i - 1]);
+    }
+    // Volume restored for next playback after the pause:
+    expect(mockVideoEl.volume).toBe(0.8);
 
     wrapper.unmount();
     querySelectorSpy.mockRestore();
+  });
+
+  // Law (M2 cure, windows__casualgamer #2): the expiry timeout is owned SOLELY
+  // by the endTime watcher. Pre-fix, closing the preset menu in the same flush
+  // as startTimer ran the countdown watcher's else-arm clearTimer(), killing
+  // the just-armed expiry — every interactively-set timer silently cancelled
+  // itself. Red on the parent (pause never fired).
+  it('an interactively-set timer survives the menu close and still expires', async () => {
+    vi.mocked(usePlayerStore).mockReturnValue({
+      playing: true,
+      pause: pauseMock
+    } as any);
+
+    const wrapper = mount(SleepTimer, {
+      global: { stubs: { teleport: true } }
+    });
+    expect(localStorage.getItem('phlix-sleep-timer')).toBeNull();
+
+    // Open the menu and pick the first preset (15 min) — interactive path.
+    await wrapper.find('.sleep-timer-trigger').trigger('click');
+    expect(wrapper.find('.sleep-timer-menu').exists()).toBe(true);
+    await wrapper.findAll('.sleep-timer-preset')[0].trigger('click');
+
+    // Menu closed, timer armed and persisted
+    expect(wrapper.find('.sleep-timer-menu').exists()).toBe(false);
+    expect(localStorage.getItem('phlix-sleep-timer')).not.toBeNull();
+
+    // Advance past expiry (no video element in jsdom → pause lands directly)
+    vi.advanceTimersByTime(15 * 60 * 1000 + 100);
+    expect(pauseMock).toHaveBeenCalledTimes(1);
+
+    // And the expiry notice renders — pre-fix the endTime watcher's null-arm
+    // wiped isExpired before it could ever paint.
+    await wrapper.vm.$nextTick();
+    expect(wrapper.text()).toContain('Sleep timer expired');
+
+    wrapper.unmount();
+    vi.mocked(usePlayerStore).mockReturnValue({
+      playing: false,
+      pause: pauseMock
+    } as any);
+  });
+
+  // Law (m2 cure, windows__casualgamer #3): the pill is visible exactly while
+  // the RAF loop runs, so it seeds the true remainder on mount and ticks with
+  // the clock. Pre-fix the loop only ran with the menu open/after expiry and
+  // the chip sat frozen at "0:00" forever.
+  it('the countdown pill seeds the true remainder and ticks with the clock', async () => {
+    const endTime = Date.now() + 90 * 1000;
+    localStorage.setItem('phlix-sleep-timer', JSON.stringify({ endTime, totalMinutes: 1 }));
+
+    const wrapper = mount(SleepTimer, {
+      global: { stubs: { teleport: true } }
+    });
+    await wrapper.vm.$nextTick();
+    expect(wrapper.text()).toContain('1:30'); // seeded — not a stale 0:00
+
+    vi.advanceTimersByTime(2000);
+    await wrapper.vm.$nextTick();
+    expect(wrapper.text()).toContain('1:28'); // ticking while pill is visible
+    wrapper.unmount();
+  });
+
+  // Law (m8 cure, windows__gameux #1): desktop popover expectations — Escape
+  // and mousedown-outside dismiss the preset menu; mousedown INSIDE does not.
+  it('the preset menu dismisses on Escape and on outside mousedown', async () => {
+    vi.mocked(usePlayerStore).mockReturnValue({
+      playing: true,
+      pause: pauseMock
+    } as any);
+
+    const wrapper = mount(SleepTimer, {
+      global: { stubs: { teleport: true } }
+    });
+
+    await wrapper.find('.sleep-timer-trigger').trigger('click');
+    expect(wrapper.find('.sleep-timer-menu').exists()).toBe(true);
+
+    // Click inside the menu must not dismiss it
+    await wrapper.find('.sleep-timer-menu').trigger('mousedown');
+    expect(wrapper.find('.sleep-timer-menu').exists()).toBe(true);
+
+    // mousedown outside the root dismisses
+    document.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find('.sleep-timer-menu').exists()).toBe(false);
+
+    // reopen, then Escape dismisses
+    await wrapper.find('.sleep-timer-trigger').trigger('click');
+    expect(wrapper.find('.sleep-timer-menu').exists()).toBe(true);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find('.sleep-timer-menu').exists()).toBe(false);
+
+    wrapper.unmount();
+    vi.mocked(usePlayerStore).mockReturnValue({
+      playing: false,
+      pause: pauseMock
+    } as any);
+  });
+
+  // Law (m8 cure): emoji glyphs are replaced with SVG icons; every interactive
+  // target meets the 24px floor (Segoe UI Emoji rendering varies with theme).
+  it('overlay icons are SVG and hit targets are >= 24px', async () => {
+    const endTime = Date.now() + 30 * 60 * 1000;
+    localStorage.setItem('phlix-sleep-timer', JSON.stringify({ endTime, totalMinutes: 30 }));
+
+    const wrapper = mount(SleepTimer, {
+      global: { stubs: { teleport: true } }
+    });
+
+    expect(wrapper.text()).not.toContain('🌙');
+    expect(wrapper.text()).not.toContain('✕');
+    expect(wrapper.findAll('svg').length).toBeGreaterThanOrEqual(2);
+
+    const cancelBtn = wrapper.find('button[aria-label="Cancel sleep timer"]');
+    expect(cancelBtn.attributes('style')).toContain('width: 24px');
+    expect(cancelBtn.attributes('style')).toContain('height: 24px');
+    wrapper.unmount();
   });
 });
