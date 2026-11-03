@@ -55,6 +55,11 @@ export const WIN_EN = {
   // main.ts (same module instance), so the shell's boot-time locale pin
   // governs its tWin() reads. Unit strings stay concatenation pieces (the
   // catalog has no interpolation seam) — component code owns `${value} ${unit}`.
+  deeplink: {
+    hubOnlyTitle: 'This link belongs to a Phlix Hub',
+    inviteBody: 'Invite links come from a Phlix Hub. This window is connected directly to your server — open the link in the browser where you received it, or run Phlix in Hub mode.',
+    serverBody: 'Server-card links belong to a Phlix Hub. This window is connected directly to your server, so there is nothing to open here.'
+  },
   overlay: {
     sleepTimer: 'Sleep timer',
     cancelSleepTimer: 'Cancel sleep timer',

@@ -51,6 +51,11 @@ export const WIN_FR = {
   },
   // M-WINDOWS-11: player-overlay labels (see en.ts law note; values are
   // this locale's translations of the shipped literals).
+  deeplink: {
+    hubOnlyTitle: 'Ce lien appartient à un Phlix Hub',
+    inviteBody: 'Les liens d’invitation proviennent d’un Phlix Hub. Cette fenêtre est connectée directement à votre serveur — ouvrez le lien dans le navigateur où vous l’avez reçu, ou utilisez Phlix en mode Hub.',
+    serverBody: 'Les liens de serveur appartiennent à un Phlix Hub. Cette fenêtre est connectée directement à votre serveur ; rien à ouvrir ici.'
+  },
   overlay: {
     sleepTimer: 'Minuteur de sommeil',
     cancelSleepTimer: 'Annuler le minuteur de sommeil',

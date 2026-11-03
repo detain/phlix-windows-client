@@ -49,6 +49,11 @@ export const WIN_JA = {
   },
   // M-WINDOWS-11: player-overlay labels (see en.ts law note; values are
   // this locale's translations of the shipped literals).
+  deeplink: {
+    hubOnlyTitle: 'このリンクは Phlix Hub のものです',
+    inviteBody: '招待リンクは Phlix Hub から発行されます。このウィンドウはサーバーへ直接接続しているため、リンクを受け取ったブラウザで開くか、Phlix を Hub モードで実行してください。',
+    serverBody: 'サーバーカードのリンクは Phlix Hub に属します。このウィンドウはサーバーへ直接接続しているため、ここで開く対象はありません。'
+  },
   overlay: {
     sleepTimer: 'スリープタイマー',
     cancelSleepTimer: 'スリープタイマーをキャンセル',

@@ -828,3 +828,99 @@ describe('m7 boot-failure surface (renderBootFailure)', () => {
     expect(source).not.toMatch(/renderBootFailure\([^)]*err/);
   });
 });
+
+describe('m3 hub-only deep-link refusal (server mode never 404s a link)', () => {
+  // casualgamer #5: a friend's invite clicked while the window runs direct-
+  // server mode routed to /app/accept-invite/{token} — a route registered
+  // ONLY by hub mode's extraRoutes — landing on the shared shell's 404 page
+  // *after* the app had already asked "Follow this Phlix link?". The cure
+  // refuses hub-only paths with an explicit native notification naming the
+  // mode mismatch. /app/server/:id is the same route family (same header
+  // comment in src/renderer/main.ts).
+  let pushSpy: ReturnType<typeof vi.fn>;
+  let routerApp: unknown;
+  beforeEach(() => {
+    vi.resetModules();
+    pushSpy = vi.fn();
+    routerApp = {
+      mount: mountSpy,
+      config: { globalProperties: { $router: { isReady: () => Promise.resolve(), push: pushSpy } } }
+    };
+    createPhlixApp.mockClear().mockReturnValue(routerApp as never);
+    buildPhlixHeaders.mockClear().mockReturnValue(FAKE_HEADERS);
+    installElectronBridge.mockClear().mockReturnValue((() => {}) as any);
+  });
+  afterEach(() => {
+    delete (globalThis as unknown as { window?: unknown }).window;
+  });
+
+  function makeLinkApi(mode: 'server' | 'hub') {
+    const listeners: Array<(path: string) => void> = [];
+    const api = {
+      hubGetConfig: vi.fn(async () => ({
+        hubUrl: mode === 'hub' ? 'https://hub.example.com' : null,
+        activeServerId: null,
+        connectionMode: mode
+      })),
+      getDeviceId: vi.fn(async () => 'device-m3'),
+      getServerUrl: vi.fn(async () => 'http://srv.example:8096'),
+      checkServerVersion: vi.fn(async () => ({ compatible: true, serverVersion: '2.0.0', minimumVersion: '1.1.0' })),
+      setServerUrl: vi.fn(async () => {}),
+      showNotification: vi.fn(async () => true),
+      onDeeplink: vi.fn((cb: (path: string) => void) => {
+        listeners.push(cb);
+        return () => {};
+      }),
+      notifyDeeplinkReady: vi.fn()
+    };
+    setElectronApi(api);
+    return { api, listeners };
+  }
+
+  it('server mode: an invite link notifies with the hub-mode explanation and never routes', async () => {
+    const { api, listeners } = makeLinkApi('server');
+    const mod = await import('@/main');
+    await mod.boot();
+    expect(listeners.length).toBeGreaterThan(0);
+    listeners[0]('/app/accept-invite/abc123');
+    await Promise.resolve(); await Promise.resolve();
+    expect(api.showNotification).toHaveBeenCalledWith(
+      'This link belongs to a Phlix Hub',
+      expect.stringMatching(/^Invite links come from a Phlix Hub\./)
+    );
+    expect(pushSpy).not.toHaveBeenCalledWith('/app/accept-invite/abc123');
+  });
+
+  it('server mode: the /app/server/:id family is refused the same way', async () => {
+    const { api, listeners } = makeLinkApi('server');
+    const mod = await import('@/main');
+    await mod.boot();
+    listeners[0]('/app/server/7');
+    await Promise.resolve(); await Promise.resolve();
+    expect(api.showNotification).toHaveBeenCalledWith(
+      'This link belongs to a Phlix Hub',
+      expect.stringMatching(/^Server-card links belong to a Phlix Hub\./)
+    );
+    expect(pushSpy).not.toHaveBeenCalled();
+  });
+
+  it('hub mode: the same invite link routes normally (no refusal)', async () => {
+    const { api, listeners } = makeLinkApi('hub');
+    const mod = await import('@/main');
+    await mod.boot();
+    listeners[0]('/app/accept-invite/abc123');
+    await Promise.resolve(); await Promise.resolve();
+    expect(pushSpy).toHaveBeenCalledWith('/app/accept-invite/abc123');
+    expect(api.showNotification).not.toHaveBeenCalled();
+  });
+
+  it('server mode: ordinary media links still route (the gate is hub-only paths)', async () => {
+    const { api, listeners } = makeLinkApi('server');
+    const mod = await import('@/main');
+    await mod.boot();
+    listeners[0]('/app/media/tt0111161');
+    await Promise.resolve(); await Promise.resolve();
+    expect(pushSpy).toHaveBeenCalledWith('/app/media/tt0111161');
+    expect(api.showNotification).not.toHaveBeenCalled();
+  });
+});

@@ -27,6 +27,14 @@ interface ServerVersionCheck {
   minimumVersion: string;
 }
 
+/** Mirrors `UpdateState` in src/main/index.ts (m18 — the updater quintet's shape). */
+interface DesktopUpdateState {
+  status: 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'error';
+  version?: string;
+  progress?: number;
+  error?: string;
+}
+
 declare global {
   interface Window {
     electronAPI?: {
@@ -87,6 +95,20 @@ declare global {
       // their only caller.
       /** W7.6: runtime server version enforcement — checks server meets minimum 1.1.0. M-WINDOWS-02: structured verdict so every blocking outcome carries the versions that decided it (mirrors ServerVersionCheck in src/main/versionCheck.ts). */
       checkServerVersion: (apiBase: string) => Promise<ServerVersionCheck>;
+      /**
+       * W4.9 / m18 (crossfe 6): the updater quintet now carries declarations —
+       * preload has always exposed these and the deferred-UI orphan class is
+       * pinned in tests/unit/ipcChannels.test.ts (PRELOAD_SHELL_ONLY). When the
+       * updater-UI rider lands, its first consumer types against a declared
+       * surface; until then nothing in the renderer calls them. The shapes
+       * mirror src/main/index.ts handlers: in-flight checks ANSWER with the
+       * current status (M-WINDOWS-12), never a silent no-op.
+       */
+      checkForUpdates: () => Promise<DesktopUpdateState>;
+      getUpdateStatus: () => Promise<DesktopUpdateState>;
+      onUpdateAvailable: (callback: (data: { version: string }) => void) => () => void;
+      onUpdateProgress: (callback: (data: { percent: number }) => void) => () => void;
+      onUpdateDownloaded: (callback: (data: { version: string }) => void) => () => void;
     };
   }
 }

@@ -637,15 +637,38 @@ export async function boot(): Promise<void> {
   }
 
   // Listen for deep links from main process (W4.4)
+  // m3 (casualgamer #5): hub-only routes must not dead-end a direct-server
+  // window on the shared shell's 404 page AFTER the app asked "Follow this
+  // Phlix link?". `/app/accept-invite/:token` and `/app/server/:id` are
+  // registered ONLY by hub mode's extraRoutes (see the extraRoutes header),
+  // so in any other mode the link is refused with an explicit native
+  // notification — never a silent 404, never an unexplained dead end.
+  const HUB_ONLY_ROUTES: ReadonlyArray<{ prefix: string; bodyKey: 'deeplink.inviteBody' | 'deeplink.serverBody' }> = [
+    { prefix: '/app/accept-invite/', bodyKey: 'deeplink.inviteBody' },
+    { prefix: '/app/server/', bodyKey: 'deeplink.serverBody' }
+  ];
+  const routeDeepLink = (path: string): void => {
+    if (appMode !== 'hub') {
+      const hubOnly = HUB_ONLY_ROUTES.find((r) => path.startsWith(r.prefix));
+      if (hubOnly) {
+        log.warn(`[deeplink] hub-only route refused in ${appMode} mode: ${hubOnly.prefix}`);
+        if (api?.showNotification) {
+          void api.showNotification(tWin('deeplink.hubOnlyTitle'), tWin(hubOnly.bodyKey));
+        }
+        return;
+      }
+    }
+    if (router && router.isReady && router.push) {
+      router.isReady().then(() => {
+        router.push(path);
+      });
+    } else {
+      deeplinkQueue.push(path);
+    }
+  };
   if (api && api.onDeeplink) {
     _cleanupDeeplink = api.onDeeplink((path: string) => {
-      if (router && router.isReady && router.push) {
-        router.isReady().then(() => {
-          router.push(path);
-        });
-      } else {
-        deeplinkQueue.push(path);
-      }
+      routeDeepLink(path);
     });
     // M-WINDOWS-06: the listener is live only NOW — announce readiness so the
     // main process drains its pending-deeplink queue (cold-start links wait

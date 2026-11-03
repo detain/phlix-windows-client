@@ -7,6 +7,16 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fix — review batch 9 (m3/m17/m18; m12 verified already-cured): hub-only deep-link refusal, strict main tsconfig, typed update bridge — 2026-11-03
+
+- **What (m3):** `phlix://accept-invite/…` and `phlix://server/…` routed blindly in SERVER mode — the vendored shell has no hub routes, so the link landed on a 404 document with no explanation. `routeDeepLink` in `src/renderer/main.ts` now refuses the two HUB_ONLY_ROUTES prefixes when the boot mode is not hub: a catalog notification ("Open Phlix Hub" + per-link body ×7 locales, new `deeplink.*` windows-own trio — count 38→41) replaces the dead route; hub mode and the media path are untouched (regression-pinned). The warm-start drain loop keeps its old shape — it was gated at enqueue time in main, this is the render-time gate the docs already promised.
+- **What (m17):** `tsconfig.main.json` ships `noUnusedLocals` + `noUnusedParameters` — measured zero new errors (the flags-class dead code was already swept by earlier batches), so the law is now structural instead of aspirational.
+- **What (m18):** the preload's five update channels (`checkForUpdates`/`getUpdateStatus`/`onUpdateAvailable`/`onUpdateProgress`/`onUpdateDownloaded`) had no ambient typing — renderer code touching them failed tsc, which is (with the PRELOAD_SHELL_ONLY pin) part of why no surface consumes them. `src/renderer/types/electron.d.ts` declares them with a `DesktopUpdateState` mirroring the main-side `UpdateState` union, docblock recording that the UI adoption is an upstream shell decision. No behavior change; dead-channel pin unaffected.
+- **Not-repro (m12):** "in-flight update check is a silent no-op" — refuted at this tip by `src/main/index.ts:1665`: the handler ANSWERS a concurrent check with the CURRENT state object (M-WINDOWS-12 machinery) and the renderer's dead `update:*` mirror channels are the documented deferred half (owner-gated UI work), not a silent drop.
+- **Law:** `main.test.ts` +4 behavior pins (refuse-notify both prefixes in server mode; route-not-notify in hub; media-path regression) — 2 red at parent, the two negatives green-by-construction (disclosed). `i18nLocales.test.ts` key-set test red at parent (38≠41). `docs/ipc-channels.md` deeplink rows re-cited 656→679 / 641→670 from the FINAL main.ts (R-WINDOWS-03).
+- **Verification:** full vitest serial 76 files / **926** (922+4 exact), vue-tsc + tsc-main 0, eslint 0, `npm run build` + assert-preload green. No vendored file, no dependency or lock change.
+
+
 ### Fix — review batch 8b (D3/D4/D5/D6/D7/D8/D9/D10/D11 + two What-Works truths): the ops-docs batch — coverage-pipeline honesty, Electron-mirror guidance, dev-loop scope, current test stats, feed hosting math, full workflow inventory, corrected AGENTS secret directive, CONTRIBUTING.md, changelog ownership — 2026-11-03
 
 - **What (D3, devops major 3):** README's "What Works" promised "Reports generated and uploaded to Codecov and Codacy on each CI run" — provably false per the repo's own `docs/ci-baseline.md` (CODECOV_TOKEN not authorized, `fail_ci_if_error: false`, Codacy `continue-on-error`, both ubuntu-leg-only). The bullet now states the real contract: vitest's enforced `lines: 54` threshold is the authoritative gate; uploads are best-effort.

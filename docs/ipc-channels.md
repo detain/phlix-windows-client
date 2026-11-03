@@ -39,12 +39,12 @@ retired wrapper left behind both redden the suite.
 |`thumbar:update` | send | `{ playing: boolean }` | — | `ipcMain.on` (1496) | `updateThumbar` | `src/renderer/electronBridge.ts:72, 313` |
 |`playback:progress` | send | `{ current: number; total: number }` | — | `ipcMain.on` (1505) | `setPlaybackProgress` | `src/renderer/electronBridge.ts:73, 151, 314, 340, 349` |
 |`power:update` | send | `{ playing: boolean }` | — | `ipcMain.on` (1533) | `updatePowerBlocker` | `src/renderer/electronBridge.ts:74, 316` |
-| `deeplink:ready` | send | none | — | `ipcMain.on` (271) | `notifyDeeplinkReady` | `src/renderer/main.ts:656` (M-WINDOWS-06: fires only after `onDeeplink` subscribed; main drains its pending-deeplink queue on it) |
+| `deeplink:ready` | send | none | — | `ipcMain.on` (271) | `notifyDeeplinkReady` | `src/renderer/main.ts:679` (M-WINDOWS-06: fires only after `onDeeplink` subscribed; main drains its pending-deeplink queue on it) |
 |`vault:get` | sendSync | `{ key: string }` | `string \| null` | `ipcMain.on` (1402) | `vaultGet` | `src/renderer/safeStorageTokenStore.ts:51` — M-WINDOWS-11 DPAPI token vault (sync by @phlix/ui TokenStore contract; sender-pinned to the current main window) |
 |`vault:set` | sendSync | `{ key: string; value: string }` | `boolean` | `ipcMain.on` (1416) | `vaultSet` | `src/renderer/safeStorageTokenStore.ts:52` — M-WINDOWS-11 |
 |`vault:delete` | sendSync | `{ key: string }` | `boolean` | `ipcMain.on` (1435) | `vaultDelete` | `src/renderer/safeStorageTokenStore.ts:53, 119, 120, 121` — M-WINDOWS-11 |
 |`vault:is-available` | sendSync | none | `boolean` | `ipcMain.on` (1454) | `vaultIsAvailable` | `src/renderer/safeStorageTokenStore.ts:54` — M-WINDOWS-11 |
-| `deeplink:open` | push | `string` | — | `webContents.send` (182) | `onDeeplink` | `src/renderer/main.ts:641` |
+| `deeplink:open` | push | `string` | — | `webContents.send` (182) | `onDeeplink` | `src/renderer/main.ts:670` |
 |`media-play-pause` | push | none | — | `webContents.send` (657,896,962) | `onMediaPlayPause` | `src/renderer/electronBridge.ts:303` |
 |`media-stop` | push | none | — | `webContents.send` (897,963) | `onMediaStop` | `src/renderer/electronBridge.ts:330` |
 |`media-rewind` | push | none | — | `webContents.send` (652,965) | `onMediaRewind` | `src/renderer/electronBridge.ts:336` |
