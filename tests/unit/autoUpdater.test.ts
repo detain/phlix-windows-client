@@ -51,6 +51,9 @@ vi.mock('electron-updater', () => ({
 // setupAutoUpdater synchronously during module import.
 const mockNotification = vi.fn();
 vi.mock('electron', () => ({
+  // M8 batch 10: index.ts imports powerMonitor — partial electron mocks
+  // make the named import throw at boot (exit-7 class, see batch 6).
+  powerMonitor: { on: vi.fn() },
   app: {
     isPackaged: false,
     getVersion: () => '1.0.0',

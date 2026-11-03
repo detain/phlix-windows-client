@@ -87,6 +87,8 @@ export const ja = {
     tlsTitle: '接続を信頼できません',
     tlsBody: '{url} への安全な接続は、証明書の検証が失敗したため拒否されました。',
     loadTitle: 'ページを読み込めませんでした',
-    loadBody: 'Phlix は {url} を読み込めませんでした。'
+    loadBody: 'Phlix は {url} を読み込めませんでした。',
+    hubTitle: 'このアドレスはPhlix Hubです',
+    hubBody: 'デスクトップでのハブモードはまだ利用できません。代わりにPhlixサーバーのアドレスを入力してください。'
   }
 } satisfies MainCatalog;

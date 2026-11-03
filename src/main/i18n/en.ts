@@ -84,6 +84,8 @@ export const en = {
     tlsTitle: 'Connection not trusted',
     tlsBody: 'A secure connection to {url} was rejected because its certificate could not be verified.',
     loadTitle: 'Page failed to load',
-    loadBody: 'Phlix could not load {url}.'
+    loadBody: 'Phlix could not load {url}.',
+    hubTitle: 'This address is a Phlix Hub',
+    hubBody: 'Desktop hub mode is not available yet — enter the address of your Phlix server instead.'
   }
 } as const;

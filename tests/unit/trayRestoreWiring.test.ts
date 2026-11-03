@@ -118,6 +118,9 @@ vi.mock('electron-updater', () => ({
 vi.mock('electron', () => {
   let trayInstanceCount = 0;
   return {
+    // M8 batch 10: index.ts imports powerMonitor — partial electron mocks
+    // make the named import throw at boot (exit-7 class, see batch 6).
+    powerMonitor: { on: vi.fn() },
     app: {
       getPath: vi.fn(() => '/tmp'),
       getVersion: vi.fn(() => '1.0.0'),

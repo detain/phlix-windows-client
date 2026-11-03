@@ -87,6 +87,8 @@ export const de = {
     tlsTitle: 'Verbindung nicht vertrauenswürdig',
     tlsBody: 'Eine sichere Verbindung zu {url} wurde abgelehnt, weil ihr Zertifikat nicht überprüft werden konnte.',
     loadTitle: 'Seite konnte nicht geladen werden',
-    loadBody: 'Phlix konnte {url} nicht laden.'
+    loadBody: 'Phlix konnte {url} nicht laden.',
+    hubTitle: 'Diese Adresse ist ein Phlix-Hub',
+    hubBody: 'Der Hub-Modus ist auf dem Desktop noch nicht verfügbar. Geben Sie stattdessen die Adresse Ihres Phlix-Servers ein.'
   }
 } satisfies MainCatalog;

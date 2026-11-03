@@ -12,7 +12,7 @@
  * Harness follows configWriteValidation.test.ts (boot via mocked electron;
  * plaintext custody fallback through `prefs`; listeners recorded per window).
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, type Mock } from 'vitest';
 
 const { prefs, tracks, WIN } = vi.hoisted(() => {
   const prefs = {} as Record<string, unknown>;
@@ -27,7 +27,8 @@ const { prefs, tracks, WIN } = vi.hoisted(() => {
     setToolTip: [] as string[],
     blockerStart: [] as boolean[],
     openExternal: [] as string[],
-    dialogSync: [] as unknown[]
+    dialogSync: [] as unknown[],
+    powerOn: new Map<string, () => void>()
   };
   // Constructed INSIDE the hoist: the boot path runs on the static import of
   // src/main/index, before any module-body const could exist.
@@ -70,6 +71,9 @@ vi.mock('electron-store', () => ({
   }
 }));
 vi.mock('electron', () => ({
+  // M8 batch 10: index.ts imports powerMonitor — partial electron mocks
+  // make the named import throw at boot (exit-7 class, see batch 6).
+  powerMonitor: { on: (name: string, cb: () => void) => { tracks.powerOn.set(name, cb); } },
   app: {
     isPackaged: false,
     getVersion: () => '1.0.0',
@@ -98,7 +102,11 @@ vi.mock('electron', () => ({
     send: vi.fn()
   },
   shell: { openExternal: (url: string) => { tracks.openExternal.push(url); } },
-  nativeImage: { createFromPath: vi.fn().mockReturnValue({ isEmpty: () => false, resize: vi.fn() }) },
+  nativeImage: {
+    createFromPath: vi.fn().mockReturnValue({ isEmpty: () => false, resize: vi.fn() }),
+    // setupThumbarButtons fallback path (index.ts:640) — resume tests drive it.
+    createEmpty: vi.fn().mockReturnValue({ isEmpty: () => true, resize: vi.fn() })
+  },
   dialog: {
     showMessageBox: vi.fn().mockResolvedValue({ response: 1 }),
     showMessageBoxSync: (opts: unknown) => { tracks.dialogSync.push(opts); return 1; }
@@ -115,8 +123,10 @@ vi.mock('electron', () => ({
   Notification: class {
     static isSupported = vi.fn().mockReturnValue(true);
     onClick?: () => void;
-    constructor() {
-      const self = { onClick: undefined as (() => void) | undefined };
+    title?: string;
+    body?: string;
+    constructor(options: { title?: string; body?: string }) {
+      const self = { ...options } as { title?: string; body?: string; onClick?: () => void };
       Object.defineProperty(self, 'bind', { value: () => undefined });
       tracks.notifications.push(self);
       return {
@@ -251,6 +261,84 @@ describe('m6: notification clickAction routing needs a real string', () => {
   });
 });
 
+describe('m19: the version probe is confined to the PERSISTED serverUrl', () => {
+  let fetchSpy: Mock;
+  beforeEach(() => {
+    fetchSpy = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
+    tracks.wcSend.length = 0;
+    tracks.notifications.length = 0;
+  });
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it('ignores the renderer-supplied apiBase and fetches ONLY the persisted base', async () => {
+    prefs.serverUrl = 'https://media.example';
+    fetchSpy.mockResolvedValueOnce({ ok: true, json: async () => ({ version: '2.0.0' }) });
+    const verdict = await invoke('app:check-server-version', TRUSTED, { apiBase: 'http://127.0.0.1:9999' }) as { serverVersion: string | null };
+    expect(verdict.serverVersion).toBe('2.0.0');
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    // The whole point: the loopback probe the finding described NEVER happens.
+    expect((fetchSpy.mock.calls[0] as unknown as [string])[0]).toBe('https://media.example/system/info');
+  });
+
+  it('with no persisted server it answers the INACTIVE verdict WITHOUT fetching', async () => {
+    delete prefs.serverUrl;
+    const verdict = await invoke('app:check-server-version', TRUSTED, { apiBase: 'http://169.254.169.254' }) as { serverVersion: string | null; compatible: boolean };
+    expect(verdict).toEqual({ compatible: true, serverVersion: null, minimumVersion: '1.1.0' });
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('names a hub-shaped persisted base with one pref-gated notification (M7)', async () => {
+    prefs.serverUrl = 'https://hub.example';
+    fetchSpy
+      .mockResolvedValueOnce({ ok: false, status: 404 })            // gate: /system/info 404
+      .mockResolvedValueOnce({ ok: false, status: 404 })            // detector: same again
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'ok', service: 'phlix-hub' }) });
+    const verdict = await invoke('app:check-server-version', TRUSTED, { apiBase: 'https://hub.example' }) as { serverVersion: string | null };
+    expect(verdict.serverVersion).toBe(null);
+    expect(tracks.notifications).toHaveLength(1);
+    expect(tracks.notifications[0]?.title).toBe('This address is a Phlix Hub');
+  });
+
+  it('a server-shaped base (reachable /system/info) never gets the hub toast', async () => {
+    prefs.serverUrl = 'https://media.example';
+    fetchSpy.mockResolvedValueOnce({ ok: true, json: async () => ({ version: '2.0.0' }) });
+    await invoke('app:check-server-version', TRUSTED, { apiBase: 'https://media.example' });
+    expect(tracks.notifications).toHaveLength(0);
+  });
+});
+
+describe('M8: powerMonitor suspend/resume reach the renderer as pushes', () => {
+  beforeEach(() => { tracks.wcSend.length = 0; tracks.blockerStart.length = 0; });
+
+  it('suspend pushes power:suspend to the live main window', () => {
+    expect(tracks.powerOn.has('suspend'), 'suspend handler registered').toBe(true);
+    tracks.powerOn.get('suspend')!();
+    expect(tracks.wcSend.some(([c]) => c === 'power:suspend')).toBe(true);
+  });
+
+  it('resume re-asserts a live display-sleep blocker and pushes power:resume', () => {
+    // isPlaying's SOLE writer is updateThumbarPlayState (thumbar:update);
+    // power:update only drives the blocker itself (measured at this tip).
+    invoke('thumbar:update', TRUSTED, { playing: true });
+    invoke('power:update', TRUSTED, { playing: true });
+    const before = tracks.blockerStart.length;
+    tracks.powerOn.get('resume')!();
+    expect(tracks.blockerStart.length).toBe(before + 1);
+    expect(tracks.wcSend.some(([c]) => c === 'power:resume')).toBe(true);
+  });
+
+  it('resume with nothing playing re-asserts NOTHING (only the push)', () => {
+    // isPlaying LEAKS across tests (module state) — clear it explicitly, then
+    // measure from after the clear (thumbar:false itself never starts blockers).
+    invoke('thumbar:update', TRUSTED, { playing: false });
+    const before = tracks.blockerStart.length;
+    tracks.powerOn.get('resume')!();
+    expect(tracks.blockerStart.length).toBe(before);
+    expect(tracks.wcSend.some(([c]) => c === 'power:resume')).toBe(true);
+  });
+});
+
 describe('m13: renderer death zeroes the playback mirrors', () => {
   it('render-process-gone resets the tray tooltip from playing to idle', () => {
     invoke('power:update', TRUSTED, { playing: true });
@@ -305,3 +393,8 @@ describe('m16: protocol registration is packaged-only', () => {
     expect(call).toBeGreaterThan(gate);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Batch 10 (M7/M8/m19): the version-gate constraint, the hub-shaped hint, and
+// the powerMonitor signal wire — all exercised through the real registrations.
+// ---------------------------------------------------------------------------

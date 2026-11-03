@@ -112,7 +112,10 @@ const ORIGINAL_MAIN_PROCESS_STRINGS: Record<MainMessageKey, string> = {
   'net.tlsTitle': 'Connection not trusted',
   'net.tlsBody': 'A secure connection to {url} was rejected because its certificate could not be verified.',
   'net.loadTitle': 'Page failed to load',
-  'net.loadBody': 'Phlix could not load {url}.'
+  'net.loadBody': 'Phlix could not load {url}.',
+  // M7 (batch 10): hub-shaped base named at the version gate.
+  'net.hubTitle': 'This address is a Phlix Hub',
+  'net.hubBody': 'Desktop hub mode is not available yet — enter the address of your Phlix server instead.'
 };
 
 function flattenedCatalogKeys(): MainMessageKey[] {

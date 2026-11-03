@@ -534,12 +534,12 @@ describe('fr typographic apostrophe law (windows-own + main catalogs)', () => {
 // ---------------------------------------------------------------------------
 
 describe('main-process catalog ×6 — key-set, placeholders, sanity', () => {
-  it('every locale carries EXACTLY the 51 English keys (both directions)', () => {
+  it('every locale carries EXACTLY the 53 English keys (both directions)', () => {
     const reference = keySet(MAIN_EN as unknown as Table);
     for (const locale of LOCALES) {
       expect(keySet(MAIN_TABLES[locale]), `${locale} key set differs from en`).toBe(reference);
     }
-    expect(EN_MAIN.size).toBe(51);
+    expect(EN_MAIN.size).toBe(53);
   });
 
   it('the registry carries precisely the catalog files that exist', () => {

@@ -89,6 +89,8 @@ export const pt_BR = {
     tlsTitle: 'Conexão não confiável',
     tlsBody: 'Uma conexão segura com {url} foi rejeitada porque o certificado não pôde ser verificado.',
     loadTitle: 'Falha ao carregar a página',
-    loadBody: 'O Phlix não pôde carregar {url}.'
+    loadBody: 'O Phlix não pôde carregar {url}.',
+    hubTitle: 'Este endereço é um Phlix Hub',
+    hubBody: 'O modo hub ainda não está disponível no desktop. Digite em vez disso o endereço do seu servidor Phlix.'
   }
 } satisfies MainCatalog;

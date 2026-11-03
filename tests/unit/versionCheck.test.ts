@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 // Using relative path because @ alias points to src/renderer/, not src/main/
-import { parseServerVersion, checkMinServerVersion, MIN_SERVER_VERSION } from '../../src/main/versionCheck';
+import { parseServerVersion, checkMinServerVersion, detectHubShapedBase, MIN_SERVER_VERSION } from '../../src/main/versionCheck';
 import log from 'electron-log';
 
 vi.mock('electron-log', () => ({
@@ -347,5 +347,58 @@ describe('fetchable-base boundary (M-WINDOWS-30)', () => {
     const result = await checkMinServerVersion('http://admin:hunter2@169.254.169.254');
     expect(spy).not.toHaveBeenCalled();
     expect(result.compatible).toBe(true);
+  });
+});
+
+// M7 (review batch 10): hub-shape detection off the route signatures —
+// hub answers /health with service:'phlix-hub' and has no /system/info;
+// anything else must NEVER be guessed as a hub.
+describe('detectHubShapedBase', () => {
+  const { fetch } = window;
+  let fetchSpy: Mock;
+
+  beforeEach(() => {
+    fetchSpy = vi.fn();
+    (window as unknown as { fetch: typeof fetch }).fetch = fetchSpy;
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    (window as unknown as { fetch: typeof fetch }).fetch = fetch;
+  });
+
+  it('hub-shaped: /system/info answers NOT-ok and /health names phlix-hub', async () => {
+    fetchSpy
+      .mockResolvedValueOnce({ ok: false, status: 404 } as Response)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'ok', service: 'phlix-hub' }) } as Response);
+    expect(await detectHubShapedBase('http://hub.example/')).toBe(true);
+    expect((fetchSpy.mock.calls[0] as unknown as [string])[0]).toBe('http://hub.example/system/info');
+    expect((fetchSpy.mock.calls[1] as unknown as [string])[0]).toBe('http://hub.example/health');
+  });
+
+  it('a server-shaped /health (no service key) is NOT a hub', async () => {
+    fetchSpy
+      .mockResolvedValueOnce({ ok: false, status: 404 } as Response)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'ok', version: '1.2.0' }) } as Response);
+    expect(await detectHubShapedBase('http://srv.example')).toBe(false);
+  });
+
+  it('a reachable /system/info short-circuits to false WITHOUT the health probe', async () => {
+    fetchSpy.mockResolvedValueOnce({ ok: true, json: async () => ({ version: '1.1.0' }) } as Response);
+    expect(await detectHubShapedBase('http://srv.example')).toBe(false);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('network failure answers false (never guess hub on an unreachable host)', async () => {
+    fetchSpy.mockRejectedValueOnce(new Error('ECONNREFUSED'));
+    expect(await detectHubShapedBase('http://gone.example')).toBe(false);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('guards refuse without touching the network', async () => {
+    expect(await detectHubShapedBase('')).toBe(false);
+    expect(await detectHubShapedBase('ftp://nope.example')).toBe(false);
+    expect(await detectHubShapedBase('http://admin:x@169.254.169.254')).toBe(false);
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });

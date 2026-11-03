@@ -187,3 +187,57 @@ export async function checkMinServerVersion(apiBase: string): Promise<ServerVers
 }
 
 export { MIN_SERVER_VERSION };
+
+/**
+ * M7 (review batch 10): is this base a Phlix HUB rather than a Phlix server?
+ *
+ * Discriminator measured from both repos' route tables (read-only, 2026-11-03):
+ * - phlix-server root /system/info returns {server, version} (Application.php
+ *   :256-266) and root /health returns {status, timestamp, version} — NO
+ *   `service` key (:236-250).
+ * - phlix-hub serves root /health ONLY, and its payload carries
+ *   `service: 'phlix-hub'` (src/Application.php:438 + HealthController:112);
+ *   /system/info 404s there.
+ * So: /system/info answering an HTTP status (not a network failure) that is
+ * NOT ok, plus /health answering 200 with service==='phlix-hub', identifies a
+ * hub base. Anything else — reachable /system/info, non-hub health, dead
+ * network, timeout — answers false; this probe must never guess.
+ *
+ * The Connect screen persists any URL as serverUrl (resolveConfig contract),
+ * so a hub owner typing their hub address gets a server-mode app 404ing
+ * against hub routes. The boot gate fail-opens through the 404 path; this
+ * detector is what lets the shell NAME the mistake instead of silently
+ * degrading. Two short-timeout GETs, called only off the INACTIVE verdict.
+ */
+export async function detectHubShapedBase(apiBase: string): Promise<boolean> {
+  if (!apiBase || !isFetchableApiBase(apiBase)) {
+    return false;
+  }
+  const base = apiBase.endsWith('/') ? apiBase.slice(0, -1) : apiBase;
+  try {
+    const info = await fetch(`${base}/system/info`, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(5000)
+    });
+    if (info.ok) {
+      // A reachable /system/info means this is (or masquerades as) a server.
+      return false;
+    }
+    const health = await fetch(`${base}/health`, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(5000)
+    });
+    if (!health.ok) {
+      return false;
+    }
+    const payload: unknown = await health.json();
+    return typeof payload === 'object' && payload !== null && (payload as { service?: unknown }).service === 'phlix-hub';
+  } catch (err) {
+    // Dead/unreachable/timeout — never answer "hub" on a network failure;
+    // the message goes to the log only (M-WINDOWS-44 value-free law).
+    log.info(`[versionCheck] hub-shape probe inconclusive (${err instanceof Error ? err.name : 'error'})`);
+    return false;
+  }
+}

@@ -109,6 +109,15 @@ declare global {
       onUpdateAvailable: (callback: (data: { version: string }) => void) => () => void;
       onUpdateProgress: (callback: (data: { percent: number }) => void) => () => void;
       onUpdateDownloaded: (callback: (data: { version: string }) => void) => () => void;
+    /**
+     * M8 (review batch 10): system suspend/resume pushes from the main-side
+     * powerMonitor. TYPED BUT NOT YET CONSUMED — the renderer-side use
+     * (force-reconnect + SyncPlay clock re-anchor after wake) is an upstream
+     * vendored-shell seam, logged deferred; the signal wire ships now.
+     * Same deferred-UI class as the update quintet above (PRELOAD_SHELL_ONLY).
+     */
+    onPowerSuspend: (callback: () => void) => () => void;
+    onPowerResume: (callback: () => void) => () => void;
     };
   }
 }

@@ -369,7 +369,9 @@ describe('preload consumer inventory (M-WINDOWS-39)', () => {
     getUpdateStatus: 'same deferred updater-UI class as checkForUpdates.',
     onUpdateAvailable: 'push subscription kept with the update:* trio for the same deferred-UI reason.',
     onUpdateProgress: 'same deferred updater-UI class.',
-    onUpdateDownloaded: 'same deferred updater-UI class.'
+    onUpdateDownloaded: 'same deferred updater-UI class.',
+    onPowerSuspend: 'M8 (batch 10): the powerMonitor signal wire ships now; the renderer consumer (force-reconnect + SyncPlay clock re-anchor on wake) is the upstream vendored-shell seam — deferred with reason in the doc row.',
+    onPowerResume: 'same M8 deferred-consumer class as onPowerSuspend; main additionally re-asserts the display-sleep blocker on resume.'
   };
 
   it('the no-consumer preload set is exactly the disclosed inventory', () => {
@@ -495,9 +497,10 @@ describe('IPC channel pairing', () => {
       expect(mainOn.sort()).toEqual(['minimize-to-tray', 'set-always-on-top', 'tray:set-minimize-to-tray', 'thumbar:update', 'playback:progress', 'power:update', 'deeplink:ready', 'vault:get', 'vault:set', 'vault:delete', 'vault:is-available'].sort());
     });
 
-    it('main process sends exactly nine distinct push channels to renderer', () => {
+    it('main process sends exactly eleven distinct push channels to renderer', () => {
       // M-WINDOWS-35: media-previous/media-next/media-seek-to left with the shell's
       // second SMTC installer; media-play-pause/stop/rewind/forward remain (thumbar/tray/menu).
+      // M8 (batch 10): power:suspend/power:resume — the powerMonitor signal wire.
       expect([...new Set(mainWebContentsSend)].sort()).toEqual([
         'deeplink:open',
         'media-forward',
@@ -505,13 +508,15 @@ describe('IPC channel pairing', () => {
         'media-rewind',
         'media-stop',
         'open-settings',
+        'power:resume',
+        'power:suspend',
         'update:available',
         'update:downloaded',
         'update:progress'
       ].sort());
     });
 
-    it('preload listens to exactly nine push channels from main', () => {
+    it('preload listens to exactly eleven push channels from main', () => {
       expect(preloadOnChannels.sort()).toEqual([
         'deeplink:open',
         'media-forward',
@@ -519,6 +524,8 @@ describe('IPC channel pairing', () => {
         'media-rewind',
         'media-stop',
         'open-settings',
+        'power:resume',
+        'power:suspend',
         'update:available',
         'update:downloaded',
         'update:progress'

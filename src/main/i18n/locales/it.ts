@@ -88,6 +88,8 @@ export const it = {
     tlsTitle: 'Connessione non attendibile',
     tlsBody: 'Una connessione sicura a {url} è stata rifiutata perché non è stato possibile verificare il certificato.',
     loadTitle: 'Impossibile caricare la pagina',
-    loadBody: 'Phlix non ha potuto caricare {url}.'
+    loadBody: 'Phlix non ha potuto caricare {url}.',
+    hubTitle: "Questo indirizzo è un Phlix Hub",
+    hubBody: "La modalità hub non è ancora disponibile sul desktop. Inserisci invece l’indirizzo del tuo server Phlix."
   }
 } satisfies MainCatalog;

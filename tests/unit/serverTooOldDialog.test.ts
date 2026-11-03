@@ -53,6 +53,9 @@ const { protocolHandlers } = vi.hoisted(() => {
 });
 
 vi.mock('electron', () => ({
+  // M8 batch 10: index.ts imports powerMonitor — partial electron mocks
+  // make the named import throw at boot (exit-7 class, see batch 6).
+  powerMonitor: { on: vi.fn() },
   app: {
     getPath: vi.fn(() => path.join(PROJECT_ROOT, 'dist')),
     getVersion: vi.fn(() => '1.0.0'),
@@ -187,8 +190,13 @@ describe('showServerTooOldDialog (main-process too-old-server surface)', () => {
     const source = readFileSync(path.join(PROJECT_ROOT, 'src', 'main', 'index.ts'), 'utf8');
     const handler = source.match(/ipcMain\.handle\('app:check-server-version'[\s\S]*?\n\}\);/);
     expect(handler, 'app:check-server-version handler block').not.toBeNull();
-    expect(handler![0]).toMatch(/const result = await checkMinServerVersion\(apiBase\);/);
-    expect(handler![0]).toMatch(/if \(!result\.compatible\) \{\s*showServerTooOldDialog\(result\);\s*\}/);
+    // m19 (review batch 10) rotated the FIRST law deliberately: the probe is
+    // confined to the PERSISTED serverUrl, never the renderer-supplied base
+    // (main-process fetch primitive = LAN timing oracle). The dialog wiring
+    // itself stays pinned by the remaining assertions.
+    expect(handler![0]).toMatch(/const persisted = configCustody\.read\('serverUrl'\) \?\? '';/);
+    expect(handler![0]).toMatch(/const result = await checkMinServerVersion\(persisted\);/);
+    expect(handler![0]).toMatch(/if \(!result\.compatible\) \{\s*showServerTooOldDialog\(result\);/);
     expect(handler![0]).toMatch(/return result;/);
   });
 });

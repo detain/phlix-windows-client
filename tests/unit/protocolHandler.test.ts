@@ -53,6 +53,9 @@ const { protocolHandlers } = vi.hoisted(() => {
 });
 
 vi.mock('electron', () => ({
+  // M8 batch 10: index.ts imports powerMonitor — partial electron mocks
+  // make the named import throw at boot (exit-7 class, see batch 6).
+  powerMonitor: { on: vi.fn() },
   app: {
     getPath: vi.fn(() => path.join(PROJECT_ROOT, 'dist')),
     getVersion: vi.fn(() => '1.0.0'),

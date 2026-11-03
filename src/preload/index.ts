@@ -232,6 +232,21 @@ const electronApiSurface = {
     ipcRenderer.on('update:downloaded', listener);
     return () => ipcRenderer.removeListener('update:downloaded', listener);
   },
+
+  // M8 (review batch 10): system suspend/resume signals from powerMonitor.
+  // No renderer subscriber yet — the vendored shell's force-reconnect +
+  // clock re-anchor on resume is the upstream half (logged deferred). The
+  // unsubscribe-return law matches the update:* listeners above.
+  onPowerSuspend: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('power:suspend', listener);
+    return () => ipcRenderer.removeListener('power:suspend', listener);
+  },
+  onPowerResume: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('power:resume', listener);
+    return () => ipcRenderer.removeListener('power:resume', listener);
+  },
 };
 
 // THE gate (M-WINDOWS-10): a document this preload runs in receives the

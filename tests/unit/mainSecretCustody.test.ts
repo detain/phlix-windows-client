@@ -122,6 +122,9 @@ const XOR_KEY = 0x5a;
 const FAKE_PREFIX = 'W11FAKE:';
 
 vi.mock('electron', () => ({
+  // M8 batch 10: index.ts imports powerMonitor — partial electron mocks
+  // make the named import throw at boot (exit-7 class, see batch 6).
+  powerMonitor: { on: vi.fn() },
   app: {
     getPath: () => harness.dir,
     getVersion: () => '1.0.0',

@@ -4,14 +4,14 @@
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
 
-import { app, BrowserWindow, Menu, Tray, ipcMain, shell, nativeImage, dialog, protocol, screen, powerSaveBlocker, Notification, safeStorage, session } from 'electron';
+import { app, BrowserWindow, Menu, Tray, ipcMain, shell, nativeImage, dialog, protocol, screen, powerSaveBlocker, powerMonitor, Notification, safeStorage, session } from 'electron';
 import type { MessageBoxOptions, ThumbarButton } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
 import { isPathSafe } from './pathUtils';
 import { validateExternalUrl, validateNavigationUrl, isFetchableApiBase, summarizeUrlForLog, scrubErrorForLog } from './urlValidator';
-import { checkMinServerVersion, MIN_SERVER_VERSION, type ServerVersionCheck } from './versionCheck';
+import { checkMinServerVersion, detectHubShapedBase, MIN_SERVER_VERSION, type ServerVersionCheck } from './versionCheck';
 import {
   parseDeepLinkUrl,
   extractDeepLinkUrl,
@@ -1325,9 +1325,31 @@ ipcMain.handle('app:check-server-version', async (event, { apiBase }: { apiBase:
     // arms): fail-closed here must not fabricate a blocking dialog.
     return { compatible: true, serverVersion: null, minimumVersion: MIN_SERVER_VERSION };
   }
-  const result = await checkMinServerVersion(apiBase);
+  // m19 (review batch 10): this handler is a MAIN-PROCESS fetch primitive and
+  // isFetchableApiBase deliberately keeps loopback legal — a renderer-supplied
+  // base made the channel a LAN/loopback timing/error oracle that bypasses
+  // CORS (main-process fetch, error-class echo). The probe is now constrained
+  // to the PERSISTED serverUrl; the argument stays in the wire shape (preload
+  // + docs unchanged for consumers) but is deliberately ignored.
+  void apiBase;
+  const persisted = configCustody.read('serverUrl') ?? '';
+  const result = await checkMinServerVersion(persisted);
   if (!result.compatible) {
     showServerTooOldDialog(result);
+    return result;
+  }
+  // M7 (review batch 10): the gate did not run (serverVersion null). The
+  // commonest reason is a HUB address persisted as serverUrl — the Connect
+  // screen persists any URL, a hub has no /system/info, and the estate
+  // fail-open law keeps the mismatch silent. Confirm the hub shape from the
+  // route signatures (versionCheck.detectHubShapedBase) and NAME the mistake
+  // through the pref-gated notification surface instead of leaving the user
+  // staring at an empty Browse.
+  if (result.serverVersion === null && persisted && isFetchableApiBase(persisted)) {
+    if (await detectHubShapedBase(persisted)) {
+      log.warn('[ipc] app:check-server-version: base is hub-shaped — desktop hub mode is not enterable (M7)');
+      notifyUser(t('net.hubTitle'), t('net.hubBody'), { throttle: true });
+    }
   }
   return result;
 });
@@ -1932,6 +1954,31 @@ app.whenReady().then(() => {
     const summary = summarizeUrlForLog(url);
     log.warn(`[net] TLS certificate rejected for ${summary}: ${error}`);
     notifyUser(t('net.tlsTitle'), t('net.tlsBody', { url: summary }), { throttle: true });
+  });
+
+  // M8 (review batch 10): `prevent-display-sleep` does NOT prevent system
+  // suspend — lid close/power-button/sleep policy kill the TCP behind the WS
+  // and jump the wall clock (anchor+elapsed SyncPlay math), yet nothing told
+  // the renderer "the world slept and woke". powerMonitor is ready-only, so
+  // this registers inside whenReady. Literal channel strings in BOTH arms:
+  // the R-WINDOWS-03 source-scanner enumerates webContents.send sites, and
+  // variable-channel sends would slip the inventory. The renderer consumers
+  // (force-reconnect + clock re-anchor on resume) are the vendored shell's
+  // half — the upstream seam is logged deferred; this is the signal wire.
+  powerMonitor.on('suspend', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('power:suspend');
+    }
+  });
+  powerMonitor.on('resume', () => {
+    // The display-sleep blocker does not survive suspend either — if media
+    // believed itself playing, re-assert it; ensurePowerBlocker is idempotent.
+    if (isPlaying) {
+      ensurePowerBlocker(true);
+    }
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('power:resume');
+    }
   });
 
   createWindow();
