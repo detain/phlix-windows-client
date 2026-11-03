@@ -698,3 +698,95 @@ describe('buildExtraRoutes', () => {
     );
   });
 });
+
+// M4 (review windows exploiter #1 / crossfe #1 / secnet M1): boot() must wire
+// the DPAPI vault TokenStore into createPhlixApp when the bridge is live,
+// fold pre-wiring plaintext rows across (vault-wins, plaintext cleared only on
+// a CONFIRMED seal), and omit the key entirely for bridge-less boots.
+describe('M4 vault token custody wiring (boot)', () => {
+  function makeVaultApi(opts: { failSeal?: boolean } = {}) {
+    const sealed = new Map<string, string>();
+    const api = {
+      hubGetConfig: vi.fn(async () => ({ hubUrl: null, activeServerId: null, connectionMode: 'server' })),
+      getDeviceId: vi.fn(async () => 'device-vault'),
+      getServerUrl: vi.fn(async () => 'http://srv.example:8096'),
+      checkServerVersion: vi.fn(async () => ({ compatible: true, serverVersion: '2.0.0', minimumVersion: '1.1.0' })),
+      setServerUrl: vi.fn(async () => {}),
+      vaultGet: (k: string) => sealed.get(k) ?? null,
+      vaultSet: (k: string, v: string) => {
+        if (opts.failSeal) return false; // seal silently never lands
+        sealed.set(k, v);
+        return true;
+      },
+      vaultDelete: (k: string) => {
+        sealed.delete(k);
+        return true;
+      },
+      vaultIsAvailable: () => true
+    };
+    return { api, sealed };
+  }
+
+  it('passes SafeStorageTokenStore through the config and folds plaintext rows', async () => {
+    const { SafeStorageTokenStore } = await import('@/safeStorageTokenStore');
+    const { api, sealed } = makeVaultApi();
+    setElectronApi(api);
+    localStorage.setItem('access_token', 'PLAIN-ACCESS');
+    localStorage.setItem('refresh_token', 'PLAIN-REFRESH');
+    localStorage.setItem('user', JSON.stringify({ id: 'u1' }));
+
+    const mod = await import('@/main');
+    await mod.boot();
+
+    const cfg = (createPhlixApp.mock.calls as any).at(-1)?.[0] as Record<string, unknown>;
+    expect(cfg.tokenStore).toBeInstanceOf(SafeStorageTokenStore);
+    expect(sealed.get('ui.access_token')).toBe('PLAIN-ACCESS');
+    expect(sealed.get('ui.refresh_token')).toBe('PLAIN-REFRESH');
+    expect(sealed.get('ui.user')).toBe(JSON.stringify({ id: 'u1' }));
+    expect(localStorage.getItem('access_token')).toBeNull();
+    expect(localStorage.getItem('refresh_token')).toBeNull();
+    expect(localStorage.getItem('user')).toBeNull();
+  });
+
+  it('vault value wins over a stale plaintext row; plaintext is still cleared', async () => {
+    const { api, sealed } = makeVaultApi();
+    sealed.set('ui.access_token', 'VAULT-KEEP');
+    setElectronApi(api);
+    localStorage.setItem('access_token', 'PLAIN-STALE');
+
+    const mod = await import('@/main');
+    await mod.boot();
+
+    expect(sealed.get('ui.access_token')).toBe('VAULT-KEEP');
+    expect(localStorage.getItem('access_token')).toBeNull();
+  });
+
+  it('an unconfirmable seal PRESERVES the plaintext row (no orphaned session) and boot proceeds', async () => {
+    const { api } = makeVaultApi({ failSeal: true });
+    setElectronApi(api);
+    localStorage.setItem('access_token', 'PLAIN-KEEP');
+
+    const mod = await import('@/main');
+    await mod.boot();
+
+    expect(createPhlixApp).toHaveBeenCalled();
+    expect(localStorage.getItem('access_token')).toBe('PLAIN-KEEP');
+  });
+
+  it('bridge-less boot (no vault* on the API) omits the tokenStore key', async () => {
+    const api = {
+      hubGetConfig: vi.fn(async () => ({ hubUrl: null, activeServerId: null, connectionMode: 'server' })),
+      getDeviceId: vi.fn(async () => 'device-novault'),
+      getServerUrl: vi.fn(async () => 'http://srv.example:8096'),
+      checkServerVersion: vi.fn(async () => ({ compatible: true, serverVersion: '2.0.0', minimumVersion: '1.1.0' })),
+      setServerUrl: vi.fn(async () => {})
+    };
+    setElectronApi(api);
+
+    const mod = await import('@/main');
+    await mod.boot();
+
+    const cfg = (createPhlixApp.mock.calls as any).at(-1)?.[0] as Record<string, unknown>;
+    expect(cfg).not.toHaveProperty('tokenStore');
+  });
+});

@@ -24,27 +24,27 @@ retired wrapper left behind both redden the suite.
 | `minimize-to-tray` | send | none | — | `ipcMain.on` (1012) | `minimizeToTray` | Not directly called by renderer; preload-only |
 | `tray:get-minimize-to-tray` | invoke | none | `boolean` | `ipcMain.handle` (1016) | `getMinimizeToTray` | Not directly called by renderer; preload-only |
 | `tray:set-minimize-to-tray` | send | `boolean` | — | `ipcMain.on` (1018) | `setMinimizeToTray` | Not directly called by renderer; preload-only |
-| `hub:get-config` | invoke | none | `HubConfig` | `ipcMain.handle` (1030) | `hubGetConfig` | `src/renderer/main.ts:352` & `src/renderer/resolveConfig.ts:17` |
+| `hub:get-config` | invoke | none | `HubConfig` | `ipcMain.handle` (1030) | `hubGetConfig` | `src/renderer/main.ts:415` & `src/renderer/resolveConfig.ts:17` |
 | `hub:set-config` | invoke | `HubConfigPartial` | `boolean` | `ipcMain.handle` (1051) | `hubSetConfig` | Not directly called by renderer; preload-only |
-| `app:get-server-url` | invoke | none | `string \| null` | `ipcMain.handle` (1084) | `getServerUrl` | `src/renderer/main.ts:354` & `src/renderer/resolveConfig.ts:19` |
-| `app:set-server-url` | invoke | `string` | `boolean` | `ipcMain.handle` (1088) | `setServerUrl` | `src/renderer/main.ts:473` |
-| `app:check-server-version` | invoke | `{ apiBase: string }` | `ServerVersionCheck` | `ipcMain.handle` (1104) | `checkServerVersion` | `src/renderer/main.ts:385` |
-| `app:get-device-id` | invoke | none | `string` | `ipcMain.handle` (1121) | `getDeviceId` | `src/renderer/main.ts:353` |
-| `notification:show` | invoke | `{ title: string; body: string; clickAction?: string }` | `boolean` | `ipcMain.handle` (1325) | `showNotification` | `src/renderer/main.ts:404` (M-WINDOWS-39: the incompatible-server boot reply is this channel's consumer; main-side gates per M-WINDOWS-33/40) |
+| `app:get-server-url` | invoke | none | `string \| null` | `ipcMain.handle` (1084) | `getServerUrl` | `src/renderer/main.ts:425` & `src/renderer/resolveConfig.ts:19` |
+| `app:set-server-url` | invoke | `string` | `boolean` | `ipcMain.handle` (1088) | `setServerUrl` | `src/renderer/main.ts:555` |
+| `app:check-server-version` | invoke | `{ apiBase: string }` | `ServerVersionCheck` | `ipcMain.handle` (1104) | `checkServerVersion` | `src/renderer/main.ts:272` |
+| `app:get-device-id` | invoke | none | `string` | `ipcMain.handle` (1121) | `getDeviceId` | `src/renderer/main.ts:424` |
+| `notification:show` | invoke | `{ title: string; body: string; clickAction?: string }` | `boolean` | `ipcMain.handle` (1325) | `showNotification` | `src/renderer/main.ts:468` (M-WINDOWS-39: the incompatible-server boot reply is this channel's consumer; main-side gates per M-WINDOWS-33/40) |
 | `gpu:get-disable-hardware-acceleration` | invoke | none | `boolean` | `ipcMain.handle` (1344) | `getDisableHardwareAcceleration` | Not directly called by renderer; preload-only |
 | `gpu:set-disable-hardware-acceleration` | invoke | `boolean` | `void` | `ipcMain.handle` (1348) | `setDisableHardwareAcceleration` | Not directly called by renderer; preload-only |
 | `gpu:get-feature-status` | invoke | none | `GPUFeatureStatus` | `ipcMain.handle` (1353) | `getGpuFeatureStatus` | Not directly called by renderer; preload-only |
 | `update:check-for-updates` | invoke | none | `UpdateState` | `ipcMain.handle` (1367) | `checkForUpdates` | Not directly called by renderer; preload-only |
 | `update:get-status` | invoke | none | `UpdateState` | `ipcMain.handle` (1388) | `getUpdateStatus` | Not directly called by renderer; preload-only |
-| `thumbar:update` | send | `{ playing: boolean }` | — | `ipcMain.on` (1232) | `updateThumbar` | `src/renderer/electronBridge.ts:124, 313` |
-| `playback:progress` | send | `{ current: number; total: number }` | — | `ipcMain.on` (1237) | `setPlaybackProgress` | `src/renderer/electronBridge.ts:139, 151, 314, 340, 349` |
-| `power:update` | send | `{ playing: boolean }` | — | `ipcMain.on` (1255) | `updatePowerBlocker` | `src/renderer/electronBridge.ts:125, 316` |
-| `deeplink:ready` | send | none | — | `ipcMain.on` (266) | `notifyDeeplinkReady` | `src/renderer/main.ts:567` (M-WINDOWS-06: fires only after `onDeeplink` subscribed; main drains its pending-deeplink queue on it) |
-| `vault:get` | sendSync | `{ key: string }` | `string \| null` | `ipcMain.on` (1170) | `vaultGet` | `src/renderer/safeStorageTokenStore.ts:76` — M-WINDOWS-11 DPAPI token vault (sync by @phlix/ui TokenStore contract; sender-pinned to the current main window) |
-| `vault:set` | sendSync | `{ key: string; value: string }` | `boolean` | `ipcMain.on` (1184) | `vaultSet` | `src/renderer/safeStorageTokenStore.ts:85` — M-WINDOWS-11 |
-| `vault:delete` | sendSync | `{ key: string }` | `boolean` | `ipcMain.on` (1203) | `vaultDelete` | `src/renderer/safeStorageTokenStore.ts:111, 118, 119, 120` — M-WINDOWS-11 |
-| `vault:is-available` | sendSync | none | `boolean` | `ipcMain.on` (1222) | `vaultIsAvailable` | `src/renderer/safeStorageTokenStore.ts:53` — M-WINDOWS-11 |
-| `deeplink:open` | push | `string` | — | `webContents.send` (182) | `onDeeplink` | `src/renderer/main.ts:552` |
+| `thumbar:update` | send | `{ playing: boolean }` | — | `ipcMain.on` (1232) | `updateThumbar` | `src/renderer/electronBridge.ts:72, 313` |
+| `playback:progress` | send | `{ current: number; total: number }` | — | `ipcMain.on` (1237) | `setPlaybackProgress` | `src/renderer/electronBridge.ts:73, 151, 314, 340, 349` |
+| `power:update` | send | `{ playing: boolean }` | — | `ipcMain.on` (1255) | `updatePowerBlocker` | `src/renderer/electronBridge.ts:74, 316` |
+| `deeplink:ready` | send | none | — | `ipcMain.on` (266) | `notifyDeeplinkReady` | `src/renderer/main.ts:650` (M-WINDOWS-06: fires only after `onDeeplink` subscribed; main drains its pending-deeplink queue on it) |
+| `vault:get` | sendSync | `{ key: string }` | `string \| null` | `ipcMain.on` (1170) | `vaultGet` | `src/renderer/safeStorageTokenStore.ts:51` — M-WINDOWS-11 DPAPI token vault (sync by @phlix/ui TokenStore contract; sender-pinned to the current main window) |
+| `vault:set` | sendSync | `{ key: string; value: string }` | `boolean` | `ipcMain.on` (1184) | `vaultSet` | `src/renderer/safeStorageTokenStore.ts:52` — M-WINDOWS-11 |
+| `vault:delete` | sendSync | `{ key: string }` | `boolean` | `ipcMain.on` (1203) | `vaultDelete` | `src/renderer/safeStorageTokenStore.ts:53, 119, 120, 121` — M-WINDOWS-11 |
+| `vault:is-available` | sendSync | none | `boolean` | `ipcMain.on` (1222) | `vaultIsAvailable` | `src/renderer/safeStorageTokenStore.ts:54` — M-WINDOWS-11 |
+| `deeplink:open` | push | `string` | — | `webContents.send` (182) | `onDeeplink` | `src/renderer/main.ts:634` |
 | `media-play-pause` | push | none | — | `webContents.send` (576, 828, 868) | `onMediaPlayPause` | `src/renderer/electronBridge.ts:303` |
 | `media-stop` | push | none | — | `webContents.send` (829, 869) | `onMediaStop` | `src/renderer/electronBridge.ts:330` |
 | `media-rewind` | push | none | — | `webContents.send` (571, 871) | `onMediaRewind` | `src/renderer/electronBridge.ts:336` |

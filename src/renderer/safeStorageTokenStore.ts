@@ -18,15 +18,16 @@ import type { TokenStore } from '@phlix/ui';
  * secrets.json (src/main/secretStore.ts + the vault channels in
  * src/main/index.ts).
  *
- * Wiring status (honest): @phlix/ui v0.99.10's `createPhlixApp` hardcoded
- * `LocalStorageTokenStore` with no tokenStore seam; the awaited v0.99.12-wave
- * rider LANDED upstream — v0.99.12 (pinned here since 2026-11-02) accepts
- * `config.tokenStore` (measured at 1f0046c5: `createPhlixApp` threads
- * `fullConfig.tokenStore ?? null` into the default-token-store setter). The
- * remaining half is windows-side: a follow-up rider must have boot() pass
- * `new SafeStorageTokenStore()` into `createPhlixApp`, at which point tokens
- * stop touching localStorage. Until that wiring ships, this adapter still
- * SHIPS UNUSED (it compiles and is unit-pinned).
+ * Wiring status (honest): the upstream seam shipped — `@phlix/ui` v0.99.12+
+ * `createPhlixApp` accepts `config.tokenStore` (measured at the pinned
+ * v0.99.13 peel: the boot function threads `fullConfig.tokenStore ?? null`
+ * into the default-token-store setter). The windows half landed with review
+ * fix M4: `boot()` in src/renderer/main.ts constructs this adapter whenever
+ * the vault bridge is live, folds any pre-wiring PLAINTEXT rows
+ * (`access_token` / `refresh_token` / `user` — the bare keys the vendored
+ * LocalStorageTokenStore uses) into sealed custody, and passes it in; a
+ * bridge-less browser-dev boot omits the key and the vendored default store
+ * remains. Tokens no longer touch localStorage on packaged boots.
  * Vendored ui files are not edited (thin-consumer law).
  *
  * The vault VALUES are already encrypted at rest by main; this layer adds

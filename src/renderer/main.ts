@@ -28,6 +28,7 @@ import { messagesForLocale, resolveLocale } from './i18n';
 import { setWindowLocale, tWin } from './i18n/windows-own';
 import log from 'electron-log';
 import { installElectronBridge } from './electronBridge';
+import { SafeStorageTokenStore } from './safeStorageTokenStore';
 // M-WINDOWS-35: the shell's second SMTC installer import was removed here —
 // transport ownership belongs to the vendored @phlix/ui player store;
 // see the ./mediaSession header.
@@ -49,6 +50,76 @@ function cleanupRenderer(): void {
 
 /** The boot-time config this renderer hands to createPhlixApp (typed alias for the mirror below). */
 type BootConfig = PhlixAppConfig;
+
+/**
+ * M4 (review remediation — windows exploiter #1 / crossfe #1 / secnet M1):
+ * the plaintext token custody rows the vendored `@phlix/ui`
+ * LocalStorageTokenStore writes. Key spellings measured at the pinned
+ * v0.99.13 peel: `src/api/tokenStore.ts` uses these BARE localStorage keys.
+ */
+const PLAIN_TOKEN_KEYS = ['access_token', 'refresh_token', 'user'] as const;
+
+/**
+ * Builds the DPAPI-backed token store when the M-WINDOWS-11 vault bridge is
+ * live. A missing/failed bridge never aborts boot: custody simply stays on the
+ * vendored default (browser-dev posture), logged loudly.
+ */
+function createVaultTokenStore(api: Window['electronAPI'] | undefined): SafeStorageTokenStore | null {
+  if (!api) {
+    return null;
+  }
+  try {
+    return new SafeStorageTokenStore(api);
+  } catch {
+    log.warn('[Phlix] Vault bridge unavailable — auth tokens stay in the vendored default store');
+    return null;
+  }
+}
+
+/**
+ * Moves one pre-vault plaintext row into sealed custody and clears the
+ * plaintext — but ONLY after the sealed value is confirmed by a read-back
+ * (or the vault already held a value, which wins over the stale plaintext).
+ * An unconfirmable seal preserves the row rather than orphaning the session;
+ * the next boot retries.
+ */
+function foldOneTokenKey(
+  plainKey: (typeof PLAIN_TOKEN_KEYS)[number],
+  readVault: () => unknown,
+  writeVault: (raw: string) => void
+): void {
+  let plain: string | null = null;
+  try {
+    plain = localStorage.getItem(plainKey);
+  } catch {
+    return;
+  }
+  if (plain === null) {
+    return;
+  }
+  try {
+    if (readVault() == null) {
+      writeVault(plain);
+      if (readVault() == null) {
+        log.warn(`[Phlix] Vault seal for "${plainKey}" could not be confirmed; plaintext row preserved`);
+        return;
+      }
+    }
+    localStorage.removeItem(plainKey);
+  } catch {
+    // Corrupt row / failing bridge — folding must never crash boot.
+    log.warn(`[Phlix] Token fold skipped for "${plainKey}"`);
+  }
+}
+
+/** Folds all three plaintext token rows into the vault (upgrade path for pre-M4 installs). */
+function foldPlaintextTokensToVault(store: SafeStorageTokenStore): void {
+  // Indexed (not literal) so PLAIN_TOKEN_KEYS stays the single source: if a
+  // key spelling ever moves, the union type and the fold update together.
+  foldOneTokenKey(PLAIN_TOKEN_KEYS[0], () => store.getAccessToken(), (v) => store.setAccessToken(v));
+  foldOneTokenKey(PLAIN_TOKEN_KEYS[1], () => store.getRefreshToken(), (v) => store.setRefreshToken(v));
+  foldOneTokenKey(PLAIN_TOKEN_KEYS[2], () => store.getUser(), (v) => store.setUser(JSON.parse(v)));
+}
 
 declare global {
   interface Window {
@@ -460,6 +531,17 @@ export async function boot(): Promise<void> {
     window.__PHLIX__ = { ...syncPlayHintBase, wsUrl };
   };
 
+  // M4: DPAPI token custody. When the vault bridge is live, hand the vendored
+  // app a TokenStore whose rows seal into main-process safeStorage instead of
+  // plaintext localStorage — and first fold any pre-M4 plaintext rows across
+  // (vault-wins, plaintext cleared only after a confirmed seal). Browser-dev /
+  // bridge-less boots omit the key entirely: the vendored default store stays,
+  // which is a dev-context posture, never a packaged one.
+  const tokenStore = createVaultTokenStore(api);
+  if (tokenStore) {
+    foldPlaintextTokensToVault(tokenStore);
+  }
+
   const bootConfig: BootConfig = {
     app: appMode,
     apiBase,
@@ -490,6 +572,7 @@ export async function boot(): Promise<void> {
     menu: buildMenu(appMode),
     extraRoutes: buildExtraRoutes(appMode),
     deviceHeaders,
+    ...(tokenStore ? { tokenStore } : {}),
     // M-WINDOWS-04 (explicit non-feature): boot always pins Nocturne — the
     // client deliberately does NOT mirror the OS dark/light scheme. One
     // consistent look across every launch is the estate-wide brand posture

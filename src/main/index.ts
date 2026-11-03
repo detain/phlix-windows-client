@@ -1130,14 +1130,14 @@ ipcMain.handle('app:get-device-id', () => {
 // ---------------------------------------------------------------------------
 // M-WINDOWS-11 — renderer token vault (secrets.json, DPAPI-sealed).
 //
-// The auth tokens themselves are minted and READ BY THE RENDERER via the
-// vendored @phlix/ui, which today still uses localStorage custody — the
-// upstream half (a tokenStore seam in createPhlixApp) is the v0.99.12-wave
-// rider recorded in the M-WINDOWS-11 fixlog. This vault is the windows-side
-// endpoint that rider plugs into: src/renderer/safeStorageTokenStore.ts
-// implements @phlix/ui's TokenStore over exactly these four channels, so
-// when the seam lands the tokens move from renderer localStorage to
-// main-process safeStorage custody with a one-line boot() change.
+// The auth tokens are minted and READ BY THE RENDERER via the vendored
+// @phlix/ui; since review fix M4 (2026-11-03) boot() passes
+// src/renderer/safeStorageTokenStore.ts through the v0.99.12+ `tokenStore`
+// seam, so on packaged boots every token/user row seals through exactly
+// these four channels into main-process safeStorage custody (plaintext
+// pre-M4 localStorage rows are folded across on first boot, vault-wins).
+// Browser-dev documents without the preload bridge keep the vendored
+// localStorage store — a dev-context posture, never a packaged one.
 //
 // Protocol law:
 //   - sendSync, not invoke: the ui TokenStore contract is synchronous, and
