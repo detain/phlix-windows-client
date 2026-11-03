@@ -150,4 +150,31 @@ describe('overlay entry point', () => {
     document.body.removeChild(root);
     vi.useRealTimers();
   });
+
+  // M1 (2026-11 review): the overlay MUST register the MAIN app's pinia —
+  // boot() exposes it as window.__phlixPinia before importing ./overlay.
+  // A fresh createPinia() in production meant the PiP/sleep overlays read
+  // private store copies that never change → flagship surfaces never rendered.
+  it('registers window.__phlixPinia (the main app instance) instead of a fresh pinia', async () => {
+    const root = document.createElement('div');
+    root.id = 'player-supplement-root';
+    document.body.appendChild(root);
+
+    const shared = { __pinia: 'shared-from-main-app' };
+    Object.defineProperty(window, '__phlixPinia', { value: shared, configurable: true });
+
+    const piniaMod = await import('pinia');
+    const createPiniaMock = piniaMod.createPinia as unknown as ReturnType<typeof vi.fn>;
+
+    vi.useFakeTimers();
+    await import('@/overlay');
+    vi.advanceTimersByTime(0);
+
+    expect(mockApp.use).toHaveBeenCalledWith(shared);
+    expect(createPiniaMock).not.toHaveBeenCalled();
+
+    document.body.removeChild(root);
+    delete (window as unknown as { __phlixPinia?: unknown }).__phlixPinia;
+    vi.useRealTimers();
+  });
 });

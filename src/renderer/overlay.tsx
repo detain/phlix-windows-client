@@ -1,15 +1,21 @@
 /**
  * Overlay entry point for P3-S4 player UX features (skip/sleep/PiP).
  *
- * Rendered as a separate Vue app on top of the @phlix/ui Vue app.
- * Must be initialized AFTER the Vue app mounts (Pinia must be active) so
- * that @phlix/ui store hooks (usePlayerStore, useMediaStore) are safe.
+ * Rendered as a second Vue app (separate createApp root) inside the SAME
+ * realm as the @phlix/ui app — and it MUST share the main app's Pinia
+ * instance (window.__phlixPinia, exposed by boot() before this module is
+ * dynamically imported). M1 (2026-11 review): the fresh createPinia() this
+ * file used to build meant SleepTimer/PiPButton resolved PRIVATE store
+ * copies whose `playing`/`current` never changed — the flagship overlays
+ * never rendered in production even though the README advertised them.
+ * The fallback createPinia() below stays only for isolated test mounts and
+ * browser-dev contexts where boot() exposed no pinia.
  *
  * @copyright 2026 Joe Huss <detain@interserver.net>
  */
 
 import { createApp } from 'vue';
-import { createPinia } from 'pinia';
+import { createPinia, type Pinia } from 'pinia';
 import { createRouter, createWebHashHistory } from 'vue-router';
 import PlayerSupplement from './components/PlayerSupplement';
 import log from 'electron-log';
@@ -19,9 +25,16 @@ import log from 'electron-log';
 // same module instance), so the shell's boot-time setWindowLocale() already
 // governs it — see docs/i18n.md §2; overlayI18n.test.ts pins that ordering.
 
-// Create the Vue app ONCE at module level
+// Create the Vue app ONCE at module level, registered with the MAIN app's
+// pinia when boot() exposed one (M1 law, pinned in overlay.test.ts).
 const app = createApp(PlayerSupplement);
-const pinia = createPinia();
+const sharedPinia = (window as unknown as { __phlixPinia?: Pinia }).__phlixPinia;
+if (!sharedPinia) {
+  log.warn('[Overlay] window.__phlixPinia absent — falling back to a private pinia; ' +
+    'player-driven overlay state will NOT reflect playback (expected only in isolated ' +
+    'test mounts / browser-dev, a boot-order regression otherwise).');
+}
+const pinia = sharedPinia ?? createPinia();
 app.use(pinia);
 
 // Router is created lazily inside tryMount() to avoid jsdom teardown issues

@@ -7,6 +7,13 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fix — review M1: player overlays shared NOTHING with the app — PiP/sleep surfaces never rendered in production — 2026-11-03
+
+- **What:** `src/renderer/overlay.tsx` mounted the supplement as a second Vue app with a **fresh `createPinia()`**, so `usePlayerStore()` inside `SleepTimer`/`PiPButton` resolved brand-new PRIVATE store instances whose `playing`/`current` never changed — the render gates never opened and the PiP auto-enter watcher could never fire. The README advertises both surfaces as shipped; every existing test mocked `usePlayerStore` wholesale, so the split existed only in production. Cure follows the `__phlixRouter` pattern already in `boot()`: main.ts exposes the mounted app's pinia as `window.__phlixPinia` immediately BEFORE the dynamic `import('./overlay')`; the overlay registers that instance (fresh-pinia fallback kept only for isolated test mounts / browser-dev, with a loud warn).
+- **Law:** `overlay.test.ts` +1 pin — when `window.__phlixPinia` is set, the overlay `.use()`s it and `createPinia()` is never called; the pre-existing `{__pinia:true}` pin keeps the fallback path honest.
+- **Residual (honest):** components were NOT touched by this batch — the interactive-timer self-cancel (M2), the CSS-volume fade fiction (m1), the frozen countdown pill (m2) and popover Esc/outside-click (m8) remain open in the FIXLOG; visibility now REACHES them, which is what M1 unblocked.
+- **Verification:** full vitest serial 71 files / 827 (826 + 1 exact), vue-tsc 0, eslint 0, `npm run build` green.
+
 ### Deps — re-pin: @phlix/ui #v0.99.12→#v0.99.13 — hub 'UI Pin Skew' external cure, locale vendor deliberately HELD [ui13-wave] — 2026-11-02
 
 - **What:** `@phlix/ui #v0.99.12→#v0.99.13` (peel `e30bae9f096708dc43e863c2b4f4171d25d7c8e3`,

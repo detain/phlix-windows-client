@@ -567,8 +567,23 @@ export async function boot(): Promise<void> {
     api.notifyDeeplinkReady();
   }
 
+  // M1 (2026-11 review): the overlay second app must read the SAME pinia
+  // instance the vendored engine mutates. Exposed with the same window-
+  // global pattern as __phlixRouter above; overlay.tsx consumes it BEFORE
+  // its module-level app.use() so usePlayerStore() resolves the live stores.
+  // A fresh createPinia() there meant the PiP/sleep overlays watched a
+  // private, never-updating store copy — they never rendered in production.
+  const phlixPinia = app.config?.globalProperties?.$pinia;
+  if (phlixPinia) {
+    Object.defineProperty(window, '__phlixPinia', {
+      value: phlixPinia,
+      writable: false,
+      configurable: true
+    });
+  }
+
   // Mount Vue overlay for P3-S4 player UX features (skip/sleep/PiP)
-  // Imported dynamically after Vue app mounts so Pinia is active
+  // Imported dynamically after Vue app mounts so the shared Pinia is exposed
   void import('./overlay');
 
   // HMR dispose hook: clean up all renderer resources before Vite replaces the module
