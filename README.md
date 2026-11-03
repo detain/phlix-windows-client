@@ -148,6 +148,17 @@ installer from the [releases page](https://github.com/detain/phlix-windows-clien
 and installing over the old one. Release notes for versioned releases appear on that same
 page; the rolling build’s notes name the `master` commit it was built from.
 
+**If an update ever breaks things.** Versioned releases are permanent and the update
+feed points at exactly one version at a time; if a published build turns out to be
+bad, the maintainers withdraw it (see *Bad release? Withdrawing and rolling back*
+under Deployment), but clients that already installed it will **not** downgrade
+themselves — the updater only ever moves forward. Recover by installing the previous
+version: download its installer from the
+[releases page](https://github.com/detain/phlix-windows-client/releases), install it
+over the current one, and decline any “update available” prompt until the feed points
+at a fixed version. Settings, sign-in and playback state live under `%APPDATA%\Phlix`
+and survive an install-over — nothing user-visible is lost.
+
 ## Privacy & Update Checks
 
 Phlix for Windows is self-hosted software: your library, accounts, and playback data
@@ -422,6 +433,44 @@ The project uses GitHub Actions for continuous integration:
 > **Note:** The tag-triggered chain was repaired on 2026-10-29 (see CHANGELOG — the
 > release job had two deterministically-failing steps and had never executed, as no
 > `v*` tag exists yet). The first tag push is its end-to-end proving run.
+
+### Bad release? Withdrawing and rolling back
+
+If a versioned release turns out to be broken, the goal is to stop the updater feed
+from pointing at it **before** more clients download it, and to plan manual recovery
+for clients that already installed it. The feed is the `latest.yml` asset attached to
+the most recent **non-prerelease** GitHub release: `autoUpdater.allowPrerelease` and
+`autoDownload` are both `false` (`src/main/index.ts`), so nothing is ever
+force-installed — a download starts only when the user clicks *Install update*, and
+`quitAndInstall` runs only on their explicit *Restart* click.
+
+1. **Withdraw the release from the feed.** Edit the bad release on GitHub and check
+   *pre-release*. The updater skips pre-releases, so the feed rolls back to the
+   previous stable release without deleting anything — reversible, and the bad
+   artifacts stay downloadable for forensics. If the bad one was the **first**
+   versioned release (no older stable release exists), the feed 404s instead and
+   update checks fail quietly, which is the same no-op-as-today behavior the
+   *Getting updates* section already describes.
+2. **Prefer a hotfix over a rollback.** If a corrected build is quick, cut the next
+   patch tag normally (see *Release Process*): clients that never accepted the bad
+   update move straight to the fix on their next check (≤ 6 h, or Help →
+   *Check for Updates*).
+3. **Never delete an older release.** It **is** the rollback target — its asset trio
+   (installer + `latest.yml` + `.blockmap`) is what the feed falls back to. Editing a
+   newer release to carry an older `latest.yml` is a no-op: clients compare versions
+   and `autoUpdater.allowDowngrade` defaults to `false` (deliberately never set in
+   this repo), so an older feed entry is ignored.
+4. **Clients already on the bad build do not self-recover.** The feed moving backward
+   is invisible to them — they are on a higher version. Say so in the release notes
+   or a pinned issue and point at the *Getting updates* recovery note (install the
+   previous installer over it; `%APPDATA%\Phlix` survives).
+5. **Re-tagging after a deleted tag recreates the same bytes** from the same commit —
+   the release job builds what the tag points at. If the release must go, withdraw it
+   (step 1) first, then decide about the tag; publishing a fixed version number is
+   almost always the better story.
+
+The note above applies here too: none of this has executed end-to-end yet, and the
+first real bad release is the rehearsal for this section.
 
 ### Windows Installer
 
