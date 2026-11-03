@@ -7,6 +7,12 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fix — deferred-9 lane (CI cure): Type Check jobs build the composite main project first — 2026-11-03
+
+- **What:** batch 10's renderer import of `../main/urlValidator` (m20 scrub law sharing) rides tsconfig.json's composite project reference — a referenced project resolves through the main project's BUILD OUTPUT, which a bare `npm ci` never creates. Both Type Check jobs jumped straight to `npx vue-tsc --noEmit`, so on the clean CI tree the very first step failed TS6305 (parent 551f6f1: Test 41714206181 / Build 41714206577; reproduced locally twice — by moving `dist/` aside, and discovering the stale untracked `tsconfig.main.tsbuildinfo` lives OUTSIDE dist and silently skips re-emit, the inverse stale-artifact class of the estate 'mirror CI steps' lesson). Cure: one `npx tsc -p tsconfig.main.json` step before the renderer pass in both workflows.
+- **Law:** new `tests/unit/typecheckProjectRefs.test.mjs` (6 pins: step exists with the exact command — line-anchored so the existing `--noEmit` twin can't collide; precedes BOTH dependent checks in step order; the three type-check step names stay verbatim) — 4 convictions measured red at parent, the 2 name-verbatim pins green-by-construction (disclosed). Fresh-tree emission proven end-to-end on disk (d.ts appears, both vue-tsc passes green, full `npm run build` restores the tree).
+- **Verification:** full vitest serial 79 files / 963 (938+7+12+6 exact across the lane), eslint 0, YAML parse x2. No dependency or lock change.
+
 ### Fix — deferred-9 lane (m32): Windows legs cache the Electron toolchain — 2026-11-03
 
 - **What:** setup-node's `cache: 'npm'` covers packages but not the two heavy Windows downloads — the Electron binary (postinstall) and electron-builder's tool zips (winCodeSign/nsis). Every Windows leg re-fetched them on every run. One `actions/cache` step (SHA-pinned `55cc8345…`, origin-verified as v6.1.0 via the tag ref) now fronts `npm ci` on each Windows-capable job — test.yml test + smoke, build.yml smoke + build — guarded by `runner.os == 'Windows'` so ubuntu legs keep their exact step lists. Both cached dirs are version-filename-addressed, so a stale restore can never supply the wrong artifact and a cache miss is exactly today's behavior: pure speed change, zero semantics. Keys ride the lockfile with prefix restore-keys.

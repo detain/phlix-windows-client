@@ -168,6 +168,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # The renderer + tests projects resolve `../main/*` imports through
+      # tsconfig.json's composite reference — i.e. through the main project's
+      # BUILD OUTPUT. A bare npm ci never creates it (fresh-CI TS6305), so
+      # build the referenced project first; keep the pass order honest.
+      - name: Build main process (project-reference output)
+        run: npx tsc -p tsconfig.main.json
+
       - name: Type check renderer
         run: npx vue-tsc --noEmit
 
