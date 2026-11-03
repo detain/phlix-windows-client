@@ -70,8 +70,8 @@ The page VIEWS and base routing come from `createPhlixApp` (`@phlix/ui`'s router
 
 - Vitest with `jsdom` env (`vitest.config.mts`, `@vitejs/plugin-vue`), setup file `src/renderer/test-setup.ts` mocks `localStorage`.
 - Includes glob: `tests/**/*.test.ts` and `tests/**/*.test.tsx`.
-- Coverage via `@vitest/coverage-v8` (`v8` provider), reporters `text`/`json`/`html`; all source including `src/main/**` and `src/preload/**` is covered (~58% floor enforced in CI).
-- Test files: `tests/unit/resolveConfig.test.ts` (app-mode/apiBase resolution), `tests/unit/electronBridge.test.ts` (`wireElectronBridge` + `installElectronBridge`), `tests/unit/main.test.ts` (`boot()` entry — hub/direct/browser-fallback/env-fallback).
+- Coverage via `@vitest/coverage-v8` (`v8` provider), reporters `text`/`json`/`html`; all source including `src/main/**` and `src/preload/**` is covered (`lines: 54` threshold enforced in `vitest.config.mts` — the authoritative gate).
+- Test files: hundreds of law pins across `tests/unit/` (76 files as of 2026-11-03). The founding trio: `resolveConfig.test.ts` (app-mode/apiBase resolution), `electronBridge.test.ts` (`wireElectronBridge` + `installElectronBridge`), `main.test.ts` (`boot()` entry — hub/direct/browser-fallback/env-fallback).
 - Path alias: `@` → `src/renderer/` (both `vite.config.mts` and `vitest.config.mts`).
 
 ## TypeScript configs
@@ -98,7 +98,7 @@ Full architecture diagrams, IPC handler walkthroughs, and packaging notes live i
 
 ## Working preferences
 
-- Keep `.github/workflows/*.yml` credentials hardcoded until secrets are explicitly provisioned — do not refactor to `${{ secrets.X }}` proactively.
+- Workflow credentials go through `${{ secrets.X }}` — the repo's current hygiene (test.yml references `CODECOV_TOKEN`/`CODACY_API_TOKEN` that way, with unprovisioned tokens failing soft by design; signing-cert names in build.yml exist only inside the deliberately-inactive sketch). NEVER hardcode tokens or other credentials in `.github/workflows/*.yml`; provisioning a new secret is an owner action, and until it lands the step stays best-effort, not inline-credentialed.
 - When invoking external CLIs, pass all flags every time (use empty strings instead of omitting flags).
 - For multi-PR/multi-slice work, sequence steps one at a time — do not fan out parallel sub-agents.
 

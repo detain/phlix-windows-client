@@ -237,14 +237,17 @@ npm test -- --coverage
 
 ### Test Structure
 
-Tests use Vitest (`jsdom`, `@vitejs/plugin-vue`) with TypeScript. There are 22 tests across three
-files:
+Tests use Vitest (`jsdom`, `@vitejs/plugin-vue`) with TypeScript. The suite has grown
+far past its three-file origin: 76 files in `tests/unit/` (~910 tests as of 2026-11-03 —
+`npx vitest run --reporter=verbose` is the source of truth, do not trust any count
+written here long-term) plus one Playwright smoke spec (`tests/smoke/boot.spec.ts`,
+CI-gated on real Electron). The original trio:
 
 - `tests/unit/resolveConfig.test.ts` — app-mode/apiBase resolution
 - `tests/unit/electronBridge.test.ts` — `wireElectronBridge` + `installElectronBridge`
 - `tests/unit/main.test.ts` — `boot()` entry (hub / direct-server / browser-fallback / env-fallback)
 
-Coverage uses `@vitest/coverage-v8`; all source including `src/main/**` and `src/preload/**` is covered (58% floor enforced in CI)
+Coverage uses `@vitest/coverage-v8`; all source including `src/main/**` and `src/preload/**` is covered (enforced threshold: `lines: 54` in `vitest.config.mts` — the authoritative gate; Codecov/Codacy uploads are best-effort only, see `docs/ci-baseline.md`)
 (it needs an Electron runtime, not jsdom). Example (`main.test.ts` mocks `@phlix/ui`, `@phlix/contracts`,
 and `./electronBridge`, plus the CSS side-effect imports):
 

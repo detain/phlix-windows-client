@@ -190,16 +190,22 @@ live on **your** server. The app makes exactly two kinds of network calls:
 2. **GitHub Releases** — the built-in updater's feed: roughly 5 seconds after every
    launch and about every 6 hours while running, electron-updater fetches the
    `latest.yml` release metadata for `detain/phlix-windows-client` from
-   `github.com`. Installer bytes are downloaded only if you choose to install an
-   update.
+   GitHub's release API (`api.github.com`, then the asset download host for the
+   installer bytes themselves if you accept an update).
 
 There is **no usage data, no analytics, no crash reporting** — nothing that describes
 what you watch ever leaves your machine. The device id the app sends *to your server*
 is a locally generated random value (`windows-<uuid>`, stored under
 `%APPDATA%\Phlix`, never derived from hardware). The GitHub update check discloses
 your IP address and the standard Windows User-Agent to GitHub, like any browser
-request would — that is the entire phone-home. Blocking `github.com` at the firewall
-is safe: update checks fail quietly in the log and everything else keeps working.
+request would — that is the entire phone-home. Blocking `github.com`/`api.github.com`
+at the firewall is safe: update checks fail quietly in the log and everything else
+keeps working. Unauthenticated GitHub API calls allow 60 requests/hour per IP; the
+updater's cadence (~5 s after each launch + one request per 6 h) stays orders of
+magnitude below that for any normal LAN. Hosting math for the release feed: each
+versioned release permanently accumulates roughly 290 MiB of assets (the measured
+`latest` build shipped a 121 MiB NSIS installer and a 171 MiB APPX package) — well
+inside GitHub's per-asset limits, with no retention policy needed at this scale.
 
 ## Prerequisites
 
@@ -231,6 +237,13 @@ For development:
    ```bash
    npm install
    ```
+
+   > Behind a restrictive firewall/proxy? `npm install` downloads the prebuilt
+   > Electron binary (~110 MB) from GitHub release objects — the single longest
+   > step of a source install (CI budgets ~10 min for it). Point it at a mirror
+   > with `$env:ELECTRON_MIRROR = 'https://npmmirror.com/mirrors/electron/'`
+   > (PowerShell) before installing, and give npm its proxy the usual way
+   > (`npm config set proxy …` / `https-proxy`). No other build step phones home.
 
 3. **Configure environment** (optional)
 
@@ -300,7 +313,10 @@ npm run dev
 
 This starts:
 - Vite dev server on `http://localhost:5173`
-- Electron app with automatic reload on changes
+- Electron app pointed at the dev server. Renderer changes hot-reload via Vite;
+  **main-process and preload changes do not** — `dev:electron` launches Electron
+  once (`electron .`), so restart the dev command after editing `src/main/**` or
+  `src/preload/**` (DEVELOPER.md's troubleshooting entry walks this through).
 
 ### Production Build
 
@@ -434,11 +450,19 @@ The project uses GitHub Actions for continuous integration:
 
 - **test.yml** - Runs on every push/PR to validate code
 - **build.yml** - Builds NSIS + APPX installers on every master push (publishing them to the rolling `latest` prerelease) and, on `v*.*.*` tags, creates the versioned GitHub Release with checksum and updater-feed files attached
+- **codeql.yml** - GitHub Code Scanning (`security-extended` queries) on pushes/PRs touching `src/**`; findings land in the repo's Security tab, it gates nothing by itself
 
 > **Note:** For local development use `npm install`. For automated CI pipelines (including the GitHub Actions workflows above), use `npm ci` — it performs a clean, reproducible install from the lockfile, which is faster and safer than `npm install` in CI environments.
 
 ### Release Process
 
+0. **Update `CHANGELOG.md` first.** It is hand-maintained (newest entries prepend
+   under `## [Unreleased]`-style headers at the top; history below is verbatim and
+   never rewritten — corrections ride as new entries). Move the unreleased block
+   under a versioned heading as part of the version bump commit. The GitHub
+   release *body* is generated automatically from merged PRs
+   (`generate_release_notes: true`) and is separate from the CHANGELOG — nobody
+   hand-writes it, and it is not a copy of the CHANGELOG.
 1. Update version in `package.json`
 2. Create git tag:
    ```bash
@@ -608,13 +632,13 @@ MIT License - see project repository for details.
 ### What Works
 
 - **Electron shell** — Main/preload/renderer architecture with secure `contextBridge` IPC
-- **Thin renderer + local surfaces** — Boots `@phlix/ui` via `createPhlixApp()`; ships local player overlays (SleepTimer/PiP via `overlay.tsx`), a boot-failure screen with Retry, own i18n catalogs, and a DPAPI token-store adapter awaiting its ui seam
+- **Thin renderer + local surfaces** — Boots `@phlix/ui` via `createPhlixApp()`; ships local player overlays (SleepTimer/PiP via `overlay.tsx`), a boot-failure screen with Retry, own i18n catalogs, and a DPAPI token-store adapter WIRED into the shell's `tokenStore` seam (auth tokens seal into `%APPDATA%` via safeStorage; plaintext rows fold on first launch)
 - **System tray** — Minimize-to-tray, tray menu with media controls
-- **Native menus** — Full File/Playback/View/Help menu bar with keyboard accelerators
-- **Media keys** — Thumbar buttons and tray/menu keyboard accelerators (Play/Pause, Stop, Rewind/Forward 10s)
+- **Native menus** — Full File/Edit/Playback/View/Help menu bar; the registered accelerators (`F11`, `Ctrl+,`) plus native Edit roles — see *Keyboard shortcuts*
+- **Media keys** — Thumbar buttons and tray/menu transport entries (Play/Pause, Stop, Rewind/Forward 10s) routed into the player; the player's own `Space`/`←`/`→` stay focus-scoped on purpose
 - **Packaging** — NSIS x64 installer and APPX via `electron-builder`
 - **CI pipeline** — ESLint, vue-tsc, tsc -p tsconfig.main.json, vitest, npm audit, smoke test gate on every PR/push
-- **Coverage** — Reports generated and uploaded to Codecov and Codacy on each CI run
+- **Coverage** — The authoritative coverage gate is vitest's enforced `lines: 54` threshold, run on every CI leg; Codecov/Codacy uploads additionally run best-effort on the ubuntu leg only (their tokens are not provisioned for this repo — uploads are known to 404; see `docs/ci-baseline.md`)
 
 ### Known Limitations
 
@@ -668,3 +692,5 @@ go stale.
 ## Support
 
 For issues and feature requests, please use the GitHub issue tracker.
+Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for gates,
+fork-CI secret behavior, and scope boundaries.
