@@ -505,6 +505,11 @@ function createWindow(): void {
     return { action: 'deny' };
   });
 
+  // M5 (review gameux #1): right-click clipboard surface (see
+  // buildContextMenuTemplate). Registered alongside the other webContents
+  // guards; pops only for editable targets or live selections.
+  registerContextMenu(mainWindow);
+
   /**
    * Guards against renderer-initiated navigation to untrusted URL schemes.
    *
@@ -804,6 +809,27 @@ function crashRecoveryDialog(): void {
   });
 }
 
+/**
+ * The tray's right-click menu. Extracted (m11/M6) so `refreshShellMenus()` can
+ * rebuild it in lockstep with the app menu whenever a shared toggle flips.
+ */
+export function buildTrayMenuTemplate(): Electron.MenuItemConstructorOptions[] {
+  return [
+    { label: t('tray.show'), click: () => restoreWindow(mainWindow) },
+    { type: 'separator' },
+    { label: t('tray.playPause'), click: () => mainWindow?.webContents.send('media-play-pause') },
+    { label: t('tray.stop'), click: () => mainWindow?.webContents.send('media-stop') },
+    { type: 'separator' },
+    makeToggleMenuItem('minimizeToTray', t('tray.minimizeToTray')),
+    makeToggleMenuItem('notificationsEnabled', t('menu.notifications')),
+    { type: 'separator' },
+    { label: t('tray.quit'), click: () => {
+      isQuitting = true;
+      app.quit();
+    }}
+  ];
+}
+
 export function createTray(): void {
   // M-WINDOWS-14: prefer the multi-size .ico — the shell then picks the entry
   // that matches the taskbar DPI itself, instead of one forced 16px resize
@@ -822,23 +848,8 @@ export function createTray(): void {
 
   tray = new Tray(fromIco.isEmpty() ? icon.resize({ width: 16, height: 16 }) : icon);
 
-  const contextMenu = Menu.buildFromTemplate([
-    { label: t('tray.show'), click: () => restoreWindow(mainWindow) },
-    { type: 'separator' },
-    { label: t('tray.playPause'), click: () => mainWindow?.webContents.send('media-play-pause') },
-    { label: t('tray.stop'), click: () => mainWindow?.webContents.send('media-stop') },
-    { type: 'separator' },
-    { label: t('tray.minimizeToTray'), type: 'checkbox', checked: store.get('minimizeToTray', true),
-      click: (menuItem) => store.set('minimizeToTray', menuItem.checked) },
-    { type: 'separator' },
-    { label: t('tray.quit'), click: () => {
-      isQuitting = true;
-      app.quit();
-    }}
-  ]);
-
   syncTrayTooltip();
-  tray.setContextMenu(contextMenu);
+  tray.setContextMenu(Menu.buildFromTemplate(buildTrayMenuTemplate()));
 
   // M-WINDOWS-03: while the window is hidden there is NO taskbar button to
   // click — Windows emits no restore event of its own (the macOS 'activate'
@@ -859,29 +870,119 @@ export function createTray(): void {
 /**
  * Built lazily (at createMenu time, after app-ready) so the labels resolve
  * through the i18n locale captured on ready. Exported for unit-testing of menu
- * accelerator configuration.
- * Single-character keys (Space, Left, Right) use registerAccelerator: false so
- * they do not intercept text input in URL fields or other text controls.
+ * configuration.
+ * m10 (review gameux #3): the transport rows used to DISPLAY `Space`/`Left`/
+ * `Right` while carrying `registerAccelerator: false` — Electron rendered the
+ * shortcut text, but the menu bound nothing; the keys work via the renderer-
+ * side document relay (`src/renderer/electronBridge.ts`, window-scoped and
+ * text-input-aware) and the vendored player's own engine. A menu row that
+ * advertises a global hotkey it does not register is a promise the shell
+ * breaks whenever focus sits elsewhere, so the transport rows now carry no
+ * accelerator at all. F11 stays displayed: it IS a real registered menu
+ * accelerator.
  */
 export function buildPlaybackMenuTemplate(): Electron.MenuItemConstructorOptions[] {
   return [
-    { label: t('menu.playPause'), accelerator: 'Space', registerAccelerator: false, click: () => mainWindow?.webContents.send('media-play-pause') },
+    { label: t('menu.playPause'), click: () => mainWindow?.webContents.send('media-play-pause') },
     { label: t('menu.stop'), click: () => mainWindow?.webContents.send('media-stop') },
     { type: 'separator' },
-    { label: t('menu.rewind'), accelerator: 'Left', registerAccelerator: false, click: () => mainWindow?.webContents.send('media-rewind') },
-    { label: t('menu.fastForward'), accelerator: 'Right', registerAccelerator: false, click: () => mainWindow?.webContents.send('media-forward') },
+    { label: t('menu.rewind'), click: () => mainWindow?.webContents.send('media-rewind') },
+    { label: t('menu.fastForward'), click: () => mainWindow?.webContents.send('media-forward') },
     { type: 'separator' },
     { label: t('menu.fullscreen'), accelerator: 'F11', click: () => toggleFullscreen() }
   ];
 }
 
-function createMenu(): void {
-  // Role items below (quit/reload/forceReload/toggleDevTools/zoom)
+/**
+ * m11 (review gameux #4): the notification preference had a reader (`notifyUser`
+ * gates on it) and NO writer anywhere — the in-app opt-out was un-flippable.
+ * These checkbox items are the writer: one builder, shared by the tray context
+ * menu and the View submenu, persisting on click and rebuilding both surfaces
+ * so the two checkboxes never disagree. The toast gate reads the store live on
+ * every notification, so a flip takes effect immediately.
+ */
+type TogglePrefsKey = 'minimizeToTray' | 'notificationsEnabled';
+
+function makeToggleMenuItem(key: TogglePrefsKey, label: string): Electron.MenuItemConstructorOptions {
+  return {
+    label,
+    type: 'checkbox',
+    // Both prefs are default-on: minimizeToTray true, notificationsEnabled true
+    // (the latter is the reader's default at notifyUser — kept in lockstep).
+    checked: store.get(key, true),
+    click: (menuItem) => {
+      store.set(key, menuItem.checked);
+      refreshShellMenus();
+    }
+  };
+}
+
+/**
+ * M6 (review casualgamer): README taught "toggleable from the View menu" while
+ * the only toggle lived in the tray context menu — a surface that exists only
+ * while the icon is present and needs right-click knowledge. The View submenu
+ * now carries the same checkboxes; refreshShellMenus() rebuilds both menus on
+ * any flip so tray and View stay consistent.
+ */
+function refreshShellMenus(): void {
+  createMenu();
+  if (tray && !tray.isDestroyed()) {
+    tray.setContextMenu(Menu.buildFromTemplate(buildTrayMenuTemplate()));
+  }
+}
+
+/**
+ * M5 (review gameux #1): no Edit menu existed (native Clipboard rows) and no
+ * context-menu handler was registered, so right-clicking a selection or an
+ * input produced nothing — on Windows, right-click → Copy is THE platform
+ * idiom. Edit-aware popup template: editable targets get the clipboard set +
+ * Select All, selections (editable or not) get Cut/Copy, and a plain
+ * non-editable click with no selection returns an empty template — nothing is
+ * popped where a menu would be pure noise. Roles only: labels and accelerators
+ * render through Electron's native, already-localized role strings.
+ */
+export function buildContextMenuTemplate(params: Electron.ContextMenuParams): Electron.MenuItemConstructorOptions[] {
+  if (params.isEditable) {
+    const template: Electron.MenuItemConstructorOptions[] = [
+      { role: 'undo' },
+      { role: 'redo' },
+      { type: 'separator' }
+    ];
+    if (params.selectionText) {
+      template.push({ role: 'cut' }, { role: 'copy' });
+    }
+    template.push({ role: 'paste' }, { role: 'selectAll' });
+    return template;
+  }
+  if (params.selectionText) {
+    return [{ role: 'copy' }];
+  }
+  return [];
+}
+
+function registerContextMenu(mainWindowRef: BrowserWindow): void {
+  mainWindowRef.webContents.on('context-menu', (_event, params) => {
+    const template = buildContextMenuTemplate(params);
+    if (template.length === 0) return;
+    const menu = Menu.buildFromTemplate(template);
+    menu.popup({ window: mainWindowRef });
+  });
+}
+
+/**
+ * The application-menu template. Extracted and exported for law-testing
+ * (m10/M5/M6/m11): M5 added the missing `editMenu` role submenu — Clipboard
+ * rows with real, working accelerators and native localized labels; M6 and m11
+ * added the two preference checkboxes to View so the documented toggle surface
+ * actually exists. `createMenu()` below is the thin installer.
+ */
+export function buildAppMenuTemplate(): Electron.MenuItemConstructorOptions[] {
+  // Role items below (quit/reload/forceReload/toggleDevTools/zoom/editMenu)
   // intentionally keep no explicit label — Electron renders roles with native,
   // already-localized strings, which beats anything this catalog could ship.
   // Fullscreen is NOT on that list: M-WINDOWS-41 removed its View-submenu role
   // entry so the labeled Playback row owns the F11 binding alone.
-  const template: Electron.MenuItemConstructorOptions[] = [
+  return [
     {
       label: t('menu.file'),
       submenu: [
@@ -890,6 +991,9 @@ function createMenu(): void {
         { role: 'quit' }
       ]
     },
+    // M5 (review gameux #1): the Edit menu was simply absent — Undo/Redo/
+    // Cut/Copy/Paste/Select-All had no menu surface at all.
+    { role: 'editMenu' },
     {
       label: t('menu.playback'),
       submenu: buildPlaybackMenuTemplate()
@@ -911,7 +1015,7 @@ function createMenu(): void {
           : []),
         { role: 'resetZoom' },
         { role: 'zoomIn' },
-        { role: 'zoomOut' }
+        { role: 'zoomOut' },
         // M-WINDOWS-41: deliberately no togglefullscreen role entry here.
         // On Windows that role defaults to F11 — the same accelerator the
         // Playback submenu's labeled fullscreen row (above) binds explicitly —
@@ -919,6 +1023,14 @@ function createMenu(): void {
         // last-registration-wins as Electron-internal trivia. The custom row
         // is now the single fullscreen entry: its label flows through the i18n
         // catalog, which native role labels cannot reach.
+        { type: 'separator' },
+        // M6/m11 (review casualgamer / gameux #4): the preference checkboxes —
+        // README taught the View menu as the toggle surface ("toggleable from
+        // the View menu") while only the tray context menu carried one, and
+        // notificationsEnabled had no writer at all. Both prefs now flip from
+        // either surface; refreshShellMenus() keeps tray and View in lockstep.
+        makeToggleMenuItem('minimizeToTray', t('tray.minimizeToTray')),
+        makeToggleMenuItem('notificationsEnabled', t('menu.notifications'))
       ]
     },
     {
@@ -941,9 +1053,10 @@ function createMenu(): void {
       ]
     }
   ];
+}
 
-  const menu = Menu.buildFromTemplate(template);
-  Menu.setApplicationMenu(menu);
+function createMenu(): void {
+  Menu.setApplicationMenu(Menu.buildFromTemplate(buildAppMenuTemplate()));
 }
 
 function openSettings(): void {

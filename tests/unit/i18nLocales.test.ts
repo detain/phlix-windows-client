@@ -173,7 +173,9 @@ const WIN_EN_LEAK_OK: Record<Locale, readonly string[]> = {
 // keeps the loanwords File / Stop; fr+de keep the international media label Pause.
 const MAIN_EN_LEAK_OK: Record<Locale, readonly string[]> = {
   es: ['tray.tooltip', 'about.message'],
-  fr: ['tray.tooltip', 'thumbar.pause', 'about.message'],
+  // menu.notifications joins the fr loanwords: 'Notifications' is correct modern
+  // French (batch-4 M6/m11 addition, same law as thumbar.pause).
+  fr: ['tray.tooltip', 'thumbar.pause', 'menu.notifications', 'about.message'],
   de: ['tray.tooltip', 'thumbar.pause', 'about.message'],
   it: ['tray.tooltip', 'tray.stop', 'menu.file', 'menu.stop', 'about.message'],
   pt_BR: ['tray.tooltip', 'about.message'],
@@ -532,12 +534,12 @@ describe('fr typographic apostrophe law (windows-own + main catalogs)', () => {
 // ---------------------------------------------------------------------------
 
 describe('main-process catalog ×6 — key-set, placeholders, sanity', () => {
-  it('every locale carries EXACTLY the 46 English keys (both directions)', () => {
+  it('every locale carries EXACTLY the 47 English keys (both directions)', () => {
     const reference = keySet(MAIN_EN as unknown as Table);
     for (const locale of LOCALES) {
       expect(keySet(MAIN_TABLES[locale]), `${locale} key set differs from en`).toBe(reference);
     }
-    expect(EN_MAIN.size).toBe(46);
+    expect(EN_MAIN.size).toBe(47);
   });
 
   it('the registry carries precisely the catalog files that exist', () => {

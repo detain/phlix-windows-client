@@ -55,6 +55,9 @@ const ORIGINAL_MAIN_PROCESS_STRINGS: Record<MainMessageKey, string> = {
   'menu.help': 'Help',
   'menu.about': 'About Phlix',
   'menu.checkForUpdates': 'Check for updates',
+  // Batch-4 (M6/m11 review) addition (born in the catalog, M-WINDOWS-12
+  // precedent): the notifications preference checkbox (View menu + tray).
+  'menu.notifications': 'Notifications',
 
   'thumbar.previous': 'Rewind 10s',
   'thumbar.play': 'Play',

@@ -98,12 +98,22 @@ describe('minimizeToTray persistence', () => {
     it('tray menu includes a Minimize to Tray checkbox bound to store', () => {
       // The tray context menu should have a checkbox item for minimizeToTray
       // (label now resolves via src/main/i18n — exact English value pinned by tests/unit/mainI18n.test.ts)
-      expect(mainSource).toMatch(/label:\s*t\(\s*['"]tray\.minimizeToTray['"]\s*\)\s*,\s*type:\s*['"]checkbox['"]/);
+      // Review batch-4 (M6): the tray item and its View-menu twin are now cut
+      // from the SAME single-source builder — a literal-shape pin on the old
+      // inline checkbox object re-anchors to the builder wiring. The
+      // type: 'checkbox' shape and the store round-trip are pinned
+      // behaviorally (checked follows the store; click persists) by
+      // tests/unit/menuTraySurfaces.test.ts.
+      expect(mainSource).toMatch(/makeToggleMenuItem\(\s*'minimizeToTray',\s*t\(\s*'tray\.minimizeToTray'\s*\)\s*\)/);
+      expect(mainSource).toMatch(/function makeToggleMenuItem[\s\S]*?type:\s*'checkbox'/);
+      // The builder must be used by BOTH surfaces (tray template + app menu).
+      expect(mainSource.match(/makeToggleMenuItem\(\s*'minimizeToTray'/g)!.length).toBe(2);
     });
 
     it('checkbox click handler writes the new value back to store', () => {
-      // The checkbox click should call store.set('minimizeToTray', menuItem.checked)
-      expect(mainSource).toMatch(/click:\s*\(\s*menuItem\s*\)\s*=>\s*store\.set\s*\(\s*['"]minimizeToTray['"]\s*,\s*menuItem\.checked\s*\)/);
+      // The checkbox click should persist the newly checked value — via the
+      // shared builder now (behavior pin in menuTraySurfaces.test.ts).
+      expect(mainSource).toMatch(/click:\s*\(menuItem\)\s*=>\s*\{[\s\S]*?store\.set\(key, menuItem\.checked\)/);
     });
   });
 });

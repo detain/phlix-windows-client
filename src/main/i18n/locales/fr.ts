@@ -41,7 +41,8 @@ export const fr = {
     view: 'Affichage',
     help: 'Aide',
     about: 'À propos de Phlix',
-    checkForUpdates: 'Rechercher des mises à jour'
+    checkForUpdates: 'Rechercher des mises à jour',
+    notifications: 'Notifications'
   },
   thumbar: {
     previous: 'Retour 10 s',

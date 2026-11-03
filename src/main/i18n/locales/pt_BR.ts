@@ -43,7 +43,8 @@ export const pt_BR = {
     view: 'Exibir',
     help: 'Ajuda',
     about: 'Sobre o Phlix',
-    checkForUpdates: 'Verificar atualizações'
+    checkForUpdates: 'Verificar atualizações',
+    notifications: 'Notificações'
   },
   thumbar: {
     previous: 'Retroceder 10s',

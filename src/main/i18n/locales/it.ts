@@ -42,7 +42,8 @@ export const it = {
     view: 'Visualizza',
     help: 'Guida',
     about: 'Informazioni su Phlix',
-    checkForUpdates: 'Controlla aggiornamenti'
+    checkForUpdates: 'Controlla aggiornamenti',
+    notifications: 'Notifiche'
   },
   thumbar: {
     previous: 'Riavvolgi 10 s',

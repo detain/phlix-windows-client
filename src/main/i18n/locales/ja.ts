@@ -41,7 +41,8 @@ export const ja = {
     view: '表示',
     help: 'ヘルプ',
     about: 'Phlix について',
-    checkForUpdates: '更新を確認'
+    checkForUpdates: '更新を確認',
+    notifications: '通知'
   },
   thumbar: {
     previous: '10秒戻す',

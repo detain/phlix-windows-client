@@ -36,7 +36,8 @@ export const en = {
     view: 'View',
     help: 'Help',
     about: 'About Phlix',
-    checkForUpdates: 'Check for updates'
+    checkForUpdates: 'Check for updates',
+    notifications: 'Notifications'
   },
   thumbar: {
     previous: 'Rewind 10s',
