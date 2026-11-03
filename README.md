@@ -49,7 +49,10 @@ desktop watch parties ride them in server mode; see
 ## Install (end users)
 
 Phlix for Windows is a standalone app — you do **not** need Node.js, a terminal, or any of
-the build steps below. Download an installer from the releases page and run it:
+the build steps below. It requires **Windows 10 or 11, 64-bit (x64)** — both shipped
+installers (NSIS and APPX) are x64-only, and the Electron runtime underneath does not
+start on Windows 7/8 or on ARM64 Windows; check your edition in Settings → System →
+About before downloading. Download an installer from the releases page and run it:
 
 **Releases:** <https://github.com/detain/phlix-windows-client/releases>
 
@@ -126,6 +129,23 @@ point it at a different server from here; the correction has to happen server-si
 
 After a successful connect, your server URL and login persist, so later launches go
 directly to your library.
+
+### Keyboard shortcuts
+
+Two shortcuts are registered app-wide by the native menu; everything else that a
+menu row *displays* is either a player-scoped key or a native role default:
+
+| Keys | What they do | Scope |
+|------|--------------|-------|
+| `F11` | Toggle fullscreen | Anywhere in the app (registered menu accelerator) |
+| `Ctrl` + `,` | Open Settings | Anywhere in the app (registered menu accelerator) |
+| `Space`, `←`, `→` | Play/pause, seek −10 s / +10 s | Only while the **player** has focus — these are the shared web player's own keys. The Playback menu rows show them as a hint; they are deliberately *not* registered as menu accelerators, so they never hijack typing in a text field. Tray/thumbar/menu **clicks** route the same actions to the player regardless of focus. |
+| `Ctrl` + `Z`/`X`/`C`/`V`, `Ctrl` + `A` | Undo, cut, copy, paste, select all | Editable text and selections (standard Windows Edit-menu roles) |
+
+The transport rows carrying displayed-but-unregistered keys are a deliberate
+honesty exception (they document the player's keys where users look for them —
+the code comment at `src/main/index.ts` records the reasoning, and
+`tests/unit/menuTraySurfaces.test.ts` pins that they register no accelerators).
 
 ### HTTPS & certificates
 
@@ -523,8 +543,21 @@ copy (Features + What Works bullets, how-to steps), and retire the pins together
 - Relaunch **Phlix** from the Start menu; if it only minimized, use the tray
   icon's Show entry (hover it — the tooltip reads "Phlix", and "Phlix — playing"
   while media is running).
+- **Blank or black window on older GPU drivers:** some integrated/legacy drivers
+  fail Chromium's GPU path. The recovery dialog ("Something went wrong…") that
+  appears on a hard failure offers Reload; if the window stays blank instead,
+  set the escape-hatch environment variable and relaunch:
+  `setx PHLIX_DISABLE_GPU 1` in PowerShell (takes effect for apps started from
+  the next sign-in onward), or launch once from a shell with
+  `$env:PHLIX_DISABLE_GPU='1'` prepended. Hardware acceleration then stays off
+  for that install. A persisted `disableHardwareAcceleration` preference exists
+  in the app store and is applied at launch, but the bundled settings screen
+  currently ships no toggle that writes it — the environment variable is the
+  supported user entry path (a future renderer toggle is a `@phlix/ui`
+  feature request).
 - Read the newest file in `%APPDATA%\Phlix\logs\` — main-process failures are
-  recorded there by electron-log.
+  recorded there by electron-log. Since the network-diagnostics work the file
+  also records TLS rejections and failed page loads as URL summaries.
 - If the installation looks damaged, verify the installer against
   `SHA256SUMS.txt` (see *First run* above) and reinstall.
 

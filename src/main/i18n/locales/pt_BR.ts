@@ -70,7 +70,7 @@ export const pt_BR = {
   boot: {
     tooOldTitle: 'Versão do servidor antiga demais',
     tooOldMessage: 'O servidor Phlix ao qual este aplicativo se conectou é antigo demais para esta versão do Phlix para Windows.',
-    tooOldDetail: 'Versão do servidor: {serverVersion}\nMínimo necessário: {minimumVersion}\n\nPeça ao proprietário do servidor para atualizar o Phlix Media Server e reinicie este aplicativo.'
+    tooOldDetail: 'Versão do servidor: {serverVersion}\nMínimo necessário: {minimumVersion}\n\nPeça ao proprietário do servidor para atualizar o Phlix Media Server. Depois de atualizado, o aplicativo detecta na próxima verificação, sem reiniciar.'
   },
   deeplink: {
     failedTitle: 'Não foi possível abrir o link',

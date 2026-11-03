@@ -60,8 +60,11 @@ When the app is launched via a `phlix://` URL (e.g., from a browser link or anot
 ### Windows Warm Start
 When a second instance is launched with a `phlix://` URL while the app is already running, the `second-instance` event fires with the URL in its argv. The app focuses the existing window and routes the deep link.
 
-### macOS
-On macOS, the `app.on('open-url', ...)` event carries the deep link URL.
+### macOS (code path only — not a shipping platform)
+The `app.on('open-url', ...)` branch in `src/main/index.ts` carries the deep link
+URL on macOS. This client SHIPS FOR WINDOWS ONLY (README platform badge; NSIS/APPX
+x64 targets); the branch is a vendored-harness leftover kept for parity with the
+sibling shells, not a promise that a macOS build exists.
 
 ## IPC Channel
 

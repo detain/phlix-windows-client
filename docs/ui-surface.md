@@ -75,7 +75,7 @@ in the reference web-ui (`phlix-server/web-ui`), and which are wired in this rep
 | SettingsPage | `/app/settings` | OK (menu) | OK (buildMenu) |
 | SharedWithMePage | `/app/shared` | MISSING | MISSING |
 | SignupPage | `/app/signup` | UNREACHABLE | UNREACHABLE |
-| SyncPlayPage | `/app/syncplay` | OK (menu) | Registered + nav entry since the v0.99.12 re-pin (M-WINDOWS-04 rider leg 2): boot feeds the room socket a `wsUrl` hint derived from the connected server; status pinned by `tests/unit/syncplayDesktopStatus.test.ts`, story in README "Watching with friends (SyncPlay)" |
+| SyncPlayPage | `/app/syncplay` | OK (menu) | UNREACHABLE (nav deliberately withheld — relay rider leg 4; details below) |
 | WatchHistoryPage | `/app/history` | UNREACHABLE | MISSING |
 
 ---
@@ -153,14 +153,14 @@ The eight hub pages from `@phlix/ui` (v0.98.39):
 
 These four pages are registered by `createPhlixApp` (`createPhlixApp.ts:280,286,292,298`)
 but the reference web-ui supplies a `menu`, which suppresses all default navigation.
-No navigation link exists for any of them:
+No navigation link exists for any of them **in hub mode**:
 
 | Page | Path | web-ui | Note |
 |------|------|--------|------|
 | WatchHistoryPage | `/app/history` | UNREACHABLE | `createPhlixApp.ts:280` |
 | ExplorePage | `/app/explore` | UNREACHABLE | `createPhlixApp.ts:286` |
 | RecommendationsPage | `/app/recommendations` | UNREACHABLE | `createPhlixApp.ts:292` |
-| SyncPlayPage | `/app/syncplay` | UNREACHABLE | registered in hub mode too, but the nav entry is deliberately withheld (rider leg 4): hub rooms run over the :8804 relay and the wsUrl seam would override relay dials wholesale — needs relay-aware evidence; see `syncplayDesktopStatus.test.ts` |
+| SyncPlayPage | `/app/syncplay` | UNREACHABLE | registered in hub mode too, but the nav entry is deliberately withheld (rider leg 4): hub rooms run over the :8804 relay and the wsUrl seam would override relay dials wholesale — needs relay-aware evidence; see `syncplayDesktopStatus.test.ts`. In SERVER mode this page is NOT unlinked: the boot menu registers its nav entry (row above) — the v0.99.12 rider leg 2, story in README "Watching with friends (SyncPlay)". |
 
 ---
 

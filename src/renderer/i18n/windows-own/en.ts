@@ -42,7 +42,7 @@ export const WIN_EN = {
     incompatibleIntro: 'This Phlix server is too old to use with this version of Phlix for Windows.',
     reportedVersion: 'Server reports version',
     requiredVersion: 'Phlix for Windows requires at least',
-    incompatibleAction: 'Update the Phlix server, or connect to a newer one, then restart this app.',
+    incompatibleAction: 'Ask the server owner to update Phlix Media Server, then press "Try again" — the check re-runs in place, no restart needed.',
     incompatibleRetry: 'Try again',
     failTitle: 'Phlix could not start',
     failMessage: 'The application failed to load what it needs to open. Secure storage may be unavailable, or the installation damaged. Trying again often helps; otherwise reinstall Phlix for Windows.',

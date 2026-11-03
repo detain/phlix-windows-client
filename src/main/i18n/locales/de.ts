@@ -68,7 +68,7 @@ export const de = {
   boot: {
     tooOldTitle: 'Server-Version zu alt',
     tooOldMessage: 'Der Phlix-Server, mit dem sich diese App verbunden hat, ist für diese Version von Phlix für Windows zu alt.',
-    tooOldDetail: 'Server-Version: {serverVersion}\nMindestens erforderlich: {minimumVersion}\n\nBitten Sie den Betreiber des Servers, Phlix Media Server zu aktualisieren, und starten Sie diese App neu.'
+    tooOldDetail: 'Server-Version: {serverVersion}\nMindestens erforderlich: {minimumVersion}\n\nBitten Sie den Betreiber des Servers, Phlix Media Server zu aktualisieren. Nach dem Update erkennt die App es beim nächsten Check von selbst – ein Neustart ist nicht nötig.'
   },
   deeplink: {
     failedTitle: 'Link konnte nicht geöffnet werden',

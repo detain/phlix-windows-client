@@ -42,7 +42,7 @@ export const WIN_PT_BR = {
     incompatibleIntro: 'Este servidor Phlix é antigo demais para esta versão do Phlix para Windows.',
     reportedVersion: 'O servidor informa a versão',
     requiredVersion: 'Phlix para Windows exige no mínimo',
-    incompatibleAction: 'Atualize o servidor Phlix ou conecte-se a um mais novo e reinicie o aplicativo.',
+    incompatibleAction: 'Peça ao proprietário do servidor para atualizar o Phlix Media Server e clique em "Tentar novamente" — a verificação é refeita na hora, sem reiniciar.',
     incompatibleRetry: 'Tentar novamente'
 ,
     failTitle: 'O Phlix não pôde iniciar',

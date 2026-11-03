@@ -40,7 +40,7 @@ export const WIN_JA = {
     incompatibleIntro: 'この Phlix サーバーは、このバージョンの Phlix for Windows には古すぎます。',
     reportedVersion: 'サーバーが報告したバージョン',
     requiredVersion: 'Phlix for Windows の必要最低バージョン',
-    incompatibleAction: 'Phlix サーバーを更新するか、より新しいサーバーに接続してから、アプリを再起動してください。',
+    incompatibleAction: 'サーバー管理者に Phlix Media Server の更新を依頼し、「再試行する」を押してください。その場で再チェックされ、再起動は不要です。',
     incompatibleRetry: '再試行する'
 ,
     failTitle: 'Phlix を起動できませんでした',

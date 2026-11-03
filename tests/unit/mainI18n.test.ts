@@ -86,7 +86,11 @@ const ORIGINAL_MAIN_PROCESS_STRINGS: Record<MainMessageKey, string> = {
   // the separate windows-own catalog (src/renderer/i18n/windows-own).
   'boot.tooOldTitle': 'Server Version Too Old',
   'boot.tooOldMessage': 'The Phlix server this app connected to is too old for this version of Phlix for Windows.',
-  'boot.tooOldDetail': 'Server version: {serverVersion}\nMinimum required: {minimumVersion}\n\nAsk the server owner to update Phlix Media Server, then restart this app.',
+  // m24 (writer #3): the "then restart this app" tail contradicted the Try-again
+  // in-place re-run law (README + the retry handler); the copy was corrected, so
+  // the pre-extraction literal snapshot follows it — the pin guards FUTURE drift,
+  // not this sanctioned cure (era-rotation precedent).
+  'boot.tooOldDetail': 'Server version: {serverVersion}\nMinimum required: {minimumVersion}\n\nAsk the server owner to update Phlix Media Server. After the update, this app detects it on its next check — no restart needed.',
   // M-WINDOWS-15 additions (born in the catalog, same precedent): the honest
   // failure surface for a deep link the app could not route.
   'deeplink.failedTitle': 'Could Not Open Link',
