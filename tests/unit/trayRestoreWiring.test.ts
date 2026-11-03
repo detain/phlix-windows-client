@@ -337,7 +337,7 @@ describe('tray/second-instance restore wiring (M-WINDOWS-03)', () => {
     ready!({ sender: win.webContents });
 
     const shown = await handler!(
-      {} as unknown,
+      { sender: win.webContents } as unknown,
       // M-WINDOWS-15 law: clickActions must be /app-rooted router paths — the
       // former '/library' fixture pinned a path the renderer router can never
       // match (the silent no-op this cure forbids). '/app/settings' is real.
@@ -359,7 +359,7 @@ describe('tray/second-instance restore wiring (M-WINDOWS-03)', () => {
     tracks.deepLinkSends.length = 0;
     const handler = tracks.ipcHandlers.get('notification:show');
 
-    await handler!({} as unknown, { title: 't', body: 'b' } as unknown);
+    await handler!({ sender: win.webContents } as unknown, { title: 't', body: 'b' } as unknown);
     tracks.notificationClickHandlers[tracks.notificationClickHandlers.length - 1]!();
 
     expect(win.calls).toEqual(['restore', 'show', 'focus']);
@@ -368,15 +368,20 @@ describe('tray/second-instance restore wiring (M-WINDOWS-03)', () => {
   it('notification click on a DESTROYED window is a no-op, not an "Object has been destroyed" throw', async () => {
     const win = mainWin();
     resetWindow(win);
-    win.state.destroyed = true;
     tracks.deepLinkSends.length = 0;
     const handler = tracks.ipcHandlers.get('notification:show');
 
     // M-WINDOWS-15: /app-rooted survivor (the old '/tray-survivor' fixture
     // carried a dead non-/app path — held-and-drained is the law under test,
     // and the link must be one the parser would actually deliver).
-    await handler!({} as unknown, { title: 't', body: 'b', clickAction: '/app/tray-survivor' } as unknown);
+    await handler!({ sender: win.webContents } as unknown, { title: 't', body: 'b', clickAction: '/app/tray-survivor' } as unknown);
     const clickHandler = tracks.notificationClickHandlers[tracks.notificationClickHandlers.length - 1];
+    // m4 reordered this fixture: the SENDER guard makes delivery-while-
+    // destroyed impossible as an IPC (a dead document cannot send, and the
+    // guard refuses mainWindow-is-destroyed anyway), so the window now dies
+    // AFTER the toast was legitimately delivered and BEFORE the user clicks
+    // — the same production race, honestly staged.
+    win.state.destroyed = true;
 
     // The old body ran mainWindow?.show() straight — on a destroyed window
     // that throws (BrowserWindow docs: touching a destroyed window throws

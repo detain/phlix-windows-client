@@ -83,12 +83,12 @@ describe('playback-aware tray tooltip (M-WINDOWS-37)', () => {
   it('power:update arms the playing verdict; progress {0,0} clears it', () => {
     const power = mainSource.slice(
       mainSource.indexOf("ipcMain.on('power:update'"),
-      mainSource.indexOf("ipcMain.on('power:update'") + 400);
+      mainSource.indexOf("ipcMain.on('power:update'") + 700);
     expect(power).toMatch(/trayTooltipPlaying = /);
     expect(power).toMatch(/syncTrayTooltip\(\);/);
     const progress = mainSource.slice(
       mainSource.indexOf("ipcMain.on('playback:progress'"),
-      mainSource.indexOf("ipcMain.on('playback:progress'") + 700);
+      mainSource.indexOf("ipcMain.on('playback:progress'") + 1500); // m4/m5 guards grew the body
     expect(progress).toMatch(/trayTooltipPlaying = false;/);
     expect(progress).toMatch(/syncTrayTooltip\(\);/);
   });

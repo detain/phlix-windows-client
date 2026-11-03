@@ -125,7 +125,12 @@ vi.mock('electron', () => ({
 }));
 
 import '../../src/main/index';
-import { ipcMain } from 'electron';
+import { ipcMain, BrowserWindow } from 'electron';
+
+// m4 sender law: the boot path created one window; its webContents is the trusted sender.
+function mainWebContents(): unknown {
+  return (BrowserWindow as unknown as ReturnType<typeof vi.fn>).mock.results[0]!.value.webContents;
+}
 
 function invokeHandler(channel: string): (...args: unknown[]) => unknown {
   const call = (ipcMain.handle as ReturnType<typeof vi.fn>).mock.calls.find((c) => c[0] === channel);
@@ -188,8 +193,8 @@ describe('M-WINDOWS-40: notificationsEnabled gates every toast origin', () => {
   it('the renderer IPC path honours the same pref', () => {
     prefs.notificationsEnabled = false;
     const show = invokeHandler('notification:show');
-    expect(show({}, { title: 'x', body: 'y' })).toBe(false);
+    expect(show({ sender: mainWebContents() }, { title: 'x', body: 'y' })).toBe(false);
     delete prefs.notificationsEnabled;
-    expect(show({}, { title: 'x', body: 'y' })).toBe(true);
+    expect(show({ sender: mainWebContents() }, { title: 'x', body: 'y' })).toBe(true);
   });
 });

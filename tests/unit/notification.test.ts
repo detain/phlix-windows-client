@@ -38,7 +38,7 @@ describe('notification IPC', () => {
   });
 
   it('notification click routes via handleDeepLinkUrl with phlix://internal prefix', () => {
-    expect(mainSource).toMatch(/handleDeepLinkUrl\(`phlix:\/\/internal\$\{clickAction\}`\)/);
+    expect(mainSource).toMatch(/handleDeepLinkUrl\(`phlix:\/\/internal\$\{routeTo\}`\)/);
   });
 
   it('parseDeepLinkUrl accepts phlix://internal paths and returns the path', () => {

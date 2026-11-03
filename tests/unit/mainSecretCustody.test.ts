@@ -249,7 +249,8 @@ beforeAll(flushBoot);
 function callHandle(channel: string, payload?: unknown): unknown {
   const fn = harness.handles.get(channel);
   expect(fn, `ipcMain.handle('${channel}') must be registered`).toBeDefined();
-  return fn!({ sender: {}, reply: () => undefined }, payload);
+  // m4: config channels gained the sender-identity guard — call as the live window.
+  return fn!({ sender: mainSender(), reply: () => undefined }, payload);
 }
 
 function callVault(channel: string, payload?: unknown, sender?: unknown): unknown {

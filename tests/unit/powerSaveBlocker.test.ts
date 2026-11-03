@@ -85,11 +85,13 @@ describe('power:update IPC handler (W4.6)', () => {
   });
 
   it('power:update handler destructures playing from the payload', () => {
-    expect(mainSource).toMatch(/\{[\s\S]*?playing[\s\S]*?\}\s*:\s*\{[\s\S]*?playing[\s\S]*?:[\s\S]*?boolean/);
+    // m5: the payload arrives untyped and the boolean law moved INTO the
+    // handler (refuse-and-warn) — the destructure-shape pin follows.
+    expect(mainSource).toMatch(/payload: \{ playing\?: unknown \}/);
   });
 
   it('power:update handler calls ensurePowerBlocker with playing boolean', () => {
-    expect(mainSource).toMatch(/ensurePowerBlocker\s*\(\s*playing\s*\)/);
+    expect(mainSource).toMatch(/ensurePowerBlocker\s*\(\s*payload\.playing\s*\)/);
   });
 });
 

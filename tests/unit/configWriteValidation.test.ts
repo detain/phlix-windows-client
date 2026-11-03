@@ -91,7 +91,7 @@ vi.mock('electron', () => ({
 }));
 
 import '../../src/main/index';
-import { ipcMain } from 'electron';
+import { ipcMain, BrowserWindow } from 'electron';
 
 function invokeHandler(channel: string): (...args: unknown[]) => unknown {
   const call = (ipcMain.handle as ReturnType<typeof vi.fn>).mock.calls.find((c) => c[0] === channel);
@@ -99,46 +99,51 @@ function invokeHandler(channel: string): (...args: unknown[]) => unknown {
   return call[1] as (...args: unknown[]) => unknown;
 }
 
+// m4 (sender identity law): the handlers now demand the CURRENT main
+// window's webContents as event.sender — the harness window instance was
+// created by the boot path on import; its webContents is the trusted sender.
+const TRUSTED = { sender: (BrowserWindow as unknown as ReturnType<typeof vi.fn>).mock.results[0]!.value.webContents };
+
 const setServerUrl = invokeHandler('app:set-server-url');
 const setHubConfig = invokeHandler('hub:set-config');
 
 describe('M-WINDOWS-34: server URL writes are validated at the boundary', () => {
   it('refuses a non-http(s) scheme and stores nothing', () => {
     delete prefs.serverUrl;
-    expect(setServerUrl({}, 'file:///C:/secrets/saml.config')).toBe(false);
+    expect(setServerUrl(TRUSTED, 'file:///C:/secrets/saml.config')).toBe(false);
     expect('serverUrl' in prefs).toBe(false);
   });
 
   it('refuses embedded credentials (the old code stored them raw)', () => {
     delete prefs.serverUrl;
-    expect(setServerUrl({}, 'http://admin:hunter2@internal.corp:8096')).toBe(false);
+    expect(setServerUrl(TRUSTED, 'http://admin:hunter2@internal.corp:8096')).toBe(false);
     expect('serverUrl' in prefs).toBe(false);
   });
 
   it('refuses non-string input', () => {
     delete prefs.serverUrl;
-    expect(setServerUrl({}, 42)).toBe(false);
-    expect(setServerUrl({}, { url: 'https://ok' })).toBe(false);
+    expect(setServerUrl(TRUSTED, 42)).toBe(false);
+    expect(setServerUrl(TRUSTED, { url: 'https://ok' })).toBe(false);
     expect('serverUrl' in prefs).toBe(false);
   });
 
   it('accepts a plain https origin AND loopback http (self-hosted product)', () => {
-    expect(setServerUrl({}, 'https://media.example.com')).toBe(true);
+    expect(setServerUrl(TRUSTED, 'https://media.example.com')).toBe(true);
     expect(prefs.serverUrl).toBe('https://media.example.com');
-    expect(setServerUrl({}, 'http://192.168.1.10:8096')).toBe(true);
+    expect(setServerUrl(TRUSTED, 'http://192.168.1.10:8096')).toBe(true);
     expect(prefs.serverUrl).toBe('http://192.168.1.10:8096');
   });
 
   it("the empty string stays the legal CLEAR signal (main.ts onConnectionChange(''))", () => {
     prefs.serverUrl = 'https://old.example';
-    expect(setServerUrl({}, '')).toBe(true);
+    expect(setServerUrl(TRUSTED, '')).toBe(true);
     expect(prefs.serverUrl).toBe('');
   });
 });
 
 describe('M-WINDOWS-34: hub config writes are validated field by field', () => {
   it('a malformed hubUrl is refused while other legal fields still land', () => {
-    setHubConfig({}, { hubUrl: 'javascript:alert(1)', connectionMode: 'hub', activeServerId: 'srv-7' });
+    setHubConfig(TRUSTED, { hubUrl: 'javascript:alert(1)', connectionMode: 'hub', activeServerId: 'srv-7' });
     expect(prefs.hubUrl).toBeUndefined();
     expect(prefs.connectionMode).toBe('hub');
     expect(prefs.activeServerId).toBe('srv-7');
@@ -146,29 +151,29 @@ describe('M-WINDOWS-34: hub config writes are validated field by field', () => {
 
   it('connectionMode only accepts the real vocabulary', () => {
     delete prefs.connectionMode;
-    setHubConfig({}, { connectionMode: 'tunnel-to-attacker' });
+    setHubConfig(TRUSTED, { connectionMode: 'tunnel-to-attacker' });
     expect('connectionMode' in prefs).toBe(false);
-    setHubConfig({}, { connectionMode: 'direct' });
+    setHubConfig(TRUSTED, { connectionMode: 'direct' });
     expect(prefs.connectionMode).toBe('direct');
-    setHubConfig({}, { connectionMode: 'hub' });
+    setHubConfig(TRUSTED, { connectionMode: 'hub' });
     expect(prefs.connectionMode).toBe('hub');
   });
 
   it('activeServerId must be a bounded non-empty string', () => {
     prefs.activeServerId = 'good-id';
-    setHubConfig({}, { activeServerId: '   ' });
+    setHubConfig(TRUSTED, { activeServerId: '   ' });
     expect(prefs.activeServerId).toBe('good-id');
-    setHubConfig({}, { activeServerId: {} });
+    setHubConfig(TRUSTED, { activeServerId: {} });
     expect(prefs.activeServerId).toBe('good-id');
-    setHubConfig({}, { activeServerId: 'x'.repeat(600) });
+    setHubConfig(TRUSTED, { activeServerId: 'x'.repeat(600) });
     expect(prefs.activeServerId).toBe('good-id');
-    setHubConfig({}, { activeServerId: 'fresh-id' });
+    setHubConfig(TRUSTED, { activeServerId: 'fresh-id' });
     expect(prefs.activeServerId).toBe('fresh-id');
   });
 
   it('hubUrl empty string clears (disconnect law, resolveConfig truthiness guard)', () => {
     prefs.hubUrl = 'https://hub.example';
-    setHubConfig({}, { hubUrl: '' });
+    setHubConfig(TRUSTED, { hubUrl: '' });
     expect(prefs.hubUrl).toBe('');
   });
 });

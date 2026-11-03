@@ -19,7 +19,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { allowPermission, installPermissionGuard } from '../../src/main/permissionGuard';
+import { allowPermission, installPermissionGuard, isTrustedRequesterUrl } from '../../src/main/permissionGuard';
 
 const PROJECT_ROOT = resolve(__dirname, '../..');
 const mainSource = readFileSync(resolve(PROJECT_ROOT, 'src/main/index.ts'), 'utf-8').replace(/\r\n/g, '\n');
@@ -70,5 +70,40 @@ describe('installPermissionGuard wiring (M-WINDOWS-29)', () => {
     expect(mainSource).toMatch(/installPermissionGuard\(session\.defaultSession\)/);
     // and 'session' is imported from electron
     expect(mainSource).toMatch(/import\s*\{[^}]*\bsession\b[^}]*\}\s*from\s*'electron'/);
+  });
+});
+
+describe('m15: the clipboard carve-out is origin-bound (review windows__crossfe 3)', () => {
+  it('isTrustedRequesterUrl table — local app doc and dev server only', () => {
+    expect(isTrustedRequesterUrl('app://-/app/settings')).toBe(true);
+    expect(isTrustedRequesterUrl('app://evil-host/app/x')).toBe(false);
+    expect(isTrustedRequesterUrl('http://localhost:5173/')).toBe(true);
+    expect(isTrustedRequesterUrl('http://127.0.0.1:8096/')).toBe(true);
+    expect(isTrustedRequesterUrl('https://media.example/app')).toBe(false);
+    expect(isTrustedRequesterUrl('')).toBe(false);
+    expect(isTrustedRequesterUrl(undefined)).toBe(false);
+    expect(isTrustedRequesterUrl(42)).toBe(false);
+  });
+
+  it('clipboard-sanitized-write is granted to the app document and denied to a hostile page', () => {
+    const verdicts: Array<[string, boolean]> = [];
+    const fakeSession = {
+      setPermissionRequestHandler: (h: (c: unknown, p: string, cb: (g: boolean) => void) => void) => {
+        h({ getURL: () => 'app://-/app' }, 'clipboard-sanitized-write', (g) => verdicts.push(['request-local', g]));
+        h({ getURL: () => 'https://evil.example/pwned' }, 'clipboard-sanitized-write', (g) => verdicts.push(['request-hostile', g]));
+        h({}, 'clipboard-sanitized-write', (g) => verdicts.push(['request-urlless', g]));
+      },
+      setPermissionCheckHandler: (h: (c: unknown, p: string) => boolean) => {
+        verdicts.push(['check-local', h({ getURL: () => 'app://-/' }, 'clipboard-sanitized-write')]);
+        verdicts.push(['check-hostile', h({ getURL: () => 'https://evil.example/' }, 'clipboard-sanitized-write')]);
+      }
+    };
+    installPermissionGuard(fakeSession);
+    const map = new Map(verdicts);
+    expect(map.get('request-local')).toBe(true);
+    expect(map.get('request-hostile')).toBe(false);
+    expect(map.get('request-urlless')).toBe(false); // structural fallback fails closed
+    expect(map.get('check-local')).toBe(true);
+    expect(map.get('check-hostile')).toBe(false);
   });
 });

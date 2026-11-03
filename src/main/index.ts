@@ -11,7 +11,7 @@ import * as path from 'path';
 import { randomUUID } from 'crypto';
 import { isPathSafe } from './pathUtils';
 import { validateExternalUrl, validateNavigationUrl, isFetchableApiBase } from './urlValidator';
-import { checkMinServerVersion, type ServerVersionCheck } from './versionCheck';
+import { checkMinServerVersion, MIN_SERVER_VERSION, type ServerVersionCheck } from './versionCheck';
 import {
   parseDeepLinkUrl,
   extractDeepLinkUrl,
@@ -205,12 +205,17 @@ async function confirmDeepLinkFollow(win: BrowserWindow, url: string): Promise<b
 
 function setAsDefaultProtocolClient(): void {
   if (process.platform === 'win32') {
-    // M-WINDOWS-19: one honest call. The previous isPackaged if/else had
-    // byte-identical branches (dead code). Packaged: execPath IS the app.
-    // Dev: execPath is the bare electron launcher, so an OS-clicked
-    // phlix:// link opens a stock Electron shell instead of this source
-    // tree — deep links are a packaged-install feature; dev testing goes
-    // through `npm run dev` plus a second instance spawn with the URL arg.
+    // m16 (review windows__crossfe 4): M-WINDOWS-19's comment already told the
+    // truth — in dev, execPath is the bare node_modules electron launcher and
+    // an OS-clicked phlix:// link opens a stock Electron shell. Registering it
+    // anyway left every dev machine with a stray HKCU class. Deep links are a
+    // packaged-install feature; dev testing goes through `npm run dev` plus a
+    // second instance spawn with the URL arg (second-instance path stays
+    // live). One honest call, now a gated one.
+    if (!app.isPackaged) {
+      log.info('[deep-link] phlix:// registration skipped — not a packaged install (m16)');
+      return;
+    }
     app.setAsDefaultProtocolClient('phlix', process.execPath, [`"${process.execPath}"`]);
   }
 }
@@ -491,6 +496,11 @@ function createWindow(): void {
     // pending queue survives for a future window's 'deeplink:ready' drain
     // (createWindow on activate).
     deepLinkReceiverReady = false;
+    // m13: same mirror-zeroing contract as render-process-gone — a future
+    // window starts from a clean playback story, not the last session's.
+    isPlaying = false;
+    trayTooltipPlaying = false;
+    syncTrayTooltip();
   });
 
   // Debounced resize/move handlers for live bounds persistence
@@ -528,9 +538,34 @@ function createWindow(): void {
     }
   });
 
+  // m14: see downloadUrlTrusted (default-deny, no silent drops from foreign
+  // documents; refusal logs carry no raw URL — M-WINDOWS-44 law). Typed
+  // structurally: Electron's event map keeps will-download on Session, but
+  // WebContents emits it per-document and the local registration can read
+  // the sender's own frame URL. Harness mocks' generic webContents.on no-ops.
+  const downloadEmitter = mainWindow.webContents as unknown as {
+    on(
+      channel: 'will-download',
+      listener: (event: { preventDefault(): void }, item: { getURL(): string }) => void
+    ): void;
+  };
+  downloadEmitter.on('will-download', (event, item) => {
+    if (!downloadUrlTrusted(item.getURL())) {
+      event.preventDefault();
+      log.warn('[downloads] cancelled a download from an untrusted origin (m14 default-deny)');
+    }
+  });
+
   // W4.6: release power blocker if renderer process crashes
   mainWindow.webContents.on('render-process-gone', (_event, details) => {
     ensurePowerBlocker(false);
+    // m13 (review windows__asphp MIN-2): a dead renderer stops sending the
+    // mirror updates that would self-correct these — zero them NOW or the
+    // tray/thumbar keep claiming "playing" over a corpse until a reload's
+    // first tick (or forever, if the user declines the reload).
+    isPlaying = false;
+    trayTooltipPlaying = false;
+    syncTrayTooltip();
     // M-WINDOWS-09: before this the user faced a permanently dead window in
     // silence. The power-blocker release stays; on top of it, a recovery
     // affordance: reload recovers the session view (reconnect + re-route are
@@ -1118,7 +1153,11 @@ ipcMain.handle('get-app-path', () => app.getPath('userData'));
 
 ipcMain.handle('get-version', () => app.getVersion());
 
-ipcMain.on('set-always-on-top', (_, value: boolean) => {
+ipcMain.on('set-always-on-top', (event, value: unknown) => {
+  if (!senderTrusted(event) || typeof value !== 'boolean') {
+    log.warn('[ipc] set-always-on-top refused (m4 sender + m5 boolean-payload law)');
+    return;
+  }
   mainWindow?.setAlwaysOnTop(value);
 });
 
@@ -1128,7 +1167,15 @@ ipcMain.on('minimize-to-tray', () => {
 
 ipcMain.handle('tray:get-minimize-to-tray', () => store.get('minimizeToTray', true));
 
-ipcMain.on('tray:set-minimize-to-tray', (_, val: boolean) => store.set('minimizeToTray', val));
+ipcMain.on('tray:set-minimize-to-tray', (event, val: unknown) => {
+  // m5: this key is read as a boolean at close time — a persisted stringified
+  // 'false' would read truthy and silently turn every close into a hide.
+  if (!senderTrusted(event) || typeof val !== 'boolean') {
+    log.warn('[ipc] tray:set-minimize-to-tray refused (m4 sender + m5 boolean-payload law)');
+    return;
+  }
+  store.set('minimizeToTray', val);
+});
 
 // Hub configuration handlers
 // M-WINDOWS-11: hubUrl travels through encrypted custody (auth endpoint);
@@ -1140,7 +1187,11 @@ ipcMain.on('tray:set-minimize-to-tray', (_, val: boolean) => store.set('minimize
 // README "Hub Mode (not yet enterable)" carries the user-facing truth, and the
 // enterability seam is the v0.99.12-wave @phlix/ui rider (same wave as the
 // tokenStore seam rider further down this file). Tripwires: tests/unit/hubModeStatus.test.ts.
-ipcMain.handle('hub:get-config', () => {
+ipcMain.handle('hub:get-config', (event) => {
+  if (!senderTrusted(event)) {
+    log.warn('[ipc] hub:get-config refused — sender is not the current main window (m4)');
+    return { hubUrl: null, activeServerId: null, connectionMode: 'direct' };
+  }
   return {
     hubUrl: configCustody.read('hubUrl'),
     activeServerId: store.get('activeServerId', null),
@@ -1161,7 +1212,11 @@ ipcMain.handle('hub:get-config', () => {
 // one malformed field cannot block its legal siblings. Refusal logs carry no
 // raw values (M-WINDOWS-44 law). Returns true when every PRESENT field was
 // accepted.
-ipcMain.handle('hub:set-config', (_, config: { hubUrl?: string | null; activeServerId?: string | null; connectionMode?: string | null }) => {
+ipcMain.handle('hub:set-config', (event, config: { hubUrl?: string | null; activeServerId?: string | null; connectionMode?: string | null }) => {
+  if (!senderTrusted(event)) {
+    log.warn('[config] hub:set-config refused — sender is not the current main window (m4)');
+    return false;
+  }
   const raw = (config ?? {}) as Record<string, unknown>;
   let allAccepted = true;
   if (raw.hubUrl !== undefined) {
@@ -1194,11 +1249,19 @@ ipcMain.handle('hub:set-config', (_, config: { hubUrl?: string | null; activeSer
 });
 
 // Direct server URL handlers — M-WINDOWS-11: custody-sealed (see hubUrl above).
-ipcMain.handle('app:get-server-url', () => {
+ipcMain.handle('app:get-server-url', (event) => {
+  if (!senderTrusted(event)) {
+    log.warn('[ipc] app:get-server-url refused — sender is not the current main window (m4)');
+    return null;
+  }
   return configCustody.read('serverUrl');
 });
 
-ipcMain.handle('app:set-server-url', (_, url: string | null) => {
+ipcMain.handle('app:set-server-url', (event, url: string | null) => {
+  if (!senderTrusted(event)) {
+    log.warn('[config] app:set-server-url refused — sender is not the current main window (m4)');
+    return false;
+  }
   // M-WINDOWS-34: same boundary law as hub:set-config — '' AND null are the
   // legal clears (null = legacy absent-row write the custody probes); any
   // other value must be a plain http(s) origin without userinfo.
@@ -1214,7 +1277,13 @@ ipcMain.handle('app:set-server-url', (_, url: string | null) => {
 // M-WINDOWS-02: the gate now carries its own explanation — the handler returns the
 // structured verdict (versions included) and raises an explicit error dialog on the
 // sole blocking outcome, instead of the user seeing a permanently dark window.
-ipcMain.handle('app:check-server-version', async (_, { apiBase }: { apiBase: string }): Promise<ServerVersionCheck> => {
+ipcMain.handle('app:check-server-version', async (event, { apiBase }: { apiBase: string }): Promise<ServerVersionCheck> => {
+  if (!senderTrusted(event)) {
+    log.warn('[ipc] app:check-server-version refused — sender is not the current main window (m4)');
+    // The byte-identical 'probe could not run' verdict (versionCheck INACTIVE
+    // arms): fail-closed here must not fabricate a blocking dialog.
+    return { compatible: true, serverVersion: null, minimumVersion: MIN_SERVER_VERSION };
+  }
   const result = await checkMinServerVersion(apiBase);
   if (!result.compatible) {
     showServerTooOldDialog(result);
@@ -1231,7 +1300,11 @@ ipcMain.handle('app:check-server-version', async (_, { apiBase }: { apiBase: str
  * Subsequent calls return the same ID for the lifetime of the installation.
  * The ID is sent to the server as `X-Phlix-Device-ID` via `buildPhlixHeaders`.
  */
-ipcMain.handle('app:get-device-id', () => {
+ipcMain.handle('app:get-device-id', (event) => {
+  if (!senderTrusted(event)) {
+    log.warn('[ipc] app:get-device-id refused — sender is not the current main window (m4)');
+    return null;
+  }
   let deviceId = configCustody.read('deviceId');
   if (!deviceId) {
     deviceId = `windows-${randomUUID()}`;
@@ -1276,12 +1349,17 @@ const vaultCustody = createSecretCustody({
   } satisfies SettingsSink
 });
 
-function vaultSenderTrusted(event: Electron.IpcMainEvent): boolean {
+// m4 (review windows__exploiter 1 / secnet m1): sender identity is THE trust
+// boundary for every channel that writes config/custody or mirrors state into
+// main-process surfaces — previously only vault:* and deeplink:ready checked
+// it, resting on the preload gate alone. Today inert (single window:
+// setWindowOpenHandler always denies); the guards make that fact structural.
+function senderTrusted(event: { sender?: unknown }): boolean {
   return mainWindow !== null && !mainWindow.isDestroyed() && event.sender === mainWindow.webContents;
 }
 
 ipcMain.on('vault:get', (event, payload: { key?: unknown }) => {
-  if (!vaultSenderTrusted(event)) {
+  if (!senderTrusted(event)) {
     log.warn('[vault] get refused — sender is not the current main window');
     event.returnValue = null;
     return;
@@ -1295,7 +1373,7 @@ ipcMain.on('vault:get', (event, payload: { key?: unknown }) => {
 });
 
 ipcMain.on('vault:set', (event, payload: { key?: unknown; value?: unknown }) => {
-  if (!vaultSenderTrusted(event)) {
+  if (!senderTrusted(event)) {
     log.warn('[vault] set refused — sender is not the current main window');
     event.returnValue = false;
     return;
@@ -1314,7 +1392,7 @@ ipcMain.on('vault:set', (event, payload: { key?: unknown; value?: unknown }) => 
 });
 
 ipcMain.on('vault:delete', (event, payload: { key?: unknown }) => {
-  if (!vaultSenderTrusted(event)) {
+  if (!senderTrusted(event)) {
     log.warn('[vault] delete refused — sender is not the current main window');
     event.returnValue = false;
     return;
@@ -1333,7 +1411,7 @@ ipcMain.on('vault:delete', (event, payload: { key?: unknown }) => {
 });
 
 ipcMain.on('vault:is-available', (event) => {
-  if (!vaultSenderTrusted(event)) {
+  if (!senderTrusted(event)) {
     log.warn('[vault] is-available refused — sender is not the current main window');
     event.returnValue = false;
     return;
@@ -1342,14 +1420,60 @@ ipcMain.on('vault:is-available', (event) => {
 });
 
 // W4.5: thumbar buttons — renderer sends updated play state to refresh play/pause icon
-ipcMain.on('thumbar:update', (_, state: { playing: boolean }) => {
+/**
+ * m14 (review windows__crossfe 2): default-deny download policy. The shell
+ * never asked for Chromium-initiated file downloads from arbitrary documents;
+ * with any https top-level navigation still permitted (M11's premise), an
+ * unguarded default let a hostile navigated-to page drop files silently into
+ * the user's downloads folder. Allowed sources: the local app:// document, the
+ * dev-server origin, and the PERSISTED server/hub bases (legit media/export
+ * downloads). Everything else is cancelled before it starts. Trusted
+ * downloads still take Chromium's default save-path behavior.
+ */
+export function downloadUrlTrusted(rawUrl: unknown): boolean {
+  if (typeof rawUrl !== 'string' || rawUrl.length === 0) return false;
+  let url: URL;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    return false;
+  }
+  if (url.protocol === 'app:') return url.host === '-';
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
+  if (url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '::1') return true;
+  const bases = [configCustody.read('serverUrl'), configCustody.read('hubUrl')];
+  return bases.some((base) => {
+    if (typeof base !== 'string' || base.length === 0) return false;
+    try {
+      return new URL(base).origin === url.origin;
+    } catch {
+      return false;
+    }
+  });
+}
+
+ipcMain.on('thumbar:update', (event, state: { playing?: unknown } | null) => {
+  if (!senderTrusted(event) || typeof state?.playing !== 'boolean') {
+    log.warn('[ipc] thumbar:update refused (m4 sender + m5 boolean-payload law)');
+    return;
+  }
   updateThumbarPlayState(state.playing);
 });
 
 // W4.5: taskbar progress bar — renderer sends current/total position
-ipcMain.on('playback:progress', (_, progress: { current: number; total: number }) => {
+ipcMain.on('playback:progress', (event, progress: { current?: unknown; total?: unknown } | null) => {
+  if (!senderTrusted(event)) {
+    log.warn('[ipc] playback:progress refused — sender is not the current main window (m4)');
+    return;
+  }
   if (!mainWindow || mainWindow.isDestroyed()) return;
-  const { current, total } = progress;
+  const { current, total } = progress ?? {};
+  // m5: NaN into setProgressBar throws; junk coerces silently. Finite
+  // non-negative numbers only, refuse-and-warn otherwise.
+  if (typeof current !== 'number' || typeof total !== 'number' || !Number.isFinite(current) || !Number.isFinite(total) || current < 0 || total < 0) {
+    log.warn('[ipc] playback:progress refused (m5 finite non-negative number law)');
+    return;
+  }
   if (current === 0 && total > 0) {
     // Playback just started at position 0 — show indeterminate progress (Windows mode 2)
     mainWindow.setProgressBar(2);
@@ -1365,10 +1489,14 @@ ipcMain.on('playback:progress', (_, progress: { current: number; total: number }
 });
 
 // W4.6: power save blocker — renderer sends playing state to block/unblock display sleep
-ipcMain.on('power:update', (_event, { playing }: { playing: boolean }) => {
-  ensurePowerBlocker(playing);
+ipcMain.on('power:update', (event, payload: { playing?: unknown } | null) => {
+  if (!senderTrusted(event) || typeof payload?.playing !== 'boolean') {
+    log.warn('[ipc] power:update refused (m4 sender + m5 boolean-payload law)');
+    return;
+  }
+  ensurePowerBlocker(payload.playing);
   // M-WINDOWS-37: the same live playing flag drives the tray tooltip.
-  trayTooltipPlaying = playing === true;
+  trayTooltipPlaying = payload.playing;
   syncTrayTooltip();
 });
 
@@ -1435,19 +1563,29 @@ function notifyUser(
   }
   return true;
 }
-ipcMain.handle('notification:show', (_event, raw: { title?: unknown; body?: unknown; clickAction?: string } | null | undefined) => {
+ipcMain.handle('notification:show', (event, raw: { title?: unknown; body?: unknown; clickAction?: unknown } | null | undefined) => {
+  if (!senderTrusted(event)) {
+    log.warn('[ipc] notification:show refused — sender is not the current main window (m4)');
+    return false;
+  }
   // M-WINDOWS-33/40: support, preference, payload caps and the toast rate
   // limit all live in notifyUser — the handler is the renderer-facing
   // delegation plus the click-routing extras.
   const { clickAction } = raw ?? {};
+  // m6 (review windows__exploiter 3): M-WINDOWS-15's producer law says
+  // clickAction is an /app-rooted router path, but the value crossed the
+  // boundary unchecked — an object interpolated to phlix://internal[object
+  // Object] and surfaced a rejection DIALOG after the toast. Route only real
+  // strings; junk clickActions now simply mean "click restores the window".
+  const routeTo = typeof clickAction === 'string' && clickAction.length > 0 ? clickAction : null;
   return notifyUser(raw?.title, raw?.body, {
     throttle: true,
     onClick: () => {
       // M-WINDOWS-03: a notification click is a re-entry surface too — the
       // window may be hidden-to-tray or minimized, not merely unfocused.
       restoreWindow(mainWindow);
-      if (clickAction) {
-        handleDeepLinkUrl(`phlix://internal${clickAction}`);
+      if (routeTo) {
+        handleDeepLinkUrl(`phlix://internal${routeTo}`);
       }
     }
   });
@@ -1458,7 +1596,13 @@ ipcMain.handle('gpu:get-disable-hardware-acceleration', () => {
   return store.get('disableHardwareAcceleration', false);
 });
 
-ipcMain.handle('gpu:set-disable-hardware-acceleration', (_, value: boolean) => {
+ipcMain.handle('gpu:set-disable-hardware-acceleration', (event, value: unknown) => {
+  // m5: read at module scope next launch to decide GPU policy — same
+  // typed-store-shape law as minimizeToTray.
+  if (!senderTrusted(event) || typeof value !== 'boolean') {
+    log.warn('[ipc] gpu:set-disable-hardware-acceleration refused (m4 sender + m5 boolean-payload law)');
+    return;
+  }
   store.set('disableHardwareAcceleration', value);
 });
 

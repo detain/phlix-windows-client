@@ -47,13 +47,43 @@ export function allowPermission(permission: unknown): boolean {
 }
 
 /**
+ * m15 (review windows__crossfe 3): the permission table was origin-blind —
+ * once ANY page reached the top-level window (navigations stay permitted),
+ * it inherited the silent clipboard-sanitized-write grant too. The grant now
+ * additionally requires the requester to be OUR document: the local app://-
+ * shell (or the dev-server origin, which serves the same bundle). Anything
+ * else — including the media server's own https origin once navigated to —
+ * must ask the user like every other permission.
+ */
+export function isTrustedRequesterUrl(rawUrl: unknown): boolean {
+  if (typeof rawUrl !== 'string' || rawUrl.length === 0) return false;
+  try {
+    const url = new URL(rawUrl);
+    if (url.protocol === 'app:') return url.host === '-';
+    return url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '::1';
+  } catch {
+    return false;
+  }
+}
+
+/** Structural read of the requester's current URL; anything else = untrusted. */
+function requesterUrl(webContents: unknown): string {
+  const candidate = webContents as { getURL?: () => unknown } | null | undefined;
+  if (!candidate || typeof candidate.getURL !== 'function') return '';
+  const url = candidate.getURL();
+  return typeof url === 'string' ? url : '';
+}
+
+/**
  * Install the guard on a session. Both hooks are required: the request
  * handler covers async `navigator.permissions`-style prompts, the check
  * handler covers synchronous feature probes that never surface a prompt.
  */
 export function installPermissionGuard(targetSession: PermissionGuardSession): void {
-  targetSession.setPermissionRequestHandler((_webContents, permission, callback) => {
-    const granted = allowPermission(permission);
+  targetSession.setPermissionRequestHandler((webContents, permission, callback) => {
+    // m15: table verdict AND origin verdict — an attacker page that reached
+    // the top-level window no longer inherits the clipboard carve-out.
+    const granted = allowPermission(permission) && isTrustedRequesterUrl(requesterUrl(webContents));
     if (!granted) {
       // console is deliberate: src/main runs pre-window and this fires from
       // Electron callbacks; electron-log wiring is the caller's concern.
@@ -61,8 +91,8 @@ export function installPermissionGuard(targetSession: PermissionGuardSession): v
     }
     callback(granted);
   });
-  targetSession.setPermissionCheckHandler((_webContents, permission) => {
-    const granted = allowPermission(permission);
+  targetSession.setPermissionCheckHandler((webContents, permission) => {
+    const granted = allowPermission(permission) && isTrustedRequesterUrl(requesterUrl(webContents));
     if (!granted) {
       console.warn(`[permissions] denied check: ${String(permission)}`);
     }

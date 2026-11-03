@@ -121,10 +121,11 @@ describe('notifyUser pipeline (M-WINDOWS-33 law, M-WINDOWS-40 consolidation)', (
   it('the notification:show handler delegates to notifyUser with the renderer throttle on', () => {
     const handlerStart = mainSource.indexOf("ipcMain.handle('notification:show'");
     expect(handlerStart).toBeGreaterThan(-1);
-    const handlerSlice = mainSource.slice(handlerStart, handlerStart + 900);
+    const handlerSlice = mainSource.slice(handlerStart, handlerStart + 1600); // m4/m6 guards grew the handler body
     expect(handlerSlice).toMatch(/return notifyUser\(raw\?\.title, raw\?\.body, \{\s*throttle: true,/);
     // The click extras stay handler-local (the deep-link prefix contract).
-    expect(handlerSlice).toMatch(/handleDeepLinkUrl\(`phlix:\/\/internal\$\{clickAction\}`\)/);
+    // m6: the routed value is the typeof-string-validated clickAction.
+    expect(handlerSlice).toMatch(/handleDeepLinkUrl\(`phlix:\/\/internal\$\{routeTo\}`\)/);
   });
 
   it('every autoUpdater arm routes through notifyUser, unthrottled but pref-gated', () => {
