@@ -14,7 +14,11 @@
  *     a0f018cf→3469b62e, messages.ts 574b98e5→d984098c; PIN advanced to the 1f0046c5
  *     peel, 12/14 content hashes moving — only the index.ts pair held), and HELD once
  *     more at the v0.99.13 npm-pin bump (catalog and locales byte-identical across the
- *     .12/.13 peels — git blobs 3469b62e/d984098c measured at both peels); the
+ *     .12/.13 peels — git blobs 3469b62e/d984098c measured at both peels), and
+ *     RE-VENDORED AGAIN at v0.99.14 (2026-11-04, the phase-3 cascade — the tree
+ *     genuinely moved: +37 keys 477→514, six locale files shifted, the index.ts pair
+ *     held again, messages.ts d984098c→b9007999; PIN advanced to the a437b995 peel —
+ *     fourth genuine move after v0.99.5/v0.99.8/v0.99.12); the
  *     formerly-ahead keys keep focused cross-bundle laws),
  *     placeholder parity, CLDR segment law (incl. the documented
  *     additive exception), diacritics/CJK sanity, and PIN/hash drift guards
@@ -217,11 +221,14 @@ describe('ui bundles — key-set identity and installed coverage', () => {
     }
   });
 
-  it('bundle key set EQUALS the installed pin (gap closed at v0.99.5, carried at v0.99.6/v0.99.7, re-carried via the v0.99.8 re-vendor, held at the v0.99.9/v0.99.10 npm-pin bumps, re-carried via the v0.99.12 re-vendor, held again at the v0.99.13 bump)', () => {
-    // Vendor @ 1f0046c5 (tag v0.99.12) vs installed @phlix/ui (v0.99.13 at this
-    // re-pin — the vendor HOLDS at the .12 peel: Select.vue internal-ref rename +
+  it('bundle key set EQUALS the installed pin (gap closed at v0.99.5, carried at v0.99.6/v0.99.7, re-carried via the v0.99.8 re-vendor, held at the v0.99.9/v0.99.10 npm-pin bumps, re-carried via the v0.99.12 re-vendor, held again at the v0.99.13 bump, re-carried via the v0.99.14 re-vendor)', () => {
+    // Vendor @ a437b995 (tag v0.99.14) vs installed @phlix/ui (v0.99.14 at this
+    // re-pin — the vendor MOVED WITH the npm pin this time: the phase-3 cascade
+    // locale tree genuinely changed, six of seven files shifting while the index.ts
+    // pair held; the .13 step had been a deliberate HOLD at the .12 peel — Select.vue
+    // internal-ref rename +
     // toolchain-era dist rebuild only, locale tree and messages.ts byte-identical
-    // across the two peels; the vendor likewise rode v0.99.9/v0.99.10 as deliberate
+    // across those two peels; the vendor likewise rode v0.99.9/v0.99.10 as deliberate
     // holds because the locale
     // tree is
     // byte-identical across those peels — see docs/i18n.md). The dc1df7d5-era 7-key
@@ -233,7 +240,10 @@ describe('ui bundles — key-set identity and installed coverage', () => {
     // (only the index.ts pair held) and BOTH sides landed at 441 flattened keys. At
     // v0.99.12 the tree MOVED AGAIN (→ 3469b62e; messages.ts → d984098c; six locale files
     // differ, index.ts unmoved) and the re-vendor landed the same way — 12/14 hashes
-    // advanced — with BOTH sides now at 477 flattened keys.
+    // advanced — with BOTH sides at 477 flattened keys. At v0.99.14 (2026-11-04) the
+    // tree moved a FOURTH time (six files shifted, index.ts pair held; messages.ts →
+    // b9007999; +37 keys) and the re-vendor at the a437b995 peel put BOTH sides at
+    // 514 flattened keys.
     // The relation stays exact set equality in BOTH directions (installed ⊆ bundle
     // is separately pinned above; this pins bundle ⊆ installed and, with it,
     // the empty extras set). The seven keys are additionally pinned present
