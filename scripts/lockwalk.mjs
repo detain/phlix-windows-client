@@ -120,20 +120,27 @@ const NESTED_NODE_RE = /\/node_modules\/@phlix\/[\w-]+$/;
 // `git ls-remote ... refs/tags/<tag>^{}` on 2026-11-02, ui v0.99.13 re-pin atop the
 // contracts v0.5.4 + ui v0.99.12 wave; RE-VERIFIED 2026-11-04 for the phase-3
 // contracts v0.5.5 + ui v0.99.14 cascade; RE-VERIFIED AGAIN 2026-11-04 for the
-// gate-3 ui v0.99.15 wave (all three refs below re-peeled against the live remotes
-// via `git ls-remote` this window — contracts v0.5.5 obj 122d0acb, syncplay v0.1.7
-// obj fe687f27, ui v0.99.15 obj 74c9e1e3):
-//   phlix-contracts v0.5.5 -> e2159816  (annotated tag object 122d0acb; its manifest `version` field is
-//                                         HONEST - reads 0.5.5 at the tag (measured via git show; npm 12
-//                                         accordingly writes lock version 0.5.5), CARRYING the normalization
+// gate-3 ui v0.99.15 wave, and RE-VERIFIED AGAIN 2026-11-04 for the wave-5 contracts
+// v0.5.6 + ui v0.99.16 cascade (all three refs below re-peeled against the live remotes
+// via `git ls-remote` this window — contracts v0.5.6 obj 9f04fc50, syncplay v0.1.7
+// obj fe687f27 HELD, ui v0.99.16 obj 743a4b38):
+//   phlix-contracts v0.5.6 -> c89c8420  (annotated tag object 9f04fc50; its manifest `version` field is
+//                                         HONEST - reads 0.5.6 at the tag (measured via git show; npm 11
+//                                         accordingly writes lock version 0.5.6), CARRYING the normalization
 //                                         the v0.5.2 release commit ac669ca opened, so the `manifestVersion`
 //                                         override stays RETIRED and the contracts row walks the plain
-//                                         tag-derived version. The equality era RESTORED at the ui v0.99.9
-//                                         re-pin CARRIES through v0.99.10, v0.99.12, v0.99.13 and this
-//                                         v0.99.14 move: ui's manifest requests `#v0.5.5` outright (measured
-//                                         via git show at a437b995 AND independently off the installed node) -
-//                                         both the root->contracts and ui->contracts edges walk
-//                                         plain rule 1 onto the one hoisted 0.5.5@e2159816 copy; the
+//                                         tag-derived version. v0.5.6 (peel c89c8420, 2026-11-04) is the
+//                                         route-manifest REGEN mint — #36 payload 412->415 tuples (md5
+//                                         91579683...->90b79e355055307d..., measured off the installed node),
+//                                         with the error-code registry HELD byte-identically (205 codes, md5
+//                                         5d1783a71a3c4e12...) and mcp-scopes HELD (8c92c070...) — zero
+//                                         ErrorCode-union movement, so no TS2741-class cohort this wave. The
+//                                         equality era RESTORED at the ui v0.99.9 re-pin CARRIES through
+//                                         v0.99.10–v0.99.15 and this v0.99.16 move: ui's manifest requests
+//                                         `#v0.5.6` outright (measured via git show at 4d89b3a7 AND
+//                                         independently off the installed node) - both the
+//                                         root->contracts and ui->contracts edges walk
+//                                         plain rule 1 onto the one hoisted 0.5.6@c89c8420 copy; the
 //                                         RATIFIED_HOISTS waiver stays retired per its own written law)
 //   phlix-syncplay  v0.1.7 -> 1a80b1d1  (annotated tag object fe687f27; ROTATED at the gate-3 ui v0.99.15 re-pin
 //                                         (2026-11-04): ui v0.99.15's manifest requests `#v0.1.7` outright (measured
@@ -150,40 +157,40 @@ const NESTED_NODE_RE = /\/node_modules\/@phlix\/[\w-]+$/;
 //                                         at the hoisted node is the standing witness). v0.1.7's dist genuinely
 //                                         differs from v0.1.6 (js/umd/maps + client.d.ts/framing.d.ts move;
 //                                         index.d.ts byte-ident; zero error-code/frame-type delta — wire unchanged).)
-//   phlix-ui        v0.99.15 -> 36c04fbe  (annotated tag object 74c9e1e3; its manifest `version` field stays
-//                                         HONEST - reads 0.99.15 at the tag (measured via git show; the
+//   phlix-ui        v0.99.16 -> 4d89b3a7  (annotated tag object 743a4b38; its manifest `version` field stays
+//                                         HONEST - reads 0.99.16 at the tag (measured via git show; the
 //                                         version-field alignment law has held since v0.99.7, when the
 //                                         `manifestVersion: '0.99.4'` skew override's own written retirement
-//                                         condition fired at bc1d29bf; v0.99.8 through v0.99.15 CARRY it) -
+//                                         condition fired at bc1d29bf; v0.99.8 through v0.99.16 CARRY it) -
 //                                         the ui row keeps walking the plain tag-derived version and that
 //                                         override stays RETIRED, mirroring the contracts-row retirement at
 //                                         v0.5.2. No manifestVersion override is active anywhere now; the
 //                                         mechanism stays armed for a future stale-field tag.
-//                                         v0.99.15 (peel 36c04fbe, the ui master tip at tag cut) is the
-//                                         gate-3 mint. The vendored locales tree MOVED FOR REAL
-//                                         again — 6 of 7 blobs shifted (es/fr/de/it/pt_BR/ja at new blob
-//                                         ids; the syncplay.leaveConfirm trio + W7 tails; flattened catalog
-//                                         514 -> 523 keys, +9) and only index.ts
-//                                         held its blob; `messages.ts` moved too (git ls-tree blob ids
-//                                         measured at a437b995 AND 36c04fbe). The locale vendor pin is
-//                                         therefore TRULY RE-VENDORED at 36c04fbe — the fifth such move
-//                                         (v0.99.5 opening, v0.99.8, v0.99.12, v0.99.14, now) after the
-//                                         deliberate holds at .9/.10/.13.)
+//                                         v0.99.16 (peel 4d89b3a7) is the wave-5 D2-era mint: the tag's
+//                                         delta over v0.99.15 is the contracts #v0.5.5->#v0.5.6 pin
+//                                         re-advance + the dist stamp literal. The locales tree and
+//                                         `messages.ts` are BYTE-IDENTICAL across the .15/.16 peels (git
+//                                         diff empty between 36c04fbe AND 4d89b3a7 at src/i18n/locales;
+//                                         messages.ts blob df982b17 at both; re-proven on the published
+//                                         codeload tag payloads) — a deliberate vendor HOLD (fourth after
+//                                         .9/.10/.13): PIN + SOURCE_REF stay at the 36c04fbe peel; the
+//                                         catalog holds 523 keys. The ui→syncplay request rides `#v0.1.7`
+//                                         unchanged from v0.99.15.)
 export const EXPECTED = {
   '@phlix/contracts': {
-    tag: 'v0.5.5',
-    sha: 'e21598166a7be27e305c205097630e9b635fcd99',
-    // v0.5.5 re-pin (2026-11-04, phase-3 WAVE-3 consumer cascade): the registry MOVED — additive +1 code
-    // `not_found`, 204->205 (measured at tag e2159816 AND off the installed node). dist/error-codes.json
-    // md5 is now 5d1783a71a3c4e128b2021327cad3717 (the long-held 40c1da48... FROZEN era from v0.5.3 through
-    // v0.5.4 ENDED here — CONTRACTS-WAVE-RESULT item 6's stale-md5 prose debt, cured by this very line).
-    // The route manifest HELD (dist/server-route-manifest.json md5 91579683..., 412 tuples) and mcp-scopes
-    // HELD (8c92c070...) — both verified at the tag AND off the installed node; trio moves-together-or-not
-    // law unbroken in spirit: only the registry legitimately expanded. The `manifestVersion` skew override
-    // stays RETIRED — v0.5.5 carries the honest field (reads 0.5.5 at e2159816, measured via git show; the
-    // normalization the v0.5.2 release commit ac669ca opened carries through), so this row walks the plain
-    // tag-derived version. The override MECHANISM stays armed for a future stale-field tag; none is active —
-    // the ui row retired its own at v0.99.7 (field honest at bc1d29bf) and v0.99.8 through v0.99.15 carry it.
+    tag: 'v0.5.6',
+    sha: 'c89c8420cd4d50e51f232885754cb74c92a9e05c',
+    // v0.5.6 re-pin (2026-11-04, wave-5 consumer cascade): the route manifest MOVED — regen #36 payload
+    // 412->415 tuples at srv 58530ec2, dist/server-route-manifest.json md5 91579683...->90b79e355055307d...
+    // (the untagged D2 payload this release minted; measured off the installed node). The error-code
+    // registry HELD byte-identically (205 codes, md5 5d1783a71a3c4e128b2021327cad3717 — the v0.5.5
+    // expansion's field) and mcp-scopes HELD (8c92c070...), so the ErrorCode union windows' TS compiles
+    // against is UNMOVED — zero TS2741-class cohort this wave. The `manifestVersion` skew override
+    // stays RETIRED — v0.5.6 carries the honest field (reads 0.5.6 at c89c8420, measured via git show at
+    // the peel; the normalization the v0.5.2 release commit ac669ca opened carries through), so this row
+    // walks the plain tag-derived version. The override MECHANISM stays armed for a future stale-field
+    // tag; none is active — the ui row retired its own at v0.99.7 (field honest at bc1d29bf) and
+    // v0.99.8 through v0.99.16 carry it.
     repo: 'git+ssh://git@github.com/detain/phlix-contracts.git',
   },
   '@phlix/syncplay': {
@@ -192,21 +199,23 @@ export const EXPECTED = {
     repo: 'git+ssh://git@github.com/detain/phlix-syncplay.git',
   },
   '@phlix/ui': {
-    tag: 'v0.99.15',
-    sha: '36c04fbe792bbb8d04d01719d8c1829b1b9fadf4',
-    // v0.99.15 re-pin (2026-11-04, gate-3 consumer wave): the honest-field
+    tag: 'v0.99.16',
+    sha: '4d89b3a7d98aa3b22cea59ee6e74ee6594a5ea89',
+    // v0.99.16 re-pin (2026-11-04, wave-5 consumer cascade): the honest-field
     // era OPENED at v0.99.7, when the `manifestVersion: '0.99.4'` skew override's own
     // written condition fired (field re-normalized to 0.99.7 at bc1d29bf, measured via
-    // git show). v0.99.8 through this v0.99.15 tag CARRY it — reads 0.99.15 at 36c04fbe
-    // (measured via git show; npm writes lock version 0.99.15) — so this row keeps
+    // git show). v0.99.8 through this v0.99.16 tag CARRY it — reads 0.99.16 at 4d89b3a7
+    // (measured via git show; npm writes lock version 0.99.16) — so this row keeps
     // walking the plain tag-derived version; the override stays RETIRED. No
     // manifestVersion override is active anywhere now; the MECHANISM stays armed for a
-    // future stale-field tag. The step itself is the D1 syncplay pre-bump + review-tail
-    // fold era with a REAL locale move: the vendored locales tree and `messages.ts`
-    // blobs MOVED (6 of 7 locale
-    // files shifted, index.ts held; flattened catalog 514 -> 523), so — unlike the deliberate
-    // holds at v0.99.9/v0.99.10/v0.99.13 — the locale vendor pin is TRULY RE-VENDORED at
-    // 36c04fbe (fifth genuine move since the vendor opened).
+    // future stale-field tag. The step itself is the D2 contracts-re-advance mint: the
+    // tag's delta over v0.99.15 is the contracts pin to #v0.5.6 + the dist stamp
+    // literal — the locales tree and `messages.ts` are BYTE-IDENTICAL across the
+    // .15/.16 peels (git diff empty; messages.ts blob df982b17 at both; re-proven on the
+    // published codeload tag payloads), so — like the deliberate holds at
+    // v0.99.9/v0.99.10/v0.99.13 — the locale vendor pin HOLDS at the 36c04fbe peel
+    // (fourth deliberate hold), catalog staying at 523 keys. The syncplay edge rides
+    // ui's unchanged `#v0.1.7` request; v0.1.7@1a80b1d1 is untouched by this wave.
     repo: 'git+ssh://git@github.com/detain/phlix-ui.git',
   },
 };
@@ -287,6 +296,14 @@ export const EXPECTED = {
 // under plain rule 1 (requested == resolved — no waiver in play on this edge either; the advance needed the
 // S450-class targeted `npm update @phlix/syncplay --package-lock-only` because a plain install left the
 // hoisted resolution stale). Zero ratified hoists on all four edges; the walker measures green.
+// CARRIED ONCE MORE at the contracts v0.5.6 + ui v0.99.16 wave-5 cascade (2026-11-04): BOTH contracts edges
+// move together — root advances to `#v0.5.6` and ui v0.99.16's manifest requests that same tag outright
+// (measured via git show at 4d89b3a7 AND independently off the installed node_modules/@phlix/ui/package.json;
+// the lock's ui node records the same words) — the NINTH straight equality-era move: the map stays
+// present-but-empty, both contracts edges walk plain rule 1 onto the one hoisted 0.5.6@c89c8420 copy (npm 11
+// observed dedupe, not nesting — zero nested nodes in the lock, no nested dir on disk), and the syncplay
+// edge rides ui's unchanged `#v0.1.7` request (0.1.7@1a80b1d1 untouched). Zero ratified hoists on all four
+// edges; the walker measures green.
 export const RATIFIED_HOISTS = {};
 
 export function readRepoJson(name) {
