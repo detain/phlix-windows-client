@@ -47,6 +47,25 @@ export function allowPermission(permission: unknown): boolean {
 }
 
 /**
+ * I-w1 (review windows__iw1, 2026-11-04): WHATWG URL puts IPv6 hostnames in
+ * brackets — `new URL('http://[::1]/').hostname === '[::1]'` — and the bare
+ * form does not even parse, so an arm comparing `'::1'` is unmatchable dead
+ * code (fail-CLOSED: the IPv6-loopback dev origin simply lost its carve-out).
+ * The bracketed literal IS the canonical spelling: WHATWG normalization folds
+ * every IPv6 loopback writing (e.g. `http://[0:0:0:0:0:0:0:1]/`) onto it, so
+ * one arm catches them all. Deliberately NOT matched: any other address,
+ * including the IPv4-mapped spelling `[::ffff:127.0.0.1]` (normalizes to
+ * `[::ffff:7f00:1]`) — the trust carve-outs stay ::1-loopback-only.
+ *
+ * Single source of the loopback law for BOTH trust sites: this module's
+ * `isTrustedRequesterUrl` (permission carve-out) and index.ts's
+ * `downloadUrlTrusted` (will-download default-deny).
+ */
+export function isLoopbackHostname(hostname: string): boolean {
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
+}
+
+/**
  * m15 (review windows__crossfe 3): the permission table was origin-blind —
  * once ANY page reached the top-level window (navigations stay permitted),
  * it inherited the silent clipboard-sanitized-write grant too. The grant now
@@ -60,7 +79,7 @@ export function isTrustedRequesterUrl(rawUrl: unknown): boolean {
   try {
     const url = new URL(rawUrl);
     if (url.protocol === 'app:') return url.host === '-';
-    return url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '::1';
+    return isLoopbackHostname(url.hostname);
   } catch {
     return false;
   }

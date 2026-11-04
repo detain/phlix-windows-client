@@ -22,7 +22,7 @@ import {
 import { getMainLocale, setMainLocale, t } from './i18n';
 import { restoreWindow } from './windowRestore';
 import { validateNotificationText, createToastThrottle } from './notificationGuard';
-import { installPermissionGuard } from './permissionGuard';
+import { installPermissionGuard, isLoopbackHostname } from './permissionGuard';
 import { trayTooltipFor } from './trayTooltip';
 import { createSecretCustody } from './secretStore';
 import type { SettingsSink } from './secretStore';
@@ -1503,7 +1503,9 @@ export function downloadUrlTrusted(rawUrl: unknown): boolean {
   }
   if (url.protocol === 'app:') return url.host === '-';
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
-  if (url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '::1') return true;
+  // I-w1: loopback law single-sourced through permissionGuard.isLoopbackHostname
+  // (bracket-aware: WHATWG yields '[::1]'; the bare '::1' arm was dead code).
+  if (isLoopbackHostname(url.hostname)) return true;
   const bases = [configCustody.read('serverUrl'), configCustody.read('hubUrl')];
   return bases.some((base) => {
     if (typeof base !== 'string' || base.length === 0) return false;

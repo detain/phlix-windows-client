@@ -79,10 +79,40 @@ describe('m15: the clipboard carve-out is origin-bound (review windows__crossfe 
     expect(isTrustedRequesterUrl('app://evil-host/app/x')).toBe(false);
     expect(isTrustedRequesterUrl('http://localhost:5173/')).toBe(true);
     expect(isTrustedRequesterUrl('http://127.0.0.1:8096/')).toBe(true);
+    // I-w1: WHATWG brackets IPv6 hostnames — the loopback arm must match the
+    // bracket form dev-over-IPv6 actually produces, and nothing wider.
+    expect(isTrustedRequesterUrl('http://[::1]:5173/')).toBe(true);
+    expect(isTrustedRequesterUrl('http://[::1]/')).toBe(true);
+    expect(isTrustedRequesterUrl('http://[0:0:0:0:0:0:0:1]/')).toBe(true); // normalizes onto [::1]
+    expect(isTrustedRequesterUrl('http://[::2]/')).toBe(false); // next address up stays untrusted
+    expect(isTrustedRequesterUrl('http://[::ffff:127.0.0.1]/')).toBe(false); // v4-mapped spelling normalizes to [::ffff:7f00:1] — NOT the ::1 arm
     expect(isTrustedRequesterUrl('https://media.example/app')).toBe(false);
     expect(isTrustedRequesterUrl('')).toBe(false);
     expect(isTrustedRequesterUrl(undefined)).toBe(false);
     expect(isTrustedRequesterUrl(42)).toBe(false);
+  });
+
+  it('I-w1: the bracket form is the parse law — bare "::1" is unmatchable dead code', () => {
+    // WHY the old arm never fired: URL() never yields a bare IPv6 hostname.
+    expect(new URL('http://[::1]/').hostname).toBe('[::1]');
+    expect(new URL('http://[::1]:5173/').hostname).toBe('[::1]');
+    expect(() => new URL('http://::1/')).toThrow(); // the bare shape does not even parse
+    // The app:// branch is host-identity law ('-'), untouched by this cure:
+    expect(isTrustedRequesterUrl('app://[::1]/x')).toBe(false);
+  });
+
+  it('I-w1 law pins: one shared loopback helper; the bare-"::1" arm is extinct at both trust sites', () => {
+    const guardSource = readFileSync(resolve(PROJECT_ROOT, 'src/main/permissionGuard.ts'), 'utf-8').replace(/\r\n/g, '\n');
+    // Single source: the helper lives in permissionGuard.ts (electron-free pure
+    // module) and index.ts imports it — no second copy of the loopback law.
+    expect(guardSource).toMatch(/export function isLoopbackHostname\(hostname: string\): boolean/);
+    expect(guardSource).toMatch(/return isLoopbackHostname\(url\.hostname\);/);
+    expect(mainSource).toMatch(/import \{ installPermissionGuard, isLoopbackHostname \} from '\.\/permissionGuard';/);
+    // downloadUrlTrusted's loopback arm routes through the same helper...
+    expect(mainSource).toMatch(/if \(isLoopbackHostname\(url\.hostname\)\) return true;/);
+    // ...and the unmatchable bare comparison is gone from BOTH files (extinction).
+    expect(guardSource).not.toMatch(/hostname === '::1'/);
+    expect(mainSource).not.toMatch(/hostname === '::1'/);
   });
 
   it('clipboard-sanitized-write is granted to the app document and denied to a hostile page', () => {

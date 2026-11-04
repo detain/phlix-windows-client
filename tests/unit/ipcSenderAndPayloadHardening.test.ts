@@ -358,6 +358,12 @@ describe('m14: downloads are default-deny per origin', () => {
     prefs.serverUrl = 'https://media.example';
     expect(downloadUrlTrusted('app://-/app/export.csv')).toBe(true);
     expect(downloadUrlTrusted('http://localhost:5173/bundle.js')).toBe(true);
+    // I-w1: the IPv6 loopback dev origin is the same carve-out — WHATWG puts
+    // the hostname in brackets, so the bracket form is the only matchable one.
+    expect(downloadUrlTrusted('http://[::1]:5173/export.csv')).toBe(true);
+    expect(downloadUrlTrusted('https://[::1]:8443/export.csv')).toBe(true);
+    expect(downloadUrlTrusted('http://[::2]/payload.exe')).toBe(false); // blast radius stays ::1-only
+    expect(downloadUrlTrusted('http://[::ffff:127.0.0.1]/payload.exe')).toBe(false); // v4-mapped normalizes off the arm
     expect(downloadUrlTrusted('https://media.example/files/movie.mkv')).toBe(true);
     expect(downloadUrlTrusted('https://evil.example/payload.exe')).toBe(false);
     expect(downloadUrlTrusted('https://media.example.evil.net/a')).toBe(false);
