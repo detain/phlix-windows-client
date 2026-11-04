@@ -119,8 +119,10 @@ const NESTED_NODE_RE = /\/node_modules\/@phlix\/[\w-]+$/;
 // the commit that tag peels to (re-verified against the live remotes via
 // `git ls-remote ... refs/tags/<tag>^{}` on 2026-11-02, ui v0.99.13 re-pin atop the
 // contracts v0.5.4 + ui v0.99.12 wave; RE-VERIFIED 2026-11-04 for the phase-3
-// contracts v0.5.5 + ui v0.99.14 cascade (all three refs below re-peeled against
-// the live remotes via `git ls-remote ... refs/tags/<tag>^{}` on 2026-11-04):
+// contracts v0.5.5 + ui v0.99.14 cascade; RE-VERIFIED AGAIN 2026-11-04 for the
+// gate-3 ui v0.99.15 wave (all three refs below re-peeled against the live remotes
+// via `git ls-remote` this window — contracts v0.5.5 obj 122d0acb, syncplay v0.1.7
+// obj fe687f27, ui v0.99.15 obj 74c9e1e3):
 //   phlix-contracts v0.5.5 -> e2159816  (annotated tag object 122d0acb; its manifest `version` field is
 //                                         HONEST - reads 0.5.5 at the tag (measured via git show; npm 12
 //                                         accordingly writes lock version 0.5.5), CARRYING the normalization
@@ -133,37 +135,40 @@ const NESTED_NODE_RE = /\/node_modules\/@phlix\/[\w-]+$/;
 //                                         both the root->contracts and ui->contracts edges walk
 //                                         plain rule 1 onto the one hoisted 0.5.5@e2159816 copy; the
 //                                         RATIFIED_HOISTS waiver stays retired per its own written law)
-//   phlix-syncplay  v0.1.6 -> 08168774  (annotated tag object 24e51a95; ui v0.99.12 requests #v0.1.6, measured
-//                                         via git show, v0.99.13 CARRIED the same request (measured via git
-//                                         show at e30bae9f and off the installed node) and v0.99.14 CARRIES it
-//                                         ONCE MORE (measured via git show at a437b995 AND independently off
-//                                         the installed node). This repo has NO direct syncplay pin — the
-//                                         hoisted node exists solely as ui's edge resolution, so it follows
-//                                         ui's words, not the newest tag. syncplay v0.1.7 DOES exist (tag
-//                                         object fe687f27 -> peel 1a80b1d1; post-tag drift to 49f11c00 is
-//                                         unreleased) but no consumer edge requests it yet — advancing this
-//                                         node to 0.1.7 would CONTRADICT ui v0.99.14's manifest.
-//                                         The node advanced 0.1.5->0.1.6 through the
-//                                         S450-class targeted `npm update @phlix/syncplay --package-lock-only`
-//                                         because npm does NOT self-heal unsatisfied git-tag edges)
-//   phlix-ui        v0.99.14 -> a437b995  (annotated tag object bfe47d15; its manifest `version` field stays
-//                                         HONEST - reads 0.99.14 at the tag (measured via git show; the
+//   phlix-syncplay  v0.1.7 -> 1a80b1d1  (annotated tag object fe687f27; ROTATED at the gate-3 ui v0.99.15 re-pin
+//                                         (2026-11-04): ui v0.99.15's manifest requests `#v0.1.7` outright (measured
+//                                         via git show at 36c04fbe) — the edge that rode #v0.1.6 through v0.99.12,
+//                                         v0.99.13 and v0.99.14 (each measured via git show at the respective peel)
+//                                         has now advanced. This repo has NO direct syncplay pin — the hoisted node
+//                                         exists solely as ui's edge resolution, so it follows ui's words. v0.1.7's
+//                                         manifest `version` field is HONEST (reads 0.1.7 at 1a80b1d1, measured via
+//                                         git show), so the row walks the plain tag-derived version. The node
+//                                         advanced 0.1.6->0.1.7 through the S450-class targeted
+//                                         `npm update @phlix/syncplay --package-lock-only` because a plain
+//                                         `npm install` rotated the ui deps EDGE line but left the hoisted resolution
+//                                         stale (npm does NOT self-heal unsatisfied git-tag edges — the walker red
+//                                         at the hoisted node is the standing witness). v0.1.7's dist genuinely
+//                                         differs from v0.1.6 (js/umd/maps + client.d.ts/framing.d.ts move;
+//                                         index.d.ts byte-ident; zero error-code/frame-type delta — wire unchanged).)
+//   phlix-ui        v0.99.15 -> 36c04fbe  (annotated tag object 74c9e1e3; its manifest `version` field stays
+//                                         HONEST - reads 0.99.15 at the tag (measured via git show; the
 //                                         version-field alignment law has held since v0.99.7, when the
 //                                         `manifestVersion: '0.99.4'` skew override's own written retirement
-//                                         condition fired at bc1d29bf; v0.99.8 through v0.99.14 CARRY it) -
+//                                         condition fired at bc1d29bf; v0.99.8 through v0.99.15 CARRY it) -
 //                                         the ui row keeps walking the plain tag-derived version and that
 //                                         override stays RETIRED, mirroring the contracts-row retirement at
 //                                         v0.5.2. No manifestVersion override is active anywhere now; the
 //                                         mechanism stays armed for a future stale-field tag.
-//                                         v0.99.14 (peel a437b995, the ui master tip at tag cut) is the
-//                                         phase-3 cure-era mint. The vendored locales tree MOVED FOR REAL
+//                                         v0.99.15 (peel 36c04fbe, the ui master tip at tag cut) is the
+//                                         gate-3 mint. The vendored locales tree MOVED FOR REAL
 //                                         again — 6 of 7 blobs shifted (es/fr/de/it/pt_BR/ja at new blob
-//                                         ids; flattened catalog 477 -> 514 keys, +37) and only index.ts
+//                                         ids; the syncplay.leaveConfirm trio + W7 tails; flattened catalog
+//                                         514 -> 523 keys, +9) and only index.ts
 //                                         held its blob; `messages.ts` moved too (git ls-tree blob ids
-//                                         measured at 1f0046c5 AND a437b995). The locale vendor pin is
-//                                         therefore TRULY RE-VENDORED at a437b995 — the fourth such move
-//                                         (v0.99.5 opening, v0.99.8, v0.99.12, now) after the deliberate
-//                                         holds at .9/.10/.13.)
+//                                         measured at a437b995 AND 36c04fbe). The locale vendor pin is
+//                                         therefore TRULY RE-VENDORED at 36c04fbe — the fifth such move
+//                                         (v0.99.5 opening, v0.99.8, v0.99.12, v0.99.14, now) after the
+//                                         deliberate holds at .9/.10/.13.)
 export const EXPECTED = {
   '@phlix/contracts': {
     tag: 'v0.5.5',
@@ -178,29 +183,30 @@ export const EXPECTED = {
     // stays RETIRED — v0.5.5 carries the honest field (reads 0.5.5 at e2159816, measured via git show; the
     // normalization the v0.5.2 release commit ac669ca opened carries through), so this row walks the plain
     // tag-derived version. The override MECHANISM stays armed for a future stale-field tag; none is active —
-    // the ui row retired its own at v0.99.7 (field honest at bc1d29bf) and v0.99.8 through v0.99.14 carry it.
+    // the ui row retired its own at v0.99.7 (field honest at bc1d29bf) and v0.99.8 through v0.99.15 carry it.
     repo: 'git+ssh://git@github.com/detain/phlix-contracts.git',
   },
   '@phlix/syncplay': {
-    tag: 'v0.1.6',
-    sha: '081687742cdf03e8e362548de231bd0e45413d6b',
+    tag: 'v0.1.7',
+    sha: '1a80b1d1cbb6d63aa4d3dce0001ff21ac5e85b4d',
     repo: 'git+ssh://git@github.com/detain/phlix-syncplay.git',
   },
   '@phlix/ui': {
-    tag: 'v0.99.14',
-    sha: 'a437b9956f3bc03d6a8f7999b1c0cfb884e7a3be',
-    // v0.99.14 re-pin (2026-11-04, phase-3 cure-era cascade atop hub bd47bc5a's landing): the honest-field
+    tag: 'v0.99.15',
+    sha: '36c04fbe792bbb8d04d01719d8c1829b1b9fadf4',
+    // v0.99.15 re-pin (2026-11-04, gate-3 consumer wave): the honest-field
     // era OPENED at v0.99.7, when the `manifestVersion: '0.99.4'` skew override's own
     // written condition fired (field re-normalized to 0.99.7 at bc1d29bf, measured via
-    // git show). v0.99.8 through this v0.99.14 tag CARRY it — reads 0.99.14 at a437b995
-    // (measured via git show; npm writes lock version 0.99.14) — so this row keeps
+    // git show). v0.99.8 through this v0.99.15 tag CARRY it — reads 0.99.15 at 36c04fbe
+    // (measured via git show; npm writes lock version 0.99.15) — so this row keeps
     // walking the plain tag-derived version; the override stays RETIRED. No
     // manifestVersion override is active anywhere now; the MECHANISM stays armed for a
-    // future stale-field tag. The step itself is the m15/m21 CI-attest cure era with a REAL
-    // locale move: the vendored locales tree and `messages.ts` blobs MOVED (6 of 7 locale
-    // files shifted, index.ts held; flattened catalog 477 -> 514), so — unlike the deliberate
+    // future stale-field tag. The step itself is the D1 syncplay pre-bump + review-tail
+    // fold era with a REAL locale move: the vendored locales tree and `messages.ts`
+    // blobs MOVED (6 of 7 locale
+    // files shifted, index.ts held; flattened catalog 514 -> 523), so — unlike the deliberate
     // holds at v0.99.9/v0.99.10/v0.99.13 — the locale vendor pin is TRULY RE-VENDORED at
-    // a437b995 (fourth genuine move since the vendor opened).
+    // 36c04fbe (fifth genuine move since the vendor opened).
     repo: 'git+ssh://git@github.com/detain/phlix-ui.git',
   },
 };
@@ -273,6 +279,14 @@ export const EXPECTED = {
 // both contracts edges walk plain rule 1 onto the one hoisted 0.5.5@e2159816 copy, and the syncplay
 // edge rides ui's unchanged #v0.1.6 request (v0.1.7 exists unreleased-by-any-edge — see the census
 // note above; adding a direct syncplay pin here would CONTRADICT the thin-consumer resolution law).
+// CARRIED ONCE MORE at the ui v0.99.15 gate-3 wave (2026-11-04): root's contracts pin HELD at `#v0.5.5`
+// and ui v0.99.15's manifest requests that same tag outright (measured via git show at 36c04fbe) — the
+// EIGHTH straight equality-era move: the map stays present-but-empty and both contracts edges walk plain
+// rule 1 onto the one hoisted 0.5.5@e2159816 copy. The syncplay edge ADVANCED — ui v0.99.15 requests
+// `#v0.1.7` outright (measured via git show at 36c04fbe), so the hoisted node followed to 0.1.7@1a80b1d1
+// under plain rule 1 (requested == resolved — no waiver in play on this edge either; the advance needed the
+// S450-class targeted `npm update @phlix/syncplay --package-lock-only` because a plain install left the
+// hoisted resolution stale). Zero ratified hoists on all four edges; the walker measures green.
 export const RATIFIED_HOISTS = {};
 
 export function readRepoJson(name) {

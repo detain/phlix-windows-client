@@ -59,13 +59,17 @@ function readInstalledEsmBundle(): string {
 const BUNDLE = readInstalledEsmBundle();
 
 /**
- * The same-origin room-socket LEGACY derivation, as it appears minified:
- * `const host = … ? window.location.hostname : "localhost"` … `…//${host}:8097?room=…`
- * (chunk hashes rotate on every re-pin, so the scan is over all chunks, never
- * a named file). Post-seam this is the NO_HINT fallback — it must SURVIVE
- * (the fail-soft promise is that non-hinted boots behave exactly as before).
+ * The same-origin room-socket LEGACY derivation, as it appears minified — RE-MEASURED at the
+ * v0.99.15 re-pin (2026-11-04, gate-3). v0.99.14's shape was `… ? window.location.hostname :
+ * "localhost"` … `//${host}:8097?room=…`; ui `936e695d` (windowless-fallback hardening — one
+ * `typeof window` check feeding BOTH location reads, previously protocol dereferenced window
+ * unguarded) re-cut it to `n?.hostname ?? "localhost"` … `//${r}:8097?room=…` (n = window.location
+ * or null). The NO_HINT dial endpoint is UNCHANGED — same ws|wss scheme pick, same host
+ * derivation, same :8097?room= URL; the fail-soft promise (non-hinted boots behave exactly as
+ * before in the browser) holds, verified against dist/player.js at BOTH peels (chunk hashes
+ * rotate; the scan is over all chunks, never a named file).
  */
-const SAME_ORIGIN_ROOM_DIAL = /location\.hostname\s*:\s*"localhost"[\s\S]{0,200}:8097\?room=/;
+const SAME_ORIGIN_ROOM_DIAL = /hostname\s*\?\?\s*"localhost"[\s\S]{0,200}:8097\?room=/;
 
 describe('SyncPlay desktop status (M-WINDOWS-04)', () => {
   it('the vendored shell registers /app/syncplay — the surface ships, it was never dropped', () => {

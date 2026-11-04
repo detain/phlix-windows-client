@@ -93,7 +93,7 @@ describe('S442 — @phlix/contracts direct pin is current', () => {
   });
 });
 
-describe('ui v0.99.9 re-pin carried through v0.99.10, the contracts v0.5.4 + ui v0.99.12 re-pin, the ui v0.99.13 carry, and the contracts v0.5.5 + ui v0.99.14 cascade — equality era: ui line byte-pinned to the same #v0.5.5 words as root, zero waivers, zero nested copies', () => {
+describe('ui v0.99.9 re-pin carried through v0.99.10, the contracts v0.5.4 + ui v0.99.12 re-pin, the ui v0.99.13 carry, the contracts v0.5.5 + ui v0.99.14 cascade, and the ui v0.99.15 gate-3 wave — equality era: ui line byte-pinned to the same #v0.5.5 words as root, zero waivers, zero nested copies', () => {
   // History of this guard: ui's manifest once requested contracts #v0.4.5 while
   // this repo's direct pin rode higher — the divergence S442 documented and the
   // lockwalk ratified until W82 retired that exception; the W85 dual-repin restored
@@ -103,10 +103,12 @@ describe('ui v0.99.9 re-pin carried through v0.99.10, the contracts v0.5.4 + ui 
   // era returned at the contracts v0.5.3 re-pin (2026-10-01), and the DIVERGENCE ERA
   // ITSELF ENDED at the ui v0.99.9 re-pin (2026-10-03), CARRIED at v0.99.10 (2026-10-14)
   // and re-CARRIED by the contracts v0.5.4 + ui v0.99.12 re-pin (2026-11-02) and the ui v0.99.13 carry
-  // (2026-11-02), and again by this contracts v0.5.5 + ui v0.99.14 phase-3 cascade (2026-11-04): installed ui
+  // (2026-11-02), carried by the contracts v0.5.5 + ui v0.99.14 phase-3 cascade (2026-11-04), and
+  // carried again by this ui v0.99.15 gate-3 wave (2026-11-04 — contracts HELD): installed ui
   // requests
-  // `#v0.5.5` outright (measured via git show at a437b995 AND independently off the installed
-  // node_modules/@phlix/ui/package.json), byte-equality with the direct pin
+  // `#v0.5.5` outright (measured via git show at 36c04fbe AND independently off the installed
+  // node_modules/@phlix/ui/package.json; the .14-era witness at a437b995 carried the same words),
+  // byte-equality with the direct pin
   // holds — the @v0.5.2 waiver stays retired per its own written law (fired at v0.99.9), map
   // present-but-empty ever since. npm dedupes ui's edges onto the single hoisted 0.5.5 copy (no
   // nested node in the lock, no nested dir on disk).
@@ -126,10 +128,14 @@ describe('ui v0.99.9 re-pin carried through v0.99.10, the contracts v0.5.4 + ui 
     // words, not a hand-edit: falsifying either tag here trips this witness.
     const installed = readJson('node_modules/@phlix/ui/package.json');
     expect(installed.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.5.5');
-    expect(installed.dependencies['@phlix/syncplay']).toBe('github:detain/phlix-syncplay#v0.1.6');
+    // The syncplay request leg tracks the ui manifest era: it rode `#v0.1.6` through
+    // v0.99.12–v0.99.14 and ADVANCED to `#v0.1.7` with v0.99.15 (measured via git show at
+    // 36c04fbe AND off this installed manifest — the two witnesses must agree by construction).
+    expect(installed.dependencies['@phlix/syncplay']).toBe('github:detain/phlix-syncplay#v0.1.7');
     // The equality era's steady state: zero ratified hoists — the waiver's written
     // retirement condition (#v0.5.3-or-newer requested outright) fired at ui v0.99.9
-    // and holds through v0.99.12/#v0.5.4, v0.99.13, and this v0.99.14/#v0.5.5 move.
+    // and holds through v0.99.12/#v0.5.4, v0.99.13, the v0.99.14/#v0.5.5 move, and
+    // this v0.99.15/#v0.5.5 carry (eighth straight).
     expect(RATIFIED_HOISTS).toEqual({});
     expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.5.2']).toBeUndefined();
     expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.4.7']).toBeUndefined();

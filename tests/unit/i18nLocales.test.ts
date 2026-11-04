@@ -18,7 +18,11 @@
  *     RE-VENDORED AGAIN at v0.99.14 (2026-11-04, the phase-3 cascade — the tree
  *     genuinely moved: +37 keys 477→514, six locale files shifted, the index.ts pair
  *     held again, messages.ts d984098c→b9007999; PIN advanced to the a437b995 peel —
- *     fourth genuine move after v0.99.5/v0.99.8/v0.99.12); the
+ *     fourth genuine move after v0.99.5/v0.99.8/v0.99.12), and RE-VENDORED AGAIN at
+ *     v0.99.15 (2026-11-04, the gate-3 wave — the FIFTH genuine move: +9 keys 514→523,
+ *     six locale files shifted again, the index.ts pair held once more, locales tree
+ *     1c9f5fdd→a3b602a6, messages.ts b9007999→df982b17; PIN advanced to the 36c04fbe
+ *     peel); the
  *     formerly-ahead keys keep focused cross-bundle laws),
  *     placeholder parity, CLDR segment law (incl. the documented
  *     additive exception), diacritics/CJK sanity, and PIN/hash drift guards
@@ -243,7 +247,11 @@ describe('ui bundles — key-set identity and installed coverage', () => {
     // advanced — with BOTH sides at 477 flattened keys. At v0.99.14 (2026-11-04) the
     // tree moved a FOURTH time (six files shifted, index.ts pair held; messages.ts →
     // b9007999; +37 keys) and the re-vendor at the a437b995 peel put BOTH sides at
-    // 514 flattened keys.
+    // 514 flattened keys. At v0.99.15 (2026-11-04, gate-3) the tree moved a FIFTH time
+    // (six files shifted, index.ts pair held; messages.ts → df982b17; +9 keys, zero removed:
+    // common.detailsUnavailable, the five itemActions error tails (favorite add/remove,
+    // watched/unwatched, ratingSave), search.{inputLabel,showingOf}, syncplay.leaveConfirm)
+    // and the re-vendor at the 36c04fbe peel put BOTH sides at 523 flattened keys.
     // The relation stays exact set equality in BOTH directions (installed ⊆ bundle
     // is separately pinned above; this pins bundle ⊆ installed and, with it,
     // the empty extras set). The seven keys are additionally pinned present
