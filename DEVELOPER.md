@@ -258,8 +258,10 @@ CI-gated on real Electron). The original trio:
 - `tests/unit/electronBridge.test.ts` — `wireElectronBridge` + `installElectronBridge`
 - `tests/unit/main.test.ts` — `boot()` entry (hub / direct-server / browser-fallback / env-fallback)
 
-Coverage uses `@vitest/coverage-v8`; all source including `src/main/**` and `src/preload/**` is covered (enforced threshold: `lines: 54` in `vitest.config.mts` — the authoritative gate; Codecov/Codacy uploads are best-effort only, see `docs/ci-baseline.md`)
-(it needs an Electron runtime, not jsdom). Example (`main.test.ts` mocks `@phlix/ui`, `@phlix/contracts`,
+Coverage uses `@vitest/coverage-v8`; all source including `src/main/**` and `src/preload/**` is covered (enforced threshold: `lines: 54` in `vitest.config.mts` — the authoritative gate; Codecov/Codacy uploads are best-effort only, see `docs/ci-baseline.md`).
+The Playwright smoke spec (`tests/smoke/boot.spec.ts`) is the one suite that needs a real Electron
+runtime rather than jsdom; every `tests/unit/` file runs under jsdom with mocks. Example
+(`main.test.ts` mocks `@phlix/ui`, `@phlix/contracts`,
 and `./electronBridge`, plus the CSS side-effect imports):
 
 ```typescript
