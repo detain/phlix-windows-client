@@ -175,7 +175,7 @@ security-review-gated future feature, not available today.
 
 ### Getting updates
 
-The app includes an update check (Help → *Check for Updates*, plus a background check about
+The app includes an update check (Help → *Check for updates*, plus a background check about
 every 6 hours), but **today it finds nothing and — for now — says nothing**: it deliberately
 ignores pre-releases, and only the rolling “Latest (master)” pre-release exists. With no
 stable release on the feed to compare against, the check's endpoint answers 404, which the
@@ -277,7 +277,7 @@ For development:
 
    Create a `.env` file in the root directory if you need a custom default server URL (used as the
    build-time fallback when no server URL is persisted):
-   ```
+   ```ini
    VITE_PHLIX_SERVER_URL=http://localhost:8096
    ```
 
@@ -294,7 +294,7 @@ as the product name **Phlix**, while a from-source run uses the package name
 
 | Setting (electron-store key) | Default | Description |
 |---------|---------|-------------|
-| `minimizeToTray` | `true` | Closing the window hides it to the tray instead of quitting. To bring it back: click or double-click the tray icon, use the tray menu's **Show** entry, or launch the app again — the single-instance lock routes the launch to the running window and restores it |
+| `minimizeToTray` | `true` | Closing the window hides it to the tray instead of quitting. To bring it back: click or double-click the tray icon, use the tray menu's **Show Phlix** entry, or launch the app again — the single-instance lock routes the launch to the running window and restores it |
 | `notificationsEnabled` | `true` | Gates every desktop notification the app raises, update toasts included — while off, even a manual **Check for updates** answers only in the log. Toggle from the **View** menu or the tray menu (the two checkboxes stay in sync); a flip takes effect immediately |
 | `serverUrl` | (none) | Persisted direct media server URL (`app:get/set-server-url`) |
 | `deviceId` | Auto-generated | Stable per-install device id `windows-<uuid>` (`app:get-device-id`) |
@@ -322,7 +322,7 @@ the session both end). Turning `minimizeToTray` off in the View menu makes
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `VITE_PHLIX_SERVER_URL` | (none) | Build-time fallback is empty (user must configure a server URL at first boot) |
-| `VITE_PHLIX_LOCALE` | (none) | Build-time UI locale override for the shell's own catalogs (nav/boot/menu/thumbar/overlay) |
+| `VITE_PHLIX_LOCALE` | (none) | Build-time renderer locale override — the resolved tag picks BOTH the windows-own renderer catalogs (nav/boot/overlay) and the vendored `@phlix/ui` bundle (`src/renderer/i18n/index.ts:109`); the main-process chrome (menu/tray/thumbar) follows the OS locale via `app.getLocale()` instead — see docs/i18n.md |
 | `NODE_ENV` | `development` | Runtime environment |
 | `PHLIX_DISABLE_GPU` | (unset) | Set to `1` to switch off hardware acceleration at startup (`app.disableHardwareAcceleration()`) — the escape hatch for GPU-compositor crashes before the first window exists |
 | `PHLIX_FORCE_PRODUCTION` | (unset) | Truthy value makes an unpackaged tree boot the production `app://` path instead of the Vite dev server — what the smoke test uses to exercise the real boot URL without a packaged installer |
@@ -529,7 +529,7 @@ force-installed — a download starts only when the user clicks *Install update*
 2. **Prefer a hotfix over a rollback.** If a corrected build is quick, cut the next
    patch tag normally (see *Release Process*): clients that never accepted the bad
    update move straight to the fix on their next check (≤ 6 h, or Help →
-   *Check for Updates*).
+   *Check for updates*).
 3. **Never delete an older release.** It **is** the rollback target — its asset trio
    (installer + `latest.yml` + `.blockmap`) is what the feed falls back to. Editing a
    newer release to carry an older `latest.yml` is a no-op: clients compare versions
@@ -595,8 +595,8 @@ copy (Features + What Works bullets, how-to steps), and retire the pins together
 
 **App doesn't start:**
 - Relaunch **Phlix** from the Start menu; if it only minimized, use the tray
-  icon's Show entry (hover it — the tooltip reads "Phlix", and "Phlix — playing"
-  while media is running).
+  icon's **Show Phlix** entry (hover the icon — the tooltip reads "Phlix", and
+  "Phlix — playing" while media is running).
 - **Blank or black window on older GPU drivers:** some integrated/legacy drivers
   fail Chromium's GPU path. The recovery dialog ("Something went wrong…") that
   appears on a hard failure offers Reload; if the window stays blank instead,

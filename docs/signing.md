@@ -62,7 +62,7 @@ Two types of artifacts are produced by this project:
 If you have the Windows SDK installed (adjust `<version>` to your installed
 SDK — enumerate and pick the newest, do not hard-pin a version):
 
-```
+```text
 C:\Program Files (x86)\Windows Kits\10\bin\<version>\x64\signtool.exe
 ```
 

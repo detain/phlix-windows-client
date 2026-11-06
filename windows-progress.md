@@ -1,9 +1,11 @@
 # Windows Client Remediation Progress — era-frozen historical ledger
 
-Dated: 2026-11-07 — **era-frozen closure ledger** (the W0–W8 remediation plan).
+Dated: 2026-11-07 — **era-frozen closure ledger** (the W0–W7 remediation plan).
 
-> **Closed historical record, not current status.** Every W0–W8 phase row below is done
-> or superseded; the pin era it names (@phlix/ui v0.98.x, @phlix/contracts v0.4.x,
+> **Closed historical record, not current status.** Every W0–W7 phase row below is
+> done or superseded — except the two signing rows W4.9 (deferred) and W4.10
+> (blocked), which stay OPEN on an owner-gated decision recorded elsewhere
+> (`docs/signing.md` carries the live status); the pin era it names (@phlix/ui v0.98.x, @phlix/contracts v0.4.x,
 > "16 IPC channels") has long since rolled. For today's truth read `package.json`
 > (pins), `docs/ipc-channels.md` (channels), `README.md` / `AGENTS.md` (posture).
 > Its secret vocabulary is retired too: `docs/signing.md` defines the canonical

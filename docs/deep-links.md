@@ -4,7 +4,7 @@ Phlix for Windows supports the `phlix://` URL protocol for deep linking into spe
 
 ## URL Grammar
 
-```
+```text
 phlix://<host>/<value>
 ```
 

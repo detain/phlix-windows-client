@@ -75,7 +75,7 @@ in the reference web-ui (`phlix-server/web-ui`), and which are wired in this rep
 | SettingsPage | `/app/settings` | OK (menu) | OK (buildMenu) |
 | SharedWithMePage | `/app/shared` | MISSING | MISSING |
 | SignupPage | `/app/signup` | UNREACHABLE | UNREACHABLE |
-| SyncPlayPage | `/app/syncplay` | OK (menu) | UNREACHABLE (nav deliberately withheld — relay rider leg 4; details below) |
+| SyncPlayPage | `/app/syncplay` | OK (menu) | OK (buildMenu — server mode) / UNREACHABLE (hub: nav deliberately withheld — relay rider leg 4; details below) |
 | WatchHistoryPage | `/app/history` | UNREACHABLE | MISSING |
 
 ---
@@ -160,7 +160,7 @@ No navigation link exists for any of them **in hub mode**:
 | WatchHistoryPage | `/app/history` | UNREACHABLE | `createPhlixApp.ts:280` |
 | ExplorePage | `/app/explore` | UNREACHABLE | `createPhlixApp.ts:286` |
 | RecommendationsPage | `/app/recommendations` | UNREACHABLE | `createPhlixApp.ts:292` |
-| SyncPlayPage | `/app/syncplay` | UNREACHABLE | registered in hub mode too, but the nav entry is deliberately withheld (rider leg 4): hub rooms run over the :8804 relay and the wsUrl seam would override relay dials wholesale — needs relay-aware evidence; see `syncplayDesktopStatus.test.ts`. In SERVER mode this page is NOT unlinked: the boot menu registers its nav entry (row above) — the v0.99.12 rider leg 2, story in README "Watching with friends (SyncPlay)". |
+| SyncPlayPage | `/app/syncplay` | UNREACHABLE | registered in hub mode too, but the nav entry is deliberately withheld **in hub mode only** (rider leg 4): hub rooms run over the :8804 relay and the wsUrl seam would override relay dials wholesale — needs relay-aware evidence; see `syncplayDesktopStatus.test.ts`. In SERVER mode this page is NOT unlinked: the boot menu registers its nav entry (the SyncPlayPage row in the *Root Pages* table, windows-client column) — the v0.99.12 rider leg 2, story in README "Watching with friends (SyncPlay)". |
 
 ---
 
