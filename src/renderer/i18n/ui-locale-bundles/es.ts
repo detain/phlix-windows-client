@@ -228,6 +228,7 @@ export const ES_MESSAGES = {
     off: 'Desactivado',
     audio: 'Audio',
     audioTrack: 'Pista de audio',
+    audioOriginal: 'Original',
     captionStyle: 'Estilo de subtítulos',
     size: 'Tamaño',
     captionSize: 'Tamaño de subtítulos',

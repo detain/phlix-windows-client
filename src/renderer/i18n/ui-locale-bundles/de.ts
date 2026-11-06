@@ -226,6 +226,7 @@ export const DE_MESSAGES = {
     off: 'Aus',
     audio: 'Audio',
     audioTrack: 'Audiospur',
+    audioOriginal: 'Original',
     captionStyle: 'Untertitel-Stil',
     size: 'Größe',
     captionSize: 'Untertitel-Größe',
