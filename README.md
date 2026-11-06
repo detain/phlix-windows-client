@@ -161,9 +161,12 @@ security-review-gated future feature, not available today.
 ### Getting updates
 
 The app includes an update check (Help → *Check for Updates*, plus a background check about
-every 6 hours), but **today it will find nothing**: it deliberately ignores
-pre-releases, and only the rolling “Latest (master)” pre-release exists. Finding
-nothing is not saying nothing — a manual check answers with a “You're on the latest
+every 6 hours), but **today it finds nothing and — for now — says nothing**: it deliberately
+ignores pre-releases, and only the rolling “Latest (master)” pre-release exists. With no
+stable release on the feed to compare against, the check's endpoint answers 404, which the
+client files as an offline-class failure — logged, not shown — so even a manual check stays
+silent. A reply is reserved for a live stable feed: once the first versioned release is
+published, a manual check that finds nothing answers with a “You're on the latest
 version” notification, while the background checks stay quiet. Until stable
 versioned releases are published, getting a new build means re-downloading the current
 installer from the [releases page](https://github.com/detain/phlix-windows-client/releases)
@@ -399,7 +402,7 @@ phlix-windows-client/
 │       ├── overlay.tsx        # Second Vue app entry (dynamic import from boot): mounts player overlays on #player-supplement-root
 │       ├── components/        # Local player overlay components: PlayerSupplement · SleepTimer · PiPButton
 │       ├── mediaSession.ts    # navigator.mediaSession / SMTC action handlers
-│       ├── safeStorageTokenStore.ts # DPAPI-backed TokenStore adapter (wired into the ui tokenStore seam since the v0.99.12 pin)
+│       ├── safeStorageTokenStore.ts # DPAPI-backed TokenStore adapter (seam shipped in the upstream v0.99.12 wave; boot() threads it since 6e0f739f, v0.99.13-pin era)
 │       ├── i18n/              # windows-own catalogs (7 locales) + vendored ui locale bundles + overrides
 │       ├── resolveConfig.ts   # Pure app-mode + apiBase resolution (hub vs direct server)
 │       ├── electronBridge.ts  # Maps Electron media/window IPC → @phlix/ui player store + router

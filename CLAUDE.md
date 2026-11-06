@@ -48,7 +48,7 @@ Three Electron processes wired by `contextBridge`. The renderer boots `@phlix/ui
 | `src/renderer/electronBridge.ts` | `installElectronBridge(app)` pulls `$pinia`/`$router` off `app.config.globalProperties`, resolves `usePlayerStore(pinia)`, delegates to the pure `wireElectronBridge(player, router)`. Maps Electron media/window IPC → the phlix-ui player store + router: play-pause toggles `play()`/`pause()` off `player.playing`; stop → `closePlayer()`; open-settings → `router.push('/app/settings')`. `rewind`/`forward` relative-seek via `player.seekBy(∓10)` (phlix-ui v0.52.0 command bus). No-op outside Electron; returns a single cleanup that unregisters every listener. |
 | `src/renderer/index.html` | Mounts `#phlix-app` + `#player-supplement-root`, loads `/main.ts`. CSP locked to self + `https: http: blob:` media + `ws:` connect. |
 | `src/renderer/types/electron.d.ts` | `window.electronAPI` typings (incl. `HubConfig`, `getServerUrl`/`setServerUrl`/`getDeviceId`). |
-| `src/renderer/safeStorageTokenStore.ts` | M-WINDOWS-11: `@phlix/ui` `TokenStore` implementation over the DPAPI vault (`window.electronAPI.vault*`); wired since the v0.99.12 pin — `boot()` constructs it and threads it through the upstream `createPhlixApp` tokenStore seam. Fail-fast constructor without the bridge. |
+| `src/renderer/safeStorageTokenStore.ts` | M-WINDOWS-11: `@phlix/ui` `TokenStore` implementation over the DPAPI vault (`window.electronAPI.vault*`); the seam shipped in the upstream v0.99.12 wave and `boot()` has threaded it through the upstream `createPhlixApp` tokenStore seam since `6e0f739f` (v0.99.13-pin era). Fail-fast constructor without the bridge. |
 | `src/renderer/test-setup.ts` | `localStorage` mock for jsdom env. |
 | `src/renderer/vite-env.d.ts` | Vite client types; `VITE_PHLIX_SERVER_URL` optional. |
 
@@ -69,7 +69,7 @@ The page VIEWS and base routing come from `createPhlixApp` (`@phlix/ui`'s router
 - **App-mode + apiBase** are resolved once in `resolveAppConfig` (hub vs direct server). Persisted serverUrl comes from `app:get-server-url`; the stable deviceId from `app:get-device-id`.
 - **Electron → player bridge**: Electron IPC events are bridged to `@phlix/ui`'s `usePlayerStore` + router in `electronBridge.ts`, never directly to UI. Add new media commands there.
 - **TypeScript strict** with `noUnusedLocals` + `noUnusedParameters` (`tsconfig.json`). Avoid `any` — `@typescript-eslint/no-explicit-any` is warn.
-- **`console.*`**: `no-console` is warn in the renderer; **off** in `src/main`/`src/preload` (Electron legitimately logs).
+- **`console.*`**: `no-console` is **error** in the renderer with `allow: ['error', 'warn']` (`eslint.config.mjs`); **off** in `src/main`/`src/preload` (Electron legitimately logs).
 - **Unused args**: prefix `_`; rule `argsIgnorePattern: '^_'`.
 - **IPC**: never use `ipcRenderer` directly in the renderer — extend `window.electronAPI` via `src/preload/index.ts` and type it in `src/renderer/types/electron.d.ts`.
 - **CSP** in `src/renderer/index.html` allows `https: http: blob:` for media and `ws:` for connect — preserve when adding sources.

@@ -145,7 +145,7 @@ src/renderer/
 ├── overlay.tsx        # Second Vue app entry (dynamically imported by boot): mounts the player overlays on #player-supplement-root
 ├── components/        # Local player overlay components: PlayerSupplement.tsx (panel) · SleepTimer.tsx · PiPButton.tsx
 ├── mediaSession.ts    # navigator.mediaSession / SMTC action handlers
-├── safeStorageTokenStore.ts # DPAPI-backed TokenStore adapter over the vault IPC (wired into the ui tokenStore seam since the v0.99.12 pin)
+├── safeStorageTokenStore.ts # DPAPI-backed TokenStore adapter over the vault IPC (seam shipped in the upstream v0.99.12 wave; boot() threads it since 6e0f739f, v0.99.13-pin era)
 ├── i18n/              # windows-own catalogs (7 locales) + vendored ui-locale-bundles + overrides
 ├── resolveConfig.ts   # Pure app-mode + apiBase resolution (hub vs direct server)
 ├── electronBridge.ts  # Maps Electron media/window IPC → @phlix/ui player store + router
