@@ -200,9 +200,20 @@ unregisters every listener.
 
 ## UI & State
 
-All UI, navigation, theming, and state come from `@phlix/ui` (Pinia stores + vue-router, router base
-`/app`). This repo defines no Vue components or stores of its own. To change a screen, fix it upstream
-in `@phlix/ui` and bump the pinned `github:detain/phlix-ui#vX.Y.Z` version in `package.json`.
+All screens, theming, and application state live in the shared `@phlix/ui` app (Pinia stores +
+vue-router, router base `/app`), and every route renders a vendored page view — the no-forking
+rule: to change a screen or a store, fix it upstream in `@phlix/ui` and bump the pinned
+`github:detain/phlix-ui#vX.Y.Z` version in `package.json`. Along that consumer core this repo
+ships its own enumerated local surfaces, by ADR-004 as amended 2026-10-29 (docs/decisions/004):
+the player overlay components (`src/renderer/components/`, mounted by the second app entry
+`src/renderer/overlay.tsx`), the DOM-rendered boot-failure screen
+(`renderIncompatibleServerScreen` in `src/renderer/main.ts`), the DPAPI `TokenStore` adapter
+(`src/renderer/safeStorageTokenStore.ts`), the `navigator.mediaSession`/SMTC handlers
+(`src/renderer/mediaSession.ts`), the windows-own i18n catalogs (`src/renderer/i18n/`), and the
+route table, nav entries and admin gating that place the vendored views under `/app/*`
+(`buildExtraRoutes` / `buildMenu`, both in `main.ts`). No Pinia stores are defined here — all
+application state stays in the vendored ones. README *UI & State* carries the same enumeration;
+the two rotate together.
 
 ## Building and Testing
 
