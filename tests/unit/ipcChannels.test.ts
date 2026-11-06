@@ -392,7 +392,7 @@ describe('preload consumer inventory (M-WINDOWS-39)', () => {
   const PRELOAD_SHELL_ONLY: Record<string, string> = {
     getAppPath: 'diagnostic wrapper (W4.9 built the API "if-needed"); no about/diagnostics view was ever written in this shell.',
     getVersion: 'same W4.9 diagnostic class — renderer reads version through ui/server paths instead.',
-    setAlwaysOnTop: 'the window-manager behaviour is main-driven (menu View toggle); no in-app surface exists.',
+    setAlwaysOnTop: 'main-side seam stays live (ipcMain set-always-on-top, src/main/index.ts); NO shipped surface calls it — the "menu View toggle" this row once cited was never built (review windows__casualgamer Info, 2026-11-04).',
     minimizeToTray: 'tray policy lives in main (close handler + menu); a renderer trigger would bypass the single owner.',
     getMinimizeToTray: 'paired read of the above; no settings UI consumes it yet (deferred with the toggle surface).',
     setMinimizeToTray: 'same deferred settings surface as getMinimizeToTray.',
