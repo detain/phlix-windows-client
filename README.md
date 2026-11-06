@@ -435,7 +435,7 @@ phlix-windows-client/
 3. **Renderer Process** (`src/renderer/`)
    - A thin consumer of the shared `@phlix/ui` Vue app, booted via `createPhlixApp(config)` — plus enumerated local surfaces: player overlay components, a boot-failure screen, i18n catalogs, a DPAPI token-store adapter (see *UI & State* below)
    - Vue 3 + Pinia + vue-router (peer deps of `@phlix/ui`)
-     - Pinned to `@phlix/ui` `github:detain/phlix-ui#v0.99.19` and `@phlix/contracts` `github:detain/phlix-contracts#v0.5.6`
+     - Pinned to `@phlix/ui` `github:detain/phlix-ui#v0.99.20` and `@phlix/contracts` `github:detain/phlix-contracts#v0.5.6`
    - Vite (`@vitejs/plugin-vue`) for development and bundling
 
 ### UI & State
@@ -656,7 +656,7 @@ listing, create and join ride ordinary REST calls to your server; playback sync 
 over the WebSocket your server exposes on port 8097.
 
 How the desktop reaches that socket, measured against the exact shared UI bundle it
-ships (`@phlix/ui` v0.99.19, see `package.json`):
+ships (`@phlix/ui` v0.99.20, see `package.json`):
 
 - **The host-configurable seam.** The shared room socket prefers a `wsUrl` socket
   hint (upstream `phlix-ui` `94579936`, R12-02) over its legacy same-origin
