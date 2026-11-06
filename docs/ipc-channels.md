@@ -59,7 +59,7 @@ retired wrapper left behind both redden the suite.
 ## Behavioral Tests
 
 The pairing test (`tests/unit/ipcChannels.test.ts`) enforces bidirectional contract
-correctness for all 37 channels (22 invoke + 7 send + 4 sendSync + 12 push):
+correctness for all 37 channels (15 invoke + 7 send + 4 sendSync + 11 push):
 preload invoke → main handle, preload send → main on, preload sendSync → main on,
 main webContents.send → preload on, plus the doc-currency pins above.
 
@@ -70,7 +70,7 @@ the remaining invoke/send channels are covered by the pairing and inventory pins
 produce a round-trip response — they are verified by the pairing test. The 4 sendSync
 channels (M-WINDOWS-11 vault, `ipcRenderer.sendSync` / `ipcMain.on` + `event.returnValue`)
 are round-trip by protocol; their behavior is pinned in
-`tests/unit/mainSecretCustody.test.ts` against the real main-process handlers. The 12
+`tests/unit/mainSecretCustody.test.ts` against the real main-process handlers. The 11
 push channels (main→renderer via `webContents.send`) are verified by the pairing test;
 listener registration is tested for 3 of them in the `push channels` block. The
 `deeplink:open` channel is verified by the pairing test and the doc-currency pins only.

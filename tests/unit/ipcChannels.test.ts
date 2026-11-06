@@ -311,6 +311,41 @@ describe('doc currency (R-WINDOWS-03)', () => {
       if (!m) offenders.push(`count sentence missing: ${rx}`);
       else if (Number(m[1]) !== truth) offenders.push(`${rx.source}: doc says ${m[1]}, truth is ${truth}`);
     }
+
+    // MW-050 (reviews 2026-11-04 docmaint#2 / writer#2 / casualgamer#6): the
+    // Behavioral-Tests breakdown parenthetical and the "The N <direction>
+    // channels" sentences were prose the All-N pins above never read — a stale
+    // "22 invoke + ... + 12 push" that summed to 45 against a "37 total"
+    // survived CI. Widened: every direction count in these prose forms must
+    // equal the measured inventory, and the breakdown's components must sum to
+    // the total its own sentence names. (The "samples 3 invoke ... 4 send"
+    // sentence stays out of scope on purpose: those are sample counts.)
+    const prose = docContent.replace(/\s+/g, ' ');
+    const measured = {
+      invoke: new Set(preloadInvoke).size,
+      send: new Set(preloadSend).size,
+      sendSync: new Set(preloadSendSync).size,
+      push: new Set(mainWebContentsSend).size,
+    };
+    const breakdown = prose.match(/\((\d+) invoke \+ (\d+) send \+ (\d+) sendSync \+ (\d+) push\)/);
+    if (!breakdown) {
+      offenders.push('count sentence missing: (N invoke + N send + N sendSync + N push) breakdown');
+    } else {
+      const parts = [Number(breakdown[1]), Number(breakdown[2]), Number(breakdown[3]), Number(breakdown[4])];
+      const truth = [measured.invoke, measured.send, measured.sendSync, measured.push];
+      if (String(parts) !== String(truth)) {
+        offenders.push(`breakdown: doc says ${parts.join(' + ')}, truth is ${truth.join(' + ')}`);
+      }
+      if (parts.reduce((a, b) => a + b, 0) !== distinct.size) {
+        offenders.push('breakdown: components do not sum to the measured channel total');
+      }
+    }
+    for (const m of prose.matchAll(/\b(?:All|The) (\d+) (invoke|send|sendSync|push)\b/g)) {
+      const kind = m[2] as keyof typeof measured;
+      if (Number(m[1]) !== measured[kind]) {
+        offenders.push(`"${m[0]}": doc says ${m[1]}, truth is ${measured[kind]}`);
+      }
+    }
     expect(offenders).toEqual([]);
   });
 });
