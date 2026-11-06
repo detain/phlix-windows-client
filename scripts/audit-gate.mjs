@@ -20,11 +20,17 @@
  * lock. The 2026-10-29 time-drift sweep cleared 22 newly-disclosed advisories
  * (vitest/@vitest/mocker, electron, fast-uri, follow-redirects, undici, vite)
  * entirely with in-parent-range bumps — see the CHANGELOG entry this empty
- * allow-list rides with. ALLOWED_ADVISORIES is now EMPTY: the gate is at
- * maximum strictness. Both founding advisories keep dedicated fail-loud tests
- * in tests/unit/audit-gate.test.mjs proving a reappearing report id reddens the
+ * allow-list rode with. The list sat EMPTY (maximum strictness) while both
+ * founding advisories kept dedicated fail-loud tests in
+ * tests/unit/audit-gate.test.mjs proving a reappearing report id reddens the
  * gate — if the lock ever regresses (or GitHub un-withdraws hp3w), CI halts;
- * nothing dormant is silently tolerated.
+ * nothing dormant is silently tolerated. On 2026-11-06 the list reopened for
+ * exactly ONE reviewed decision: the two standing dev-chain moderate advisories
+ * GHSA-3g3m-2fjr-6pw4 (glob) + GHSA-g3hv-75wg-m249 (minimatch) — every
+ * in-parent-range cure measured impossible (whole-tree `npm update` AND a fresh
+ * lockless re-resolve both reproduce the same two-id set; npm's own
+ * fixAvailable is an electron-builder major downgrade — rejected). See the
+ * justifications on the entries below and the CHANGELOG entry they ride with.
  *
  * ADDING AN ENTRY (the reviewed-decision law): only for an advisory that is
  * LIVE in the reported set, has no fix inside any declared parent range, and
@@ -51,10 +57,77 @@ export const EXIT_STRUCTURE_ERROR = 2;
 
 // Exact GHSA ids the gate tolerates, each with the justification CI prints on
 // every run. Subset semantics: ANY advisory id missing here reddens the gate.
-// EMPTY since 2026-10-29 — both founding entries retired for good (ch52: 4.3.0
-// taken in-range 2026-10-08; hp3w: WITHDRAWN upstream 2026-10-22, never
-// reported again). Additions are reviewed decisions per the header law above.
-export const ALLOWED_ADVISORIES = new Map([]);
+// 2026-10-29 → 2026-11-06 the list was EMPTY (both founding entries retired
+// for good: ch52 took 4.3.0 in-range 2026-10-08; hp3w WITHDRAWN upstream
+// 2026-10-22, never reported again). The current two entries are reviewed
+// decisions per the header law above — each with measured no-in-range-fix
+// evidence, a removal plan, and mirror fixtures in tests/unit/audit-gate.test.mjs.
+export const ALLOWED_ADVISORIES = new Map([
+  [
+    'GHSA-3g3m-2fjr-6pw4',
+    {
+      package: 'glob',
+      justification:
+        'dev-chain only — the single flagged copy is the hoisted glob@13.0.6 (EVERY glob ' +
+        'node in the lock is dev:true; shipped app deps — electron-log/store/updater, vue, ' +
+        'pinia, vue-router, @phlix/* — pull none); npm reports it under rimraf@6.1.3\'s ' +
+        'declared ^13.0.3, with @electron/asar and js-beautify as users on the report graph. ' +
+        'Moderate / CWE-400: post-timeout filesystem traversal when an AbortSignal is ' +
+        'cancelled — triggered only by dev-authored patterns inside build/test tooling; no ' +
+        'attacker-reachable input surface; no CVE assigned. NO FIX INSIDE ANY DECLARED ' +
+        'PARENT RANGE: vulnerable >=9.0.0 <=14.0.1 flags EVERY published 9.x–13.x line ' +
+        '(13.x tops out at 13.0.7, still flagged); the patched 14.0.2+ (latest 14.0.4) is ' +
+        'major-reachable from no parent that keeps the hoist: js-beautify@latest (2.0.3, ' +
+        'reached through @vue/test-utils\' ^2.4.0 — 2.4.6 declares js-beautify ^1.14.9, ' +
+        'test-utils@latest declares ^2.0.0, and both js-beautify lines declare glob ^10/^13 ' +
+        'ranges) and @electron/asar@latest still declare the 13.x vulnerable line; only ' +
+        'rimraf@6.1.4 has moved (^14.0.3) — insufficient on a name-shared hoist while any ' +
+        'vulnerable-range parent remains. npm audit fixAvailable = electron-builder ' +
+        'downgrade to 25.1.0 (isSemVerMajor: true) — REJECTED: the ch52/http-cache-semantics ' +
+        'era proved downgrading this toolchain regresses real security fixes; forcing majors ' +
+        'via overrides is the S430 dodge-class, refused. In-range refusal MEASURED, not ' +
+        'assumed: whole-tree `npm update` (every dep at max of its declared range) AND a ' +
+        'fresh lockless re-resolve of package.json (both npm 11, 2026-11-06) reproduce this ' +
+        'exact two-id advisory set. UPSTREAM WATCH (the removal plan): the moment js-beautify ' +
+        'and @electron/asar declare ranges admitting glob >=14.0.2 — run ' +
+        '`npm update && node scripts/audit-gate.mjs`, then REMOVE this entry and its mirror ' +
+        'fixtures in tests/unit/audit-gate.test.mjs. Re-verify advisory status and parent ' +
+        'declarations by 2027-02-04: https://github.com/advisories/GHSA-3g3m-2fjr-6pw4',
+    },
+  ],
+  [
+    'GHSA-g3hv-75wg-m249',
+    {
+      package: 'minimatch',
+      justification:
+        'dev-chain only — two flagged installed copies: the hoisted minimatch@10.2.6 ' +
+        '(declared by @typescript-eslint/typescript-estree ^10.2.2 + app-builder-lib ' +
+        '^10.2.5 + glob@13\'s own ^10.2.2) and nested minimatch@9.0.9 under ' +
+        '@electron/universal@2.0.3 (^9.0.3) + editorconfig@1.0.7 (^9.0.1); all lint / ' +
+        'type-check / packaging tooling (EVERY minimatch node in the lock is dev:true; the ' +
+        'shipped app pulls none). Moderate / CWE-405: DoS via brace-expansion amplification ' +
+        'on attacker-SUPPLIED patterns — every pattern here is dev-authored build config, ' +
+        'no runtime attacker surface; no CVE assigned. NO FIX INSIDE ANY DECLARED PARENT ' +
+        'RANGE: vulnerable >=7.0.0 <11.0.1; the 10.x line TOPS OUT at the flagged 10.2.6 ' +
+        '(= installed max) and the 9.x line dies at the flagged 9.0.9; patched 11.0.1 ' +
+        '(latest 11.0.5) is above every parent line and the parents hold their lines even ' +
+        'at latest — app-builder-lib@26.18.0 still declares ^10.2.5, ' +
+        '@typescript-eslint/typescript-estree@8.72.1 still ^10.2.2, editorconfig@latest ' +
+        'moved only to ~10.2.4 (still flagged), and @electron/universal@latest (3.0.6) ' +
+        'dropped minimatch but app-builder-lib@latest still pins universal at EXACT 2.0.3. ' +
+        'The pair is COUPLED on the fix side: patched glob@14.0.4 itself declares minimatch ' +
+        '^11.0.5, so no chain order resolves either id without a parent major move (S430 ' +
+        'refusal). Same electron-builder-25.1.0 downgrade fixAvailable — REJECTED (ch52-era ' +
+        'precedent). In-range refusal MEASURED: whole-tree `npm update` AND fresh lockless ' +
+        're-resolve (both npm 11, 2026-11-06) reproduce this id. UPSTREAM WATCH (the ' +
+        'removal plan): once BOTH app-builder-lib AND typescript-estree declare minimatch ' +
+        'ranges admitting >=11.0.1 (and the exact-2.0.3 universal pin frees), run ' +
+        '`npm update && node scripts/audit-gate.mjs`, then REMOVE this entry and its mirror ' +
+        'fixtures in tests/unit/audit-gate.test.mjs. Re-verify advisory status and parent ' +
+        'declarations by 2027-02-04: https://github.com/advisories/GHSA-g3hv-75wg-m249',
+    },
+  ],
+]);
 
 const AUDIT_ARGS = ['audit', '--json', '--audit-level=high'];
 const MAX_BUFFER_BYTES = 64 * 1024 * 1024;
