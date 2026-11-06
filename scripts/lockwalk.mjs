@@ -228,8 +228,19 @@ export const EXPECTED = {
     repo: 'git+ssh://git@github.com/detain/phlix-syncplay.git',
   },
   '@phlix/ui': {
-    tag: 'v0.99.21',
-    sha: '01acaa1264736fa9c744fc902044c9ad511b93ba',
+    tag: 'v0.99.22',
+    sha: 'a4ede9392e014f6ee162ab10dbecc975a24f4c1e',
+    // v0.99.22 re-pin (2026-11-06, player-fps wave): the honest-field era carries — the tag
+    // manifest reads 0.99.22 at a4ede939 (npm writes lock version 0.99.22), so this row keeps
+    // walking the plain tag-derived version; no manifestVersion override. The step over
+    // v0.99.21 is player-internal only (poster backdrop + ambient glow pre-rendered to
+    // bitmaps, hidden chrome drops backdrop-filter): the published package.json diff is
+    // version-field-alone, the dist type surface gains only ambient.d.ts helpers +
+    // pages/ambientBackdrop.d.ts, which windows references nowhere, and `src/i18n` is
+    // UNCHANGED across 01acaa12..a4ede939 — a locale HOLD (SOURCE_REF + PIN stay at 01acaa12).
+    // Identity: phlix-ui.js a3a8aa84 (installed node == ui release tree). The contracts
+    // `#v0.5.6` and syncplay `#v0.1.7` edges are untouched.
+    //
     // v0.99.21 re-pin (2026-11-06, theme-persist consumer wave): the honest-field era
     // OPENED at v0.99.7, when the `manifestVersion: '0.99.4'` skew override's own written
     // condition fired (field re-normalized to 0.99.7 at bc1d29bf, measured via git show).
