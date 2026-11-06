@@ -1,3 +1,16 @@
+# Windows Client Remediation Progress — era-frozen historical ledger
+
+Dated: 2026-11-07 — **era-frozen closure ledger** (the W0–W8 remediation plan).
+
+> **Closed historical record, not current status.** Every W0–W8 phase row below is done
+> or superseded; the pin era it names (@phlix/ui v0.98.x, @phlix/contracts v0.4.x,
+> "16 IPC channels") has long since rolled. For today's truth read `package.json`
+> (pins), `docs/ipc-channels.md` (channels), `README.md` / `AGENTS.md` (posture).
+> Its secret vocabulary is retired too: `docs/signing.md` defines the canonical
+> signing set (AUTHENTICODE_CERT / AUTHENTICODE_CERT_PASSWORD / APPX_SIGNING_CERT /
+> APPX_SIGNING_CERT_PASSWORD). Rows are kept verbatim as history — model: the dated
+> banner law of `docs/ci-baseline.md`.
+
 W0.1  done   1 review round   sha 379658b   preload resolves
 W0.2  done   1 review round   sha 98b3518   window.electronAPI typed optional
 W0.3  done   1 review round   sha 07e2dd2   stable device ID generated
@@ -37,7 +50,7 @@ W4.6  done   1 review round   sha 0e41a94   powerSaveBlocker with ensurePowerBlo
 W4.7  done   2 review rounds  sha e70908e   Notification.isSupported guard; notificationsEnabled pref; notification:show IPC; click routes via phlix://internal; 7 notification tests
 W4.8  done   1 review round   sha ade183f   perMachine:false; per-user install; no admin rights; auto-update friendly; docs verified (APPDATA is logs, not install)
 W4.9  deferred   blocked on W4.10 (signing) — unsigned auto-update triggers SmartScreen on every update
-W4.10  blocked   needs WINDOWS_CERT_BASE64 + WINDOWS_CERT_PASSWORD secrets from human
+W4.10  blocked   needs WINDOWS_CERT_BASE64 + WINDOWS_CERT_PASSWORD secrets from human [retired names — docs/signing.md supersedes with AUTHENTICODE_CERT / AUTHENTICODE_CERT_PASSWORD (+ APPX pair)]
 W4.11  done   1 review round   sha 5dfae99   files allow-list: dist/** build/** package.json; asar:true; sourcemap:false; 215 tests
 W4.12  done   1 review round   sha 1c873f0   PHLIX_DISABLE_GPU env var; disableHardwareAcceleration pref; gpu:get-feature-status IPC; 228 tests
 

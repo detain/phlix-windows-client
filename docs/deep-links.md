@@ -1,6 +1,6 @@
 # Deep Links
 
-Phlix Windows Client supports the `phlix://` URL protocol for deep linking into specific app sections.
+Phlix for Windows supports the `phlix://` URL protocol for deep linking into specific app sections.
 
 ## URL Grammar
 

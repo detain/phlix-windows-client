@@ -1,10 +1,10 @@
-# Phlix Windows - Developer Guide
+# Phlix for Windows - Developer Guide
 
-This document provides detailed information for developers working on the Phlix Windows desktop application.
+This document provides detailed information for developers working on the Phlix for Windows desktop application.
 
 ## Architecture Overview
 
-The Phlix Windows app follows the standard Electron architecture with three distinct processes. The
+The Phlix for Windows app follows the standard Electron architecture with three distinct processes. The
 renderer is a **thin consumer** of the shared `@phlix/ui` Vue app: every route renders a vendored page
 view and all application state lives in the vendored stores. It boots `createPhlixApp(config)`, bridges
 Electron events into it, and — beyond that core — ships its own local surfaces: player overlay
@@ -104,7 +104,11 @@ main process reads or writes, measured from the code (M-WINDOWS-55):
 
 ### Preload Script (`src/preload/index.ts`)
 
-The preload script uses `contextBridge` to expose safe APIs to the renderer:
+The preload script uses `contextBridge` to expose safe APIs to the renderer. The excerpt
+below is **representative, not complete** — the authoritative enumeration of every
+channel and member is `docs/ipc-channels.md`; omitted from this snippet are the vault
+(`vaultGet`/`vaultSet`/`vaultDelete`/`vaultIsAvailable`), deeplink, thumbar,
+playback-progress, power, GPU, and update members.
 
 ```typescript
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -168,7 +172,15 @@ src/renderer/
 2. `resolveAppConfig({ hub, serverUrl, envUrl })` → `{ app, apiBase }`.
 3. `buildPhlixHeaders({ deviceId, deviceName: 'Phlix for Windows', deviceType: 'windows' })`
    (`@phlix/contracts`) — no token/sessionId; `@phlix/ui`'s ApiClient owns auth.
-4. `createPhlixApp({ app, apiBase, deviceHeaders, defaultTheme: 'nocturne', branding: { wordmark: 'Phlix' } })`.
+4. `createPhlixApp(bootConfig)`. The shipped config carries `app`, `apiBase`,
+   `requireConnection: true`, an `onConnectionChange` mirror (persists the URL into the
+   Electron store and keeps the SyncPlay socket hint in lock-step), `menu` +
+   `extraRoutes`, `deviceHeaders`, `defaultTheme: 'nocturne'`, and `branding` — plus
+   conditional members: `messages` (the windows-own i18n override bundle), `tokenStore`
+   (the DPAPI vault adapter, when the bridge is live), `wsUrl` (server mode only), and
+   in hub mode `home: '/app/servers'` + `features: { resumeSync: false }` in place of
+   `wsUrl` (`src/renderer/main.ts`, the `bootConfig` construction; each seam is
+   documented in `docs/i18n.md` and the README SyncPlay section).
 5. `app.mount('#phlix-app')`.
 6. `installElectronBridge(app)`.
 

@@ -10,7 +10,10 @@ estate. Small, focused PRs that keep the repo's gates green land fastest.
    explains how).
 2. `npm ci` (lockfile-pinned; use `npm ci`, not `npm install`, so you don't churn
    `package-lock.json` — lock and dependency-pin changes are maintained by the
-   project owner, not PRs).
+   project owner, not PRs). On npm 12+: this repo's `@phlix/ui` / `@phlix/contracts`
+   deps resolve from GitHub tags and newer npm majors gate non-registry deps behind
+   an allowlist — an `EALLOWGIT`/`EALLOWREMOTE` refusal means set `allow-git=all` in
+   your npm userconfig first (Node 24's bundled npm 11 needs nothing extra).
 3. Run the gates your change touches — CI enforces all of them:
    ```bash
    npm run typecheck    # vue-tsc (renderer) + tsc (main/preload)

@@ -51,8 +51,9 @@ desktop watch parties ride them in server mode; see
 Phlix for Windows is a standalone app — you do **not** need Node.js, a terminal, or any of
 the build steps below. It requires **Windows 10 or 11, 64-bit (x64)** — both shipped
 installers (NSIS and APPX) are x64-only, and the Electron runtime underneath does not
-start on Windows 7/8 or on ARM64 Windows; check your edition in Settings → System →
-About before downloading. Download an installer from the releases page and run it:
+start on Windows 7/8. No native ARM64 build is published — on Windows 11 ARM the x64
+installer may run under Prism emulation, but that configuration is untested here;
+check your edition in Settings → System → About before downloading. Download an installer from the releases page and run it:
 
 **Releases:** <https://github.com/detain/phlix-windows-client/releases>
 
@@ -230,7 +231,9 @@ These steps are for **developers building from source**. If you just want to use
 *Install (end users)* above. Before setting up the project, ensure you have the following installed:
 
 - **Node.js** >=24.0.0
-- **npm** v9.x or later (comes with Node.js)
+- **npm** 11 or later — the version Node.js 24 bundles is fine. See the install-posture
+  note under *Install dependencies* below for newer npm majors (this repo resolves
+  `@phlix/ui` / `@phlix/contracts` from GitHub tags, and recent npm gates those behind an allowlist).
 - **Git** for version control
 - **Windows 10/11** as the target platform
 
@@ -254,6 +257,14 @@ For development:
    ```bash
    npm install
    ```
+
+   > Install posture: this repo depends on `@phlix/ui` and `@phlix/contracts` resolved
+   > from GitHub tags (`github:detain/...#v...`). The npm that ships with Node.js 24
+   > (v11) installs them from the lockfile unchanged. **npm 12 and later gate
+   > non-registry remote dependencies behind an allowlist** — if a bare install fails
+   > there with an `EALLOWGIT` / `EALLOWREMOTE` refusal, grant the GitHub deps by
+   > setting `allow-git=all` (and, if npm asks, `allow-remote=all`) in your npm
+   > userconfig before rerunning. CI installs on the Node 24 bundled npm.
 
    > Behind a restrictive firewall/proxy? `npm install` downloads the prebuilt
    > Electron binary (~110 MB) from GitHub release objects — the single longest
@@ -425,7 +436,7 @@ phlix-windows-client/
 │       ├── vite-env.d.ts
 │       └── types/electron.d.ts
 ├── tests/
-│   └── unit/           # resolveConfig · electronBridge · main
+│   └── unit/           # 79 law-pin cohorts as of 2026-11-06 (re-measure; see DEVELOPER.md "Test Structure") — founding trio: resolveConfig · electronBridge · main
 ├── build/              # Build resources (icons)
 ├── release/            # Packaged application output (gitignored)
 ├── package.json
