@@ -66,10 +66,14 @@ function getActiveVideo(): HTMLVideoElement | null {
 const PiPButton = defineComponent({
   name: 'PiPButton',
   setup() {
-    // Cast to any since @phlix/ui store types don't expose currentItem
-    // This exists at runtime but isn't typed. Temporary implementation until proper seams.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const player = usePlayerStore() as any;
+    // The pinned @phlix/ui player store exposes a TYPED `current` media item
+    // alongside `playing` (pin #v0.99.22: dist/usePlayerStore-BpohCwDP.js
+    // setup-store return; dist/stores/usePlayerStore.d.ts — Pick list :417).
+    // The former `as any` cast claimed `currentItem` existed at runtime but
+    // untyped — false on both halves (zero `currentItem` occurrences in any
+    // shipped .js/.cjs/.d.ts; the cast was cargo-cult). Typed access from
+    // this cure forward: a phantom field here was what made MW-060 inert.
+    const player = usePlayerStore();
     const isInPiP = ref(false);
     const pipSupported = ref(false);
     const savedPref = ref(false);
@@ -141,7 +145,7 @@ const PiPButton = defineComponent({
 
     // Re-sync when player item changes
     watch(
-      () => player.currentItem,
+      () => player.current,
       () => {
         cleanupVideoListeners();
         setupVideoListeners();
@@ -189,8 +193,8 @@ const PiPButton = defineComponent({
     const isActive = computed((): boolean => {
       // The affordance belongs to the media session, not the play state:
       // a paused viewer must still be able to pop the frozen frame out
-      // (review gameux#3). currentItem is watched above, so this recomputes.
-      return pipSupported.value && (!!player.currentItem || !!player.playing);
+      // (review gameux#3). `current` is watched above, so this recomputes.
+      return pipSupported.value && (!!player.current || !!player.playing);
     });
 
     return () => {

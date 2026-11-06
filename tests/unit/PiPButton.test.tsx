@@ -11,10 +11,20 @@ import PiPButton from '@/components/PiPButton';
 
 // Mock usePlayerStore — reactive so the component's watchers (auto-PiP on play,
 // per-item listener re-sync) observe state transitions the same way they do
-// against the real Pinia store.
+// against the real Pinia store. Field names come from the REAL vendored surface
+// at pin #v0.99.22: the setup-store return in
+// node_modules/@phlix/ui/dist/usePlayerStore-BpohCwDP.js (:213+, typed in
+// dist/stores/usePlayerStore.d.ts — Pick list at :417) exposes `current`,
+// `playing`, `position`, `duration`, … and `currentItem` appears ZERO times in
+// any shipped .js/.cjs/.d.ts. `current` carries the .d.ts required keys
+// (id: string, name: string, type: MediaType, poster_url: string | null);
+// the mock models that honest shape for the fields these tests exercise.
+type MockMediaItem = { id: string; name: string; type: 'movie'; poster_url: string | null };
 const mockPlayer = reactive({
+  current: null as MockMediaItem | null,
   playing: false,
-  currentItem: null as any
+  position: 0,
+  duration: 0
 });
 
 vi.mock('@phlix/ui', () => ({
@@ -101,7 +111,7 @@ describe('PiPButton', () => {
 
     // Trigger state changes that would previously cause re-queries
     mockPlayer.playing = true;
-    mockPlayer.currentItem = 'item-2';
+    mockPlayer.current = { id: 'item-2', name: 'item-2', type: 'movie', poster_url: null };
 
     // Force update
     wrapper.vm.$forceUpdate?.();
@@ -186,7 +196,7 @@ describe('PiPButton leave + pause law (MW-059/MW-060)', () => {
   beforeEach(() => {
     localStorage.clear();
     mockPlayer.playing = false;
-    mockPlayer.currentItem = null;
+    mockPlayer.current = null;
     video = document.createElement('video');
     Object.defineProperty(video, 'readyState', { value: 4, configurable: true });
     // jsdom ships no PiP surface; stand in for the browser entry point.
@@ -205,7 +215,7 @@ describe('PiPButton leave + pause law (MW-059/MW-060)', () => {
     localStorage.setItem(STORAGE_KEY, 'true');
     (document as unknown as { pictureInPictureElement: HTMLVideoElement | null }).pictureInPictureElement = video;
     mockPlayer.playing = true;
-    mockPlayer.currentItem = { id: 'mw-059' };
+    mockPlayer.current = { id: 'mw-059', name: 'mw-059', type: 'movie', poster_url: null };
     const wrapper = mount(PiPButton, { global: { stubs: { teleport: true } } });
 
     // The user presses the PiP window's OWN close button: the browser fires
@@ -233,7 +243,7 @@ describe('PiPButton leave + pause law (MW-059/MW-060)', () => {
   it('keeps the PiP affordance while the video is paused (MW-060)', async () => {
     supportPiP();
     mockPlayer.playing = true;
-    mockPlayer.currentItem = { id: 'mw-060' };
+    mockPlayer.current = { id: 'mw-060', name: 'mw-060', type: 'movie', poster_url: null };
     const wrapper = mount(PiPButton, { global: { stubs: { teleport: true } } });
     await nextTick();
 
@@ -245,7 +255,7 @@ describe('PiPButton leave + pause law (MW-059/MW-060)', () => {
     expect(wrapper.find('button.pip-button').exists(), 'a paused viewer must keep the PiP affordance').toBe(true);
 
     // Session gone entirely — the affordance must not haunt the overlay.
-    mockPlayer.currentItem = null;
+    mockPlayer.current = null;
     await nextTick();
     expect(wrapper.find('button.pip-button').exists(), 'no media item: affordance hidden').toBe(false);
 
