@@ -26,7 +26,14 @@
  *     final consumer wave — the SIXTH genuine move: +1 key 523→524 (`player.audioOriginal`),
  *     six locale files shifted (+1 line each), the index.ts pair held once more, locales
  *     tree a3b602a6→39245de0, messages.ts df982b17→a49e432a; PIN advanced to the
- *     a6c9d466 peel); the
+ *     a6c9d466 peel), CARRIED as a deliberate HOLD at v0.99.20 (2026-11-06, the playback
+ *     program's URL-contract consumer wave — locales tree and messages.ts byte-identical
+ *     across a6c9d466..e48d8d02, catalog 524, sixth deliberate hold; PIN + SOURCE_REF stayed
+ *     anchored), and RE-VENDORED AGAIN at v0.99.21 (2026-11-06, the theme-persist consumer
+ *     wave — the SEVENTH genuine move: +2 keys 524→526 (`settings.themeCatalogueUnavailable`,
+ *     `settings.themeSavedLocally`), six locale files shifted (+2 lines each), the index.ts
+ *     pair held once more, locales tree 39245de0→4c264a97, messages.ts a49e432a→0a181db6;
+ *     PIN advanced to the 01acaa12 peel); the
  *     formerly-ahead keys keep focused cross-bundle laws),
  *     placeholder parity, CLDR segment law (incl. the documented
  *     additive exception), diacritics/CJK sanity, and PIN/hash drift guards
@@ -260,7 +267,14 @@ describe('ui bundles — key-set identity and installed coverage', () => {
     // SIXTH time (six files shifted, index.ts pair held; locales tree a3b602a6→39245de0;
     // messages.ts → a49e432a; +1 key, zero removed: player.audioOriginal — ui 3174b805's
     // synthesized muxed-`Original` audio entry) and the re-vendor at the a6c9d466 peel put
-    // BOTH sides at 524 flattened keys.
+    // BOTH sides at 524 flattened keys. At v0.99.20 the tree rode as a deliberate HOLD
+    // across a6c9d466..e48d8d02 (git diff empty; catalog 524; vendor ref stayed a6c9d466 —
+    // sixth deliberate hold). At v0.99.21 (2026-11-06, the theme-persist consumer wave) the
+    // tree moved a SEVENTH time (six files shifted, index.ts pair held; locales tree
+    // 39245de0→4c264a97; messages.ts → 0a181db6; +2 keys, zero removed:
+    // settings.themeCatalogueUnavailable, settings.themeSavedLocally — ui's theme
+    // server-persistence quiet-inline disclosures) and the re-vendor at the 01acaa12 peel
+    // put BOTH sides at 526 flattened keys.
     // The relation stays exact set equality in BOTH directions (installed ⊆ bundle
     // is separately pinned above; this pins bundle ⊆ installed and, with it,
     // the empty extras set). The seven keys are additionally pinned present

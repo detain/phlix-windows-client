@@ -123,10 +123,11 @@ const NESTED_NODE_RE = /\/node_modules\/@phlix\/[\w-]+$/;
 // gate-3 ui v0.99.15 wave, RE-VERIFIED AGAIN 2026-11-04 for the wave-5 contracts
 // v0.5.6 + ui v0.99.16 cascade, RE-VERIFIED AGAIN 2026-11-06 for the ui v0.99.17 re-pin,
 // RE-VERIFIED AGAIN 2026-11-06 for the ui v0.99.19 re-pin,
-// and RE-VERIFIED AGAIN 2026-11-06 for the ui v0.99.20 re-pin
+// and RE-VERIFIED AGAIN 2026-11-06 for the ui v0.99.20 re-pin,
+// and RE-VERIFIED AGAIN 2026-11-06 for the ui v0.99.21 re-pin
 // (contracts and syncplay HELD; all three refs below re-peeled against the live remotes
 // via `git ls-remote` this window — contracts v0.5.6 obj 9f04fc50 HELD, syncplay v0.1.7
-// obj fe687f27 HELD, ui v0.99.20 obj bab302e2):
+// obj fe687f27 HELD, ui v0.99.21 obj bf70c58f):
 //   phlix-contracts v0.5.6 -> c89c8420  (annotated tag object 9f04fc50; its manifest `version` field is
 //                                         HONEST - reads 0.5.6 at the tag (measured via git show; npm 11
 //                                         accordingly writes lock version 0.5.6), CARRYING the normalization
@@ -139,8 +140,8 @@ const NESTED_NODE_RE = /\/node_modules\/@phlix\/[\w-]+$/;
 //                                         5d1783a71a3c4e12...) and mcp-scopes HELD (8c92c070...) — zero
 //                                         ErrorCode-union movement, so no TS2741-class cohort this wave. The
 //                                         equality era RESTORED at the ui v0.99.9 re-pin CARRIES through
-//                                         v0.99.10–v0.99.19 and this v0.99.20 move: ui's manifest requests
-//                                         `#v0.5.6` outright (measured via git show at e48d8d02 AND
+//                                         v0.99.10–v0.99.20 and this v0.99.21 move: ui's manifest requests
+//                                         `#v0.5.6` outright (measured via git show at 01acaa12 AND
 //                                         independently off the installed node) - both the
 //                                         root->contracts and ui->contracts edges walk
 //                                         plain rule 1 onto the one hoisted 0.5.6@c89c8420 copy; the
@@ -160,44 +161,49 @@ const NESTED_NODE_RE = /\/node_modules\/@phlix\/[\w-]+$/;
 //                                         at the hoisted node is the standing witness). v0.1.7's dist genuinely
 //                                         differs from v0.1.6 (js/umd/maps + client.d.ts/framing.d.ts move;
 //                                         index.d.ts byte-ident; zero error-code/frame-type delta — wire unchanged).)
-//   phlix-ui        v0.99.20 -> e48d8d02  (annotated tag object bab302e2; its manifest `version` field stays
-//                                         HONEST - reads 0.99.20 at the tag (measured via git show; the
+//   phlix-ui        v0.99.21 -> 01acaa12  (annotated tag object bf70c58f; its manifest `version` field stays
+//                                         HONEST - reads 0.99.21 at the tag (measured via git show; the
 //                                         version-field alignment law has held since v0.99.7, when the
 //                                         `manifestVersion: '0.99.4'` skew override's own written retirement
-//                                         condition fired at bc1d29bf; v0.99.8 through v0.99.20 CARRY it) -
+//                                         condition fired at bc1d29bf; v0.99.8 through v0.99.21 CARRY it) -
 //                                         the ui row keeps walking the plain tag-derived version and that
 //                                         override stays RETIRED, mirroring the contracts-row retirement at
 //                                         v0.5.2. No manifestVersion override is active anywhere now; the
 //                                         mechanism stays armed for a future stale-field tag.
-//                                         v0.99.20 (peel e48d8d02) is the playback URL-contract consumer
-//                                         cure over v0.99.19 — ui c8c608f (pinned-quality loads consume the
-//                                         server-advertised signed `playlist_url` mini-master / `url` bare
-//                                         rung VERBATIM — probe, load and legacy fallback all read the
-//                                         server's own signatures and no client string-surgery ever touches
-//                                         a signed URL; the .19-era defect that appended `_master.m3u8`
-//                                         AFTER the sig query and 404'd every pinned pick is structurally
-//                                         dead; un-advertised rungs derive PATH-scoped only) + the .20
-//                                         release bump. The published package.json diff over v0.99.19 is
-//                                         again the version field alone — but, unlike the .17/.19 steps,
-//                                         the shipped TYPE surface moved ADDITIVELY inside dist/:
-//                                         components/player/transcode.d.ts gains optional `url?` /
-//                                         `playlistUrl?` on Variant (+docblocks), composables/
-//                                         useHlsTranscode.d.ts is docblock-only. Windows references NONE
-//                                         of those symbols (parseVariants / useHlsTranscode / Variant:
-//                                         zero hits across src/ + tests/, grep-measured this wave), so
-//                                         this repo's compile surface is unmoved. dist aggregate md5
-//                                         df6ec701... measured this lane (phlix-ui.js 818e5829...,
-//                                         player.js ca81bb6e..., PlayerPage carriers rotated to
-//                                         BUnWXFam.js 675faa2a... / DFDk18x-.cjs 46bc42c2... replacing
-//                                         kwMAZlDu.js / DAswZ8i8.cjs — all asserted off the codeload tag
-//                                         payload AND the installed node, dist trees diff -r byte-ident).
-//                                         The locales tree and `messages.ts` are UNMOVED across
-//                                         a6c9d466..e48d8d02 (git diff empty; catalog holds 524) — a
-//                                         deliberate HOLD, the sixth (after v0.99.9, v0.99.10, v0.99.13,
-//                                         v0.99.16 and v0.99.17): PIN + SOURCE_REF stay anchored at the
-//                                         a6c9d466 peel untouched. The ui->contracts request still speaks
-//                                         `#v0.5.6` outright (measured via git show at e48d8d02 AND off
-//                                         the installed node) — twelfth straight equality-era move; the
+//                                         v0.99.21 (peel 01acaa12) is the theme-persist consumer wave
+//                                         over v0.99.20 — ui's TW-theme-persist work PUTs/GETs the
+//                                         selected theme through users/me/settings with silent hub-style
+//                                         degradation (server call fails -> theme still applies locally +
+//                                         the quiet `settings.themeSavedLocally` hint; catalogue fetch
+//                                         fails -> built-ins only + `settings.themeCatalogueUnavailable`
+//                                         disclosure + force-refresh affordance + Plugins-page hint)
+//                                         + the .21 release bump. The published package.json diff over
+//                                         v0.99.20 is again the version field alone — but, like the
+//                                         .20 step, the shipped TYPE surface moved ADDITIVELY inside
+//                                         dist/: api/themeSettings.d.ts is NEW, and
+//                                         composables/useTheme.d.ts / errors.d.ts / messages.d.ts /
+//                                         the locale types churn. Windows references NONE of those
+//                                         symbols (useTheme / themeSettings / themeCatalogueUnavailable
+//                                         / themeSavedLocally: zero hits across src/ + tests/,
+//                                         grep-measured this wave), so this repo's compile surface is
+//                                         unmoved. dist aggregate md5 0e3b071f... measured this lane
+//                                         under the cross-tree recipe over BOTH the codeload tag payload
+//                                         and the installed node (888 files each, diff -r byte-ident;
+//                                         the ui release record's 34c01469... agg is its own
+//                                         venue-specific recipe), with phlix-ui.js 7e4c16b5...,
+//                                         player.js fcb3596c..., phlix-ui.umd.cjs 02e3caac..., and
+//                                         PlayerPage carriers rotated to BTz2s3yI.js 5b5ac827... /
+//                                         ja0Ix1W0.cjs 0dabd9de... replacing BUnWXFam.js / DFDk18x-.cjs.
+//                                         The locales tree and `messages.ts` MOVED across
+//                                         e48d8d02..01acaa12 (six locale files +2 lines each, tree
+//                                         39245de0→4c264a97, messages.ts a49e432a→0a181db6, catalog
+//                                         524→526 with zero removals, the index.ts pair held) — a
+//                                         genuine re-vendor, the seventh (v0.99.5, v0.99.8, v0.99.12,
+//                                         v0.99.14, v0.99.15, v0.99.19, v0.99.21): PIN + SOURCE_REF
+//                                         advance to the 01acaa12 peel in this commit. The
+//                                         ui->contracts request still speaks
+//                                         `#v0.5.6` outright (measured via git show at 01acaa12 AND off
+//                                         the installed node) — thirteenth straight equality-era move; the
 //                                         ui->syncplay request rides `#v0.1.7` unchanged from v0.99.15.)
 export const EXPECTED = {
   '@phlix/contracts': {
@@ -213,7 +219,7 @@ export const EXPECTED = {
     // the peel; the normalization the v0.5.2 release commit ac669ca opened carries through), so this row
     // walks the plain tag-derived version. The override MECHANISM stays armed for a future stale-field
     // tag; none is active — the ui row retired its own at v0.99.7 (field honest at bc1d29bf) and
-    // v0.99.8 through v0.99.20 carry it.
+    // v0.99.8 through v0.99.21 carry it.
     repo: 'git+ssh://git@github.com/detain/phlix-contracts.git',
   },
   '@phlix/syncplay': {
@@ -222,32 +228,35 @@ export const EXPECTED = {
     repo: 'git+ssh://git@github.com/detain/phlix-syncplay.git',
   },
   '@phlix/ui': {
-    tag: 'v0.99.20',
-    sha: 'e48d8d029cbf81b2e92c93e0a6914765330718b1',
-    // v0.99.20 re-pin (2026-11-06, playback program's URL-contract consumer wave): the
-    // honest-field era OPENED at v0.99.7, when the `manifestVersion: '0.99.4'` skew
-    // override's own written condition fired (field re-normalized to 0.99.7 at bc1d29bf,
-    // measured via git show). v0.99.8 through this v0.99.20 tag CARRY it — reads 0.99.20
-    // at e48d8d02 (measured via git show; npm writes lock version 0.99.20) — so this row
-    // keeps walking the plain tag-derived version; the override stays RETIRED. No
-    // manifestVersion override is active anywhere now; the MECHANISM stays armed for a
-    // future stale-field tag. The step is the playback URL-contract cure over v0.99.19:
-    // ui c8c608f makes pinned-quality loads consume the server-advertised signed
-    // `playlist_url` (mini-master) / `url` (bare rung) per variant VERBATIM — probe, load
-    // and legacy fallback all read the server's own signatures and no client string-
-    // surgery ever touches a signed URL (the .19-era defect that appended `_master.m3u8`
-    // after the sig query and 404'd every pinned pick is structurally dead; un-advertised
-    // rungs derive PATH-scoped only). The published package.json diff over v0.99.19 is
-    // again version-field-alone, but — unlike .17/.19 — the shipped TYPE surface moved
-    // ADDITIVELY inside dist/ (Variant gains optional `url?`/`playlistUrl?` in
-    // components/player/transcode.d.ts; composables/useHlsTranscode.d.ts docblock-only).
-    // Windows references none of those symbols (grep-measured zero hits across src/ +
-    // tests/), so this repo's compile surface is unmoved. Unlike the genuine re-vendor
-    // at v0.99.19, the locales tree and `messages.ts` are UNMOVED across
-    // a6c9d466..e48d8d02 (git diff empty; catalog holds 524) — sixth deliberate HOLD
-    // (after v0.99.9, v0.99.10, v0.99.13, v0.99.16, v0.99.17): SOURCE_REF + PIN stay
-    // anchored at a6c9d466 untouched. The syncplay edge rides ui's unchanged `#v0.1.7`
-    // request; v0.1.7@1a80b1d1 is untouched by this wave.
+    tag: 'v0.99.21',
+    sha: '01acaa1264736fa9c744fc902044c9ad511b93ba',
+    // v0.99.21 re-pin (2026-11-06, theme-persist consumer wave): the honest-field era
+    // OPENED at v0.99.7, when the `manifestVersion: '0.99.4'` skew override's own written
+    // condition fired (field re-normalized to 0.99.7 at bc1d29bf, measured via git show).
+    // v0.99.8 through this v0.99.21 tag CARRY it — reads 0.99.21 at 01acaa12 (measured via
+    // git show; npm writes lock version 0.99.21) — so this row keeps walking the plain
+    // tag-derived version; the override stays RETIRED. No manifestVersion override is
+    // active anywhere now; the MECHANISM stays armed for a future stale-field tag. The step
+    // is the theme server-persistence consumer wave over v0.99.20: ui's TW-theme-persist
+    // work PUTs/GETs the selected theme through users/me/settings with silent hub-style
+    // degradation (server call fails -> the theme still applies locally + the quiet
+    // `settings.themeSavedLocally` hint; catalogue fetch fails -> built-ins only +
+    // `settings.themeCatalogueUnavailable` disclosure + force-refresh affordance +
+    // Plugins-page hint). The published package.json diff over v0.99.20 is again
+    // version-field-alone, and the shipped TYPE surface moved ADDITIVELY inside dist/
+    // (api/themeSettings.d.ts NEW; useTheme/errors/messages/locale .d.ts churn). Windows
+    // references none of those symbols (grep-measured zero hits across src/ + tests/), so
+    // this repo's compile surface is unmoved. Unlike the .20 HOLD, the locales tree and
+    // `messages.ts` MOVED across e48d8d02..01acaa12 — six files +2 lines each, tree
+    // 39245de0→4c264a97, messages.ts a49e432a→0a181db6, catalog 524→526 with zero
+    // removals, index.ts pair held: a genuine re-vendor (seventh — v0.99.5, v0.99.8,
+    // v0.99.12, v0.99.14, v0.99.15, v0.99.19, v0.99.21); SOURCE_REF + PIN advance to
+    // 01acaa12 in this commit. Identity: phlix-ui.js 7e4c16b5..., player.js fcb3596c...,
+    // umd 02e3caac..., carriers BTz2s3yI.js 5b5ac827... / ja0Ix1W0.cjs 0dabd9de... (the
+    // .20 BUnWXFam.js/DFDk18x-.cjs pair rotated out); cross-tree recipe agg 0e3b071f...
+    // over both the codeload payload and the installed node (888 files, diff -r
+    // byte-ident). The syncplay edge rides ui's unchanged `#v0.1.7` request;
+    // v0.1.7@1a80b1d1 is untouched by this wave.
     repo: 'git+ssh://git@github.com/detain/phlix-ui.git',
   },
 };
@@ -355,6 +364,14 @@ export const EXPECTED = {
 // the contracts pin HELD at `#v0.5.6` and ui v0.99.20's manifest requests that same tag outright (measured
 // via git show at e48d8d02 AND independently off the installed node_modules/@phlix/ui/package.json; the
 // lock's ui node records the same words) — the TWELFTH straight equality-era move: the map stays
+// present-but-empty, both contracts edges walk plain rule 1 onto the one hoisted 0.5.6@c89c8420 copy
+// (npm 11 `ci` observed a single hoisted node, zero nested dirs), and the syncplay edge rides ui's
+// unchanged `#v0.1.7` request (0.1.7@1a80b1d1 untouched). Zero ratified hoists on all four edges; the
+// walker measures green.
+// CARRIED ONCE MORE at the ui v0.99.21 re-pin (2026-11-06, theme-persist consumer wave):
+// the contracts pin HELD at `#v0.5.6` and ui v0.99.21's manifest requests that same tag outright (measured
+// via git show at 01acaa12 AND independently off the installed node_modules/@phlix/ui/package.json; the
+// lock's ui node records the same words) — the THIRTEENTH straight equality-era move: the map stays
 // present-but-empty, both contracts edges walk plain rule 1 onto the one hoisted 0.5.6@c89c8420 copy
 // (npm 11 `ci` observed a single hoisted node, zero nested dirs), and the syncplay edge rides ui's
 // unchanged `#v0.1.7` request (0.1.7@1a80b1d1 untouched). Zero ratified hoists on all four edges; the
