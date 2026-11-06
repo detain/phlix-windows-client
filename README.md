@@ -398,7 +398,7 @@ phlix-windows-client/
 │       ├── overlay.tsx        # Second Vue app entry (dynamic import from boot): mounts player overlays on #player-supplement-root
 │       ├── components/        # Local player overlay components: PlayerSupplement · SleepTimer · PiPButton
 │       ├── mediaSession.ts    # navigator.mediaSession / SMTC action handlers
-│       ├── safeStorageTokenStore.ts # DPAPI-backed TokenStore adapter (ships unused until the ui tokenStore seam lands)
+│       ├── safeStorageTokenStore.ts # DPAPI-backed TokenStore adapter (wired into the ui tokenStore seam since the v0.99.12 pin)
 │       ├── i18n/              # windows-own catalogs (7 locales) + vendored ui locale bundles + overrides
 │       ├── resolveConfig.ts   # Pure app-mode + apiBase resolution (hub vs direct server)
 │       ├── electronBridge.ts  # Maps Electron media/window IPC → @phlix/ui player store + router
@@ -440,7 +440,7 @@ phlix-windows-client/
 
 ### UI & State
 
-All screens, theming, and application state live in the shared **`@phlix/ui`** app (Pinia stores + vue-router), and every route renders a vendored page view. Along that consumer, this repo ships its own local surfaces: player overlay components (`src/renderer/components/PlayerSupplement.tsx`, `SleepTimer.tsx`, `PiPButton.tsx`, mounted by the separate app entry `src/renderer/overlay.tsx`), a DOM-rendered boot-failure screen for too-old servers with a working Retry (`renderIncompatibleServerScreen` in `src/renderer/main.ts`), a DPAPI-backed `TokenStore` adapter that ships unused until the ui `tokenStore` seam lands (`src/renderer/safeStorageTokenStore.ts`), `navigator.mediaSession`/SMTC handlers (`src/renderer/mediaSession.ts`), and its own i18n catalogs (`src/renderer/i18n/` — seven windows-own locales over the vendored ui bundles). The route table, nav entries and admin gating that place the vendored pages under `/app/*` are likewise authored locally (the routes and admin gating in `buildExtraRoutes`, the nav entries in `buildMenu` — both in `main.ts`). Configuration passed to `createPhlixApp` (app-mode, `apiBase`, `deviceHeaders`, theme, branding) is resolved at boot from Electron config; device headers are built with `@phlix/contracts` `buildPhlixHeaders`. Electron tray/menu events are bridged into `@phlix/ui`'s player store and router by `src/renderer/electronBridge.ts`.
+All screens, theming, and application state live in the shared **`@phlix/ui`** app (Pinia stores + vue-router), and every route renders a vendored page view. Along that consumer, this repo ships its own local surfaces: player overlay components (`src/renderer/components/PlayerSupplement.tsx`, `SleepTimer.tsx`, `PiPButton.tsx`, mounted by the separate app entry `src/renderer/overlay.tsx`), a DOM-rendered boot-failure screen for too-old servers with a working Retry (`renderIncompatibleServerScreen` in `src/renderer/main.ts`), a DPAPI-backed `TokenStore` adapter wired into the ui `tokenStore` seam — auth tokens seal into `%APPDATA%` via safeStorage instead of localStorage (`src/renderer/safeStorageTokenStore.ts`), `navigator.mediaSession`/SMTC handlers (`src/renderer/mediaSession.ts`), and its own i18n catalogs (`src/renderer/i18n/` — seven windows-own locales over the vendored ui bundles). The route table, nav entries and admin gating that place the vendored pages under `/app/*` are likewise authored locally (the routes and admin gating in `buildExtraRoutes`, the nav entries in `buildMenu` — both in `main.ts`). Configuration passed to `createPhlixApp` (app-mode, `apiBase`, `deviceHeaders`, theme, branding) is resolved at boot from Electron config; device headers are built with `@phlix/contracts` `buildPhlixHeaders`. Electron tray/menu events are bridged into `@phlix/ui`'s player store and router by `src/renderer/electronBridge.ts`.
 
 ## Deployment
 
@@ -554,8 +554,9 @@ and the status pins above):
 
 **Rider:** entering hub mode needs an `@phlix/ui` connection seam (a hub/server entry form in
 the shared Settings or Connect surface — this repo's thin-consumer law forbids a windows-owned
-settings page). It rides the same upstream v0.99.12 wave as the `tokenStore` seam rider in
-`src/renderer/safeStorageTokenStore.ts`. When the tripwire pins redden because that seam shipped
+settings page). The other half of that same upstream v0.99.12 wave — the `tokenStore` seam behind
+`src/renderer/safeStorageTokenStore.ts` — has since shipped and is wired (see *UI & State*); the
+connection seam never landed, so hub mode stays withheld. When the tripwire pins redden because that seam shipped
 or a caller landed, wire `boot()` to the existing `hubSetConfig` channel, restore the enterable
 copy (Features + What Works bullets, how-to steps), and retire the pins together.
 

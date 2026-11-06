@@ -176,3 +176,38 @@ describe('the IPC doc states the real enforcement law (M-WINDOWS-39/51)', () => 
     expect(doc).toMatch(/`notification:show`.*incompatible-server boot reply/s);
   });
 });
+
+// ---- w03/L6 (reviews 2026-11-04 docmaint#1 / writer#1) ----
+
+const claude = read('CLAUDE.md');
+
+describe('tokenStore custody is live (MW-051)', () => {
+  // The v0.99.12 wave shipped the ui tokenStore seam and boot() threads the
+  // vault adapter through it (main.ts createVaultTokenStore + the tokenStore
+  // spread into createPhlixApp). Every "ships unused until the seam lands"
+  // sentence was false prose about a security-custody surface — forbidden now.
+  const STALE = [
+    /ships?\s+UNUSED\s+until/i,
+    /unused\s+until\s+the\s+.{0,40}seam\s+lands/i,
+    /boots\s+into\s+place\s+the\s+moment/i,
+    /seam\s+rider\b/i,
+  ];
+  it('no doc still claims the DPAPI adapter ships unused', () => {
+    for (const [name, doc] of [
+      ['README.md', readme], ['DEVELOPER.md', developer],
+      ['CLAUDE.md', claude], ['AGENTS.md', agents],
+    ]) {
+      for (const rx of STALE) {
+        expect(doc, `${name}: ships-unused era prose must not return (${rx.source})`).not.toMatch(rx);
+      }
+    }
+    // The positive truth stays stated (What Works) — purge must not erase it.
+    expect(readme, 'README must keep asserting the adapter is WIRED').toMatch(/token-store adapter WIRED/i);
+  });
+  it('boot() really threads the vault store through the ui seam', () => {
+    const main = read('src/renderer/main.ts');
+    expect(main).toMatch(/const tokenStore = createVaultTokenStore\(api\);/);
+    expect(main).toMatch(/foldPlaintextTokensToVault\(tokenStore\)/);
+    expect(main).toMatch(/\.\.\.\(tokenStore \? \{ tokenStore \} : \{\}\)/);
+  });
+});
