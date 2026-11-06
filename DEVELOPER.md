@@ -98,7 +98,7 @@ main process reads or writes, measured from the code (M-WINDOWS-55):
 | `'deviceId'` | first `app:get-device-id` call | local `windows-<randomUUID()>` identity sent to your server — never hardware-derived |
 | `'windowBounds'` | main-window move/resize (debounced) | geometry restored on next launch |
 | `'minimizeToTray'` | tray context-menu checkbox + `tray:set-minimize-to-tray` | close-button-to-tray behavior |
-| `'notificationsEnabled'` | no in-repo writer (read at `notification:show`, default `true`) | reserved seam: gates tray toasts — today only hand-editing the store JSON changes it |
+| `'notificationsEnabled'` | View-menu + tray-menu checkboxes (shared builder `makeToggleMenuItem`, both surfaces rebuilt by `refreshShellMenus()` so the two checkboxes never disagree) | gates every toast this process raises — `notifyUser()` reads the store live per notification (default `true`; gate order: platform support → preference → payload caps → rate limit → show), so a flip takes effect immediately |
 | `'disableHardwareAcceleration'` | `gpu:set-disable-hardware-acceleration` IPC | persisted counterpart of the `PHLIX_DISABLE_GPU=1` boot switch |
 
 ### Preload Script (`src/preload/index.ts`)

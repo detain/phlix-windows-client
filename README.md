@@ -36,7 +36,7 @@ as "[[Phlix Media Server] Client] for Windows", and only humans should parse pro
 - **Media Key Support** - Media key support via thumbar buttons and tray/menu keyboard accelerators (Play/Pause, Stop, Rewind/Forward 10s bridged into the player)
 - **Authentication** - Secure login with session persistence (handled by `@phlix/ui`)
 - **Shared UI** - Modern Vue 3 interface from `@phlix/ui` with the Nocturne theme (deliberate default — the client does not follow the OS dark/light preference; one consistent look across every launch is the estate-wide brand posture. Change it any time in Settings, which persists to your server profile)
-- **Settings Management** - Configurable preferences including minimize-to-tray behavior
+- **Settings Management** - Configurable preferences including minimize-to-tray behavior and a desktop-notifications toggle (View menu or tray menu)
 
 ## Minimum Server Version
 
@@ -267,6 +267,7 @@ as the product name **Phlix**, while a from-source run uses the package name
 | Setting (electron-store key) | Default | Description |
 |---------|---------|-------------|
 | `minimizeToTray` | `true` | Closing the window hides it to the tray instead of quitting. To bring it back: click or double-click the tray icon, use the tray menu's **Show** entry, or launch the app again — the single-instance lock routes the launch to the running window and restores it |
+| `notificationsEnabled` | `true` | Gates every desktop notification the app raises, update toasts included — while off, even a manual **Check for updates** answers only in the log. Toggle from the **View** menu or the tray menu (the two checkboxes stay in sync); a flip takes effect immediately |
 | `serverUrl` | (none) | Persisted direct media server URL (`app:get/set-server-url`) |
 | `deviceId` | Auto-generated | Stable per-install device id `windows-<uuid>` (`app:get-device-id`) |
 
