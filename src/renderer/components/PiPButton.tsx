@@ -59,7 +59,9 @@ function getActiveVideo(): HTMLVideoElement | null {
 
 /**
  * PiPButton displays a Picture-in-Picture toggle button on the player.
- * Shows only when PiP is supported and playback is active.
+ * Shows whenever PiP is supported and a media session is loaded — playing or
+ * paused, matching native PiP semantics where a paused viewer keeps the
+ * affordance (reviews 2026-11-04 gameux#3 / casualgamer#3).
  */
 const PiPButton = defineComponent({
   name: 'PiPButton',
@@ -76,6 +78,19 @@ const PiPButton = defineComponent({
       pipSupported.value = isPiPSupported();
     };
 
+    // Auto-PiP is an opt-in that lives only while the user keeps the window.
+    // Every exit path routes through here (review casualgamer#3): a closed
+    // PiP window means "off", so the next play must not silently re-pop it.
+    const clearAutoPiPPref = () => {
+      savedPref.value = false;
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch {
+        // Storage unavailable (private-mode style failure) — in-memory off is
+        // still honored for this session; next boot reads no saved row.
+      }
+    };
+
     // Synced with actual PiP state on visibility change / video events
 
     const handleEnter = () => {
@@ -84,6 +99,7 @@ const PiPButton = defineComponent({
 
     const handleLeave = () => {
       isInPiP.value = false;
+      clearAutoPiPPref();
     };
 
     const setupVideoListeners = () => {
@@ -141,8 +157,7 @@ const PiPButton = defineComponent({
         if (video && !document.pictureInPictureElement) {
           video.requestPictureInPicture().catch(() => {
             // PiP rejected (e.g., not the active tab) — clear pref
-            savedPref.value = false;
-            localStorage.removeItem(STORAGE_KEY);
+            clearAutoPiPPref();
           });
         }
       }
@@ -158,8 +173,7 @@ const PiPButton = defineComponent({
         if (document.pictureInPictureElement) {
           await document.exitPictureInPicture();
           isInPiP.value = false;
-          savedPref.value = false;
-          localStorage.removeItem(STORAGE_KEY);
+          clearAutoPiPPref();
         } else {
           await video.requestPictureInPicture();
           isInPiP.value = true;
@@ -173,7 +187,10 @@ const PiPButton = defineComponent({
     };
 
     const isActive = computed((): boolean => {
-      return pipSupported.value && !!player.playing;
+      // The affordance belongs to the media session, not the play state:
+      // a paused viewer must still be able to pop the frozen frame out
+      // (review gameux#3). currentItem is watched above, so this recomputes.
+      return pipSupported.value && (!!player.currentItem || !!player.playing);
     });
 
     return () => {

@@ -6,13 +6,16 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { reactive, nextTick } from 'vue';
 import PiPButton from '@/components/PiPButton';
 
-// Mock usePlayerStore
-const mockPlayer = {
+// Mock usePlayerStore — reactive so the component's watchers (auto-PiP on play,
+// per-item listener re-sync) observe state transitions the same way they do
+// against the real Pinia store.
+const mockPlayer = reactive({
   playing: false,
   currentItem: null as any
-};
+});
 
 vi.mock('@phlix/ui', () => ({
   usePlayerStore: vi.fn(() => mockPlayer)
@@ -153,5 +156,99 @@ describe('PiPButton', () => {
     expect(offsetParentAccessed).toBe(false);
 
     querySelectorSpy.mockRestore();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// w04/L5 (reviews 2026-11-04 casualgamer#3 / gameux#3): the leave law and the
+// paused-affordance law. Red-first at 6c4d425c — closing the PiP window with
+// its own X left the auto-PiP preference saved, so every later play re-popped
+// the window (the auto-reentry trap); and pausing unmounted the button,
+// leaving the paused viewer with no PiP affordance to pop the frozen frame out.
+// ---------------------------------------------------------------------------
+describe('PiPButton leave + pause law (MW-059/MW-060)', () => {
+  const STORAGE_KEY = 'phlix-pip-enabled';
+  let video: HTMLVideoElement;
+  let querySpy: ReturnType<typeof vi.spyOn>;
+
+  function supportPiP(): void {
+    Object.defineProperty(document, 'pictureInPictureEnabled', {
+      value: true,
+      configurable: true
+    });
+    Object.defineProperty(document, 'pictureInPictureElement', {
+      value: null,
+      writable: true,
+      configurable: true
+    });
+  }
+
+  beforeEach(() => {
+    localStorage.clear();
+    mockPlayer.playing = false;
+    mockPlayer.currentItem = null;
+    video = document.createElement('video');
+    Object.defineProperty(video, 'readyState', { value: 4, configurable: true });
+    // jsdom ships no PiP surface; stand in for the browser entry point.
+    (video as HTMLVideoElement & { requestPictureInPicture: () => Promise<void> }).requestPictureInPicture = vi
+      .fn()
+      .mockResolvedValue(undefined);
+    querySpy = vi.spyOn(document, 'querySelector').mockReturnValue(video);
+  });
+
+  afterEach(() => {
+    querySpy.mockRestore();
+  });
+
+  it('closing the PiP window clears the auto-PiP preference (MW-059)', async () => {
+    supportPiP();
+    localStorage.setItem(STORAGE_KEY, 'true');
+    (document as unknown as { pictureInPictureElement: HTMLVideoElement | null }).pictureInPictureElement = video;
+    mockPlayer.playing = true;
+    mockPlayer.currentItem = { id: 'mw-059' };
+    const wrapper = mount(PiPButton, { global: { stubs: { teleport: true } } });
+
+    // The user presses the PiP window's OWN close button: the browser fires
+    // leavepictureinpicture on the video element with no overlay click.
+    (document as unknown as { pictureInPictureElement: HTMLVideoElement | null }).pictureInPictureElement = null;
+    video.dispatchEvent(new Event('leavepictureinpicture'));
+    await nextTick();
+
+    expect(localStorage.getItem(STORAGE_KEY), 'closing the PiP window is an opt-out — the saved preference must not survive it').toBeNull();
+
+    // And the later play must not re-pop the window (the auto-reentry trap).
+    mockPlayer.playing = false;
+    await nextTick();
+    mockPlayer.playing = true;
+    await nextTick();
+
+    expect(
+      (video as HTMLVideoElement & { requestPictureInPicture: ReturnType<typeof vi.fn> }).requestPictureInPicture,
+      'auto-reentry trap: a play after the window was closed must not re-open PiP'
+    ).not.toHaveBeenCalled();
+
+    wrapper.unmount();
+  });
+
+  it('keeps the PiP affordance while the video is paused (MW-060)', async () => {
+    supportPiP();
+    mockPlayer.playing = true;
+    mockPlayer.currentItem = { id: 'mw-060' };
+    const wrapper = mount(PiPButton, { global: { stubs: { teleport: true } } });
+    await nextTick();
+
+    expect(wrapper.find('button.pip-button').exists(), 'playing: affordance present').toBe(true);
+
+    // Pause — native browser PiP semantics keep the button live for the frozen frame.
+    mockPlayer.playing = false;
+    await nextTick();
+    expect(wrapper.find('button.pip-button').exists(), 'a paused viewer must keep the PiP affordance').toBe(true);
+
+    // Session gone entirely — the affordance must not haunt the overlay.
+    mockPlayer.currentItem = null;
+    await nextTick();
+    expect(wrapper.find('button.pip-button').exists(), 'no media item: affordance hidden').toBe(false);
+
+    wrapper.unmount();
   });
 });
