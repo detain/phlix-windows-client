@@ -64,11 +64,12 @@ The main process is responsible for:
    - Provides media control shortcuts
    - Click to show/hide main window
 
-3. **Application Menu**
-   - File menu (Settings, Quit)
-   - Playback menu (Play/Pause, Stop, Rewind 10s, Forward 10s, Fullscreen)
-   - View menu (Reload, DevTools, Zoom, Fullscreen)
-   - Help menu (About)
+3. **Application Menu** (`buildAppMenuTemplate()`, `src/main/index.ts:1055-1131`)
+   - File menu (Settings `Ctrl+,`, separator, Quit) — `:1062-1069`
+   - Edit menu — the native `editMenu` role (Undo/Redo, Cut/Copy/Paste/Select All; Electron renders native localized labels) — `:1072`, added by review M5
+   - Playback menu (Play/Pause, Stop, Rewind 10s, Forward 10s, Fullscreen `F11`) — `buildPlaybackMenuTemplate()` `:960-970`; the F11 row is the **only** fullscreen entry — M-WINDOWS-41 removed the duplicate View-submenu role row so one accelerator lives on one labeled, catalog-translated row
+   - View menu (Zoom reset/in/out `:1092-1094` + the two preference checkboxes **Minimize-to-Tray** and **Notifications** `:1108-1109`, kept in lockstep with the tray menu by `refreshShellMenus()`; the Reload/Force-Reload/DevTools trio `:1084-1091` is a development affordance — compiled out of the production menu, M-WINDOWS-32)
+   - Help menu (About `:1115`, Check for updates `:1117`)
 
 4. **IPC Communication**
    - `get-app-path` - Returns user data directory
@@ -284,7 +285,7 @@ describe('boot (renderer entry)', () => {
 The project uses separate TypeScript configs:
 
 - **tsconfig.json** - Renderer; `extends @vue/tsconfig/tsconfig.dom.json`, targets ES2020 with DOM
-  libs, `moduleResolution: bundler`, `noEmit` (no `jsx`). Typecheck with `vue-tsc --noEmit`.
+  libs, `moduleResolution: bundler`, `noEmit`, `jsx: "preserve"` + `jsxImportSource: "vue"` (the pair the local `.tsx` overlay components compile with — never strip it). Typecheck with `vue-tsc --noEmit`.
 - **tsconfig.main.json** - Main + preload; CommonJS for Electron compatibility. Typecheck with
   `tsc -p tsconfig.main.json --noEmit`.
 

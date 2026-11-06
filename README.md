@@ -58,11 +58,22 @@ About before downloading. Download an installer from the releases page and run i
 
 ### What is published today
 
-As of 2026-10-29 the releases page carries one rolling build: **“Latest (master)”**, rebuilt
-and replaced on every push to `master`. It wears a *Pre-release* label because no stable
+As of 2026-11-07 the releases page carries one rolling build: **“Latest (master)”**, rebuilt
+and replaced on every **green** push to `master`. It wears a *Pre-release* label because no stable
 `v*` release has been cut yet — the label does not mean “broken”; it is the current official
 download. (Publishing the first stable, versioned release is a maintainer release-process
 decision — see *Release Process* below.)
+
+The word “green” carries a disclosure: the republish chain is gated end-to-end — install, tests,
+smoke, packaging, and the dependency audit gate (`scripts/audit-gate.mjs`) must all pass on the
+push before the new build replaces the download. While any of those is red, the rolling release
+**freezes at the last green build even as `master` keeps moving**. That is not hypothetical:
+the last green master build for a while was `4e55fc02` (2026-10-30); from 2026-11-04 until the
+audit-gate decision of 2026-11-06 two standing dev-chain advisories failed every push’s audit
+leg, leaving the page up to 27 commits behind `master` while these words promised per-push
+rebuilds. The cure went through the gate’s reviewed allow-list law rather than around it
+(step 3 of *Release Process* below names the two admitted advisory ids and their re-verify
+date); the gate itself stays strict — an advisory outside that list still freezes the chain.
 
 Pick the asset that fits:
 
@@ -70,10 +81,11 @@ Pick the asset that fits:
 |-------|-----------|-----------|
 | **`Phlix-Setup-1.0.0.exe`** ([direct download](https://github.com/detain/phlix-windows-client/releases/download/latest/Phlix-Setup-1.0.0.exe)) | NSIS desktop installer — per-user, no admin rights needed, lets you choose the install folder | you are almost everyone else |
 | **`Phlix.1.0.0.appx`** | APPX package for Store/sideload distribution | you know why you want this — installing an unsigned `.appx` requires a trusted certificate or Developer Mode; prefer the `.exe` otherwise |
-| **`SHA256SUMS.txt`** | SHA-256 hashes of the installers (+ the updater .blockmap) | you want to verify the download (optional) |
+| **`SHA256SUMS.txt`** | SHA-256 hashes of the two installers you download | you want to verify the download (optional) |
 
 Filenames carry the `package.json` version (currently `1.0.0`) and are re-uploaded on each
-master push, so always take them from the release page rather than bookmarking an old link.
+green master push (the gate mechanism is disclosed above), so always take them from the release
+page rather than bookmarking an old link.
 
 **Running the installer:** double-click the downloaded `.exe` and follow the wizard — it
 installs inside your Windows profile (no admin prompt; you choose the folder) and adds a
@@ -94,9 +106,11 @@ the file is malicious, and there is no “verified publisher” here. To proceed
    (Get-FileHash .\Phlix-Setup-1.0.0.exe -Algorithm SHA256).Hash.ToLower() -eq $expected
    ```
 
-   `True` means the bytes match. The pattern is end-anchored on `.exe` because the file
-   also carries a line for the installer's `.blockmap` (differential-update map, hashed
-   for completeness — you never download it by hand). Comparing by eye instead, mind the two format quirks the
+   `True` means the bytes match. The pattern is end-anchored on `.exe` because the checksum
+   file carries one line per published artifact — today the rolling build lists exactly the two
+   installers, the `.exe` and the `.appx`; a future *versioned* release additionally hashes the
+   installer's `.blockmap` (differential-update map, hashed for completeness — you never
+   download it by hand). Comparing by eye instead, mind the two format quirks the
    snippet above absorbs: `Get-FileHash` prints UPPERCASE hex while `SHA256SUMS.txt` is
    lowercase — the digits must agree, not the case (that is what `.ToLower()` normalizes);
    and the installer's line in `SHA256SUMS.txt` is keyed by its staging path,
@@ -474,7 +488,7 @@ The project uses GitHub Actions for continuous integration:
    git push origin v1.0.0
    ```
 3. GitHub Actions will automatically:
-   - Run ESLint, vue-tsc, tsc -p tsconfig.main.json, vitest, smoke tests (Linux + Windows), and the dependency audit allow-list gate (`scripts/audit-gate.mjs`) before packaging
+   - Run ESLint, vue-tsc, tsc -p tsconfig.main.json, vitest, smoke tests (Linux + Windows), and the dependency audit allow-list gate (`scripts/audit-gate.mjs`) before packaging. The audit gate is the chain's hard stop: red, it freezes both the rolling build and any tag release (see *What is published today*). Its allow-list currently carries exactly two reviewed entries — GHSA-3g3m-2fjr-6pw4 (`glob`) and GHSA-g3hv-75wg-m249 (`minimatch`): both dev-chain-only, each with measured no-in-range-fix evidence, an upstream-watch removal plan, and a re-verify-by date of 2027-02-04. The two founding entries were retired before them — ch52 (`http-cache-semantics`) cleared by taking 4.3.0 in-range on 2026-10-08, and hp3w (`sprintf-js`) by upstream withdrawal on 2026-10-22. The semantics stay a strict subset check, not a threshold: any advisory outside the list reddens the gate
    - Build the NSIS and APPX packages
    - Verify the tag version matches `package.json` (drift fails the release)
    - Create the GitHub Release with the NSIS + APPX installers, `SHA256SUMS.txt`, and — attached verbatim, never hand-written — electron-builder's own `latest.yml` updater feed plus the installer's `.blockmap` (differential downloads)
@@ -643,7 +657,7 @@ MIT License - see project repository for details.
 - **Media keys** — Thumbar buttons and tray/menu transport entries (Play/Pause, Stop, Rewind/Forward 10s) routed into the player; the player's own `Space`/`←`/`→` stay focus-scoped on purpose
 - **Packaging** — NSIS x64 installer and APPX via `electron-builder`
 - **CI pipeline** — ESLint, vue-tsc, tsc -p tsconfig.main.json, vitest, npm audit, smoke test gate on every PR/push
-- **Coverage** — The authoritative coverage gate is vitest's enforced `lines: 54` threshold, run on every CI leg; Codecov/Codacy uploads additionally run best-effort on the ubuntu leg only (their tokens are not provisioned for this repo — uploads are known to 404; see `docs/ci-baseline.md`)
+- **Coverage** — The authoritative coverage gate is vitest's enforced `lines: 54` threshold, enforced on the one CI leg that actually runs coverage — the ubuntu `npm test -- --coverage` job in `.github/workflows/test.yml` (the windows leg and the build-pipeline test run execute bare `npm test`, on which thresholds cannot fire); Codecov/Codacy uploads additionally run best-effort on that same ubuntu leg only (their tokens are not provisioned for this repo — uploads are known to 404; see `docs/ci-baseline.md`)
 
 ### Known Limitations
 

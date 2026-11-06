@@ -86,21 +86,21 @@ The page VIEWS and base routing come from `createPhlixApp` (`@phlix/ui`'s router
 
 ## TypeScript configs
 
-- `tsconfig.json` — renderer; `extends @vue/tsconfig/tsconfig.dom.json`; `module: ESNext`, `moduleResolution: bundler`, `noEmit: true`, `lib: [ES2020, DOM, DOM.Iterable]` (no `jsx`). Renderer typecheck via `vue-tsc --noEmit`.
+- `tsconfig.json` — renderer; `extends @vue/tsconfig/tsconfig.dom.json`; `module: ESNext`, `moduleResolution: bundler`, `noEmit: true`, `lib: [ES2020, DOM, DOM.Iterable]`, `jsx: "preserve"` + `jsxImportSource: "vue"` (the pair the local `.tsx` overlay components compile with — never strip it). Renderer typecheck via `vue-tsc --noEmit`.
 - `tsconfig.main.json` — main + preload; `module: CommonJS`, `target: ES2020`, `outDir: dist`, `composite: true`. Referenced from `tsconfig.json`.
 
 ## Build & packaging
 
 - `electron-builder` config lives in `package.json` under `"build"`: `appId: app.phlix.windows`, NSIS (`oneClick: false`, `perMachine: false`) + APPX (`publisher: CN=Phlix`), icon at `build/icon.ico`.
 - Main entry shipped is `dist/main/index.js`; preload referenced as `preload.js` next to it (output by `tsc -p tsconfig.main.json`).
-- Logs go to `%APPDATA%\phlix-windows\logs\` via `electron-log`.
+- Logs go to `%APPDATA%\Phlix\logs\` (packaged app) and `%APPDATA%\phlix-windows\logs\` (source run) via `electron-log` — the app-data folder keys off the running app's name, same packaged-vs-source split as the config store (README *Configuration*/*Logs*, DEVELOPER.md §Logging).
 - `dist/` is gitignored and NOT committed — CI (`build.yml`) builds it. `coverage/`, `release/`, and `*.tsbuildinfo` are gitignored too.
 - ESLint is flat config (`eslint.config.mjs`, eslint 9 + `typescript-eslint` + `eslint-plugin-vue`). The old `.eslintrc.cjs`/`.eslintignore` were removed. Vite/Vitest configs use explicit-ESM extensions (`vite.config.mts`, `vitest.config.mts`).
 
 ## CI
 
-- `.github/workflows/test.yml` — runs `npm test` and lint on every push/PR.
-- `.github/workflows/build.yml` — builds release artifacts on tag push.
+- `.github/workflows/test.yml` — on every push/PR (main/master/develop): `test` job (build + `npm test` + coverage/upload, matrix `ubuntu-26.04`×`windows-2025`), `lint`, `types` (three-pass typecheck), and `smoke` (Linux + Windows).
+- `.github/workflows/build.yml` — on every `master` push **and** `v*.*.*` tag push: `lint`/`typecheck`/`test`/`smoke`/`audit` (the `audit-gate.mjs` hard gate), then `build` (nsis + appx); a bare master push publishes the rolling `latest` pre-release via `release-latest`, a `v*.*.*` tag creates the versioned release.
 
 ## Detailed developer guide
 
