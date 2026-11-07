@@ -194,7 +194,14 @@ async function confirmDeepLinkFollow(win: BrowserWindow, url: string): Promise<b
   const { response } = await dialog.showMessageBox(win, {
     type: 'question',
     buttons: [t('deeplink.confirmAccept'), t('deeplink.confirmReject')],
-    defaultId: 0,
+    // windows__exploiter 5[i] (w08/L2): the INERT arm owns the keyboard
+    // default. With defaultId 0 a key-mash (or Enter out of muscle memory)
+    // silently accepted and burned a one-time invite secret, while
+    // mouse-holding Cancel declined. Esc already mapped to Reject via
+    // cancelId 1; now Enter does too. Only an explicit click on Accept — or
+    // an arrow-key move onto it followed by Enter — answers response 0 and
+    // forwards. Keep-forward semantics (response === 0) unchanged.
+    defaultId: 1,
     cancelId: 1,
     title: t('deeplink.failedTitle'),
     message: t('deeplink.confirmMessage'),
@@ -354,7 +361,12 @@ let _updateCheckTimer: NodeJS.Timeout | null = null;
 // update-available, update-not-available, or error — consumes it exactly once.
 let manualUpdateCheckPending = false;
 
-const isDev = process.env.NODE_ENV === 'development' || (!app.isPackaged && !process.env.PHLIX_FORCE_PRODUCTION);
+// windows__crossfe 4[i] (w08/L2): a PACKAGED app is never the dev shell,
+// whatever the environment says — !app.isPackaged gates the whole expression,
+// so a stray NODE_ENV=development can no longer unlock the :5173 boot URL or
+// the dev-only menu rows inside an installed build. Unpackaged semantics
+// (including the smoke test's PHLIX_FORCE_PRODUCTION posture) are unchanged.
+const isDev = !app.isPackaged && (process.env.NODE_ENV === 'development' || !process.env.PHLIX_FORCE_PRODUCTION);
 
 log.initialize();
 log.info('Phlix Windows starting...');

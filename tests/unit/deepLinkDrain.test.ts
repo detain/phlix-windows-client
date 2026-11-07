@@ -54,7 +54,10 @@ const tracks = vi.hoisted(() => {
     dialogCalls: [] as unknown[][],
     // M-WINDOWS-31: the button index the mocked dialog answers back with
     // (0 = first button = Accept, 1 = Cancel). Tests flip it per case.
-    confirmResponse: 0
+    // The 'default' sentinel models the KEYBOARD default: the mock answers
+    // with the dialog's OWN defaultId — exactly what a plain Enter press
+    // returns (windows__exploiter 5[i]).
+    confirmResponse: 0 as number | 'default'
   };
 });
 
@@ -220,7 +223,18 @@ vi.mock('electron', () => {
       showOpenDialog: vi.fn(() => Promise.resolve({ canceled: true, filePaths: [] })),
       showMessageBox: vi.fn((...args: unknown[]) => {
         tracks.dialogCalls.push(args);
-        return Promise.resolve({ response: tracks.confirmResponse });
+        // 'default' answers with the dialog's own defaultId — the Enter-key
+        // result — so the keyboard default is exercised, not assumed (w08/L2).
+        const response =
+          tracks.confirmResponse === 'default'
+            ? ((args.find(
+                (a) =>
+                  typeof a === 'object' &&
+                  a !== null &&
+                  (a as { type?: string }).type === 'question'
+              ) as { defaultId?: number } | undefined)?.defaultId ?? 0)
+            : tracks.confirmResponse;
+        return Promise.resolve({ response });
       })
     },
     screen: {
@@ -528,6 +542,39 @@ describe('M-WINDOWS-31 confirm-before-consume on token-bearing links', () => {
     const dialogText = JSON.stringify(questionDialogOptions());
     expect(dialogText).not.toContain(secret); // raw one-time token must not ride a dialog string
     expect(dialogText).toContain('[redacted]');
+  });
+
+  it('Enter answers the REJECT arm — a key-mash never burns the one-time secret', async () => {
+    // windows__exploiter 5[i] (w08/L2): with defaultId 0 the ACCEPT button
+    // owned the keyboard default — Enter (or a muscle-memoried key-mash)
+    // silently consumed a one-time invite token, while only mouse-holding
+    // Cancel declined. The inert arm must own both keyboard exits, and the
+    // law is behavioral: answering with the dialog's own defaultId forwards
+    // nothing. RED at the parent shape (defaultId 0 → Enter forwards).
+    tracks.deepLinkSends.length = 0;
+    tracks.dialogCalls.length = 0;
+    tracks.confirmResponse = 'default'; // the mock answers with the recorded defaultId
+    announceReadyFrom(currentWindow());
+
+    enqueueViaSecondInstance('phlix://accept-invite/DEFDEF-1');
+    const options = questionDialogOptions()[0] as {
+      buttons: unknown[];
+      defaultId: number;
+      cancelId: number;
+    };
+    expect(options.buttons).toHaveLength(2);
+    expect(options.defaultId, 'the inert arm owns the keyboard default').toBe(1);
+    expect(options.cancelId, 'Esc posture unchanged').toBe(1);
+
+    await tick();
+    expect(tracks.deepLinkSends, 'Enter must not forward a secret-consuming link').toEqual([]);
+
+    // Explicit Accept stays one keypress away, not zero: an arrow-key move
+    // onto button 0 (the mocked answer 0) still forwards, once.
+    tracks.confirmResponse = 0;
+    enqueueViaSecondInstance('phlix://accept-invite/DEFDEF-2');
+    await tick();
+    expect(tracks.deepLinkSends).toEqual([['deeplink:open', '/app/accept-invite/DEFDEF-2']]);
   });
 
   it('non-consuming links still forward synchronously — no question on them', () => {

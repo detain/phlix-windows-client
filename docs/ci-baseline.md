@@ -116,7 +116,7 @@ the SHA column is the pushed commit each run tested.
 
 ## Workflow Structure Summary
 
-### test.yml — Runs on every push/PR to main/master/develop
+### test.yml — Runs on every push/PR to master (w08/L2: master-only — the retired main/develop entries could never fire)
 - **lint** (ubuntu-26.04): `npm ci` → `npm run lint`
 - **types** (ubuntu-26.04): `npm ci` → `vue-tsc --noEmit` → `tsc -p tsconfig.main.json --noEmit` → `vue-tsc --noEmit -p tsconfig.test.json`
 - **test** (ubuntu-26.04 + windows-2025 matrix): `npm ci` → `npm run build` → `npm test` → `npm test -- --coverage` + Codecov/Codacy upload → `node scripts/audit-gate.mjs` (audit runs LAST — a red earlier step can never skip the audit signal, and the audit's own raw exit code still hard-gates the job)
@@ -127,11 +127,11 @@ the SHA column is the pushed commit each run tested.
 - **typecheck** (ubuntu-26.04): `npm ci` → `vue-tsc --noEmit` → `tsc -p tsconfig.main.json --noEmit` → `vue-tsc --noEmit -p tsconfig.test.json`
 - **test** (ubuntu-26.04): `npm ci` → `npm run build` → `npm test`
 - **smoke** (ubuntu-26.04 + windows-2025 matrix): `npm ci` → Playwright install → `npm run build` → `npm run smoke`
-- **build** (windows-2025, needs: [lint, typecheck, test, smoke, audit]): `npm ci` → `npm run build:vite` → `npm run build:electron` → electron-builder (NSIS + APPX)
+- **build** (windows-2025, needs: [lint, typecheck, test, smoke, audit]): `npm ci` → `node scripts/check-assets.js` → `npm run build:vite` → `npm run build:electron` → electron-builder (NSIS + APPX)
 - **release-latest** / **release** (on tag push or master push)
 
-### codeql.yml — Runs on every push/PR to main/master (src/** changes)
-- **analyze** (ubuntu-26.04): `npm ci` → `npm run build:vite` + `npm run build:electron` → CodeQL `security-extended` analysis
+### codeql.yml — Runs on every push/PR to master (src/** changes; w08/L2 master-only like the rest)
+- **analyze** (ubuntu-26.04): `npm ci` → `node scripts/check-assets.js` → `npm run build:vite` + `npm run build:electron` → CodeQL `security-extended` analysis
 
 ## Notes
 

@@ -322,7 +322,7 @@ the session both end). Turning `minimizeToTray` off in the View menu makes
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `VITE_PHLIX_SERVER_URL` | (none) | Build-time fallback is empty (user must configure a server URL at first boot) |
-| `VITE_PHLIX_LOCALE` | (none) | Build-time renderer locale override — the resolved tag picks BOTH the windows-own renderer catalogs (nav/boot/overlay) and the vendored `@phlix/ui` bundle (`src/renderer/i18n/index.ts:109`); the main-process chrome (menu/tray/thumbar) follows the OS locale via `app.getLocale()` instead — see docs/i18n.md |
+| `VITE_PHLIX_LOCALE` | (none) | Build-time renderer locale override — the resolved tag picks BOTH the windows-own renderer catalogs (nav/boot/deeplink/overlay — all four groups of `windows-own/en.ts`, whole-file selection) and the vendored `@phlix/ui` bundle (`src/renderer/i18n/index.ts:109`); the main-process chrome (menu/tray/thumbar) follows the OS locale via `app.getLocale()` instead — see docs/i18n.md |
 | `NODE_ENV` | `development` | Runtime environment |
 | `PHLIX_DISABLE_GPU` | (unset) | Set to `1` to switch off hardware acceleration at startup (`app.disableHardwareAcceleration()`) — the escape hatch for GPU-compositor crashes before the first window exists |
 | `PHLIX_FORCE_PRODUCTION` | (unset) | Truthy value makes an unpackaged tree boot the production `app://` path instead of the Vite dev server — what the smoke test uses to exercise the real boot URL without a packaged installer |

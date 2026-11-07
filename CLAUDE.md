@@ -99,7 +99,7 @@ The page VIEWS and base routing come from `createPhlixApp` (`@phlix/ui`'s router
 
 ## CI
 
-- `.github/workflows/test.yml` — on every push/PR (main/master/develop): `test` job (build + `npm test` + coverage/upload, matrix `ubuntu-26.04`×`windows-2025`), `lint`, `types` (three-pass typecheck), and `smoke` (Linux + Windows).
+- `.github/workflows/test.yml` — on every push/PR (master only): `test` job (build + `npm test` + coverage/upload, matrix `ubuntu-26.04`×`windows-2025`), `lint`, `types` (three-pass typecheck), and `smoke` (Linux + Windows).
 - `.github/workflows/build.yml` — on every `master` push **and** `v*.*.*` tag push: `lint`/`typecheck`/`test`/`smoke`/`audit` (the `audit-gate.mjs` hard gate), then `build` (nsis + appx); a bare master push publishes the rolling `latest` pre-release via `release-latest`, a `v*.*.*` tag creates the versioned release.
 
 ## Detailed developer guide

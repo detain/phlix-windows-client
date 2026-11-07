@@ -2,12 +2,14 @@ name: CodeQL
 
 on:
   push:
-    branches: [main, master]
+    # windows__devops 6[i] (w08/L2): master-only — matching build.yml/test.yml;
+    # the main entry could never fire in this master-only repo.
+    branches: [master]
     paths:
       - 'src/**'
       - '.github/workflows/codeql.yml'
   pull_request:
-    branches: [main, master]
+    branches: [master]
     paths:
       - 'src/**'
       - '.github/workflows/codeql.yml'
@@ -47,6 +49,10 @@ jobs:
       - name: Build
         run: |
           npm ci
+          # windows__devops 5[i] (w08/L2): the sub-script legs bypass the
+          # package.json `prebuild` hook — run the asset check explicitly so
+          # every CI build path applies the same gate.
+          node scripts/check-assets.js
           npm run build:vite
           npm run build:electron
 

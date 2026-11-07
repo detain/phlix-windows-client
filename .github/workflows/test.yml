@@ -2,9 +2,11 @@ name: Test
 
 on:
   push:
-    branches: [main, master, develop]
+    # windows__devops 6[i] (w08/L2): master-only, matching build.yml — the
+    # main and develop entries could never fire in this master-only repo.
+    branches: [master]
   pull_request:
-    branches: [main, master, develop]
+    branches: [master]
 
 concurrency:
   group: test-${{ github.ref }}
@@ -116,12 +118,16 @@ jobs:
       # coverage and the best-effort uploads always report first.
       #
       # `node scripts/audit-gate.mjs` wraps `npm audit --json --audit-level=high`
-      # with an explicit, justified advisory allow-list. The allow-list is
-      # currently EMPTY (2026-10-29 sweep: the two founding dev-chain entries —
-      # ch52 http-cache-semantics, fixed by taking 4.3.0 in-range, and hp3w
-      # sprintf-js, withdrawn upstream — were both retired, and the 22 fresh
-      # time-drift advisories on vitest/electron/fast-uri/follow-redirects/
-      # undici/vite all cleared by in-parent-range version bumps). Raw exit
+      # with an explicit, justified advisory allow-list. The list currently
+      # carries exactly TWO reviewed decisions (reopened 2026-11-06):
+      # GHSA-3g3m-2fjr-6pw4 (glob) + GHSA-g3hv-75wg-m249 (minimatch) —
+      # dev-chain-only, each with measured no-in-range-fix evidence, an
+      # upstream-watch removal plan and a re-verify-by 2027-02-04 carried on
+      # the entries. The earlier 2026-10-29 state (list EMPTY after the
+      # founding retirements — ch52 http-cache-semantics cleared in-range by
+      # 4.3.0, hp3w sprintf-js withdrawn upstream — and 22 time-drift
+      # advisories cleared by in-parent-range bumps) stands recorded in the
+      # script header and the CHANGELOG entry the pair rides with. Raw exit
       # code — no `|| true`, no continue-on-error: the gate fails the job on
       # any advisory AND on any neutering vector (unparseable/unknown audit
       # output, failed spawn, broken audit reporting zero advisories). See the

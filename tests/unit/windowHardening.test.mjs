@@ -109,3 +109,34 @@ describe('M-WINDOWS-14: tray takes the shell-picked multi-size icon', () => {
     expect(resizeCount).toBeLessThanOrEqual(1);
   });
 });
+
+describe('windows__crossfe 4[i] (w08/L2): a packaged app is never the dev shell', () => {
+  // The definition is EVALUATED, not string-matched: a truth table over the
+  // three inputs it reads (app.isPackaged, NODE_ENV, PHLIX_FORCE_PRODUCTION)
+  // proves the law — PACKAGED is false whatever the environment says — while
+  // the unpackaged dev and smoke postures keep their recorded behavior.
+  // (Line-anchored extraction; the definition's own comment must never carry
+  // a line-initial copy of the declaration or this lookup poisons.)
+  const expr = main.match(/^const isDev = ([^;]+);$/m)?.[1];
+  const devFor = (opts) => {
+    if (!expr) {
+      throw new Error('the isDev definition line moved or changed shape — re-anchor this law');
+    }
+    const fakeApp = { isPackaged: opts.packaged };
+    const fakeProcess = { env: { NODE_ENV: opts.nodeEnv, PHLIX_FORCE_PRODUCTION: opts.forceProd } };
+    return new Function('app', 'process', `"use strict"; return (${expr});`)(fakeApp, fakeProcess);
+  };
+
+  it('PACKAGED is never dev — a stray NODE_ENV cannot unlock the :5173 boot or the dev menus', () => {
+    expect(devFor({ packaged: true, nodeEnv: 'development' })).toBe(false);
+    expect(devFor({ packaged: true, nodeEnv: 'production' })).toBe(false);
+    expect(devFor({ packaged: true })).toBe(false);
+  });
+  it('the unpackaged dev posture keeps working (npm run dev / plain electron .)', () => {
+    expect(devFor({ packaged: false, nodeEnv: 'development' })).toBe(true);
+    expect(devFor({ packaged: false })).toBe(true);
+  });
+  it('the unpackaged + PHLIX_FORCE_PRODUCTION smoke posture boots the production path', () => {
+    expect(devFor({ packaged: false, nodeEnv: 'production', forceProd: '1' })).toBe(false);
+  });
+});

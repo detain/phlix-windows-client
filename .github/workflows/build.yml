@@ -10,7 +10,9 @@ on:
     paths:
       - 'src/**'
       - 'package.json'
-      - 'electron-builder.*'
+      # windows__devops 6[i] (w08/L2): no 'electron-builder.*' entry — the
+      # builder config lives INSIDE package.json (covered above); no root
+      # electron-builder file has ever existed, so the filter could never match.
       - '.github/workflows/build.yml'
   # M-WINDOWS-27: the dispatch `version` input was deleted. Its only reader sat
   # inside the tag-gated release job, so a dispatch build could never use it —
@@ -250,6 +252,13 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      # windows__devops 5[i] (w08/L2): this job builds via the sub-scripts,
+      # which bypass the package.json `prebuild` hook that every `npm run
+      # build` leg honors — so the asset check runs explicitly here, keeping
+      # the gate identical on all packaging paths.
+      - name: Check build assets
+        run: node scripts/check-assets.js
 
       - name: Build renderer
         run: npm run build:vite
@@ -532,9 +541,12 @@ jobs:
           # release would collide (silent overwrite or 422, per
           # softprops/action-gh-release semantics). The build leg's file stays
           # inside the CI artifact (traceability) but is no longer an asset;
-          # THIS is the one human-readable companion the release page and
-          # README:419 promise. It now also hashes the .blockmap (the nsis-leg
-          # file's unique coverage) so nothing is lost by the dedupe.
+          # THIS is the one human-readable companion the release page and the
+          # README "What is published today" asset table promise (SHA256SUMS.txt
+          # row + its PowerShell verification walkthrough — symbol cite per the
+          # docs/ci-baseline.md law: coordinates rot, symbols don't; the old
+          # line-number cite rotted). It now also hashes the .blockmap (the
+          # nsis-leg file's unique coverage) so nothing is lost by the dedupe.
           shopt -s nullglob
           files=(nsis/*.exe nsis/*.exe.blockmap appx/*.appx)
           if [ ${#files[@]} -eq 0 ]; then echo "::error::release checksum found no artifacts to hash" >&2; exit 1; fi
