@@ -929,4 +929,34 @@ describe('m3 hub-only deep-link refusal (server mode never 404s a link)', () => 
     expect(pushSpy).toHaveBeenCalledWith('/app/media/tt0111161');
     expect(api.showNotification).not.toHaveBeenCalled();
   });
+
+  it('server mode: a case-variant invite link is refused too (mirror of the main gate)', async () => {
+    // REVIEW-w09L2windows INFO (sub-surface of the Major): vue-router matches
+    // records case-insensitively, so an exact-case hub-only lookup let
+    // '/app/Accept-Invite/x' slip past the refusal in server mode and dead-
+    // end on the 404 page — the silent-404 class m3 exists to kill. RED on
+    // landing: the refusal never fires and the push goes out ungated.
+    const { api, listeners } = makeLinkApi('server');
+    const mod = await import('@/main');
+    await mod.boot();
+    listeners[0]('/app/Accept-Invite/abc123');
+    await Promise.resolve(); await Promise.resolve();
+    expect(api.showNotification).toHaveBeenCalledWith(
+      'This link belongs to a Phlix Hub',
+      expect.stringMatching(/^Invite links come from a Phlix Hub\./)
+    );
+    expect(pushSpy).not.toHaveBeenCalled();
+  });
+
+  it('hub mode: a case-variant invite link routes with its ORIGINAL token case', async () => {
+    // Guard for the fold's boundary: only the COMPARISON is case-folded —
+    // the forwarded path must keep the base64url secret's case intact.
+    const { api, listeners } = makeLinkApi('hub');
+    const mod = await import('@/main');
+    await mod.boot();
+    listeners[0]('/app/Accept-Invite/MixedCase-Secret-9');
+    await Promise.resolve(); await Promise.resolve();
+    expect(pushSpy).toHaveBeenCalledWith('/app/Accept-Invite/MixedCase-Secret-9');
+    expect(api.showNotification).not.toHaveBeenCalled();
+  });
 });

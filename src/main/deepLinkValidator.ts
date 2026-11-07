@@ -52,15 +52,23 @@ const ROUTE_BY_HOST: Record<string, string> = {
 
 /**
  * Redacts a deep link for logging: keeps scheme + host + path structure but
- * replaces the final path segment with `[redacted]` when the host is
- * `accept-invite` (its segment is a one-time secret). Query strings and
+ * replaces the final path segment with `[redacted]` when the route touches
+ * the `accept-invite` segment (its tail is a one-time secret). The match is
+ * case-folded and route-position-aware — the host form AND the
+ * `internal/app/accept-invite/…` arm carry live secrets, and the router
+ * reaches the view for every letter-case spelling (REVIEW-w09L2windows).
+ * Over-redacting a look-alike browse path is the safe direction: a log that
+ * hides too much leaks nothing. Query strings and
  * fragments are always dropped — they may carry further secrets.
  */
 export function redactDeepLinkUrl(url: string): string {
   try {
     const parsed = new URL(url);
     const segments = parsed.pathname.split('/').filter((segment) => segment.length > 0);
-    if (parsed.hostname === 'accept-invite' && segments.length > 0) {
+    const inviteRoute =
+      parsed.hostname.toLowerCase() === 'accept-invite' ||
+      segments.some((segment) => segment.toLowerCase() === 'accept-invite');
+    if (inviteRoute && segments.length > 0) {
       segments[segments.length - 1] = '[redacted]';
     }
     const redactedPath = segments.length > 0 ? `/${segments.join('/')}` : '';
@@ -213,9 +221,21 @@ export function parseDeepLinkUrl(url: string): string | null {
  * (`media`, `play`, `server`, `internal`) is browse-only: the worst a stray
  * link can do is navigate. The gate lives in the MAIN process on purpose:
  * the renderer (vendored ui) has no concept of "ask first".
+ *
+ * REVIEW-w09L2windows MAJOR: the comparison is CASE-FOLDED. The renderer's
+ * vue-router resolves route records case-insensitively (executed: every
+ * letter-case spelling of '/app/Accept-Invite/T' matches the accept-invite
+ * record with its token intact), so exact-case classification let a mere
+ * letter-case variant skip this consent gate and burn the one-time secret
+ * ungated. Only the COMPARISON is folded — callers keep forwarding the
+ * original path, because the base64url token itself is case-sensitive.
+ * Percent-encoded spellings ('%2D', '%65') fold to no match here AND cannot
+ * reach the record through the router (executed: they fall to the 404 catch-
+ * all), so the fold neither over-blocks nor under-covers any reachable class.
  */
 export function requiresDeepLinkConfirmation(path: string): boolean {
-  return path === '/app/accept-invite' || path.startsWith('/app/accept-invite/');
+  const canonical = path.toLowerCase();
+  return canonical === '/app/accept-invite' || canonical.startsWith('/app/accept-invite/');
 }
 
 export function extractDeepLinkUrl(argv: string[]): string | null {

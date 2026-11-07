@@ -64,8 +64,16 @@ export function parseServerVersion(version: string): { major: number; minor: num
 const MAX_LOGGED_VERSION_LENGTH = 32;
 
 function summarizeVersionForLog(version: string): string {
-  if (version.length <= MAX_LOGGED_VERSION_LENGTH && parseServerVersion(version)) {
-    return version; // regex-validated: digits and dots only, capped length
+  // REVIEW-w09L2windows MINOR (lane-introduced with MW-090): the gate trimmed
+  // (parseServerVersion does) but the ACCEPT arm returned the UNTRIMMED raw,
+  // so a short padded '\n2.0.0\n' parsed green and was logged verbatim —
+  // whitespace padding smuggled forgeable newlines past the single-line law.
+  // Return the TRIMMED canonical: the only form guaranteed newline- and
+  // control-free at the log seam. The reject arm still reports the RAW
+  // length — that is the payload-size signal the cap exists to carry.
+  const canonical = version.trim();
+  if (canonical.length <= MAX_LOGGED_VERSION_LENGTH && parseServerVersion(canonical)) {
+    return canonical; // regex-validated: digits and dots only, capped length
   }
   return `<unverifiable version, length=${version.length}>`;
 }

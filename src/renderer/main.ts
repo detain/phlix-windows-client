@@ -643,20 +643,20 @@ export async function boot(): Promise<void> {
     }
   }
 
-  // Listen for deep links from main process (W4.4)
-  // m3 (casualgamer #5): hub-only routes must not dead-end a direct-server
-  // window on the shared shell's 404 page AFTER the app asked "Follow this
-  // Phlix link?". `/app/accept-invite/:token` and `/app/server/:id` are
-  // registered ONLY by hub mode's extraRoutes (see the extraRoutes header),
-  // so in any other mode the link is refused with an explicit native
-  // notification — never a silent 404, never an unexplained dead end.
+  // Listen for deep links from main process (W4.4). m3 (casualgamer #5):
+  // hub-only routes must not dead-end a direct-server window on the shared
+  // shell's 404 page after consent — `/app/accept-invite/:token` and
+  // `/app/server/:id` exist ONLY in hub mode's extraRoutes, so any other
+  // mode refuses with an explicit native notification: never a silent 404.
+  // The compare below folds case (vue-router resolves records case-free;
+  // REVIEW-w09L2windows mirror of the main gate — the token keeps its case).
   const HUB_ONLY_ROUTES: ReadonlyArray<{ prefix: string; bodyKey: 'deeplink.inviteBody' | 'deeplink.serverBody' }> = [
     { prefix: '/app/accept-invite/', bodyKey: 'deeplink.inviteBody' },
     { prefix: '/app/server/', bodyKey: 'deeplink.serverBody' }
   ];
   const routeDeepLink = (path: string): void => {
     if (appMode !== 'hub') {
-      const hubOnly = HUB_ONLY_ROUTES.find((r) => path.startsWith(r.prefix));
+      const hubOnly = HUB_ONLY_ROUTES.find((r) => path.toLowerCase().startsWith(r.prefix));
       if (hubOnly) {
         log.warn(`[deeplink] hub-only route refused in ${appMode} mode: ${hubOnly.prefix}`);
         if (api?.showNotification) {

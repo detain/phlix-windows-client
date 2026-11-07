@@ -283,4 +283,48 @@ describe('src/main/index.ts deep-link wiring (regression shields)', () => {
     expect(mainSource).toMatch(/'did-start-loading'[\s\S]{0,120}deepLinkReceiverReady = false/);
     expect(mainSource).toMatch(/'closed',\s*\(\)\s*=>\s*\{[\s\S]{0,400}deepLinkReceiverReady = false/);
   });
+
+  it('classifies deep-link consumption through a SINGLE gate seam (REVIEW-w09L2windows Major)', () => {
+    // All four delivery arms (cold-start argv, second-instance, open-url,
+    // notification clickAction) funnel through handleDeepLinkUrl → the one
+    // pump, and the pump calls the consent classifier exactly once. A second
+    // call site would mean a leg classifying for itself — the shape that let
+    // a gate miss become a bypass. Definition + 4 dispatch arms = 5.
+    const gateCalls = mainSource.match(/requiresDeepLinkConfirmation\(/g) ?? [];
+    expect(gateCalls, 'import carries no parens — exactly one classification call site').toHaveLength(1);
+    const dispatches = mainSource.match(/handleDeepLinkUrl\(/g) ?? [];
+    expect(dispatches, 'definition + four delivery arms').toHaveLength(5);
+  });
+});
+
+describe('redactDeepLinkUrl case-fold law (REVIEW-w09L2windows)', () => {
+  // The renderer's router reaches the invite view for EVERY letter-case
+  // spelling, and the internal arm carries the same route under host
+  // 'internal' — so the one-time secret can ride a log line or rejection
+  // dialog in shapes the old hostname-exact comparison waved through. The
+  // redaction law is total now: any URL whose route touches the invite
+  // segment redacts its final segment, whatever the case. Folding the
+  // COMPARISON redacts more, never less — over-redaction is the safe
+  // direction; the parse grammar (KNOWN_HOSTS, /app base law) stays exact.
+  it('redacts the internal-arm invite form (lowercase AND case variants)', () => {
+    const lower = redactDeepLinkUrl('phlix://internal/app/accept-invite/SEC-TOKEN');
+    expect(lower).not.toContain('SEC-TOKEN');
+    expect(lower).toContain('[redacted]');
+    const variant = redactDeepLinkUrl('phlix://internal/app/Accept-Invite/SEC-TOKEN');
+    expect(variant).not.toContain('SEC-TOKEN');
+    expect(variant).toContain('[redacted]');
+  });
+
+  it('redacts a case-variant host form without widening acceptance', () => {
+    const out = redactDeepLinkUrl('phlix://Accept-Invite/SEC-TOKEN');
+    expect(out).not.toContain('SEC-TOKEN');
+    expect(out).toContain('[redacted]');
+    // Grammar unchanged: the case-variant host is still NOT a known host.
+    expect(parseDeepLinkUrl('phlix://Accept-Invite/SEC-TOKEN')).toBeNull();
+  });
+
+  it('leaves secret-free routes intact', () => {
+    expect(redactDeepLinkUrl('phlix://media/42')).toBe('phlix://media/42');
+    expect(redactDeepLinkUrl('phlix://internal/app/settings')).toBe('phlix://internal/app/settings');
+  });
 });

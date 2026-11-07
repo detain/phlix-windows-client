@@ -512,6 +512,24 @@ describe('M-WINDOWS-31 confirm-before-consume on token-bearing links', () => {
     expect(requiresDeepLinkConfirmation('/app/internal/settings')).toBe(false);
   });
 
+  it('classifies letter-case variants of the invite route as consuming too', () => {
+    // REVIEW-w09L2windows MAJOR (pre-existing class): the renderer's
+    // vue-router resolves route records CASE-INSENSITIVELY — the review lane
+    // executed '/app/Accept-Invite/T' → name 'accept-invite', params.token
+    // 'T' (probe re-run by this lane: every letter-case spelling resolves;
+    // percent spellings like %2D fall to the 404 catch-all, never to the
+    // record). Exact-case classification therefore let a mere letter-case
+    // spelling skip this consent gate and burn the one-time secret ungated.
+    // The gate now canonicalizes its COMPARISON; the path itself keeps case
+    // because the base64url token is case-sensitive.
+    expect(requiresDeepLinkConfirmation('/app/Accept-Invite/anything')).toBe(true);
+    expect(requiresDeepLinkConfirmation('/app/ACCEPT-INVITE')).toBe(true);
+    expect(requiresDeepLinkConfirmation('/App/Accept-Invite/x')).toBe(true);
+    // No widening for spellings the router cannot reach anyway:
+    expect(requiresDeepLinkConfirmation('/app/accept%2Dinvite/x')).toBe(false);
+    expect(requiresDeepLinkConfirmation('/app/Accept-Invite-x')).toBe(false);
+  });
+
   it('holds the accept-invite link until the user answers; forwards exactly once on Accept', async () => {
     tracks.deepLinkSends.length = 0;
     tracks.dialogCalls.length = 0;
@@ -542,6 +560,33 @@ describe('M-WINDOWS-31 confirm-before-consume on token-bearing links', () => {
     const dialogText = JSON.stringify(questionDialogOptions());
     expect(dialogText).not.toContain(secret); // raw one-time token must not ride a dialog string
     expect(dialogText).toContain('[redacted]');
+  });
+
+  it('a case-variant invite link parks at the dialog too — never forwards ungated', async () => {
+    // REVIEW-w09L2windows MAJOR: the internal arm emits its path case-
+    // preserved, the exact-case gate missed '/app/Accept-Invite/…', and the
+    // case-insensitive renderer router consumed the secret with no dialog.
+    // RED on landing: the payload reaches the renderer synchronously and no
+    // question ever appears.
+    tracks.deepLinkSends.length = 0;
+    tracks.dialogCalls.length = 0;
+    tracks.confirmResponse = 1; // decline
+    announceReadyFrom(currentWindow());
+
+    enqueueViaSecondInstance('phlix://internal/app/Accept-Invite/CASEVAR-decline-1');
+    expect(tracks.deepLinkSends, 'case variant must not forward ungated').toEqual([]);
+    expect(questionDialogOptions().length).toBe(1);
+
+    await tick();
+    expect(tracks.deepLinkSends, 'a declined case variant is never forwarded').toEqual([]);
+
+    // And when ACCEPTED, the original case must survive into the IPC payload:
+    // the base64url token is case-sensitive, so the fold may not touch it.
+    tracks.dialogCalls.length = 0;
+    tracks.confirmResponse = 0;
+    enqueueViaSecondInstance('phlix://internal/app/Accept-Invite/CASEVAR-ok-2');
+    await tick();
+    expect(tracks.deepLinkSends).toEqual([['deeplink:open', '/app/Accept-Invite/CASEVAR-ok-2']]);
   });
 
   it('Enter answers the REJECT arm — a key-mash never burns the one-time secret', async () => {

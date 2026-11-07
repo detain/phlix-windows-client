@@ -207,7 +207,7 @@ async function confirmDeepLinkFollow(win: BrowserWindow, url: string): Promise<b
     // The old title recited failedTitle ("Could Not Open Link") for a link the
     // parser ACCEPTED — the dialog declared an error while the body asked a
     // question. confirmTitle names the ask; failedTitle stays exclusive to
-    // showDeepLinkRejectedDialog (index.ts:110).
+    // showDeepLinkRejectedDialog — cited by symbol: coordinates rot.
     title: t('deeplink.confirmTitle'),
     message: t('deeplink.confirmMessage'),
     detail: redactDeepLinkUrl(url)

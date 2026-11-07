@@ -284,6 +284,36 @@ describe('checkMinServerVersion', () => {
     expect(infos.some((line) => line.includes('9'.repeat(40)))).toBe(false);
   });
 
+  it('logs the TRIMMED canonical for a whitespace-padded parsable version', async () => {
+    // REVIEW-w09L2windows MINOR (lane-introduced in MW-090): the sanitizer's
+    // gate trims (parseServerVersion does) but its ACCEPT arm returned the
+    // UNTRIMMED raw — a short padded '\n2.0.0\n' parsed green and was logged
+    // verbatim, smuggling a forged newline line past the single-line law.
+    // The cure is to return the TRIMMED canonical (the only form guaranteed
+    // newline- and control-free at the log seam). RED on landing: the log
+    // line carries the raw newlines.
+    const padded = '\n2.0.0\n';
+    fetchSpy.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ version: padded })
+    } as Response);
+
+    const result = await checkMinServerVersion('http://localhost:8096');
+    expect(result.compatible, 'sanitizer law: this is a LOG filter, not a gate').toBe(true);
+
+    const allArgs = [
+      ...vi.mocked(log.info).mock.calls,
+      ...vi.mocked(log.warn).mock.calls,
+      ...vi.mocked(log.error).mock.calls
+    ]
+      .flat()
+      .filter((a): a is string => typeof a === 'string');
+    for (const arg of allArgs) {
+      expect(arg, `log line escaped newline-free law: ${JSON.stringify(arg)}`).not.toContain('\n');
+    }
+    expect(log.info).toHaveBeenCalledWith('[versionCheck] Server reports version: 2.0.0');
+  });
+
   it('warns that enforcement is INACTIVE when the endpoint is unreachable', async () => {
     fetchSpy.mockRejectedValueOnce(new Error('ETIMEDOUT'));
 
