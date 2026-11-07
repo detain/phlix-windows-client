@@ -198,10 +198,15 @@ jobs:
       # Allow-list gate (same contract as test.yml's Security audit step): raw
       # exit code, no `|| true`. Passes only while every reported advisory id is
       # explicitly justified in scripts/audit-gate.mjs's ALLOWED_ADVISORIES —
-      # currently EMPTY (the two founding dev-chain entries ch52/hp3w were
-      # retired 2026-10-29: ch52 fixed by taking http-cache-semantics 4.3.0 in
-      # its parent's declared range, hp3w-withdrawn-by-GitHub; the 22 fresh
-      # time-drift advisories all cleared by in-parent-range bumps). Any other
+      # the list currently carries exactly TWO reviewed decisions (reopened
+      # 2026-11-06): GHSA-3g3m-2fjr-6pw4 (glob) + GHSA-g3hv-75wg-m249
+      # (minimatch) — dev-chain-only, each with measured no-in-range-fix
+      # evidence, an upstream-watch removal plan and a re-verify-by 2027-02-04
+      # carried on the entries. The earlier 2026-10-29 state (list EMPTY after
+      # the founding retirements — ch52 http-cache-semantics cleared in-range
+      # by 4.3.0, hp3w sprintf-js withdrawn upstream — and 22 time-drift
+      # advisories cleared by in-parent-range bumps) stands recorded in the
+      # script header and the CHANGELOG entry the pair rides with. Any other
       # advisory — or any unread/failed audit — reddens this job, which blocks
       # the build → release-latest/release chain below by `needs:`.
       - name: Run npm audit

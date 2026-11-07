@@ -74,6 +74,7 @@ export const it = {
   deeplink: {
     failedTitle: 'Impossibile aprire il collegamento',
     failedMessage: 'Phlix ha ricevuto un collegamento che non è stato possibile aprire. Verifica la provenienza e riprova.',
+    confirmTitle: 'Aprire questo link?',
     confirmMessage: 'Seguire questo link Phlix?',
     confirmAccept: 'Segui link',
     confirmReject: 'Annulla'

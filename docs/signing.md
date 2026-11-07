@@ -195,6 +195,40 @@ misconfiguration this section exists to forbid: the flag on, no certs.
 
 ---
 
+## Auto-Update Verification: Integrity Today, Authenticity Only After `publisherName` (windows__secnet 3[m])
+
+The forceCodeSigning story above governs **build-time signing of the
+artifact**. The auto-updater has a SEPARATE verification seam, and in the
+current unsigned posture it is a **silent no-op**:
+
+- Against the locked `electron-updater`, `out/NsisUpdater.js`'s
+  `verifySignature` returns null — skip — when `app-update.yml` carries no
+  `publisherName` key.
+- This app ships unsigned, so `publisherName` never lands in the published
+  `app-update.yml`; the updater therefore accepts installer bytes on
+  **feed trust alone**: TLS to the GitHub release feed plus the
+  `latest.yml` sha512 digest. That is INTEGRITY, never claimed authenticity
+  (the law `signingPosturePolicy.test.mjs` states for the feed).
+- Consequence, stated plainly for users and operators: a compromise of the
+  `detain/phlix-windows-client` release feed is a mass remote-code path
+  gated only by a user clicking the update toast. The manual-install story
+  (verify `SHA256SUMS.txt`, README "First run") does not cover the
+  updater-installed bytes, which arrive over the same feed with no
+  publisher check.
+
+**Updater half of the flip gate:** provisioning the certificate is NOT
+sufficient to activate updater verification. The same cert-gated change
+must also land `publisherName` in the shipped `app-update.yml` (via the
+electron-builder `win.publisherName` configuration, set to the signing
+certificate's subject CN — the `build.win` subtree is schema-validated
+with `additionalProperties: false`, and `publisherName` is a legitimate
+`WindowsConfiguration` property). Until that key lands, a provisioned
+certificate stays **un-enforced by the updater** even though build-time
+signing is on. The root `signingPosture.flipGate` carries this clause;
+`signingPosturePolicy.test.mjs` keeps the mirror honest.
+
+---
+
 ## CI Signing Configuration (When Ready)
 
 > **Status reminder (measured 2026-10-29): nothing below is active.** The

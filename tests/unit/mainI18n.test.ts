@@ -97,6 +97,9 @@ const ORIGINAL_MAIN_PROCESS_STRINGS: Record<MainMessageKey, string> = {
   'deeplink.failedMessage': 'Phlix received a link it could not open. Check where you got it and try again.',
   // M-WINDOWS-31 additions (born in the catalog): the confirm-before-consume
   // question for token-bearing (invite) links and its two buttons.
+  // windows__gameux 1[m] (MW-086): own title for the consent dialog — the
+  // question no longer wears the failure title (era-rotation precedent).
+  'deeplink.confirmTitle': 'Open this link?',
   'deeplink.confirmMessage': 'Follow this Phlix link?',
   'deeplink.confirmAccept': 'Follow link',
   'deeplink.confirmReject': 'Cancel',

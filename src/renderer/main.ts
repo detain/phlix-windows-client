@@ -402,6 +402,13 @@ function renderIncompatibleServerScreen(
   box.appendChild(retryButton);
 
   container.replaceChildren(box);
+
+  // windows__gameux 5[m] (MW-089): one-Enter-away from recovery BY
+  // CONSTRUCTION. Pre-fix the screen painted with focus on <body> — Enter did
+  // nothing, no ring was visible, and the copy telling the user to press
+  // "Try again" gave no cue that a Tab came first. The button is in the
+  // document the moment replaceChildren returns, so focus() lands.
+  retryButton.focus();
 }
 
 export async function boot(): Promise<void> {
@@ -768,4 +775,8 @@ export function renderBootFailure(): void {
   panel.appendChild(message);
   panel.appendChild(retry);
   document.body.appendChild(panel);
+  // windows__gameux 5[m] (MW-089): the boot-failure counterpart of the
+  // incompatible screen's focus-by-construction law — Retry owns keyboard
+  // focus the moment the panel lands in the document.
+  retry.focus();
 }

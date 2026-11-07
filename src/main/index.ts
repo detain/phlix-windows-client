@@ -203,7 +203,12 @@ async function confirmDeepLinkFollow(win: BrowserWindow, url: string): Promise<b
     // forwards. Keep-forward semantics (response === 0) unchanged.
     defaultId: 1,
     cancelId: 1,
-    title: t('deeplink.failedTitle'),
+    // windows__gameux 1[m] (MW-086): consent surface, not a failure surface.
+    // The old title recited failedTitle ("Could Not Open Link") for a link the
+    // parser ACCEPTED — the dialog declared an error while the body asked a
+    // question. confirmTitle names the ask; failedTitle stays exclusive to
+    // showDeepLinkRejectedDialog (index.ts:110).
+    title: t('deeplink.confirmTitle'),
     message: t('deeplink.confirmMessage'),
     detail: redactDeepLinkUrl(url)
   });

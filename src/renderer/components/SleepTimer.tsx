@@ -355,10 +355,21 @@ const SleepTimer = defineComponent({
             </div>
           )}
 
-          {/* Expired notice */}
+          {/* Expired notice — windows__gameux 2[m] (MW-087): the notice owns
+              its own dismiss control. After handleExpire nulls endTime, the
+              countdown pill (which carries its own cancel) and the menu's
+              Cancel row both unrender, so without this button the badge
+              could only be cleared by arming a NEW timer — the dismiss path
+              now runs the SAME cancelTimer the live pill uses (clears
+              isExpired, resets state, drops the notice), and the aria-label
+              reuses the established 'Cancel sleep timer' string (no new
+              catalog key). */}
           {isExpired.value && (
             <div
               style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
                 padding: '4px 12px',
                 background: 'rgba(180,60,60,0.85)',
                 borderRadius: '16px',
@@ -366,7 +377,26 @@ const SleepTimer = defineComponent({
                 fontSize: '13px',
               }}
             >
-              {tWin('overlay.expiredNotice')}
+              <span>{tWin('overlay.expiredNotice')}</span>
+              <button
+                onClick={cancelTimer}
+                aria-label={tWin('overlay.cancelSleepTimer')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#aaa',
+                  cursor: 'pointer',
+                  padding: 0,
+                  width: '20px',
+                  height: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '6px',
+                }}
+              >
+                <CrossIcon />
+              </button>
             </div>
           )}
 

@@ -178,6 +178,9 @@ describe('boot (renderer entry)', () => {
       const retry = container.querySelector('button');
       expect(retry, 'boot-failure surface must offer a Retry button').not.toBeNull();
       expect(retry?.textContent).toBe('Try again');
+      // windows__gameux 5[m] (MW-089): the screen is built one-Enter-away from
+      // recovery — focus lands on Retry at render, not on <body>.
+      expect(document.activeElement, 'Retry must own keyboard focus at render').toBe(retry);
     } finally {
       container.remove();
     }
@@ -810,6 +813,9 @@ describe('m7 boot-failure surface (renderBootFailure)', () => {
       expect(button, 'panel must carry a Retry affordance').toBeTruthy();
       expect(button!.textContent).toBe('Try again');
       expect(panel!.getAttribute('role')).toBe('alert');
+      // windows__gameux 5[m] (MW-089): same focus-by-construction law as the
+      // incompatible screen — the panel's Retry owns the keyboard.
+      expect(document.activeElement, 'Retry must own keyboard focus at render').toBe(button);
       mod.renderBootFailure();
       expect(document.querySelectorAll('#boot-failure').length).toBe(1);
     } finally {

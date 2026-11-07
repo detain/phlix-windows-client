@@ -40,6 +40,19 @@ describe('static boot splash (M-WINDOWS-01)', () => {
     expect(textNodes).toBe('Phlix');
   });
 
+  // windows__gameux 4[m] (MW-088): the pre-JS wait must be ANNOUNCED. The div
+  // formerly carried aria-hidden="true" — total silence for up to ~5s on an
+  // opened window. role=status + one fixed aria-label now announces it; the
+  // zero-visible-prose law above still holds (label is an attribute, not a
+  // text node).
+  it('the splash announces the boot wait to assistive tech', () => {
+    const start = indexHtml.indexOf('<div id="boot-splash"');
+    const splashTag = indexHtml.slice(start, indexHtml.indexOf('>', start));
+    expect(splashTag).toContain('role="status"');
+    expect(splashTag).toContain('aria-label="Loading Phlix"');
+    expect(splashTag, 'aria-hidden would contradict the status announcement').not.toContain('aria-hidden');
+  });
+
   it('the spinner honors reduced-motion and paints on the boot background', () => {
     expect(indexHtml).toMatch(/prefers-reduced-motion:\s*reduce/);
     // Same dark the BrowserWindow backgroundColor uses (#1a1a2e, main/index.ts).

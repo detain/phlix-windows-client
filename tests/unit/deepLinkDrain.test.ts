@@ -561,10 +561,15 @@ describe('M-WINDOWS-31 confirm-before-consume on token-bearing links', () => {
       buttons: unknown[];
       defaultId: number;
       cancelId: number;
+      title: string;
     };
     expect(options.buttons).toHaveLength(2);
     expect(options.defaultId, 'the inert arm owns the keyboard default').toBe(1);
     expect(options.cancelId, 'Esc posture unchanged').toBe(1);
+    // windows__gameux 1[m] (MW-086): a consent surface may not wear the
+    // failure title — 'Could Not Open Link' belongs exclusively to the
+    // rejected-dialog path. Red on the parent (title was failedTitle).
+    expect(options.title, 'confirm dialog carries its own consent title').toBe('Open this link?');
 
     await tick();
     expect(tracks.deepLinkSends, 'Enter must not forward a secret-consuming link').toEqual([]);

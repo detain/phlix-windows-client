@@ -260,6 +260,45 @@ describe('SleepTimer', () => {
     } as any);
   });
 
+  // Law (windows__gameux 2[m], MW-087): the expiry notice owns a dismiss
+  // path. After handleExpire nulls endTime, BOTH cancel affordances (the
+  // countdown pill and the menu's Cancel row) unrender, so pre-fix the only
+  // way to make the badge go away was arming a NEW timer. Red on the parent:
+  // the notice renders with zero controls, so the dismiss lookup below finds
+  // nothing.
+  it('the expired notice can be dismissed without arming a new timer', async () => {
+    vi.mocked(usePlayerStore).mockReturnValue({
+      playing: true,
+      pause: pauseMock
+    } as any);
+
+    const wrapper = mount(SleepTimer, {
+      global: { stubs: { teleport: true } }
+    });
+    await wrapper.find('.sleep-timer-trigger').trigger('click');
+    await wrapper.findAll('.sleep-timer-preset')[0].trigger('click');
+
+    // Expire it (no video element in jsdom → pause lands directly).
+    vi.advanceTimersByTime(15 * 60 * 1000 + 100);
+    await wrapper.vm.$nextTick();
+    expect(wrapper.text()).toContain('Sleep timer expired');
+
+    const dismiss = wrapper.find('button[aria-label="Cancel sleep timer"]');
+    expect(dismiss.exists(), 'expired notice must carry its own dismiss control').toBe(true);
+    await dismiss.trigger('click');
+    await wrapper.vm.$nextTick();
+
+    // Notice gone, state reset, nothing persisted, no new timer armed:
+    expect(wrapper.text()).not.toContain('Sleep timer expired');
+    expect(localStorage.getItem('phlix-sleep-timer')).toBeNull();
+
+    wrapper.unmount();
+    vi.mocked(usePlayerStore).mockReturnValue({
+      playing: false,
+      pause: pauseMock
+    } as any);
+  });
+
   // Law (m2 cure, windows__casualgamer #3): the pill is visible exactly while
   // the RAF loop runs, so it seeds the true remainder on mount and ticks with
   // the clock. Pre-fix the loop only ran with the menu open/after expiry and

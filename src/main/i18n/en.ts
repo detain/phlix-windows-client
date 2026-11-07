@@ -70,6 +70,11 @@ export const en = {
   deeplink: {
     failedTitle: 'Could Not Open Link',
     failedMessage: 'Phlix received a link it could not open. Check where you got it and try again.',
+    // windows__gameux 1[m] (MW-086): the confirm-before-consume question must
+    // not wear the failure title — a parsed-but-not-yet-approved link is a
+    // consent question, not a "Could Not Open Link" error. failedTitle stays
+    // exclusive to showDeepLinkRejectedDialog.
+    confirmTitle: 'Open this link?',
     confirmMessage: 'Follow this Phlix link?',
     confirmAccept: 'Follow link',
     confirmReject: 'Cancel'

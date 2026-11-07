@@ -48,6 +48,29 @@ export function parseServerVersion(version: string): { major: number; minor: num
 }
 
 /**
+ * windows__secnet 2[m] (MW-090): the server `version` field is network input
+ * that reaches the electron-log file BEFORE any comparison happens. Logged
+ * raw, a hostile or compromised server could forge electron-log lines with
+ * embedded newlines or push unbounded payloads into the Windows app-data log
+ * directory. The repo's discipline for network-sourced strings is
+ * scheme+host summaries (urlValidator.ts) and reject-not-truncate caps
+ * (notificationGuard.ts) — this applies the same law to the version shape:
+ * raw text is logged ONLY when parseServerVersion has validated the strict
+ * X.Y.Z form AND it fits a length cap (digit runs are unbounded in the
+ * regex); anything else logs its length and nothing else (the M-WINDOWS-44
+ * refusal-shape law). The verdict itself is untouched — this is a LOG
+ * sanitizer, not a gate.
+ */
+const MAX_LOGGED_VERSION_LENGTH = 32;
+
+function summarizeVersionForLog(version: string): string {
+  if (version.length <= MAX_LOGGED_VERSION_LENGTH && parseServerVersion(version)) {
+    return version; // regex-validated: digits and dots only, capped length
+  }
+  return `<unverifiable version, length=${version.length}>`;
+}
+
+/**
  * Compares two version strings semantically.
  * Returns true if current >= required.
  */
@@ -57,7 +80,11 @@ function versionSatisfiesMin(current: string, required: string): boolean {
 
   // Fail-open: if we can't parse either version, assume it satisfies the requirement
   if (!currentParts || !requiredParts) {
-    log.warn(`[versionCheck] Could not parse version strings: current="${current}", required="${required}" — allowing boot to continue`);
+    // MW-090: `current` is server-controlled and reached this arm precisely
+    // BECAUSE it is not a valid version — never echo it raw. `required` is the
+    // local MIN_SERVER_VERSION constant (this function's only caller passes
+    // the constant), so it stays readable.
+    log.warn(`[versionCheck] Could not parse version strings: current=${summarizeVersionForLog(current)}, required="${required}" — allowing boot to continue`);
     return true;
   }
 
@@ -168,14 +195,14 @@ export async function checkMinServerVersion(apiBase: string): Promise<ServerVers
       return { compatible: true, serverVersion: null, minimumVersion: MIN_SERVER_VERSION };
     }
 
-    log.info(`[versionCheck] Server reports version: ${version}`);
+    log.info(`[versionCheck] Server reports version: ${summarizeVersionForLog(version)}`);
 
     if (!versionSatisfiesMin(version, MIN_SERVER_VERSION)) {
-      log.error(`[versionCheck] Server version ${version} is below minimum supported ${MIN_SERVER_VERSION} — blocking boot`);
+      log.error(`[versionCheck] Server version ${summarizeVersionForLog(version)} is below minimum supported ${MIN_SERVER_VERSION} — blocking boot`);
       return { compatible: false, serverVersion: version, minimumVersion: MIN_SERVER_VERSION };
     }
 
-    log.info(`[versionCheck] Server version ${version} satisfies minimum ${MIN_SERVER_VERSION}`);
+    log.info(`[versionCheck] Server version ${summarizeVersionForLog(version)} satisfies minimum ${MIN_SERVER_VERSION}`);
     return { compatible: true, serverVersion: version, minimumVersion: MIN_SERVER_VERSION };
   } catch (err) {
     // Network error, timeout, etc. — fail-open for pre-1.1.0 servers, but the

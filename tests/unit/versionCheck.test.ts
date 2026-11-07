@@ -235,6 +235,55 @@ describe('checkMinServerVersion', () => {
     expect(log.info).toHaveBeenCalledWith('[versionCheck] Server reports version: 1.2.3');
   });
 
+  // Law (windows__secnet 2[m], MW-090): the raw server version never reaches
+  // the log file. A hostile server forging electron-log lines with embedded
+  // newlines — or shoving an unbounded payload into the app-data log dir —
+  // must land only as a length summary; every logged argument stays
+  // newline-free and free of the injected token. Fail-open VERDICT is
+  // unchanged (this is a log sanitizer, not a gate). Red on the parent: the
+  // raw interpolations echo both payloads.
+  it('logs an unforged line summary for a newline-bearing hostile version, verdict still fail-open', async () => {
+    const hostile = '1.0.0\n[versionCheck] FORGED LINE attacker@example.com';
+    fetchSpy.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ version: hostile })
+    } as Response);
+
+    const result = await checkMinServerVersion('http://localhost:8096');
+    expect(result.compatible).toBe(true);
+
+    const allArgs = [
+      ...vi.mocked(log.info).mock.calls,
+      ...vi.mocked(log.warn).mock.calls,
+      ...vi.mocked(log.error).mock.calls
+    ]
+      .flat()
+      .filter((a): a is string => typeof a === 'string');
+    for (const arg of allArgs) {
+      expect(arg, `log line escaped newline-free law: ${JSON.stringify(arg)}`).not.toContain('\n');
+      expect(arg).not.toContain('FORGED');
+    }
+    expect(log.info).toHaveBeenCalledWith(
+      `[versionCheck] Server reports version: <unverifiable version, length=${hostile.length}>`
+    );
+  });
+
+  it('caps over-length parsable-shaped versions to a length summary (reject-not-truncate)', async () => {
+    const huge = `${'9'.repeat(40)}.0.0`; // matches X.Y.Z but blows past the 32-char log cap
+    fetchSpy.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ version: huge })
+    } as Response);
+
+    const result = await checkMinServerVersion('http://localhost:8096');
+    expect(result.compatible).toBe(true);
+    expect(log.info).toHaveBeenCalledWith(
+      `[versionCheck] Server reports version: <unverifiable version, length=${huge.length}>`
+    );
+    const infos = vi.mocked(log.info).mock.calls.map((c) => String(c[0]));
+    expect(infos.some((line) => line.includes('9'.repeat(40)))).toBe(false);
+  });
+
   it('warns that enforcement is INACTIVE when the endpoint is unreachable', async () => {
     fetchSpy.mockRejectedValueOnce(new Error('ETIMEDOUT'));
 

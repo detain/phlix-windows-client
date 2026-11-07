@@ -14,8 +14,14 @@
       unreachable server (boot() awaits config IPC + a 5s version gate) shows
       the brand and a spinner instead of a dark empty frame. Inline style is
       CSP-legal (style-src 'unsafe-inline' — required for Vue scoped styles
-      anyway). Animation + wordmark only: no prose, so nothing to localize.
-      Reduced-motion users get a static ring.
+      anyway). Animation + wordmark only: no visible prose, so nothing to
+      localize. Reduced-motion users get a static ring.
+      windows__gameux 4[m] (MW-088): the wait was silent for assistive tech —
+      the div carried aria-hidden="true" and announced NOTHING for up to ~5s
+      on an opened window. It is now a live status region with one fixed
+      aria-label. This stays truthful with zero pre-JS machinery: a localized
+      visually-hidden label is impossible before the catalog loads, and the
+      review's sanctioned cure is exactly this single role=status announcement.
     -->
     <style>
       html, body { margin: 0; background: #1a1a2e; }
@@ -40,7 +46,7 @@
   <body>
     <!-- Sibling of (never inside) #phlix-app: tests/smoke/boot.spec.ts treats
          children of the mount point as the "renderer booted" proof. -->
-    <div id="boot-splash" aria-hidden="true"><span class="boot-splash-wordmark">Phlix</span><span class="boot-splash-ring"></span></div>
+    <div id="boot-splash" role="status" aria-label="Loading Phlix"><span class="boot-splash-wordmark">Phlix</span><span class="boot-splash-ring"></span></div>
     <div id="phlix-app"></div>
     <div id="player-supplement-root"></div>
     <script type="module" src="/main.ts"></script>
