@@ -271,7 +271,15 @@ describe('src/main/index.ts deep-link wiring (regression shields)', () => {
 
   it('drains only on the renderer deeplink:ready handshake, with sender identity checked (M-WINDOWS-06)', () => {
     expect(mainSource).toMatch(/ipcMain\.on\(\s*'deeplink:ready',\s*\(event\)/);
-    expect(mainSource).toMatch(/event\.sender\s*!==\s*mainWindow\.webContents/);
+    // w10/L1 rotation: the inline identity expression was folded into the
+    // shared senderTrusted gate — identical predicate (current, undestroyed
+    // main window webContents), single-sourced for the whole deny-by-default
+    // sweep. The law is unchanged; its enforcement point moved.
+    const ready = mainSource.slice(
+      mainSource.indexOf("ipcMain.on('deeplink:ready'"),
+      mainSource.indexOf('drainPendingDeepLinks();', mainSource.indexOf("ipcMain.on('deeplink:ready'"))
+    );
+    expect(ready).toMatch(/if \(!senderTrusted\(event\)\)/);
   });
 
   it('drops the webContents.send("deeplink:open") to a single delivery point (M-WINDOWS-06)', () => {

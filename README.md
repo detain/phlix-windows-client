@@ -147,20 +147,24 @@ directly to your library.
 
 ### Keyboard shortcuts
 
-Two shortcuts are registered app-wide by the native menu; everything else that a
-menu row *displays* is either a player-scoped key or a native role default:
+Two shortcuts are registered app-wide by the native menu. Everything the
+shell relays or the web player's own engine handles is bare-key and
+document-scoped — no menu row displays a key it does not register:
 
 | Keys | What they do | Scope |
 |------|--------------|-------|
 | `F11` | Toggle fullscreen | Anywhere in the app (registered menu accelerator) |
 | `Ctrl` + `,` | Open Settings | Anywhere in the app (registered menu accelerator) |
-| `Space`, `←`, `→` | Play/pause, seek −10 s / +10 s | Only while the **player** has focus — these are the shared web player's own keys. The Playback menu rows show them as a hint; they are deliberately *not* registered as menu accelerators, so they never hijack typing in a text field. Tray/thumbar/menu **clicks** route the same actions to the player regardless of focus. |
+| `Space`, `←`, `→` | Play/pause, seek −10 s / +10 s | Everywhere **outside** the player: the shell relays these bare keys document-wide to the running playback — text fields and button activation are exempt, so typing is never hijacked. Inside the player route the shared web player's own keyboard engine owns the same keys, and the relay deliberately stands down there so nothing double-fires. They are deliberately *not* registered as menu accelerators, and the Playback menu rows carry no hint for them. Tray/thumbar/menu **clicks** route the same actions to the player regardless of focus. |
 | `Ctrl` + `Z`/`X`/`C`/`V`, `Ctrl` + `A` | Undo, cut, copy, paste, select all | Editable text and selections (standard Windows Edit-menu roles) |
 
-The transport rows carrying displayed-but-unregistered keys are a deliberate
-honesty exception (they document the player's keys where users look for them —
-the code comment at `src/main/index.ts` records the reasoning, and
-`tests/unit/menuTraySurfaces.test.ts` pins that they register no accelerators).
+The Playback menu's transport rows display no shortcut text: a menu row that
+shows a key it does not register is a promise the shell breaks whenever focus
+sits elsewhere. The disabled info row at the bottom of that menu names the
+keys and their scope instead. `tests/unit/menuTraySurfaces.test.ts` pins both
+halves of that law — the transport rows register (and display) no accelerators,
+and the info row carries none either (F11's row is the one row that shows a
+key and truly owns it).
 
 ### HTTPS & certificates
 

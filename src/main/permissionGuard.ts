@@ -57,9 +57,11 @@ export function allowPermission(permission: unknown): boolean {
  * including the IPv4-mapped spelling `[::ffff:127.0.0.1]` (normalizes to
  * `[::ffff:7f00:1]`) — the trust carve-outs stay ::1-loopback-only.
  *
- * Single source of the loopback law for BOTH trust sites: this module's
- * `isTrustedRequesterUrl` (permission carve-out) and index.ts's
- * `downloadUrlTrusted` (will-download default-deny).
+ * Single source of the loopback HOST law for both trust sites: this module's
+ * `isTrustedRequesterUrl` (permission carve-out — where it is additionally
+ * PORT-bound to the dev server, see w10/L1 below) and index.ts's
+ * `downloadUrlTrusted` (will-download default-deny — deliberately host-broad:
+ * a download from any loopback origin is the reviewed m14 posture).
  */
 export function isLoopbackHostname(hostname: string): boolean {
   return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
@@ -70,16 +72,24 @@ export function isLoopbackHostname(hostname: string): boolean {
  * once ANY page reached the top-level window (navigations stay permitted),
  * it inherited the silent clipboard-sanitized-write grant too. The grant now
  * additionally requires the requester to be OUR document: the local app://-
- * shell (or the dev-server origin, which serves the same bundle). Anything
+ * shell (or the dev server, which serves the same bundle). Anything
  * else — including the media server's own https origin once navigated to —
  * must ask the user like every other permission.
+ *
+ * w10/L1 (review windows__casualgamer 5 / windows__secnet 3): the loopback
+ * arm was HOST-only — every service listening anywhere on loopback silently
+ * held it, including this app's own media server ports. The grant is now
+ * PORT-BOUND exactly like the preload's TRUSTED_BOOT_TARGETS
+ * (src/preload/index.ts): `http://` on the vite strictPort 5173 and nothing
+ * else. The host law still rides the shared isLoopbackHostname helper (the
+ * I-w1 bracket-form parse law); only the port pairing is new.
  */
 export function isTrustedRequesterUrl(rawUrl: unknown): boolean {
   if (typeof rawUrl !== 'string' || rawUrl.length === 0) return false;
   try {
     const url = new URL(rawUrl);
     if (url.protocol === 'app:') return url.host === '-';
-    return isLoopbackHostname(url.hostname);
+    return url.protocol === 'http:' && url.port === '5173' && isLoopbackHostname(url.hostname);
   } catch {
     return false;
   }

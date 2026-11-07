@@ -43,7 +43,8 @@ export const it = {
     help: 'Guida',
     about: 'Informazioni su Phlix',
     checkForUpdates: 'Controlla aggiornamenti',
-    notifications: 'Notifiche'
+    notifications: 'Notifiche',
+    keyboardShortcutsHint: 'Scorciatoie: Spazio, ←, → (fuori dal player)'
   },
   thumbar: {
     previous: 'Riavvolgi 10 s',

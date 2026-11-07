@@ -211,3 +211,41 @@ describe('tokenStore custody is live (MW-051)', () => {
     expect(main).toMatch(/\.\.\.\(tokenStore \? \{ tokenStore \} : \{\}\)/);
   });
 });
+
+// ---------------------------------------------------------------------------
+// w10/L1 (windows__casualgamer #5): the Keyboard shortcuts section had never
+// been rotated after the m10 pass stripped the displayed accelerators, and it
+// claimed the transport keys work ONLY inside the player — the relay
+// (src/renderer/electronBridge.ts installFocusGuard) returns early ON the
+// player route, so the exact opposite is true: the shell relays those keys on
+// every route EXCEPT the player, where the vendored engine owns them.
+// ---------------------------------------------------------------------------
+describe('README keyboard-shortcuts truth (w10/L1)', () => {
+  const FORBIDDEN = [
+    /Only while the \*\*player\*\* has focus/,
+    /menu rows? show them as a hint/i,
+    /show them as a hint/i,
+    /carrying displayed-but-unregistered keys/i
+  ];
+  it('no shortcut prose claims the menu hints unregistered keys or player-only scope', () => {
+    for (const rx of FORBIDDEN) {
+      expect(readme, `README shortcuts: stale era prose must not return (${rx.source})`).not.toMatch(rx);
+    }
+    // The intro promised displayed-but-unregistered keys existed; m10 made
+    // that sentence about nothing — it must not come back either.
+    expect(readme, 'README shortcuts: a menu row never displays an unregistered key').not.toMatch(/everything else that a menu row \*displays\*/);
+  });
+  it('the transport row states the relay scope truth and the no-hint law', () => {
+    const section = (() => {
+      const start = readme.indexOf('### Keyboard shortcuts');
+      expect(start, 'README lost its Keyboard shortcuts section').toBeGreaterThan(-1);
+      const end = readme.indexOf('### ', start + 5);
+      return readme.slice(start, end === -1 ? undefined : end);
+    })();
+    expect(section, 'the relay scope (outside the player) must be stated').toMatch(/outside\*\* the player/);
+    expect(section, 'the vendored-engine jurisdiction must be stated').toMatch(/engine/i);
+    expect(section, 'the no-hint law must be stated').toMatch(/no (shortcut )?hint/i);
+    expect(section, 'F11/Ctrl-, stay described as registered').toContain('registered menu accelerator');
+    expect(section, 'the click surfaces keep routing regardless of focus').toMatch(/regardless of focus/);
+  });
+});

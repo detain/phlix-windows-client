@@ -24,10 +24,11 @@ const { prefs, tracks, WIN } = vi.hoisted(() => {
     sessionOn: new Map<string, (...args: unknown[]) => unknown>(),
     dialogBoxes: [] as Array<Record<string, unknown>>,
     reloads: [] as true[],
+    loads: [] as unknown[],
     notifications: [] as Array<{ title?: string; body?: string; onClick?: () => void }>
   };
   const WIN = {
-    loadURL: () => undefined, loadFile: () => undefined, show: () => undefined, hide: () => undefined,
+    loadURL: (url: unknown) => { tracks.loads.push(url); }, loadFile: () => undefined, show: () => undefined, hide: () => undefined,
     close: () => undefined, isDestroyed: () => false, setAlwaysOnTop: () => undefined,
     setFullScreen: () => undefined, isFullScreen: () => false, isMinimized: () => false,
     isVisible: () => true, focus: () => undefined, restore: () => undefined, isFocused: () => true,
@@ -38,6 +39,10 @@ const { prefs, tracks, WIN } = vi.hoisted(() => {
       setWindowOpenHandler: () => undefined,
       on: (channel: string, fn: (event: unknown, ...args: unknown[]) => unknown) => { tracks.wcOn.set(channel, fn); },
       openDevTools: () => undefined,
+      // w10/L1: a failed main-frame load commits NOTHING — the empty string
+      // is what a real webContents reports here; the crash-recovery arm
+      // decides reload-vs-re-boot on exactly this value.
+      getURL: () => '',
       reload: () => { tracks.reloads.push(true); }
     },
     on: (channel: string, fn: (event: unknown, ...args: unknown[]) => unknown) => { tracks.winOn.set(channel, fn); },
@@ -130,6 +135,7 @@ vi.mock('electron', () => ({
 }));
 
 import '../../src/main/index';
+import { PROD_BOOT_URL } from '../../src/main/index';
 import log from 'electron-log';
 
 type CertListener = (
@@ -215,15 +221,21 @@ describe('M10/m7b: did-fail-load wires the boot-retry surface', () => {
     expect(tracks.notifications.length).toBe(notesBefore);
   });
 
-  it('an app:// boot failure opens the Reload dialog and reloads on answer', async () => {
+  it('an app:// boot failure opens the Reload dialog and re-boots on answer', async () => {
+    // w10/L1 rotation (review windows__casualgamer #7): the old arm was a
+    // bare reload() — on a boot that never committed a document that
+    // re-loads nothing useful. The response arm now reads the COMMITTED url:
+    // empty here, so the answer re-boots PROD_BOOT_URL through loadURL.
     const dialogsBefore = tracks.dialogBoxes.length;
+    const loadsBefore = tracks.loads.length;
     listener()({}, -322, 'ERR_FILE_NOT_FOUND', 'app://-/app/', true);
     await Promise.resolve();
     await Promise.resolve();
     expect(tracks.dialogBoxes.length).toBe(dialogsBefore + 1);
     const opts = tracks.dialogBoxes[tracks.dialogBoxes.length - 1];
     expect((opts.buttons as string[]).length).toBe(2); // crashRecoveryDialog shape: Reload + Dismiss
-    expect(tracks.reloads.length).toBeGreaterThan(0);
+    expect(tracks.loads.length).toBe(loadsBefore + 1);
+    expect(tracks.loads[tracks.loads.length - 1]).toBe(PROD_BOOT_URL);
   });
 
   it('an external main-frame failure toasts with the scheme+host summary only', async () => {

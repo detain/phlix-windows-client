@@ -42,7 +42,8 @@ export const ja = {
     help: 'ヘルプ',
     about: 'Phlix について',
     checkForUpdates: '更新を確認',
-    notifications: '通知'
+    notifications: '通知',
+    keyboardShortcutsHint: 'ショートカット: Space・←・→ (プレイヤー以外で有効)'
   },
   thumbar: {
     previous: '10秒戻す',

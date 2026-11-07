@@ -4,8 +4,15 @@ import log from 'electron-log';
 // --- Shared mocks via vi.hoisted so vi.mock can reference them -----------------
 // The handlers object MUST be declared here and configured with mockImplementation
 // BEFORE the module import so that setupAutoUpdater() captures handlers on load.
-const { mockAutoUpdater, mockAppWhenReady, handlers } = vi.hoisted(() => {
+const { mockAutoUpdater, mockAppWhenReady, handlers, windows } = vi.hoisted(() => {
   const handlers: Record<string, (...args: unknown[]) => void> = {};
+
+  // w10/L1: the boot window fake, captured at construction. Since the m4
+  // sweep made the update channels sender-guarded, these tests must present
+  // the SAME webContents identity senderTrusted compares against — and the
+  // per-construction fresh-object mock below means the identity has to be
+  // recorded, not re-created.
+  const windows: Array<{ webContents: unknown }> = [];
 
   const autoUpdater = {
     logger: null,
@@ -30,7 +37,7 @@ const { mockAutoUpdater, mockAppWhenReady, handlers } = vi.hoisted(() => {
     then: (cb: () => void) => { cb(); }
   }));
 
-  return { mockAutoUpdater: autoUpdater, mockAppWhenReady: whenReady, handlers };
+  return { mockAutoUpdater: autoUpdater, mockAppWhenReady: whenReady, handlers, windows };
 });
 
 // --- Module-level mocks -------------------------------------------------------
@@ -67,7 +74,7 @@ vi.mock('electron', () => ({
   // vitest@5: `mockReturnValue` is rejected when the mock is called with `new`
   // ("Use mockImplementation with a function/class instead"). Same stub shape.
   BrowserWindow: vi.fn().mockImplementation(function () {
-    return {
+    const win = {
       loadURL: vi.fn(),
       loadFile: vi.fn(),
       show: vi.fn(),
@@ -90,6 +97,8 @@ vi.mock('electron', () => ({
       on: vi.fn(),
       once: vi.fn()
     };
+    windows.push(win);
+    return win;
   }),
   Menu: {
     buildFromTemplate: vi.fn().mockReturnValue({}),
@@ -267,8 +276,15 @@ function ipcHandler(channel: string): (...args: unknown[]) => unknown {
   return entry[1] as (...args: unknown[]) => unknown;
 }
 
+/** The boot window's webContents — the identity senderTrusted compares (w10/L1 sweep). */
+function trustedSender(): { sender: unknown } {
+  const win = windows[0];
+  if (!win) throw new Error('boot did not construct the main window fake — sender identity untestable');
+  return { sender: win.webContents };
+}
+
 function getUpdateStatus(): Record<string, unknown> {
-  return ipcHandler('update:get-status')() as Record<string, unknown>;
+  return ipcHandler('update:get-status')(trustedSender()) as Record<string, unknown>;
 }
 
 function clickMenuCheckForUpdates(): void {
@@ -319,7 +335,7 @@ describe('M-WINDOWS-12: update-not-available arm', () => {
     mockNotification.mockClear();
     mockAutoUpdater.checkForUpdates.mockImplementation(noUpdateCheck);
 
-    const result = await ipcHandler('update:check-for-updates')();
+    const result = await ipcHandler('update:check-for-updates')(trustedSender());
 
     expect(result).toEqual({ status: 'idle', version: undefined });
     expect(mockNotification).toHaveBeenCalledTimes(1);
@@ -346,7 +362,7 @@ describe('M-WINDOWS-12: update-not-available arm', () => {
       handlers['error'](new Error('signature verification failed'));
     });
 
-    const result = await ipcHandler('update:check-for-updates')();
+    const result = await ipcHandler('update:check-for-updates')(trustedSender());
     expect(result).toEqual(expect.objectContaining({ status: 'error' }));
     // R-WINDOWS-09: the manual error is itself answered now — exactly one
     // failure toast (assertion converted from not.toHaveBeenCalled(), which
@@ -366,7 +382,7 @@ describe('M-WINDOWS-12: update-not-available arm', () => {
       handlers['update-available']({ version: '2.0.0', releaseDate: '2026-06-01' });
     });
 
-    await ipcHandler('update:check-for-updates')();
+    await ipcHandler('update:check-for-updates')(trustedSender());
     expect(mockNotification).toHaveBeenCalledTimes(1);
     expect(mockNotification).toHaveBeenCalledWith({
       title: 'Update Available',
@@ -416,7 +432,7 @@ describe('R-WINDOWS-09: manual check earns a visible failure reply', () => {
     mockNotification.mockClear();
     manualErrorCheck('signature verification failed');
 
-    await ipcHandler('update:check-for-updates')();
+    await ipcHandler('update:check-for-updates')(trustedSender());
 
     expect(mockNotification).toHaveBeenCalledTimes(1);
     expect(mockNotification).toHaveBeenCalledWith({

@@ -42,7 +42,8 @@ export const fr = {
     help: 'Aide',
     about: 'À propos de Phlix',
     checkForUpdates: 'Rechercher des mises à jour',
-    notifications: 'Notifications'
+    notifications: 'Notifications',
+    keyboardShortcutsHint: 'Raccourcis : Espace, ←, → (hors du lecteur)'
   },
   thumbar: {
     previous: 'Retour 10 s',

@@ -166,7 +166,9 @@ describe('M-WINDOWS-40: notificationsEnabled gates every toast origin', () => {
     // (the check-for-updates handler sets manualUpdateCheckPending)
     const check = invokeHandler('update:check-for-updates');
     mockAutoUpdater.checkForUpdates.mockClear();
-    check({});
+    // w10/L1: the channel is sender-guarded now (deny-by-default sweep) —
+    // arm through the trusted sender the file already defines.
+    check({ sender: mainWebContents() });
     handlers['update-not-available']({ version: '1.0.0' } as unknown as Record<string, unknown>);
     expect(toasts()).toHaveLength(0);
     expect(mockAutoUpdater.checkForUpdates).toHaveBeenCalled();

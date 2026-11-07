@@ -33,8 +33,9 @@ describe('notification IPC', () => {
     // mainWindow?.focus();` — no minimized arm, no destroyed guard. All five
     // re-entry surfaces now delegate to restoreWindow(); behavioral coverage
     // lives in tests/unit/trayRestoreWiring.test.ts (live fake window) and
-    // tests/unit/windowRestore.test.ts (state sequences).
-    expect(mainSource).toMatch(/restoreWindow\(mainWindow\)/);
+    // tests/unit/windowRestore.test.ts (state sequences). w10/L1: the call
+    // gained the stranded-restore bounds probe as its second argument.
+    expect(mainSource).toMatch(/restoreWindow\(mainWindow,/);
   });
 
   it('notification click routes via handleDeepLinkUrl with phlix://internal prefix', () => {

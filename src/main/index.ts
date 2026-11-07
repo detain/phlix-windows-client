@@ -20,7 +20,7 @@ import {
   createDeepLinkDeduper
 } from './deepLinkValidator';
 import { getMainLocale, setMainLocale, t } from './i18n';
-import { restoreWindow } from './windowRestore';
+import { boundsOnScreen, restoreWindow, type RestoreBoundsProbe } from './windowRestore';
 import { validateNotificationText, createToastThrottle } from './notificationGuard';
 import { installPermissionGuard, isLoopbackHostname } from './permissionGuard';
 import { trayTooltipFor } from './trayTooltip';
@@ -259,7 +259,7 @@ app.on('second-instance', (_event, argv, _workingDirectory) => {
   // focus() on a hidden window — focus() does not un-hide (BrowserWindow
   // docs: show() is what "shows and gives focus"), which is exactly why the
   // icon click did nothing. restoreWindow() covers minimized/hidden/destroyed.
-  restoreWindow(mainWindow);
+  restoreWindow(mainWindow, restoreProbe(mainWindow));
   // Handle deep link from second-instance (warm start on Windows).
   // M-WINDOWS-06: same queue + drain helper as every other surface — no
   // second bespoke timer. On a warm, subscribed app the drain delivers on
@@ -281,7 +281,7 @@ app.on('second-instance', (_event, argv, _workingDirectory) => {
 // The sender must be the current main window's webContents: a stale signal
 // from a replaced or destroyed webContents may not drain the queue anywhere.
 ipcMain.on('deeplink:ready', (event) => {
-  if (!mainWindow || mainWindow.isDestroyed() || event.sender !== mainWindow.webContents) {
+  if (!senderTrusted(event)) {
     log.warn('[deeplink] Ignored deeplink:ready from a non-current webContents');
     return;
   }
@@ -378,18 +378,28 @@ log.info('Phlix Windows starting...');
 
 /**
  * Validates that the given bounds overlap with at least one display's work area.
+ * w10/L1: the comparison math moved to windowRestore.boundsOnScreen — THE
+ * single on-screen source, now shared by this boot path and the restore
+ * clamp (`tests/unit/windowBounds.test.ts` pins the math at its new home).
  */
 function isBoundsOnScreen(bounds: WindowBounds): boolean {
-  const displays = screen.getAllDisplays();
-  return displays.some((display) => {
-    const wa = display.workArea;
-    return (
-      bounds.x < wa.x + wa.width &&
-      bounds.x + bounds.width > wa.x &&
-      bounds.y < wa.y + wa.height &&
-      bounds.y + bounds.height > wa.y
-    );
-  });
+  return boundsOnScreen(bounds, screen.getAllDisplays());
+}
+
+/**
+ * w10/L1 (windows__casualgamer 10): the geometry probe every restoreWindow
+ * call site hands the pure clamp law — live window bounds + the real display
+ * frames. Construction is side-effect-free; a destroyed window never has its
+ * methods touched because restoreWindow's isDestroyed() guard runs first.
+ */
+function restoreProbe(window: Electron.BrowserWindow | null | undefined): RestoreBoundsProbe | undefined {
+  if (!window) return undefined;
+  return {
+    get: () => window.getBounds(),
+    set: (next) => window.setBounds(next),
+    displays: () => screen.getAllDisplays(),
+    primary: () => screen.getPrimaryDisplay()
+  };
 }
 
 let saveBoundsTimer: NodeJS.Timeout | null = null;
@@ -897,7 +907,17 @@ function crashRecoveryDialog(): void {
     noLink: true
   }).then((response) => {
     if (response.response === 0 && mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.reload();
+      // w10/L1 (windows__casualgamer 6): reload() re-commits whatever document
+      // is current — and top-level http(s) navigations stay permitted by
+      // design (M-WINDOWS-18), so a renderer can legitimately die on a
+      // FOREIGN page. "Recovering" into that bridge-less corpse page is not
+      // recovery: the route now mirrors the boot law — reload only our own
+      // app:// shell, otherwise re-enter through PROD_BOOT_URL.
+      if (mainWindow.webContents.getURL().startsWith('app://-')) {
+        mainWindow.webContents.reload();
+      } else {
+        void mainWindow.loadURL(PROD_BOOT_URL);
+      }
     }
   });
 }
@@ -908,7 +928,7 @@ function crashRecoveryDialog(): void {
  */
 export function buildTrayMenuTemplate(): Electron.MenuItemConstructorOptions[] {
   return [
-    { label: t('tray.show'), click: () => restoreWindow(mainWindow) },
+    { label: t('tray.show'), click: () => restoreWindow(mainWindow, restoreProbe(mainWindow)) },
     { type: 'separator' },
     { label: t('tray.playPause'), click: () => mainWindow?.webContents.send('media-play-pause') },
     { label: t('tray.stop'), click: () => mainWindow?.webContents.send('media-stop') },
@@ -953,10 +973,10 @@ export function createTray(): void {
   // click+click+double-click in burst; restoreWindow() is idempotent for a
   // live window (visible+focused → focus() only), so the burst is safe.
   tray.on('click', () => {
-    restoreWindow(mainWindow);
+    restoreWindow(mainWindow, restoreProbe(mainWindow));
   });
   tray.on('double-click', () => {
-    restoreWindow(mainWindow);
+    restoreWindow(mainWindow, restoreProbe(mainWindow));
   });
 }
 
@@ -973,6 +993,11 @@ export function createTray(): void {
  * breaks whenever focus sits elsewhere, so the transport rows now carry no
  * accelerator at all. F11 stays displayed: it IS a real registered menu
  * accelerator.
+ * w10/L1 (review windows__gameux 7): the discoverability the stripped hints
+ * took away comes back as what it actually is — a DISABLED info row naming
+ * the bare transport keys and their scope. It registers nothing, responds to
+ * no click, and displays no accelerator column, so the m10 law stays whole:
+ * no menu row promises a key the shell does not globally own.
  */
 export function buildPlaybackMenuTemplate(): Electron.MenuItemConstructorOptions[] {
   return [
@@ -982,7 +1007,9 @@ export function buildPlaybackMenuTemplate(): Electron.MenuItemConstructorOptions
     { label: t('menu.rewind'), click: () => mainWindow?.webContents.send('media-rewind') },
     { label: t('menu.fastForward'), click: () => mainWindow?.webContents.send('media-forward') },
     { type: 'separator' },
-    { label: t('menu.fullscreen'), accelerator: 'F11', click: () => toggleFullscreen() }
+    { label: t('menu.fullscreen'), accelerator: 'F11', click: () => toggleFullscreen() },
+    { type: 'separator' },
+    { label: t('menu.keyboardShortcutsHint'), enabled: false }
   ];
 }
 
@@ -1207,9 +1234,25 @@ export function showServerTooOldDialog(result: ServerVersionCheck): void {
 }
 
 // IPC Handlers
-ipcMain.handle('get-app-path', () => app.getPath('userData'));
+// w10/L1 (review windows__exploiter 1, windows__secnet): deny-by-default
+// sweep — the pure-read channels below answer NEUTRAL DEFAULTS to a foreign
+// sender. The live in-app consumer is the preload-bridged main window, which
+// always passes; a refusal only silences a hostile document's probing.
+ipcMain.handle('get-app-path', (event) => {
+  if (!senderTrusted(event)) {
+    log.warn('[ipc] get-app-path refused (m4)');
+    return '';
+  }
+  return app.getPath('userData');
+});
 
-ipcMain.handle('get-version', () => app.getVersion());
+ipcMain.handle('get-version', (event) => {
+  if (!senderTrusted(event)) {
+    log.warn('[ipc] get-version refused (m4)');
+    return '';
+  }
+  return app.getVersion();
+});
 
 ipcMain.on('set-always-on-top', (event, value: unknown) => {
   if (!senderTrusted(event) || typeof value !== 'boolean') {
@@ -1219,11 +1262,26 @@ ipcMain.on('set-always-on-top', (event, value: unknown) => {
   mainWindow?.setAlwaysOnTop(value);
 });
 
-ipcMain.on('minimize-to-tray', () => {
+ipcMain.on('minimize-to-tray', (event) => {
+  // w10/L1: hiding the shell is a user-facing effect — the one pure-`on`
+  // channel here was the sweep's most concrete gap (foreign document could
+  // hide the window on demand). No return value, so refusal is simply silence.
+  if (!senderTrusted(event)) {
+    log.warn('[ipc] minimize-to-tray refused (m4 sender law)');
+    return;
+  }
   mainWindow?.hide();
 });
 
-ipcMain.handle('tray:get-minimize-to-tray', () => store.get('minimizeToTray', true));
+ipcMain.handle('tray:get-minimize-to-tray', (event) => {
+  // Refusal answers the store DEFAULT (true), never the live value — an
+  // untrusted reader gets the same neutral answer a missing row would.
+  if (!senderTrusted(event)) {
+    log.warn('[ipc] tray:get-minimize-to-tray refused (m4)');
+    return true;
+  }
+  return store.get('minimizeToTray', true);
+});
 
 ipcMain.on('tray:set-minimize-to-tray', (event, val: unknown) => {
   // m5: this key is read as a boolean at close time — a persisted stringified
@@ -1434,6 +1492,14 @@ const vaultCustody = createSecretCustody({
 // main-process surfaces — previously only vault:* and deeplink:ready checked
 // it, resting on the preload gate alone. Today inert (single window:
 // setWindowOpenHandler always denies); the guards make that fact structural.
+// w10/L1 (review windows__exploiter 1) completes the sweep: EVERY registered
+// channel now passes this gate, including the pure reads (paths, version,
+// tray/GPU/update preferences). Refusals answer neutral defaults — never the
+// live value. The former exemptions were concrete: 'minimize-to-tray' let any
+// committed document hide the shell on demand (user-facing DoS), and the
+// read channels turned a hostile page into a config/updater probing oracle.
+// Deny-by-default is now inventory-complete; a channel added without a check
+// is a law violation, not an omission.
 function senderTrusted(event: { sender?: unknown }): boolean {
   return mainWindow !== null && !mainWindow.isDestroyed() && event.sender === mainWindow.webContents;
 }
@@ -1665,7 +1731,7 @@ ipcMain.handle('notification:show', (event, raw: { title?: unknown; body?: unkno
     onClick: () => {
       // M-WINDOWS-03: a notification click is a re-entry surface too — the
       // window may be hidden-to-tray or minimized, not merely unfocused.
-      restoreWindow(mainWindow);
+      restoreWindow(mainWindow, restoreProbe(mainWindow));
       if (routeTo) {
         handleDeepLinkUrl(`phlix://internal${routeTo}`);
       }
@@ -1674,7 +1740,11 @@ ipcMain.handle('notification:show', (event, raw: { title?: unknown; body?: unkno
 });
 
 // W4.12: GPU escape hatch — get/set disableHardwareAcceleration preference
-ipcMain.handle('gpu:get-disable-hardware-acceleration', () => {
+ipcMain.handle('gpu:get-disable-hardware-acceleration', (event) => {
+  if (!senderTrusted(event)) {
+    log.warn('[ipc] gpu:get-disable-hardware-acceleration refused (m4)');
+    return false;
+  }
   return store.get('disableHardwareAcceleration', false);
 });
 
@@ -1689,7 +1759,14 @@ ipcMain.handle('gpu:set-disable-hardware-acceleration', (event, value: unknown) 
 });
 
 // W4.12: GPU feature status for diagnostics
-ipcMain.handle('gpu:get-feature-status', () => {
+ipcMain.handle('gpu:get-feature-status', (event) => {
+  // w10/L1: pure-read sweep — refuse answers the empty object; the
+  // getGPUFeatureStatus() call itself is pinned by gpuEscapeHatch tests,
+  // so the trusted arm below stays verbatim.
+  if (!senderTrusted(event)) {
+    log.warn('[ipc] gpu:get-feature-status refused (m4)');
+    return {};
+  }
   return app.getGPUFeatureStatus();
 });
 
@@ -1703,7 +1780,16 @@ ipcMain.handle('gpu:get-feature-status', () => {
 // menu and thumbar) are unaffected — their renderer consumers are live.
 
 // W4.9: Manual update check — triggered by "Check for updates" menu or renderer
-ipcMain.handle('update:check-for-updates', async () => {
+ipcMain.handle('update:check-for-updates', async (event) => {
+  // w10/L1: the guard runs BEFORE any state mutation — a refused probe
+  // neither flips manualUpdateCheckPending nor reports 'checking', so the
+  // real user-initiated toast flow cannot be provoked (or poisoned) from a
+  // foreign document. The menu's own trigger calls runManualUpdateCheck()
+  // directly and is unaffected.
+  if (!senderTrusted(event)) {
+    log.warn('[ipc] update:check-for-updates refused (m4 sender law)');
+    return { status: 'idle' as const };
+  }
   if (updateState.status === 'downloading' || updateState.status === 'checking') {
     return { status: updateState.status, version: updateState.version };
   }
@@ -1724,7 +1810,11 @@ ipcMain.handle('update:check-for-updates', async () => {
 });
 
 // W4.9: Renderer queries current update state
-ipcMain.handle('update:get-status', () => {
+ipcMain.handle('update:get-status', (event) => {
+  if (!senderTrusted(event)) {
+    log.warn('[ipc] update:get-status refused (m4)');
+    return { status: 'idle' as const };
+  }
   return { ...updateState };
 });
 

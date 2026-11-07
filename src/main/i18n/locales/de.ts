@@ -42,7 +42,8 @@ export const de = {
     help: 'Hilfe',
     about: 'Über Phlix',
     checkForUpdates: 'Nach Updates suchen',
-    notifications: 'Benachrichtigungen'
+    notifications: 'Benachrichtigungen',
+    keyboardShortcutsHint: 'Tastenkürzel: Leertaste, ←, → (außerhalb des Players)'
   },
   thumbar: {
     previous: '10 s zurückspulen',

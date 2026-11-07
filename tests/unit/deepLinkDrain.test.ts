@@ -77,6 +77,7 @@ function makeFakeWindow(): (typeof tracks.windows)[number] {
     show: () => void calls.push('show'),
     focus: () => void calls.push('focus'),
     getBounds: () => ({ x: 0, y: 0, width: 1280, height: 870 }),
+    setBounds: vi.fn(),
     isMaximized: () => false,
     maximize: vi.fn(),
     hide: vi.fn(),
@@ -238,7 +239,8 @@ vi.mock('electron', () => {
       })
     },
     screen: {
-      getAllDisplays: vi.fn(() => [{ bounds: { x: 0, y: 0, width: 1920, height: 1080 }, workArea: { x: 0, y: 0, width: 1920, height: 1040 } }])
+      getAllDisplays: vi.fn(() => [{ bounds: { x: 0, y: 0, width: 1920, height: 1080 }, workArea: { x: 0, y: 0, width: 1920, height: 1040 } }]),
+      getPrimaryDisplay: vi.fn(() => ({ bounds: { x: 0, y: 0, width: 1920, height: 1080 }, workArea: { x: 0, y: 0, width: 1920, height: 1040 } }))
     },
     powerSaveBlocker: { isStarted: vi.fn(() => false), start: vi.fn(() => 1), stop: vi.fn() },
     Notification: Object.assign(vi.fn(function () {

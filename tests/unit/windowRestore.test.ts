@@ -17,7 +17,14 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { restoreWindow, type RestorableWindow } from '../../src/main/windowRestore';
+import {
+  boundsOnScreen,
+  clampBoundsToDisplays,
+  restoreWindow,
+  type DisplayFrame,
+  type RestorableWindow,
+  type WindowBounds
+} from '../../src/main/windowRestore';
 
 interface FakeWindow extends RestorableWindow {
   calls: string[];
@@ -101,5 +108,125 @@ describe('restoreWindow() (M-WINDOWS-03)', () => {
     restoreWindow(win);
 
     expect(win.calls).toEqual(['show', 'focus', 'focus']);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// w10/L1 (windows__casualgamer #10): restore is a RE-ENTRY surface, and a
+// window remembered on a since-unplugged display re-enters invisibly — the
+// on-boot bounds validation in createWindow never runs again for the life of
+// the process. The clamp law lives HERE, pure, beside the sequence law it
+// rides: restoreWindow optionally takes a geometry probe (get/set bounds +
+// display frames) and, after the raise+focus sequence completed normally,
+// drags an off-screen rectangle back onto the primary display's work area —
+// size-fitted, centered. No probe = the exact pre-existing behavior (every
+// sequence pin above is a no-probe call).
+// ---------------------------------------------------------------------------
+
+function fakeDisplays(): { displays: DisplayFrame[]; primary: DisplayFrame } {
+  const primary: DisplayFrame = { workArea: { x: 0, y: 0, width: 1920, height: 1080 } };
+  return { displays: [primary, { workArea: { x: 1920, y: 0, width: 2560, height: 1440 } }], primary };
+}
+
+function fakeProbe(state: { bounds: WindowBounds } & ReturnType<typeof fakeDisplays>) {
+  const sets: WindowBounds[] = [];
+  return {
+    sets,
+    get: () => state.bounds,
+    set: (next: WindowBounds) => {
+      sets.push(next);
+      state.bounds = next;
+    },
+    displays: () => state.displays,
+    primary: () => state.primary
+  };
+}
+
+describe('boundsOnScreen() (w10/L1 — the moved single source of the createWindow law)', () => {
+  const geo = fakeDisplays();
+  it('overlapping ANY display work area counts as on-screen, edge-touch included', () => {
+    expect(boundsOnScreen({ x: 100, y: 100, width: 1280, height: 870 }, geo.displays)).toBe(true);
+    // One pixel of overlap is overlap — the same generous rule createWindow used before.
+    expect(boundsOnScreen({ x: 1919, y: 1079, width: 10, height: 10 }, geo.displays)).toBe(true);
+    expect(boundsOnScreen({ x: 2000, y: 10, width: 100, height: 100 }, geo.displays)).toBe(true); // second monitor
+  });
+  it('fully outside every display — and the no-display venue — are off-screen', () => {
+    expect(boundsOnScreen({ x: 5000, y: 5000, width: 1280, height: 870 }, geo.displays)).toBe(false);
+    expect(boundsOnScreen({ x: 100, y: 100, width: 1280, height: 870 }, [])).toBe(false);
+  });
+});
+
+describe('clampBoundsToDisplays() (w10/L1)', () => {
+  const geo = fakeDisplays();
+  it('on-screen bounds are returned unchanged', () => {
+    const bounds = { x: 100, y: 100, width: 1280, height: 870 };
+    expect(clampBoundsToDisplays(bounds, geo.displays, geo.primary)).toEqual(bounds);
+  });
+  it('an off-screen rectangle is centered on the primary work area', () => {
+    expect(clampBoundsToDisplays({ x: 5000, y: 5000, width: 1280, height: 870 }, geo.displays, geo.primary))
+      .toEqual({ x: 320, y: 105, width: 1280, height: 870 });
+  });
+  it('a window larger than the primary work area is fitted, then centered', () => {
+    expect(clampBoundsToDisplays({ x: -9000, y: 400, width: 4000, height: 2000 }, geo.displays, geo.primary))
+      .toEqual({ x: 0, y: 0, width: 1920, height: 1080 });
+  });
+  it('centering is relative to the PRIMARY WORK AREA, not the virtual desktop origin', () => {
+    // Law-pin for the w10/L1 review mutation M6: every other fixture here
+    // runs with primary workArea origin (0,0), where dropping the `wa.x +`
+    // / `wa.y +` centering terms is invisible to the whole battery. A real
+    // multi-monitor virtual desktop carries negative/offset origins (aux
+    // left of primary, menu-bar-reserved rows), so the terms must be paid
+    // for literally: x = -1920 + (1920-1280)/2 = -1600,
+    // y = 240 + (1080-870)/2 = 345. Stripping either term reddens EXACTLY
+    // this pin and no other.
+    const primary: DisplayFrame = { workArea: { x: -1920, y: 240, width: 1920, height: 1080 } };
+    const aux: DisplayFrame = { workArea: { x: 0, y: 0, width: 1920, height: 1080 } };
+    const stranded: WindowBounds = { x: 4000, y: 4000, width: 1280, height: 870 };
+
+    expect(clampBoundsToDisplays(stranded, [primary, aux], primary))
+      .toEqual({ x: -1600, y: 345, width: 1280, height: 870 });
+  });
+  it('with NO display data at all the clamp no-ops — never blind-move to NaN', () => {
+    const bounds = { x: 5000, y: 5000, width: 1280, height: 870 };
+    expect(clampBoundsToDisplays(bounds, [], { workArea: { x: 0, y: 0, width: 0, height: 0 } })).toEqual(bounds);
+  });
+});
+
+describe('restoreWindow(window, probe) (w10/L1 stranded-window cure)', () => {
+  it('stranded off-screen window: the raise sequence runs UNTOUCHED, then the bounds are clamped once', () => {
+    const win = fakeWindow({ visible: false });
+    const probe = fakeProbe({ bounds: { x: 5000, y: 5000, width: 1280, height: 870 }, ...fakeDisplays() });
+
+    expect(restoreWindow(win, probe)).toBe(true);
+    expect(win.calls).toEqual(['show', 'focus']);
+    expect(probe.sets).toEqual([{ x: 320, y: 105, width: 1280, height: 870 }]);
+  });
+  it('on-screen window: probe is read, never written — no setBounds on every tray click', () => {
+    const win = fakeWindow({ visible: true });
+    const probe = fakeProbe({ bounds: { x: 100, y: 100, width: 1280, height: 870 }, ...fakeDisplays() });
+
+    expect(restoreWindow(win, probe)).toBe(true);
+    expect(win.calls).toEqual(['focus']);
+    expect(probe.sets).toEqual([]);
+  });
+  it('a second restore after the clamp is quiet (idempotent geometry)', () => {
+    const win = fakeWindow({ visible: false });
+    const probe = fakeProbe({ bounds: { x: 5000, y: 5000, width: 1280, height: 870 }, ...fakeDisplays() });
+
+    restoreWindow(win, probe);
+    restoreWindow(win, probe);
+
+    expect(probe.sets).toHaveLength(1);
+  });
+  it('destroyed window with a probe: still the deliberate no-op — probe untouched', () => {
+    const win = fakeWindow({ destroyed: true });
+    let touched = 0;
+    expect(restoreWindow(win, {
+      get: () => { touched++; return { x: 0, y: 0, width: 1, height: 1 }; },
+      set: () => { touched++; },
+      displays: () => { touched++; return []; },
+      primary: () => { touched++; return { workArea: { x: 0, y: 0, width: 1, height: 1 } }; }
+    })).toBe(false);
+    expect(touched).toBe(0);
   });
 });

@@ -73,17 +73,25 @@ describe('installPermissionGuard wiring (M-WINDOWS-29)', () => {
   });
 });
 
-describe('m15: the clipboard carve-out is origin-bound (review windows__crossfe 3)', () => {
-  it('isTrustedRequesterUrl table — local app doc and dev server only', () => {
+describe('m15/w10: the clipboard carve-out is origin- AND port-bound (review windows__crossfe 3, windows__casualgamer 5)', () => {
+  it('isTrustedRequesterUrl table — local app doc and the dev-server port only', () => {
     expect(isTrustedRequesterUrl('app://-/app/settings')).toBe(true);
     expect(isTrustedRequesterUrl('app://evil-host/app/x')).toBe(false);
     expect(isTrustedRequesterUrl('http://localhost:5173/')).toBe(true);
-    expect(isTrustedRequesterUrl('http://127.0.0.1:8096/')).toBe(true);
-    // I-w1: WHATWG brackets IPv6 hostnames — the loopback arm must match the
-    // bracket form dev-over-IPv6 actually produces, and nothing wider.
+    expect(isTrustedRequesterUrl('http://127.0.0.1:5173/')).toBe(true); // the pinned dev port on IPv4 loopback stays trusted
+    // w10/L1 (windows__casualgamer 5 / windows__secnet 3): the loopback arm is
+    // PORT-BOUND, mirroring the preload's TRUSTED_BOOT_TARGETS. Any OTHER port
+    // on loopback is a different service (the media server itself listens on
+    // 8096/8097 here) and must NOT inherit the silent clipboard grant — a page
+    // navigated to such a service goes through the normal permission prompt.
+    expect(isTrustedRequesterUrl('http://127.0.0.1:8096/')).toBe(false); // same-host media server
+    expect(isTrustedRequesterUrl('http://localhost:9999/')).toBe(false); // any other loopback port
+    expect(isTrustedRequesterUrl('https://localhost:5173/')).toBe(false); // scheme law: the dev boot target is http://
+    // I-w1: WHATWG brackets IPv6 hostnames — the loopback arm matches the
+    // bracket form dev-over-IPv6 actually produces, on the pinned port only.
     expect(isTrustedRequesterUrl('http://[::1]:5173/')).toBe(true);
-    expect(isTrustedRequesterUrl('http://[::1]/')).toBe(true);
-    expect(isTrustedRequesterUrl('http://[0:0:0:0:0:0:0:1]/')).toBe(true); // normalizes onto [::1]
+    expect(isTrustedRequesterUrl('http://[::1]/')).toBe(false); // portless = default :80 — not the dev server
+    expect(isTrustedRequesterUrl('http://[0:0:0:0:0:0:0:1]/')).toBe(false); // normalizes onto [::1] — portless too
     expect(isTrustedRequesterUrl('http://[::2]/')).toBe(false); // next address up stays untrusted
     expect(isTrustedRequesterUrl('http://[::ffff:127.0.0.1]/')).toBe(false); // v4-mapped spelling normalizes to [::ffff:7f00:1] — NOT the ::1 arm
     expect(isTrustedRequesterUrl('https://media.example/app')).toBe(false);
@@ -106,7 +114,10 @@ describe('m15: the clipboard carve-out is origin-bound (review windows__crossfe 
     // Single source: the helper lives in permissionGuard.ts (electron-free pure
     // module) and index.ts imports it — no second copy of the loopback law.
     expect(guardSource).toMatch(/export function isLoopbackHostname\(hostname: string\): boolean/);
-    expect(guardSource).toMatch(/return isLoopbackHostname\(url\.hostname\);/);
+    // w10/L1: the trust arm gained its port bound ahead of the shared loopback
+    // helper — the helper stays the single source of the HOST law, the seam
+    // pins the scheme + dev-port pairing the preload TRUSTED_BOOT_TARGETS uses.
+    expect(guardSource).toMatch(/return url\.protocol === 'http:' && url\.port === '5173' && isLoopbackHostname\(url\.hostname\);/);
     expect(mainSource).toMatch(/import \{ installPermissionGuard, isLoopbackHostname \} from '\.\/permissionGuard';/);
     // downloadUrlTrusted's loopback arm routes through the same helper...
     expect(mainSource).toMatch(/if \(isLoopbackHostname\(url\.hostname\)\) return true;/);

@@ -84,11 +84,18 @@ describe('windowBounds persistence', () => {
       expect(mainSource).toMatch(/screen\.getAllDisplays\(\)/);
     });
 
-    it('isBoundsOnScreen checks bounds overlap with workArea', () => {
-      expect(mainSource).toMatch(/bounds\.x\s*<\s*wa\.x\s*\+\s*wa\.width/);
-      expect(mainSource).toMatch(/bounds\.x\s*\+\s*bounds\.width\s*>\s*wa\.x/);
-      expect(mainSource).toMatch(/bounds\.y\s*<\s*wa\.y\s*\+\s*wa\.height/);
-      expect(mainSource).toMatch(/bounds\.y\s*\+\s*bounds\.height\s*>\s*wa\.y/);
+    it('the overlap math lives in ONE source — windowRestore.boundsOnScreen (w10/L1)', () => {
+      // The law moved, the geometry did not: the restore clamp and the boot
+      // validation must never disagree about what "on-screen" means, so the
+      // four overlap comparisons are pinned once, at their new home, and
+      // index.ts delegates (windowBounds pin above keeps the call site).
+      const restoreSource = readFileSync(resolve(PROJECT_ROOT, 'src/main/windowRestore.ts'), 'utf-8');
+      expect(restoreSource).toMatch(/bounds\.x\s*<\s*wa\.x\s*\+\s*wa\.width/);
+      expect(restoreSource).toMatch(/bounds\.x\s*\+\s*bounds\.width\s*>\s*wa\.x/);
+      expect(restoreSource).toMatch(/bounds\.y\s*<\s*wa\.y\s*\+\s*wa\.height/);
+      expect(restoreSource).toMatch(/bounds\.y\s*\+\s*bounds\.height\s*>\s*wa\.y/);
+      // index.ts no longer carries a SECOND copy of the comparisons.
+      expect(mainSource).not.toMatch(/bounds\.x\s*<\s*wa\.x\s*\+\s*wa\.width/);
     });
 
     it('off-screen bounds trigger fallback to defaults', () => {

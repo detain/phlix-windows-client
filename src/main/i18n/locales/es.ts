@@ -41,7 +41,8 @@ export const es = {
     help: 'Ayuda',
     about: 'Acerca de Phlix',
     checkForUpdates: 'Buscar actualizaciones',
-    notifications: 'Notificaciones'
+    notifications: 'Notificaciones',
+    keyboardShortcutsHint: 'Atajos: Espacio, ←, → (fuera del reproductor)'
   },
   thumbar: {
     previous: 'Retroceder 10 s',

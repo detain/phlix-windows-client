@@ -58,6 +58,10 @@ const ORIGINAL_MAIN_PROCESS_STRINGS: Record<MainMessageKey, string> = {
   // Batch-4 (M6/m11 review) addition (born in the catalog, M-WINDOWS-12
   // precedent): the notifications preference checkbox (View menu + tray).
   'menu.notifications': 'Notifications',
+  // w10/L1 (review windows__gameux 7) addition (born in the catalog, same
+  // precedent): the disabled Playback info row that restores shortcut
+  // discoverability without re-introducing a displayed-but-unregistered key.
+  'menu.keyboardShortcutsHint': 'Shortcuts: Space, ←, → (outside the player)',
 
   'thumbar.previous': 'Rewind 10s',
   'thumbar.play': 'Play',

@@ -55,6 +55,7 @@ function makeFakeWindow(index: number): (typeof tracks.windows)[number] {
     show: () => void calls.push('show'),
     focus: () => void calls.push('focus'),
     getBounds: () => ({ x: 0, y: 0, width: 1280, height: 870 }),
+    setBounds: vi.fn(),
     isMaximized: () => false,
     maximize: vi.fn(),
     hide: vi.fn(),
@@ -196,7 +197,11 @@ vi.mock('electron', () => {
       showMessageBox: vi.fn(() => Promise.resolve({ response: 0 }))
     },
     screen: {
-      getAllDisplays: vi.fn(() => [{ bounds: { x: 0, y: 0, width: 1920, height: 1080 } }])
+      // w10/L1: displays carry workArea + a primary (an Electron Display
+      // always does); the on-screen default rect keeps every exact
+      // call-sequence pin above about the SEQUENCE, not the geometry.
+      getPrimaryDisplay: vi.fn(() => ({ workArea: { x: 0, y: 0, width: 1920, height: 1080 } })),
+      getAllDisplays: vi.fn(() => [{ bounds: { x: 0, y: 0, width: 1920, height: 1080 }, workArea: { x: 0, y: 0, width: 1920, height: 1080 } }])
     },
     powerSaveBlocker: { isStarted: vi.fn(() => false), start: vi.fn(() => 1), stop: vi.fn() },
     // vitest@5: `new Notification()` requires a function impl; isSupported
@@ -421,5 +426,42 @@ describe('tray/second-instance restore wiring (M-WINDOWS-03)', () => {
 
     expect(win.calls).toEqual(['show', 'focus']);
     expect(tracks.deepLinkSends).toEqual([['deeplink:open', '/app/search']]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// w10/L1 (windows__casualgamer #10): the stranded-window cure, wired end to
+// end. The geometry probe rides the SAME restoreWindow call every surface
+// above already pins — here the fake window lives off every display, so a
+// raise must ALSO re-center it on the primary work area (setBounds after the
+// untouched show/focus sequence). On-screen cases above pin setBounds NEVER
+// fires (their arrays prove the raise path stayed quiet); this is the one
+// positive integration leg.
+// ---------------------------------------------------------------------------
+describe('stranded-window clamp on the real wiring (w10/L1)', () => {
+  it('tray click on an off-screen window: sequence intact, then one re-centering setBounds', () => {
+    const win = mainWin();
+    resetWindow(win);
+    win.getBounds = () => ({ x: 5000, y: 5000, width: 1280, height: 870 });
+    (win.setBounds as ReturnType<typeof vi.fn>).mockClear();
+
+    trayHandler('click')();
+
+    expect(win.calls).toEqual(['show', 'focus']);
+    expect(win.setBounds as ReturnType<typeof vi.fn>).toHaveBeenCalledTimes(1);
+    expect((win.setBounds as ReturnType<typeof vi.fn>).mock.calls[0]?.[0]).toEqual({
+      x: 320, y: 105, width: 1280, height: 870
+    });
+  });
+
+  it('on-screen raise writes no geometry at all', () => {
+    const win = mainWin();
+    resetWindow(win);
+    win.getBounds = () => ({ x: 0, y: 0, width: 1280, height: 870 });
+
+    trayHandler('click')();
+
+    (win.setBounds as ReturnType<typeof vi.fn>).mockClear();
+    expect(win.setBounds as ReturnType<typeof vi.fn>).not.toHaveBeenCalled();
   });
 });

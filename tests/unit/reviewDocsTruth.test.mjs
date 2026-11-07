@@ -41,8 +41,13 @@ describe('keyboard shortcuts are documented, honestly scoped (m22)', () => {
     expect(README).toMatch(/`Ctrl` \+ `,`/);
   });
 
-  it('it states the player-scope law for the displayed transport keys', () => {
-    expect(README).toMatch(/Only while the \*\*player\*\* has focus/);
+  it('it states the true scope of the transport keys (w10/L1 rotation of the m22 pin)', () => {
+    // m22 pinned "Only while the **player** has focus" believing it honest —
+    // review windows__casualgamer #5 proved it BACKWARDS: the shell's focus
+    // guard relays these bare keys on every route EXCEPT the player, where
+    // the vendored engine owns them. The pin now holds the corrected law;
+    // the second arm (no fake accelerators) was true then and stays true.
+    expect(README).toMatch(/Everywhere \*\*outside\*\* the player/);
     expect(README).toMatch(/not\* registered as menu accelerators/);
   });
 });

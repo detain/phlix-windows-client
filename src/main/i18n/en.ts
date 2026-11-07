@@ -37,7 +37,8 @@ export const en = {
     help: 'Help',
     about: 'About Phlix',
     checkForUpdates: 'Check for updates',
-    notifications: 'Notifications'
+    notifications: 'Notifications',
+    keyboardShortcutsHint: 'Shortcuts: Space, ←, → (outside the player)'
   },
   thumbar: {
     previous: 'Rewind 10s',

@@ -310,3 +310,21 @@ describe('M6/m11 — preference checkboxes exist on View AND tray, write on clic
     expect(checkboxIn(viewSubmenu(), 'Minimize to tray')!.checked).toBe(false);
   });
 });
+
+describe('w10/L1 (review windows__gameux 7) — discoverability without fake accelerators', () => {
+  it('the Playback menu carries a DISABLED shortcut-info row, registering nothing', () => {
+    const template = menu.buildPlaybackMenuTemplate();
+    const hint = template.find(
+      (i) => i.label === 'Shortcuts: Space, ←, → (outside the player)'
+    ) as Record<string, unknown> | undefined;
+    expect(hint, 'Playback menu lost its keyboard-shortcut info row').toBeTruthy();
+    // The m10 law that makes this row the sanctioned discoverability surface:
+    // info only — disabled, clickless, and it displays no accelerator, so it
+    // can never promise a global hotkey the shell does not register.
+    expect(hint!.enabled, 'the info row must be disabled').toBe(false);
+    expect(hint!.accelerator, 'an info row must not display an accelerator').toBeUndefined();
+    expect(hint!.registerAccelerator).toBeUndefined();
+    expect(hint!.click, 'an info row must not act on click').toBeUndefined();
+    expect(hint!.type, 'a plain label row (not checkbox/separator)').toBeUndefined();
+  });
+});

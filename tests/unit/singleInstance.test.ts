@@ -118,9 +118,20 @@ vi.mock('electron', () => ({
       isDestroyed: vi.fn(() => false),
       isVisible: vi.fn(() => false),
       restore: vi.fn(),
+      // w10/L1: the stranded-restore clamp reads bounds through the probe;
+      // the fake answers with an on-screen rect so the pin stays about the
+      // restore path, not geometry.
+      getBounds: vi.fn(() => ({ x: 0, y: 0, width: 1280, height: 870 })),
+      setBounds: vi.fn(),
       focus: vi.fn()
     };
   }),
+  // w10/L1: screen was absent from this mock (nothing reached it before the
+  // restore-bounds clamp); real Electron always exposes both accessors.
+  screen: {
+    getAllDisplays: vi.fn(() => [{ workArea: { x: 0, y: 0, width: 1920, height: 1080 } }]),
+    getPrimaryDisplay: vi.fn(() => ({ workArea: { x: 0, y: 0, width: 1920, height: 1080 } }))
+  },
   // M-WINDOWS-11: safeStorage stub — SUT destructures at module-eval; unavailable
   // ⇒ disclosed plaintext fallback, so the {get,set} store stub below still sees plain values.
   // M-WINDOWS-29: src/main/index.ts installs the permission guard on

@@ -33,12 +33,19 @@ const { prefs, tracks, WIN } = vi.hoisted(() => {
   // Constructed INSIDE the hoist: the boot path runs on the static import of
   // src/main/index, before any module-body const could exist.
   const WIN = {
-    loadURL: () => undefined, loadFile: () => undefined, show: () => undefined, hide: () => undefined,
+    loadURL: () => undefined, loadFile: () => undefined, show: () => undefined,
+    hide: () => { WIN.hideCalls += 1; },
+    hideCalls: 0,
     close: () => undefined, isDestroyed: () => false, setAlwaysOnTop: (v: unknown) => { WIN.alwaysOnTop.push(v); },
     alwaysOnTop: [] as unknown[],
     setFullScreen: () => undefined, isFullScreen: () => false, isMinimized: () => false,
     isVisible: () => true, focus: () => undefined, restore: () => undefined, isFocused: () => true,
     maximize: () => undefined, isMaximized: () => false,
+    // w10/L1: the off-screen restore clamp reads window bounds through the
+    // probe; the fake answers with an on-screen rect so every pre-existing
+    // exact call-sequence pin stays about the sequence, not the geometry.
+    getBounds: () => ({ x: 0, y: 0, width: 1280, height: 870 }),
+    setBounds: () => undefined,
     setProgressBar: (mode: number) => { tracks.setProgressBar.push(mode); },
     setThumbarButtons: () => undefined,
     webContents: {
@@ -338,6 +345,91 @@ describe('M8: powerMonitor suspend/resume reach the renderer as pushes', () => {
     expect(tracks.wcSend.some(([c]) => c === 'power:resume')).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------------------
+// w10/L1 (windows__casualgamer #7 / windows__exploiter 1): the m4 law said
+// sender identity is THE trust boundary "for every channel that writes config/
+// custody or mirrors state into main-process surfaces" — but the exemption was
+// a hand-run inventory, and the leftover arms were exactly the ones an
+// eventually-foreign document can abuse: minimize-to-tray (hide-the-UI DoS),
+// and the pure reads whose answers are configuration and updater state. The
+// sweep completes it to deny-by-default: EVERY ipcMain handler now leads with
+// senderTrusted, refusals answer with the neutral default (never the live
+// value), and the docblock records the completion. update:get-status is
+// deliberately the LAST test below: the trusted check leg parks the state
+// machine at 'checking' (no updater events fire in this harness), which no
+// other block here reads. PLACEMENT LAW: this block must stay BEFORE the
+// m13 describe below — m13 fires the window 'closed' handler, which nulls
+// mainWindow for the rest of the file (src/main/index.ts), so any trusted
+// senderTrusted arm downstream would be silently refused.
+// ---------------------------------------------------------------------------
+import { app as mockedApp } from 'electron';
+import { autoUpdater as mockedUpdater } from 'electron-updater';
+
+describe('w10/L1 sweep: senderTrusted deny-by-default on the previously exempt channels', () => {
+  it('minimize-to-tray from a foreign sender cannot hide the window; trusted still can', () => {
+    WIN.hideCalls = 0;
+    invoke('minimize-to-tray', FOREIGN);
+    expect(WIN.hideCalls, 'a foreign document must not be able to hide the shell').toBe(0);
+    invoke('minimize-to-tray', TRUSTED);
+    expect(WIN.hideCalls).toBe(1);
+  });
+
+  it('get-app-path refuses the userData path to a foreign sender', () => {
+    expect(invoke('get-app-path', FOREIGN)).toBe('');
+    expect(invoke('get-app-path', TRUSTED)).toBe('/tmp/opencode/windows-fix-c2');
+  });
+
+  it('get-version refuses the app version to a foreign sender', () => {
+    expect(invoke('get-version', FOREIGN)).toBe('');
+    expect(invoke('get-version', TRUSTED)).toBe('1.0.0');
+  });
+
+  it('tray:get-minimize-to-tray answers the conservative default, not the live store value, to a foreign sender', () => {
+    // The refusal shape is the DEFAULT the UI starts from (true = the shipped
+    // close-to-tray posture), never the real preference: a foreign sender
+    // cannot probe what the user chose.
+    prefs.minimizeToTray = false;
+    expect(invoke('tray:get-minimize-to-tray', FOREIGN)).toBe(true);
+    expect(invoke('tray:get-minimize-to-tray', TRUSTED)).toBe(false);
+    delete prefs.minimizeToTray;
+  });
+
+  it('gpu:get-disable-hardware-acceleration cannot be probed by a foreign sender', () => {
+    prefs.disableHardwareAcceleration = true;
+    expect(invoke('gpu:get-disable-hardware-acceleration', FOREIGN)).toBe(false);
+    expect(invoke('gpu:get-disable-hardware-acceleration', TRUSTED)).toBe(true);
+    delete prefs.disableHardwareAcceleration;
+  });
+
+  it('gpu:get-feature-status answers the empty map to a foreign sender', () => {
+    const gpu = mockedApp.getGPUFeatureStatus as Mock;
+    gpu.mockReturnValue({ canvas: 'disabled' });
+    expect(invoke('gpu:get-feature-status', FOREIGN)).toEqual({});
+    expect(invoke('gpu:get-feature-status', TRUSTED)).toEqual({ canvas: 'disabled' });
+    gpu.mockReturnValue({});
+  });
+
+  it('update:check-for-updates refuses foreign senders without kicking the updater or touching the state machine', async () => {
+    const check = mockedUpdater.checkForUpdates as Mock;
+    check.mockClear();
+    const result = await invoke('update:check-for-updates', FOREIGN);
+    expect(result).toEqual({ status: 'idle' });
+    expect(check, 'a foreign sender must not be able to start an update check').not.toHaveBeenCalled();
+    // The state stayed idle: the very next trusted read proves it.
+    expect(invoke('update:get-status', TRUSTED)).toEqual({ status: 'idle' });
+  });
+
+  it('update:get-status refuses to mirror the LIVE update state to a foreign sender (last: parks status at checking)', async () => {
+    const pending = invoke('update:check-for-updates', TRUSTED);
+    // Synchronously after the trusted kick the machine IS checking...
+    expect((invoke('update:get-status', TRUSTED) as { status: string }).status).toBe('checking');
+    // ...and the foreign read still earns only the neutral default.
+    expect(invoke('update:get-status', FOREIGN)).toEqual({ status: 'idle' });
+    await pending;
+  });
+});
+
 
 describe('m13: renderer death zeroes the playback mirrors', () => {
   it('render-process-gone resets the tray tooltip from playing to idle', () => {
