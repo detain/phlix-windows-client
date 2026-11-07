@@ -51,23 +51,113 @@ const ROUTE_BY_HOST: Record<string, string> = {
 };
 
 /**
+ * REVIEW-w09L2windows-ff2 Minor — the redactor's canonicalization seam.
+ *
+ * The w09/L2-FF cure folded only LETTER CASE of the compared segment, so any
+ * spelling reaching the redactor un-normalized — percent escapes ('%41',
+ * '%2D', double-encoded '%2541'), fullwidth/combining Unicode, Cyrillic or
+ * dotless look-alikes — waved a one-time invite token straight through into
+ * every log site and the rejection dialog. The fix folds BEFORE comparing:
+ *
+ *   1. bounded percent-decode, max MAX_DECODE_ROUNDS rounds, to a fixed
+ *      point; a decodeURIComponent throw (malformed escape) returns NULL,
+ *      which touchesInviteRoute treats as redact — FAIL TOWARD REDACTION:
+ *      any spelling not confidently NOT an invite route redacts its tail;
+ *   2. NFKD — deliberately the DECOMPOSING form (a documented deviation from
+ *      the reviewer's NFKC suggestion): a raw combining mark (e + U+0307)
+ *      must lose the mark under step 4's strip, while NFKC would RECOMPOSE
+ *      it into U+0117, an unmapped codepoint the strip deletes along with
+ *      the base letter — breaking the fold instead of canonicalizing it;
+ *   3. letter-case fold + a documented single-codepoint LOOKALIKE_FOLD map;
+ *   4. separator scrub (everything outside [a-z0-9] disappears), so the
+ *      marker test is a plain substring check for 'acceptinvite' — immune
+ *      to '-', '%2F'-decoded '/', trailing dots, and padding spaces.
+ *
+ * Disclosed boundaries (register REVIEW-w09L2windows-ff2): encoding nested
+ * deeper than MAX_DECODE_ROUNDS survives as a literal '%41…' form that folds
+ * to no marker (the reviewer's own decode cap is 2 rounds), and look-alikes
+ * outside the map (e.g. Greek 'α') are stripped rather than mapped. Neither
+ * form can REACH the invite record through the renderer router — the
+ * consumed ⇒ gate-confirmed invariant, and exactly why neither boundary
+ * leaves a consuming surface unredacted — and is pinned as such by
+ * tests/unit/deepLinkRouteContract.test.ts (ff2 equivalence table).
+ */
+const MAX_DECODE_ROUNDS = 2;
+
+/** Separator-free form of the invite route name; the marker under fold. */
+const INVITE_ROUTE_MARKER = 'acceptinvite';
+
+/**
+ * Single-codepoint look-alikes for letters used by the marker (plus adjacent
+ * confusables as defense-in-depth), lowercase forms only — the case fold runs
+ * before the map. The ff2 hostile table exercises Cyrillic а/е/і and Latin
+ * dotless ı; the remaining entries pre-cover every other marker letter shape
+ * (с→c, р→p) and common Latin stand-ins (ø→o, ı→i) so a future marker cannot
+ * outrun the seam without the map growing first.
+ */
+const LOOKALIKE_FOLD: ReadonlyMap<string, string> = new Map([
+  ['\u0430', 'a'], // Cyrillic а
+  ['\u0441', 'c'], // Cyrillic с
+  ['\u0435', 'e'], // Cyrillic е
+  ['\u0456', 'i'], // Cyrillic і
+  ['\u0458', 'j'], // Cyrillic ј
+  ['\u043e', 'o'], // Cyrillic о
+  ['\u0440', 'p'], // Cyrillic р
+  ['\u0443', 'y'], // Cyrillic у
+  ['\u0445', 'x'], // Cyrillic х
+  ['\u0455', 's'], // Cyrillic ѕ
+  ['\u0501', 'd'], // Cyrillic ԁ
+  ['\u0131', 'i'], // Latin dotless ı
+  ['\u00f8', 'o'] // Latin slashed ø
+]);
+
+function foldRouteText(value: string): string | null {
+  let current = value;
+  for (let round = 0; round < MAX_DECODE_ROUNDS; round++) {
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(current);
+    } catch {
+      return null; // malformed escape → cannot disprove invite → redact
+    }
+    if (decoded === current) {
+      break; // fixed point — nothing left to decode
+    }
+    current = decoded;
+  }
+  const lowered = current.normalize('NFKD').toLowerCase();
+  let folded = '';
+  for (const char of lowered) {
+    folded += LOOKALIKE_FOLD.get(char) ?? char;
+  }
+  return folded.replace(/[^a-z0-9]/g, '');
+}
+
+/** True when `value` may touch the invite route under ANY folded spelling. */
+function touchesInviteRoute(value: string): boolean {
+  const folded = foldRouteText(value);
+  return folded === null ? true : folded.includes(INVITE_ROUTE_MARKER);
+}
+
+/**
  * Redacts a deep link for logging: keeps scheme + host + path structure but
  * replaces the final path segment with `[redacted]` when the route touches
- * the `accept-invite` segment (its tail is a one-time secret). The match is
- * case-folded and route-position-aware — the host form AND the
- * `internal/app/accept-invite/…` arm carry live secrets, and the router
- * reaches the view for every letter-case spelling (REVIEW-w09L2windows).
- * Over-redacting a look-alike browse path is the safe direction: a log that
- * hides too much leaks nothing. Query strings and
+ * the `accept-invite` segment (its tail is a one-time secret). The match
+ * folds the COMPARISON only — case (REVIEW-w09L2windows) and, since
+ * REVIEW-w09L2windows-ff2, percent/Unicode normalization via the seam above
+ * — across host AND full pathname, so the host form, the
+ * `internal/app/accept-invite/…` arm, and every normalization-deferred
+ * spelling all redact. Over-redacting a look-alike browse path is the safe
+ * direction: a log that hides too much leaks nothing. Query strings and
  * fragments are always dropped — they may carry further secrets.
  */
 export function redactDeepLinkUrl(url: string): string {
   try {
     const parsed = new URL(url);
     const segments = parsed.pathname.split('/').filter((segment) => segment.length > 0);
-    const inviteRoute =
-      parsed.hostname.toLowerCase() === 'accept-invite' ||
-      segments.some((segment) => segment.toLowerCase() === 'accept-invite');
+    // WHATWG already lowercases the hostname and UTF-8 percent-encodes
+    // non-ASCII path bytes, so the joined string feeds the seam directly.
+    const inviteRoute = touchesInviteRoute(`${parsed.hostname}/${parsed.pathname}`);
     if (inviteRoute && segments.length > 0) {
       segments[segments.length - 1] = '[redacted]';
     }
@@ -232,6 +322,10 @@ export function parseDeepLinkUrl(url: string): string | null {
  * Percent-encoded spellings ('%2D', '%65') fold to no match here AND cannot
  * reach the record through the router (executed: they fall to the 404 catch-
  * all), so the fold neither over-blocks nor under-covers any reachable class.
+ * That consumed ⇒ gate-confirmed invariant is no longer review-lore: the ff2
+ * equivalence table (tests/unit/deepLinkRouteContract.test.ts) re-executes it
+ * every CI run — if a future router ever decodes a spelling this gate misses,
+ * the table reddens in the same commit that must widen the gate.
  */
 export function requiresDeepLinkConfirmation(path: string): boolean {
   const canonical = path.toLowerCase();

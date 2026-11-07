@@ -19,7 +19,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { createPhlixApp } from '@phlix/ui';
 import { buildExtraRoutes } from '@/main';
-import { parseDeepLinkUrl } from '../../src/main/deepLinkValidator';
+import { parseDeepLinkUrl, requiresDeepLinkConfirmation } from '../../src/main/deepLinkValidator';
 
 // The parser logs rejections via electron-log (main-process module).
 vi.mock('electron-log', () => ({
@@ -217,5 +217,104 @@ describe('M-WINDOWS-15 mode matrix — no parser output dead-ends in either mode
     expect(parseDeepLinkUrl('phlix://bogus/x')).toBeNull();
     expect(parseDeepLinkUrl('phlix://media/bad id')).toBeNull();
     expect(parseDeepLinkUrl('phlix://internal/no/base')).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// REVIEW-w09L2windows-ff2 CRUX adjudication, CI-resident.
+//
+// The ff2 brief claimed percent/Unicode spellings "reach the classifier
+// BEFORE percent-decode/unicode-normalization, so the consent gate can still
+// be skipped" for the invite-consuming route. Executed at 83e9a416 against a
+// REAL hub-mode router (26/26 spellings by the reviewer, all 18 below re-run
+// by this lane — table evidence in .reviews/2026-11-08/FIX-w09L2windows-ff2.md):
+// the router does NOT decode path segments, so every normalization-deferred
+// spelling falls to the '/app/:pathMatch(.*)*' catch-all and can NEVER consume
+// the one-time token. Only letter-case spellings reach the record — and every
+// one of those is gate-confirmed since w09/L2-FF. The invariant that makes the
+// gate sound is therefore: ROUTER-CONSUMED ⇒ GATE-CONFIRMED. This table pins
+// it. If a future vue-router (or a config flip such as `sensitive`/decode
+// changes) starts reaching the record for a form the case-fold gate misses,
+// the consumed=false expectation reddens HERE, in the same commit that becomes
+// unsafe — forcing gate widening at the moment it becomes necessary, instead
+// of silently re-opening the bypass.
+// ---------------------------------------------------------------------------
+
+const FF2_HOSTILE_SPELLINGS: Array<{ label: string; spelling: string }> = [
+  { label: 'encoded-A', spelling: '%41ccept-invite' },
+  { label: 'encoded-dash', spelling: 'accept%2Dinvite' },
+  { label: 'encoded-e', spelling: 'acc%65pt-invite' },
+  { label: 'encoded-slash-inside', spelling: 'accept%2Finvite' },
+  { label: 'encoded-space-pad', spelling: 'accept-invite%20' },
+  { label: 'double-encoded-A', spelling: '%2541ccept-invite' },
+  { label: 'double-encoded-slash', spelling: 'accept%252Finvite' },
+  { label: 'encoded-traversal-prefix', spelling: '%2e%2e%2faccept-invite' },
+  { label: 'literal-traversal-prefix', spelling: '..%2faccept-invite' },
+  { label: 'fullwidth-A', spelling: '\uFF21ccept-invite' },
+  { label: 'combining-dot', spelling: 'acc' + 'e\u0307' + 'pt-invite' },
+  { label: 'precomposed-e-dot', spelling: 'acc\u0117pt-invite' },
+  { label: 'dotless-i', spelling: 'accept-\u0131nvite' },
+  { label: 'cyrillic-e', spelling: 'acc\u0435pt-invite' },
+  { label: 'cyrillic-i', spelling: 'accept-\u0456nvite' },
+  { label: 'cyrillic-e-final', spelling: 'accept-invit\u0435' },
+  { label: 'cyrillic-full-mix', spelling: '\u0430cc\u0435pt-\u0456nvit\u0435' },
+  { label: 'trailing-dot', spelling: 'accept-invite.' },
+  { label: 'fully-encoded-upper', spelling: '%41%43%43%45%50%54-%49%4E%56%49%54%45' }
+];
+
+const FF2_LETTER_CASES: Array<{ spelling: string }> = [
+  { spelling: 'accept-invite' },
+  { spelling: 'Accept-Invite' },
+  { spelling: 'ACCEPT-INVITE' },
+  { spelling: 'AcCePt-iNvItE' }
+];
+
+describe('consent gate ↔ router reachability equivalence (ff2 crux law)', () => {
+  it.each(FF2_HOSTILE_SPELLINGS)('$label: cannot reach the record ⇒ no gate needed, and none fires', ({ spelling }) => {
+    const path = `/app/${spelling}/EQTOKEN1`;
+    const deepest = deepestMatchedPath(hubRouter(), path);
+    // RE-INFLATION DETECTOR: this must stay false for as long as the gate
+    // stays case-fold-only. True here with requiresDeepLinkConfirmation false
+    // below = a live consent bypass, cured the same commit.
+    expect(deepest, `${spelling} unexpectedly reaches the invite record`).not.toBe('/app/accept-invite/:token');
+    expect(requiresDeepLinkConfirmation(path)).toBe(false);
+  });
+
+  it.each(FF2_LETTER_CASES)('$spelling: reaches the record ⇒ the gate confirms it', ({ spelling }) => {
+    const path = `/app/${spelling}/EQTOKEN1`;
+    expect(deepestMatchedPath(hubRouter(), path)).toBe('/app/accept-invite/:token');
+    expect(requiresDeepLinkConfirmation(path)).toBe(true);
+  });
+
+  it('the trailing-slash reachable form is gate-confirmed too', () => {
+    // vue-router defaults are non-strict: '/app/accept-invite/T/' matches the
+    // record. The gate's startsWith('/app/accept-invite/') already covers it.
+    const path = '/app/accept-invite/EQTOKEN1/';
+    expect(deepestMatchedPath(hubRouter(), path)).toBe('/app/accept-invite/:token');
+    expect(requiresDeepLinkConfirmation(path)).toBe(true);
+  });
+
+  it("bare /app/accept-invite (no token) does not reach the record; the gate over-confirms — safe direction", () => {
+    // The record requires its :token segment, so nothing consumes here. The
+    // gate still says true: over-confirming is the documented safe direction
+    // (a dialog the user declines asks for nothing; a bypass burns a secret).
+    const path = '/app/accept-invite';
+    expect(deepestMatchedPath(hubRouter(), path)).not.toBe('/app/accept-invite/:token');
+    expect(requiresDeepLinkConfirmation(path)).toBe(true);
+  });
+
+  it('the whole class: router-consumed ⇒ gate-confirmed (the no-bypass invariant)', () => {
+    const paths = [
+      ...FF2_HOSTILE_SPELLINGS.map((s) => `/app/${s.spelling}/EQTOKEN1`),
+      ...FF2_LETTER_CASES.map(({ spelling }) => `/app/${spelling}/EQTOKEN1`),
+      '/app/accept-invite/EQTOKEN1/',
+      '/app/accept-invite'
+    ];
+    for (const path of paths) {
+      const consumed = deepestMatchedPath(hubRouter(), path) === '/app/accept-invite/:token';
+      if (consumed) {
+        expect(requiresDeepLinkConfirmation(path), `${path} consumed WITHOUT confirmation`).toBe(true);
+      }
+    }
   });
 });

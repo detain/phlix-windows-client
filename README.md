@@ -436,7 +436,7 @@ phlix-windows-client/
 │       ├── vite-env.d.ts
 │       └── types/electron.d.ts
 ├── tests/
-│   └── unit/           # 79 law-pin cohorts as of 2026-11-06 (re-measure; see DEVELOPER.md "Test Structure") — founding trio: resolveConfig · electronBridge · main
+│   └── unit/           # 80 law-pin cohorts as of 2026-11-08 (re-measure; see DEVELOPER.md "Test Structure") — founding trio: resolveConfig · electronBridge · main
 ├── build/              # Build resources (icons)
 ├── release/            # Packaged application output (gitignored)
 ├── package.json

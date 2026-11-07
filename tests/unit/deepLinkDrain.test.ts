@@ -475,6 +475,27 @@ describe('M-WINDOWS-06 event-driven deeplink drain', () => {
     expect(allDialogText).toContain('[redacted]');
   });
 
+  it('an encoded-spelling invite link that fails parse still redacts on the rejection dialog (REVIEW-w09L2windows-ff2 Minor)', () => {
+    // Same fail-toward-totality law one level up: 'Accept%2DInvite' is not a
+    // known host, so the pump rejects it — and the rejection dialog quotes the
+    // REDACTED link. If the redactor's fold misses the encoding, the raw
+    // one-time token rides the dialog text (red on landing 83e9a416: the
+    // segment-exact case-fold never sees through %2D).
+    tracks.deepLinkSends.length = 0;
+    tracks.dialogCalls.length = 0;
+    const win = currentWindow();
+    announceReadyFrom(win); // warm receiver — the rejection surfaces on enqueue
+
+    const secret = 'FF2PUMP-SECRET-9';
+    enqueueViaSecondInstance(`phlix://Accept%2DInvite/${secret}`);
+    expect(tracks.deepLinkSends).toEqual([]); // parse rejected — nothing forwards
+    expect(tracks.dialogCalls.length).toBe(1);
+
+    const dialogText = JSON.stringify(tracks.dialogCalls);
+    expect(dialogText).not.toContain(secret);
+    expect(dialogText).toContain('[redacted]');
+  });
+
   it('duplicate URLs inside the dedupe window deliver once, and every log line stays redacted', async () => {
     tracks.deepLinkSends.length = 0;
     tracks.logs.length = 0;

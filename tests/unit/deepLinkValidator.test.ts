@@ -328,3 +328,82 @@ describe('redactDeepLinkUrl case-fold law (REVIEW-w09L2windows)', () => {
     expect(redactDeepLinkUrl('phlix://internal/app/settings')).toBe('phlix://internal/app/settings');
   });
 });
+
+describe('redactDeepLinkUrl normalization-deferred law (REVIEW-w09L2windows-ff2 Minor)', () => {
+  // Segment-exact case-fold (the w09/L2-FF cure) still keys on the LITERAL
+  // spelling, so any form that reaches the redactor un-normalized — percent
+  // escapes ('%41', '%2D', double-encoded '%2541'), fullwidth/combining
+  // Unicode, or Cyrillic/dotless look-alikes — waves a one-time invite token
+  // straight through into every log site and the rejection dialog. The redactor
+  // now folds BEFORE comparing: bounded percent-decode (max 2 rounds, to a
+  // fixed point; a decode throw fails TOWARD redaction) → NFKD → case-fold →
+  // documented homoglyph map → strip separators → substring 'acceptinvite'.
+  // Over-redaction stays the safe direction; the parse grammar is untouched
+  // (this folds only the COMPARISON, same law as the case-fold above).
+  //
+  // Boundary disclosures (register REVIEW-w09L2windows-ff2): nesting deeper
+  // than 2 rounds (e.g. '%252541') and look-alikes outside the map (e.g. Greek
+  // 'α') fold to no marker and are treated as non-invite — matching the
+  // reviewer's own bounded-decode cap and executed spelling set; the router
+  // reaches the invite record for neither form (see the equivalence table in
+  // deepLinkRouteContract.test.ts), so no consuming surface is unredacted.
+  interface HostileSpelling {
+    label: string;
+    spelling: string;
+    secret: string;
+  }
+
+  const HOSTILE_INVITE_SPELLINGS: HostileSpelling[] = [
+    { label: 'encoded-A', spelling: '%41ccept-invite', secret: 'FF2S01' },
+    { label: 'encoded-dash', spelling: 'accept%2Dinvite', secret: 'FF2S02' },
+    { label: 'encoded-e', spelling: 'acc%65pt-invite', secret: 'FF2S03' },
+    { label: 'encoded-slash-inside', spelling: 'accept%2Finvite', secret: 'FF2S04' },
+    { label: 'encoded-space-pad', spelling: 'accept-invite%20', secret: 'FF2S05' },
+    { label: 'double-encoded-A', spelling: '%2541ccept-invite', secret: 'FF2S06' },
+    { label: 'double-encoded-slash', spelling: 'accept%252Finvite', secret: 'FF2S07' },
+    { label: 'encoded-traversal-prefix', spelling: '%2e%2e%2faccept-invite', secret: 'FF2S08' },
+    { label: 'literal-traversal-prefix', spelling: '..%2faccept-invite', secret: 'FF2S09' },
+    { label: 'fullwidth-A', spelling: '\uFF21ccept-invite', secret: 'FF2S10' },
+    { label: 'combining-dot', spelling: 'acc' + 'e\u0307' + 'pt-invite', secret: 'FF2S11' },
+    { label: 'precomposed-e-dot', spelling: 'acc\u0117pt-invite', secret: 'FF2S19' },
+    { label: 'dotless-i', spelling: 'accept-\u0131nvite', secret: 'FF2S12' },
+    { label: 'cyrillic-e', spelling: 'acc\u0435pt-invite', secret: 'FF2S13' },
+    { label: 'cyrillic-i', spelling: 'accept-\u0456nvite', secret: 'FF2S14' },
+    { label: 'cyrillic-e-final', spelling: 'accept-invit\u0435', secret: 'FF2S15' },
+    { label: 'cyrillic-full-mix', spelling: '\u0430cc\u0435pt-\u0456nvit\u0435', secret: 'FF2S16' },
+    { label: 'trailing-dot', spelling: 'accept-invite.', secret: 'FF2S17' },
+    { label: 'fully-encoded-upper', spelling: '%41%43%43%45%50%54-%49%4E%56%49%54%45', secret: 'FF2S18' }
+  ];
+
+  it.each(HOSTILE_INVITE_SPELLINGS)('redacts the token under $label spellings', ({ spelling, secret }) => {
+    const out = redactDeepLinkUrl(`phlix://internal/app/${spelling}/${secret}`);
+    expect(out, `one-time token leaked raw for ${spelling}`).not.toContain(secret);
+    expect(out).toContain('[redacted]');
+  });
+
+  it('redacts a malformed percent escape — fail TOWARD redaction, never a raw tail', () => {
+    // '%zz' is not valid percent-encoding: the decode loop throws and the fold
+    // must treat the route as possibly-invite. A spelling we cannot
+    // confidently call NOT invite redacts; that is the totality law.
+    const out = redactDeepLinkUrl('phlix://internal/app/accept%zz-invite/FF2MALFORMED-SECRET');
+    expect(out).not.toContain('FF2MALFORMED-SECRET');
+    expect(out).toContain('[redacted]');
+  });
+
+  it('redacts the encoded-escape HOST leg without widening parse acceptance', () => {
+    // WHATWG lowercases hostnames but keeps %2D: 'accept%2dininvite' must fold
+    // through the same seam. The parse grammar stays exact — this is redaction
+    // totality, never an invitation for the case/encoding variant to PARSE.
+    const out = redactDeepLinkUrl('phlix://Accept%2DInvite/FF2HOST-SECRET');
+    expect(out).not.toContain('FF2HOST-SECRET');
+    expect(out).toContain('[redacted]');
+    expect(parseDeepLinkUrl('phlix://Accept%2DInvite/FF2HOST-SECRET')).toBeNull();
+  });
+
+  it('leaves confidently-not-invite routes intact (over-redaction has limits)', () => {
+    // The fold must not become a blanket redactor: benign browse paths carry
+    // no marker under ANY fold depth and keep their readable log form.
+    expect(redactDeepLinkUrl('phlix://media/FF2BENIGN-1')).toBe('phlix://media/FF2BENIGN-1');
+    expect(redactDeepLinkUrl('phlix://internal/app/media/FF2BENIGN-2')).toBe('phlix://internal/app/media/FF2BENIGN-2');
+  });
+});

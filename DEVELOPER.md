@@ -64,12 +64,12 @@ The main process is responsible for:
    - Provides media control shortcuts
    - Click to show/hide main window
 
-3. **Application Menu** (`buildAppMenuTemplate()`, `src/main/index.ts:1055-1131`)
-   - File menu (Settings `Ctrl+,`, separator, Quit) — `:1062-1069`
-   - Edit menu — the native `editMenu` role (Undo/Redo, Cut/Copy/Paste/Select All; Electron renders native localized labels) — `:1072`, added by review M5
-   - Playback menu (Play/Pause, Stop, Rewind 10s, Forward 10s, Fullscreen `F11`) — `buildPlaybackMenuTemplate()` `:960-970`; the F11 row is the **only** fullscreen entry — M-WINDOWS-41 removed the duplicate View-submenu role row so one accelerator lives on one labeled, catalog-translated row
-   - View menu (Zoom reset/in/out `:1092-1094` + the two preference checkboxes **Minimize-to-Tray** and **Notifications** `:1108-1109`, kept in lockstep with the tray menu by `refreshShellMenus()`; the Reload/Force-Reload/DevTools trio `:1084-1091` is a development affordance — compiled out of the production menu, M-WINDOWS-32)
-   - Help menu (About `:1115`, Check for updates `:1117`)
+3. **Application Menu** (`buildAppMenuTemplate()`, `src/main/index.ts` — cited by symbol: coordinates rot)
+   - File menu (`t('menu.file')`): Settings row `t('menu.settings')` with accelerator `CmdOrCtrl+,` → `openSettings()`, separator, `quit` role
+   - Edit menu — the native `editMenu` role (Undo/Redo, Cut/Copy/Paste/Select All; Electron renders native localized labels), added by review M5
+   - Playback menu (Play/Pause, Stop, Rewind 10s, Forward 10s, Fullscreen `F11`) — `buildPlaybackMenuTemplate()`; the F11 row is the **only** fullscreen entry — M-WINDOWS-41 removed the duplicate View-submenu role row so one accelerator lives on one labeled, catalog-translated row
+   - View menu: the `resetZoom`/`zoomIn`/`zoomOut` role trio + the two preference checkboxes **Minimize-to-Tray** and **Notifications**, kept in lockstep with the tray menu by `refreshShellMenus()`; the `reload`/`forceReload`/`toggleDevTools` trio is a development affordance — compiled out of the production menu, M-WINDOWS-32)
+   - Help menu: About row (`t('menu.about')` → `showAbout()`) and Check-for-updates row (`t('menu.checkForUpdates')` → `autoUpdater.checkForUpdates()`)
 
 4. **IPC Communication**
    - `get-app-path` - Returns user data directory
@@ -262,7 +262,7 @@ npm test -- --coverage
 ### Test Structure
 
 Tests use Vitest (`jsdom`, `@vitejs/plugin-vue`) with TypeScript. The suite has grown
-far past its three-file origin: 76 files in `tests/unit/` (~910 tests as of 2026-11-03 —
+far past its three-file origin: 80 files in `tests/unit/` (~1043 tests as of 2026-11-08 —
 `npx vitest run --reporter=verbose` is the source of truth, do not trust any count
 written here long-term) plus one Playwright smoke spec (`tests/smoke/boot.spec.ts`,
 CI-gated on real Electron). The original trio:
