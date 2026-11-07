@@ -44,6 +44,22 @@ describe('thumbar buttons (W4.5)', () => {
     const tooltips = (buttonsDef![0].match(/tooltip:/g) || []).length;
     expect(tooltips).toBe(3);
   });
+
+  // MW-115 [review windows__gameux 6]: the trio must render DISTINCT media
+  // glyphs, not three copies of one resized square. The shared-icon path is
+  // demoted to the missing-asset fallback inside loadThumbarGlyph (the
+  // createFromPath(iconPath)/build/icon.png legs above still hold there).
+  it('each button loads its own 16x16 transport glyph; the center switches with play state (MW-115)', () => {
+    for (const glyph of ['thumbar-previous', 'thumbar-play', 'thumbar-pause', 'thumbar-next']) {
+      expect(mainSource, `missing glyph file reference: ${glyph}.png`).toContain(`${glyph}.png`);
+    }
+    expect(mainSource).toMatch(/icon:\s*loadThumbarGlyph\('thumbar-previous'\)/);
+    expect(mainSource).toMatch(/icon:\s*loadThumbarGlyph\(isPlaying \? 'thumbar-pause' : 'thumbar-play'\)/);
+    expect(mainSource).toMatch(/icon:\s*loadThumbarGlyph\('thumbar-next'\)/);
+    // Robustness law: the loader keeps the resized-icon fallback — never a
+    // crash on a missing asset.
+    expect(mainSource).toMatch(/function loadThumbarGlyph[\s\S]*?createFromPath\(iconPath\)[\s\S]*?resize\(\{\s*width:\s*16,\s*height:\s*16\s*\}\)/);
+  });
 });
 
 describe('thumbar:update IPC channel (W4.5)', () => {

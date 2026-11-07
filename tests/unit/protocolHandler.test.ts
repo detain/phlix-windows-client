@@ -48,7 +48,7 @@ vi.mock('electron-store', () => ({
 // Mock Electron modules (needed for pathUtils import chain)
 // ---------------------------------------------------------------------------
 const { protocolHandlers } = vi.hoisted(() => {
-  const handlers = new Map<string, (request: { url: string }) => Response>();
+  const handlers = new Map<string, (request: { url: string }) => Response | Promise<Response>>();
   return { protocolHandlers: handlers };
 });
 
@@ -103,7 +103,7 @@ vi.mock('electron', () => ({
     on: vi.fn()
   },
   protocol: {
-    handle: vi.fn((scheme: string, handler: (request: { url: string }) => Response) => {
+    handle: vi.fn((scheme: string, handler: (request: { url: string }) => Response | Promise<Response>) => {
       protocolHandlers.set(scheme, handler);
     }),
     registerSchemesAsPrivileged: vi.fn()
@@ -192,14 +192,31 @@ describe('app:// protocol handler path resolution', () => {
       setupAppProtocolHandler();
     });
 
-    function getAppHandler(): (request: { url: string }) => Response | undefined {
-      return protocolHandlers.get('app') as (request: { url: string }) => Response | undefined;
+    function getAppHandler(): ((request: { url: string }) => Response | Promise<Response>) | undefined {
+      return protocolHandlers.get('app');
     }
+
+    // MW-113 [review windows__crossfe 5]: red-first law pin. The handler used
+    // to run fs.readFileSync/existsSync directly inside a protocol.handle
+    // callback — synchronous disk I/O on the browser-process main loop, once
+    // per asset/chunk/route on every cold boot. Electron awaits a Promise
+    // return, so every answer must now arrive asynchronously.
+    it('answers asynchronously — the handler never returns a settled Response (MW-113)', async () => {
+      const handler = getAppHandler()!;
+      expect(handler).toBeDefined();
+      const pending = handler({ url: PROD_BOOT_URL });
+      expect(typeof (pending as unknown as Promise<Response>).then).toBe('function');
+      expect((await pending).status).toBe(200);
+      // The refusal paths answer asynchronously too (no sync early-returns).
+      const refused = handler({ url: 'app://-/etc/passwd' });
+      expect(typeof (refused as unknown as Promise<Response>).then).toBe('function');
+      expect((await refused).status).toBe(403);
+    });
 
     it('returns 403 when hostname is not "-" (invalid app:// URL)', async () => {
       const handler = getAppHandler();
       expect(handler).toBeDefined();
-      const response = handler!({ url: 'app://example.com/app/servers' })!;
+      const response = await handler!({ url: 'app://example.com/app/servers' });
       expect(response.status).toBe(403);
     });
 
@@ -207,7 +224,7 @@ describe('app:// protocol handler path resolution', () => {
       const handler = getAppHandler();
       expect(handler).toBeDefined();
       // dist/renderer/index.html should exist in the project
-      const response = handler!({ url: 'app://-/app/servers' })!;
+      const response = await handler!({ url: 'app://-/app/servers' });
       expect(response.status).toBe(200);
       const text = await response.text();
       expect(text).toContain('<!DOCTYPE html>'); // index.html should be valid HTML
@@ -217,7 +234,7 @@ describe('app:// protocol handler path resolution', () => {
       const handler = getAppHandler();
       expect(handler).toBeDefined();
       // A file that doesn't exist should fall back to index.html
-      const response = handler!({ url: 'app://-/app/assets/nonexistent-file.js' })!;
+      const response = await handler!({ url: 'app://-/app/assets/nonexistent-file.js' });
       expect(response.status).toBe(200);
       const text = await response.text();
       expect(text).toContain('<!DOCTYPE html>');
@@ -230,7 +247,7 @@ describe('app:// protocol handler path resolution', () => {
 
       // The test project should have dist/renderer/index.html
       // Request it via the app:// protocol
-      const response = handler!({ url: 'app://-/app/index.html' })!;
+      const response = await handler!({ url: 'app://-/app/index.html' });
       expect(response.status).toBe(200);
       const text = await response.text();
       expect(text).toContain('<!DOCTYPE html>');
@@ -252,7 +269,7 @@ describe('app:// protocol handler path resolution', () => {
     it('serves 200 + index.html for the exact PROD_BOOT_URL the window loads (cold-boot pin)', async () => {
       const handler = getAppHandler();
       expect(handler).toBeDefined();
-      const response = handler!({ url: PROD_BOOT_URL })!;
+      const response = await handler!({ url: PROD_BOOT_URL });
       expect(response.status).toBe(200);
       const text = await response.text();
       expect(text).toContain('<!DOCTYPE html>');
@@ -263,24 +280,24 @@ describe('app:// protocol handler path resolution', () => {
       expect(handler).toBeDefined();
       // Also covers renderer reloads at router base: vue-router '/app' nav items
       // make window.location '/app', and a reload re-requests it through here.
-      const response = handler!({ url: 'app://-/app' })!;
+      const response = await handler!({ url: 'app://-/app' });
       expect(response.status).toBe(200);
       const text = await response.text();
       expect(text).toContain('<!DOCTYPE html>');
     });
 
-    it('still 403s paths that merely share the /app letter prefix (no gate bleed)', () => {
+    it('still 403s paths that merely share the /app letter prefix (no gate bleed)', async () => {
       const handler = getAppHandler();
       expect(handler).toBeDefined();
-      expect(handler!({ url: 'app://-/apple' })!.status).toBe(403);
-      expect(handler!({ url: 'app://-/appsecret/main.js' })!.status).toBe(403);
+      expect((await handler!({ url: 'app://-/apple' })).status).toBe(403);
+      expect((await handler!({ url: 'app://-/appsecret/main.js' })).status).toBe(403);
     });
 
-    it('still 403s paths outside the /app SPA prefix (root, absolute escapes)', () => {
+    it('still 403s paths outside the /app SPA prefix (root, absolute escapes)', async () => {
       const handler = getAppHandler();
       expect(handler).toBeDefined();
-      expect(handler!({ url: 'app://-/' })!.status).toBe(403);
-      expect(handler!({ url: 'app://-/etc/passwd' })!.status).toBe(403);
+      expect((await handler!({ url: 'app://-/' })).status).toBe(403);
+      expect((await handler!({ url: 'app://-/etc/passwd' })).status).toBe(403);
     });
   });
 });
@@ -294,22 +311,22 @@ describe('M11 frame-ancestors header + m7c branded refusal bodies', () => {
     protocolHandlers.clear();
     setupAppProtocolHandler();
   });
-  const handler = () => protocolHandlers.get('app') as (request: { url: string }) => Response;
+  const handler = () => protocolHandlers.get('app') as (request: { url: string }) => Promise<Response>;
 
   it('the SPA document (boot URL) ships frame-ancestors none', async () => {
-    const response = handler()({ url: PROD_BOOT_URL });
+    const response = await handler()({ url: PROD_BOOT_URL });
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Security-Policy')).toBe("frame-ancestors 'none'");
   });
 
   it('real asset responses carry it too (framing refusal is document-agnostic)', async () => {
-    const response = handler()({ url: 'app://-/app/index.html' });
+    const response = await handler()({ url: 'app://-/app/index.html' });
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Security-Policy')).toBe("frame-ancestors 'none'");
   });
 
   it('a wrong-host refusal is a branded HTML document, not bare text, and echoes nothing', async () => {
-    const response = handler()({ url: 'app://evil.example.com/app/secret-page' });
+    const response = await handler()({ url: 'app://evil.example.com/app/secret-page' });
     expect(response.status).toBe(403);
     expect(response.headers.get('Content-Type')).toContain('text/html');
     expect(response.headers.get('Content-Security-Policy')).toBe("frame-ancestors 'none'");
@@ -321,7 +338,7 @@ describe('M11 frame-ancestors header + m7c branded refusal bodies', () => {
   });
 
   it('a traversal probe 403s with the same non-echoing body', async () => {
-    const response = handler()({ url: 'app://-/etc/passwd' });
+    const response = await handler()({ url: 'app://-/etc/passwd' });
     expect(response.status).toBe(403);
     expect(await response.text()).not.toContain('passwd');
   });

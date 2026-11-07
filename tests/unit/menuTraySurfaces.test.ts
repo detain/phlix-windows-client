@@ -21,10 +21,12 @@ import { describe, it, expect, vi, beforeAll } from 'vitest';
 const tracks = vi.hoisted(() => {
   return {
     storeData: new Map<string, unknown>(),
+    windows: [] as Array<ReturnType<typeof makeFakeWindow>>,
     menuTemplates: [] as Array<Array<Record<string, unknown>>>,
     applicationMenus: [] as Array<Record<string, unknown>>,
     poppedMenus: [] as Array<{ template: Array<Record<string, unknown>>; options: unknown }>,
     webContentsHandlers: new Map<string, Array<(event: unknown, params: unknown) => void>>(),
+    ipcOnHandlers: new Map<string, Array<(event: unknown, payload: unknown) => void>>(),
     appMenusRebuilt: { count: 0 }
   };
 });
@@ -51,6 +53,8 @@ function makeFakeWindow() {
     setFullScreen: vi.fn(),
     loadURL: vi.fn(),
     loadFile: vi.fn(),
+    setProgressBar: vi.fn(),
+    setThumbarButtons: vi.fn(),
     on: vi.fn(),
     once: vi.fn(),
     setMenuBarVisibility: vi.fn(),
@@ -114,7 +118,9 @@ vi.mock('electron', () => {
       requestSingleInstanceLock: vi.fn(() => true)
     },
     BrowserWindow: vi.fn(function () {
-      return makeFakeWindow();
+      const win = makeFakeWindow();
+      tracks.windows.push(win);
+      return win;
     }),
     session: {
       defaultSession: {
@@ -134,11 +140,26 @@ vi.mock('electron', () => {
         throw new Error('mock safeStorage');
       }
     },
-    ipcMain: { handle: vi.fn(), on: vi.fn(), removeHandler: vi.fn() },
+    ipcMain: {
+      handle: vi.fn(),
+      on: vi.fn((channel: string, handler: (event: unknown, payload: unknown) => void) => {
+        // MW-114: the progress-driven transport-liveness legs need to drive
+        // the ipcMain.on channels for real; record them (the handle mock
+        // stays a plain recorder — this file never invoked handlers before).
+        const list = tracks.ipcOnHandlers.get(channel) ?? [];
+        list.push(handler);
+        tracks.ipcOnHandlers.set(channel, list);
+      }),
+      removeHandler: vi.fn()
+    },
     protocol: { handle: vi.fn(), registerSchemesAsPrivileged: vi.fn() },
     shell: { openExternal: vi.fn() },
     nativeImage: {
-      createFromPath: vi.fn(() => ({ isEmpty: vi.fn(() => true), resize: vi.fn(() => ({ isEmpty: vi.fn(() => true) })) }))
+      // MW-114 legs drive the tray rebuild, so boot must actually CREATE the
+      // tray: a decodable icon (isEmpty false) takes the live path; the
+      // resize leg stays mocked because the .ico branch never resizes.
+      createFromPath: vi.fn(() => ({ isEmpty: vi.fn(() => false), resize: vi.fn(() => ({ isEmpty: vi.fn(() => false) })) })),
+      createEmpty: vi.fn(() => ({ isEmpty: vi.fn(() => true), resize: vi.fn(() => ({ isEmpty: vi.fn(() => true) })) }))
     },
     Menu: {
       buildFromTemplate: vi.fn((template: Array<Record<string, unknown>>) => {
@@ -326,5 +347,83 @@ describe('w10/L1 (review windows__gameux 7) — discoverability without fake acc
     expect(hint!.registerAccelerator).toBeUndefined();
     expect(hint!.click, 'an info row must not act on click').toBeUndefined();
     expect(hint!.type, 'a plain label row (not checkbox/separator)').toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// MW-114 [review windows__casualgamer 10]: the tray transport rows and the
+// thumbar trio always send control IPC that the renderer's playerCanControl
+// silently drops when no media is loaded (src/renderer/electronBridge.ts) —
+// dead-but-clickable controls, the same "row that lies" class m10 fixed for
+// accelerators. Main already learns the truth from every validated
+// playback:progress tick (total > 0 means a live session); the surfaces must
+// reflect it — transport disabled while nothing is loaded.
+// ---------------------------------------------------------------------------
+describe('MW-114 — transport surfaces reflect session liveness', () => {
+  type Row = { label?: unknown; enabled?: unknown; type?: unknown };
+
+  function fireProgress(payload: unknown): void {
+    const handler = tracks.ipcOnHandlers.get('playback:progress')?.[0];
+    if (!handler) throw new Error('playback:progress handler was not registered');
+    const win = tracks.windows[0];
+    if (!win) throw new Error('boot window missing');
+    handler({ sender: win.webContents }, payload);
+  }
+
+  function transportRows(): Row[] {
+    return (menu.buildTrayMenuTemplate() as unknown as Row[]).filter(
+      (r) => r.type !== 'separator' && (r.label === 'Play/Pause' || r.label === 'Stop')
+    );
+  }
+
+  it('with no session ever reported, both tray transport rows are DISABLED', () => {
+    const rows = transportRows();
+    expect(rows.map((r) => r.label)).toEqual(['Play/Pause', 'Stop']);
+    for (const row of rows) {
+      expect(row.enabled, `row ${String(row.label)} must state the dead session`).toBe(false);
+    }
+  });
+
+  it('a live progress tick enables tray transport AND thumbar; session end disables both again', () => {
+    const win = tracks.windows[0]!;
+    const setThumbarButtons = win.setThumbarButtons as ReturnType<typeof vi.fn>;
+
+    // …a media session starts (position 0 of a known duration):
+    setThumbarButtons.mockClear();
+    fireProgress({ current: 0, total: 1000 });
+    for (const row of transportRows()) {
+      expect(row.enabled, `row ${String(row.label)} ignored the live session`).toBe(true);
+    }
+    expect(setThumbarButtons, 'thumbar not rebuilt on the liveness transition').toHaveBeenCalled();
+    const liveButtons = setThumbarButtons.mock.calls[setThumbarButtons.mock.calls.length - 1][0] as Array<{ flags?: unknown; tooltip?: unknown }>;
+    expect(liveButtons).toHaveLength(3);
+    for (const button of liveButtons) {
+      expect(button.flags, `thumbar ${String(button.tooltip)} ignored the live session`).toEqual(['enabled']);
+    }
+
+    // …session ends (cleared arm: total 0):
+    setThumbarButtons.mockClear();
+    fireProgress({ current: 500, total: 0 });
+    for (const row of transportRows()) {
+      expect(row.enabled, `row ${String(row.label)} never retired with the session`).toBe(false);
+    }
+    const deadButtons = setThumbarButtons.mock.calls[setThumbarButtons.mock.calls.length - 1][0] as Array<{ flags?: unknown }>;
+    expect(deadButtons).toHaveLength(3);
+    for (const button of deadButtons) {
+      expect(button.flags).toEqual(['disabled']);
+    }
+  });
+
+  it('a refused (untrusted-sender) tick never flips liveness', () => {
+    const handler = tracks.ipcOnHandlers.get('playback:progress')?.[0];
+    expect(handler).toBeDefined();
+    const win = tracks.windows[0]!;
+    const setThumbarButtons = win.setThumbarButtons as ReturnType<typeof vi.fn>;
+    setThumbarButtons.mockClear();
+    handler!({ sender: { fake: true } }, { current: 0, total: 1000 });
+    expect(setThumbarButtons, 'an untrusted tick must not move the surfaces').not.toHaveBeenCalled();
+    for (const row of transportRows()) {
+      expect(row.enabled).toBe(false);
+    }
   });
 });

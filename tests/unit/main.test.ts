@@ -210,7 +210,7 @@ describe('boot (renderer entry)', () => {
       })),
       getDeviceId: vi.fn(async () => 'device-abc'),
       getServerUrl: vi.fn(async () => null),
-      checkServerVersion: vi.fn(async () => {
+      checkServerVersion: vi.fn(async (_base?: string) => {
         const next = queue.shift();
         if (!next) throw new Error('unexpected extra checkServerVersion call');
         return next;
@@ -330,6 +330,124 @@ describe('boot (renderer entry)', () => {
       button.click();
       await vi.waitFor(() => expect(mountSpy).toHaveBeenCalledWith('#phlix-app'));
       expect(api.checkServerVersion).toHaveBeenCalledTimes(4);
+    } finally {
+      errorSpy.mockRestore();
+      container.remove();
+    }
+  });
+
+  // ---------------------------------------------------------------------------
+  // MW-119 (review windows__casualgamer #1): the too-old screen answered the
+  // stale-server case but dead-ended the WRONG-URL case — its own copy said
+  // "there is no in-app way to point it at a different server". The screen now
+  // carries a secondary button that clears the persisted URL and re-runs the
+  // boot; with nothing persisted, the gate fail-opens on the empty probe and
+  // requireConnection:true routes the fresh mount to the Connect screen.
+  // Hub mode is not enterable in this build (M-WINDOWS-17), so clearing the
+  // server URL is the complete reset the boot path consumes.
+  // ---------------------------------------------------------------------------
+
+  /** Direct-mode api whose persisted URL clears when setServerUrl('') lands. */
+  function makeChangeApi(verdicts: Array<typeof TOO_OLD | typeof OK_VERDICT>) {
+    const queue = [...verdicts];
+    let persisted: string | null = 'http://stale.example.com';
+    return {
+      hubGetConfig: vi.fn(async () => ({
+        hubUrl: null,
+        activeServerId: null,
+        connectionMode: 'direct'
+      })),
+      getDeviceId: vi.fn(async () => 'device-mw119'),
+      getServerUrl: vi.fn(async () => persisted),
+      setServerUrl: vi.fn(async (url: string) => {
+        if (url === '') persisted = null;
+        return url;
+      }),
+      checkServerVersion: vi.fn(async (_base?: string) => {
+        const next = queue.shift();
+        if (!next) throw new Error('unexpected extra checkServerVersion call');
+        return next;
+      })
+    };
+  }
+
+  it('MW-119: the screen offers the change-server escape as a secondary button while Retry keeps first position and focus', async () => {
+    const api = makeChangeApi([TOO_OLD, OK_VERDICT, OK_VERDICT]);
+    setElectronApi(api);
+    const container = await bootIntoFailureScreen();
+    try {
+      const buttons = [...container.querySelectorAll('button')];
+      expect(buttons).toHaveLength(2);
+      expect(buttons[0].textContent).toBe('Try again');
+      expect(buttons[1].textContent).toBe('Use a different server');
+      // windows__gameux 5 law survives the addition: primary recovery stays
+      // one Enter away — focus lands on Retry, never on body or the new row.
+      expect(document.activeElement).toBe(buttons[0]);
+    } finally {
+      container.remove();
+    }
+  });
+
+  it('MW-119: clicking change clears the stored URL, re-runs the gate on the empty base, and mounts the Connect-routed config', async () => {
+    const api = makeChangeApi([TOO_OLD, OK_VERDICT]);
+    setElectronApi(api);
+    const container = await bootIntoFailureScreen();
+    try {
+      const [retry, change] = [...container.querySelectorAll('button')];
+      change!.click();
+      // In flight the WHOLE recovery row silences — the two buttons share one
+      // boot pipeline, so a Retry racing a change could double-mount.
+      expect(change!.disabled).toBe(true);
+      expect(retry!.disabled).toBe(true);
+      await vi.waitFor(() => expect(mountSpy).toHaveBeenCalledWith('#phlix-app'));
+      expect(api.setServerUrl).toHaveBeenCalledWith('');
+      // Same gate, second verdict, now probed on the cleared base.
+      expect(api.checkServerVersion.mock.calls.map((call) => call[0])).toEqual([
+        'http://stale.example.com',
+        ''
+      ]);
+      const cfg = (createPhlixApp.mock.calls as unknown as any[][])[createPhlixApp.mock.calls.length - 1][0] as Record<string, unknown>;
+      expect(cfg.apiBase).toBe('');
+      expect(cfg.requireConnection).toBe(true);
+    } finally {
+      container.remove();
+    }
+  });
+
+  it('MW-119: a change attempt whose resumed boot rejects re-arms BOTH buttons instead of stranding the surface', async () => {
+    // TOO_OLD for the initial boot; the change attempt dies at its config IPC
+    // BEFORE re-checking (queue untouched), and the later Retry completion
+    // consumes the remaining two OK verdicts (retry check + resumed boot check).
+    const api = makeChangeApi([TOO_OLD, OK_VERDICT, OK_VERDICT]);
+    let configCalls = 0;
+    api.hubGetConfig = vi.fn(async () => {
+      configCalls += 1;
+      if (configCalls === 2) throw new Error('DPAPI custody unavailable');
+      return { hubUrl: null, activeServerId: null, connectionMode: 'direct' };
+    });
+    const errorSpy = vi.spyOn(log, 'error').mockImplementation(() => {});
+    setElectronApi(api);
+    const container = await bootIntoFailureScreen();
+    try {
+      const [retry, change] = [...container.querySelectorAll('button')];
+      change!.click();
+      await vi.waitFor(() => expect(configCalls).toBe(2));
+      expect(mountSpy).not.toHaveBeenCalled();
+      await vi.waitFor(() =>
+        expect(errorSpy).toHaveBeenCalledWith(
+          '[Boot] Change-server attempt failed:',
+          expect.objectContaining({ message: 'DPAPI custody unavailable' })
+        )
+      );
+      // The r2 surface law, extended across the row: same pair, back in the
+      // document, interactive again. On parent (no button at all) the click
+      // target itself does not exist — the whole leg is the red.
+      await vi.waitFor(() => expect(change!.disabled).toBe(false));
+      expect(retry!.disabled).toBe(false);
+      expect(change!.isConnected).toBe(true);
+      // A retry on the same screen still drives the boot home.
+      retry!.click();
+      await vi.waitFor(() => expect(mountSpy).toHaveBeenCalledWith('#phlix-app'));
     } finally {
       errorSpy.mockRestore();
       container.remove();

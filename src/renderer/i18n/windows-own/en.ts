@@ -44,6 +44,9 @@ export const WIN_EN = {
     requiredVersion: 'Phlix for Windows requires at least',
     incompatibleAction: 'Ask the server owner to update Phlix Media Server, then press "Try again" — the check re-runs in place, no restart needed.',
     incompatibleRetry: 'Try again',
+    // MW-119: escape hatch on the too-old screen — clears the stored server URL
+    // so the next boot lands on the Connect screen instead of the locked server.
+    incompatibleChange: 'Use a different server',
     failTitle: 'Phlix could not start',
     failMessage: 'The application failed to load what it needs to open. Secure storage may be unavailable, or the installation damaged. Trying again often helps; otherwise reinstall Phlix for Windows.',
     failRetry: 'Try again'

@@ -401,6 +401,55 @@ function renderIncompatibleServerScreen(
   });
   box.appendChild(retryButton);
 
+  // MW-119 (review windows__casualgamer 1): the too-old screen used to be a
+  // dead end for the WRONG-URL case — the copy admitted "there is no in-app
+  // way to point it at a different server", but a mistyped/retired address
+  // produces the exact same verdict as a genuinely old one, and the user had
+  // to quit and edit storage by hand. The escape hatch: clear the persisted
+  // URL (the legal ''-clear on app:set-server-url), then re-run boot(). With
+  // nothing persisted and no env seed, resolveAppConfig yields an empty base,
+  // the version gate fail-opens on an empty probe (versionCheck.ts inactive
+  // arms), and requireConnection:true routes the fresh mount to the Connect
+  // screen. Retry keeps autofocus (windows__gameux 5: one Enter from the
+  // primary recovery); this is the secondary surface.
+  const changeButton = document.createElement('button');
+  changeButton.type = 'button';
+  changeButton.textContent = tWin('boot.incompatibleChange');
+  changeButton.setAttribute('style', [
+    'margin:24px 0 0', 'display:inline-block', 'padding:10px 22px',
+    'font-size:14px', 'font-family:inherit', 'color:#e8e8f0', 'background:transparent',
+    'border:1px solid #3a3a5e', 'border-radius:6px', 'cursor:pointer', 'margin-left:12px'
+  ].join(';') + ';');
+  changeButton.addEventListener('click', () => {
+    // Same surface law as Retry, extended across BOTH buttons: an attempt in
+    // flight silences the whole recovery row (they share one boot pipeline —
+    // a Retry mid-change-server flight could race a second mount), and every
+    // rejection path re-arms the still-connected screen instead of stranding
+    // dead buttons.
+    changeButton.disabled = true;
+    retryButton.disabled = true;
+    const reseat = async (): Promise<void> => {
+      // Hub mode is NOT enterable in this build (M-WINDOWS-17: the hub-config
+      // writer has zero production callers), so clearing the server URL is
+      // the complete state reset — no dead hub-clear code is added here.
+      await window.electronAPI?.setServerUrl('');
+      await boot();
+    };
+    void reseat().catch((err: unknown) => {
+      // Either the storage clear or the resumed boot() threw BEFORE the app
+      // owned the window (fail-fast config IPC class, same as Retry's r2
+      // arm). If boot() instead reached a still-incompatible verdict, it
+      // re-rendered this whole screen with fresh enabled buttons and this
+      // off-document pair must not touch anyone's state.
+      log.error('[Boot] Change-server attempt failed:', err);
+      if (changeButton.isConnected) {
+        changeButton.disabled = false;
+        retryButton.disabled = false;
+      }
+    });
+  });
+  box.appendChild(changeButton);
+
   container.replaceChildren(box);
 
   // windows__gameux 5[m] (MW-089): one-Enter-away from recovery BY

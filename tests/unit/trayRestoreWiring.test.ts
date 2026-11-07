@@ -430,7 +430,7 @@ describe('tray/second-instance restore wiring (M-WINDOWS-03)', () => {
 });
 
 // ---------------------------------------------------------------------------
-// w10/L1 (windows__casualgamer #10): the stranded-window cure, wired end to
+// w10/L1 (windows__casualgamer #4): the stranded-window cure, wired end to
 // end. The geometry probe rides the SAME restoreWindow call every surface
 // above already pins — here the fake window lives off every display, so a
 // raise must ALSO re-center it on the primary work area (setBounds after the
@@ -458,10 +458,14 @@ describe('stranded-window clamp on the real wiring (w10/L1)', () => {
     const win = mainWin();
     resetWindow(win);
     win.getBounds = () => ({ x: 0, y: 0, width: 1280, height: 870 });
+    // w13/L1 folded row (windows__casualgamer completion DD): the clear must
+    // run BEFORE the raise. Posted after the click it erased any setBounds the
+    // click had actually performed — the leg asserted on a deliberately blank
+    // tape and could never redden (vacuous by construction).
+    (win.setBounds as ReturnType<typeof vi.fn>).mockClear();
 
     trayHandler('click')();
 
-    (win.setBounds as ReturnType<typeof vi.fn>).mockClear();
     expect(win.setBounds as ReturnType<typeof vi.fn>).not.toHaveBeenCalled();
   });
 });

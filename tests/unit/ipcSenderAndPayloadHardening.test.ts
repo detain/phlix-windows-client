@@ -95,7 +95,9 @@ vi.mock('electron', () => ({
   BrowserWindow: vi.fn(function () { return WIN; }),
   Menu: { buildFromTemplate: vi.fn().mockReturnValue({ popup: vi.fn() }), setApplicationMenu: vi.fn() },
   Tray: vi.fn(function () {
-    return { setToolTip: (label: string) => { tracks.setToolTip.push(label); }, setContextMenu: vi.fn(), on: vi.fn() };
+    // MW-114: the session-liveness transition refreshes the tray context
+    // menu; refreshTransportSurfaces probes liveness first (isDestroyed law).
+    return { setToolTip: (label: string) => { tracks.setToolTip.push(label); }, setContextMenu: vi.fn(), isDestroyed: () => false, on: vi.fn() };
   }),
   session: { defaultSession: { on: vi.fn(), setPermissionRequestHandler: vi.fn(), setPermissionCheckHandler: vi.fn() } },
   safeStorage: {

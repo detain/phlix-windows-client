@@ -73,13 +73,13 @@ describe('installPermissionGuard wiring (M-WINDOWS-29)', () => {
   });
 });
 
-describe('m15/w10: the clipboard carve-out is origin- AND port-bound (review windows__crossfe 3, windows__casualgamer 5)', () => {
+describe('m15/w10: the clipboard carve-out is origin- AND port-bound (review windows__crossfe 3, windows__secnet 6)', () => {
   it('isTrustedRequesterUrl table — local app doc and the dev-server port only', () => {
     expect(isTrustedRequesterUrl('app://-/app/settings')).toBe(true);
     expect(isTrustedRequesterUrl('app://evil-host/app/x')).toBe(false);
     expect(isTrustedRequesterUrl('http://localhost:5173/')).toBe(true);
     expect(isTrustedRequesterUrl('http://127.0.0.1:5173/')).toBe(true); // the pinned dev port on IPv4 loopback stays trusted
-    // w10/L1 (windows__casualgamer 5 / windows__secnet 3): the loopback arm is
+    // w10/L1 (windows__crossfe 3 / windows__secnet 6): the loopback arm is
     // PORT-BOUND, mirroring the preload's TRUSTED_BOOT_TARGETS. Any OTHER port
     // on loopback is a different service (the media server itself listens on
     // 8096/8097 here) and must NOT inherit the silent clipboard grant — a page

@@ -138,9 +138,10 @@ here. When a server is stopped, you will not be left staring at a blank window: 
 dialog names both versions, and the window shows a persistent **"Phlix server too old"**
 screen with the reported and required versions and a **Try again** button. Recover by
 fixing the server, then press Try again — the check re-runs in place and, once the server
-passes, the app boots straight through with no quit-and-relaunch ceremony. While that
-screen is up the app's normal interface is not running, so there is no in-app way to
-point it at a different server from here; the correction has to happen server-side.
+passes, the app boots straight through with no quit-and-relaunch ceremony. If the verdict
+is really a wrong address rather than an old server, press **Use a different server**
+alongside it: the stored URL is cleared and the Connect screen reopens, so you can point
+the app at another Phlix Media Server without restarting.
 
 After a successful connect, your server URL and login persist, so later launches go
 directly to your library.
@@ -299,7 +300,7 @@ as the product name **Phlix**, while a from-source run uses the package name
 | Setting (electron-store key) | Default | Description |
 |---------|---------|-------------|
 | `minimizeToTray` | `true` | Closing the window hides it to the tray instead of quitting. To bring it back: click or double-click the tray icon, use the tray menu's **Show Phlix** entry, or launch the app again — the single-instance lock routes the launch to the running window and restores it |
-| `notificationsEnabled` | `true` | Gates every desktop notification the app raises, update toasts included — while off, even a manual **Check for updates** answers only in the log. Toggle from the **View** menu or the tray menu (the two checkboxes stay in sync); a flip takes effect immediately |
+| `notificationsEnabled` | `true` | Gates the *spontaneous* desktop notifications the app raises (update toasts included). A **manual** check always answers: with notifications on, the reply is a toast; with them off, the reply is a modal dialog — user-initiated commands never go silent. Toggle from the **View** menu or the tray menu (the two checkboxes stay in sync); a flip takes effect immediately |
 | `serverUrl` | (none) | Persisted direct media server URL (`app:get/set-server-url`) |
 | `deviceId` | Auto-generated | Stable per-install device id `windows-<uuid>` (`app:get-device-id`) |
 

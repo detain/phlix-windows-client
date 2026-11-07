@@ -45,6 +45,7 @@ export const WIN_FR = {
     incompatibleAction: 'Demandez au propriétaire du serveur de mettre à jour Phlix Media Server, puis cliquez sur « Réessayer » – le contrôle est relancé sur place, sans redémarrage.',
     incompatibleRetry: 'Réessayer'
 ,
+    incompatibleChange: 'Utiliser un autre serveur',
     failTitle: "Phlix n’a pas pu démarrer",
     failMessage: "L’application n’a pas pu charger les données nécessaires à son ouverture. Le stockage sécurisé est peut-être indisponible ou l’installation est endommagée. Réessayer aide souvent ; sinon, réinstallez Phlix pour Windows.",
     failRetry: 'Réessayer'

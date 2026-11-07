@@ -27,7 +27,12 @@ describe('too-old-server copy agrees with the retry law (m24)', () => {
 
   it('the README states the same law the copy now tells', () => {
     expect(README).toMatch(/check re-runs in place/i);
-    expect(README).toMatch(/no in-app way to\s+point it at a different server/i);
+    // MW-119 rotation: m24 pinned "no in-app way to point it at a different
+    // server" while that was the honest limitation. The too-old screen now
+    // carries a change-server button (clears the stored URL, reopens Connect),
+    // so the retired sentence is tripwired OUT and the new affordance IN.
+    expect(README).not.toMatch(/no in-app way to\s+point it at a different server/i);
+    expect(README).toMatch(/Use a different server/);
   });
 });
 

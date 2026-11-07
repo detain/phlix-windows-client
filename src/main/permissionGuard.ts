@@ -76,7 +76,7 @@ export function isLoopbackHostname(hostname: string): boolean {
  * else — including the media server's own https origin once navigated to —
  * must ask the user like every other permission.
  *
- * w10/L1 (review windows__casualgamer 5 / windows__secnet 3): the loopback
+ * w10/L1 (review windows__crossfe 3 / windows__secnet 6): the loopback
  * arm was HOST-only — every service listening anywhere on loopback silently
  * held it, including this app's own media server ports. The grant is now
  * PORT-BOUND exactly like the preload's TRUSTED_BOOT_TARGETS

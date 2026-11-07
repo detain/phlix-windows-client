@@ -18,43 +18,43 @@ retired wrapper left behind both redden the suite.
 
 | Channel | Direction | Payload | Return | Main Handler | Preload Method | Renderer Call Sites |
 |---|---|---|---|---|---|---|
-|`get-app-path` | invoke | none | `string` | `ipcMain.handle` (1241) | `getAppPath` | Not directly called by renderer; preload-only |
-|`get-version` | invoke | none | `string` | `ipcMain.handle` (1249) | `getVersion` | Not directly called by renderer; preload-only |
-|`set-always-on-top` | send | `boolean` | — | `ipcMain.on` (1257) | `setAlwaysOnTop` | Not directly called by renderer; preload-only |
-|`minimize-to-tray` | send | none | — | `ipcMain.on` (1265) | `minimizeToTray` | Not directly called by renderer; preload-only |
-|`tray:get-minimize-to-tray` | invoke | none | `boolean` | `ipcMain.handle` (1276) | `getMinimizeToTray` | Not directly called by renderer; preload-only |
-|`tray:set-minimize-to-tray` | send | `boolean` | — | `ipcMain.on` (1286) | `setMinimizeToTray` | Not directly called by renderer; preload-only |
-|`hub:get-config` | invoke | none | `HubConfig` | `ipcMain.handle` (1306) | `hubGetConfig` | `src/renderer/main.ts:425` & `src/renderer/resolveConfig.ts:17` |
-|`hub:set-config` | invoke | `HubConfigPartial` | `boolean` | `ipcMain.handle` (1331) | `hubSetConfig` | Not directly called by renderer; preload-only |
-|`app:get-server-url` | invoke | none | `string \| null` | `ipcMain.handle` (1368) | `getServerUrl` | `src/renderer/main.ts:435` & `src/renderer/resolveConfig.ts:19` |
-|`app:set-server-url` | invoke | `string` | `boolean` | `ipcMain.handle` (1376) | `setServerUrl` | `src/renderer/main.ts:565` |
-|`app:check-server-version` | invoke | `{ apiBase: string }` | `ServerVersionCheck` | `ipcMain.handle` (1396) | `checkServerVersion` | `src/renderer/main.ts:275` |
-|`app:get-device-id` | invoke | none | `string` | `ipcMain.handle` (1441) | `getDeviceId` | `src/renderer/main.ts:434` |
-|`notification:show` | invoke | `{ title: string; body: string; clickAction?: string }` | `boolean` | `ipcMain.handle` (1714) | `showNotification` | `src/renderer/main.ts:478` (M-WINDOWS-39: the incompatible-server boot reply is this channel's consumer; main-side gates per M-WINDOWS-33/40) |
-|`gpu:get-disable-hardware-acceleration` | invoke | none | `boolean` | `ipcMain.handle` (1743) | `getDisableHardwareAcceleration` | Not directly called by renderer; preload-only |
-|`gpu:set-disable-hardware-acceleration` | invoke | `boolean` | `void` | `ipcMain.handle` (1751) | `setDisableHardwareAcceleration` | Not directly called by renderer; preload-only |
-|`gpu:get-feature-status` | invoke | none | `GPUFeatureStatus` | `ipcMain.handle` (1762) | `getGpuFeatureStatus` | Not directly called by renderer; preload-only |
-|`update:check-for-updates` | invoke | none | `UpdateState` | `ipcMain.handle` (1783) | `checkForUpdates` | Not directly called by renderer; preload-only |
-|`update:get-status` | invoke | none | `UpdateState` | `ipcMain.handle` (1813) | `getUpdateStatus` | Not directly called by renderer; preload-only |
-|`thumbar:update` | send | `{ playing: boolean }` | — | `ipcMain.on` (1603) | `updateThumbar` | `src/renderer/electronBridge.ts:72, 313` |
-|`playback:progress` | send | `{ current: number; total: number }` | — | `ipcMain.on` (1612) | `setPlaybackProgress` | `src/renderer/electronBridge.ts:73, 151, 314, 340, 349` |
-|`power:update` | send | `{ playing: boolean }` | — | `ipcMain.on` (1640) | `updatePowerBlocker` | `src/renderer/electronBridge.ts:74, 316` |
-|`deeplink:ready` | send | none | — | `ipcMain.on` (283) | `notifyDeeplinkReady` | `src/renderer/main.ts:686` (M-WINDOWS-06: fires only after `onDeeplink` subscribed; main drains its pending-deeplink queue on it) |
-|`vault:get` | sendSync | `{ key: string }` | `string \| null` | `ipcMain.on` (1507) | `vaultGet` | `src/renderer/safeStorageTokenStore.ts:51` — M-WINDOWS-11 DPAPI token vault (sync by @phlix/ui TokenStore contract; sender-pinned to the current main window) |
-|`vault:set` | sendSync | `{ key: string; value: string }` | `boolean` | `ipcMain.on` (1521) | `vaultSet` | `src/renderer/safeStorageTokenStore.ts:52` — M-WINDOWS-11 |
-|`vault:delete` | sendSync | `{ key: string }` | `boolean` | `ipcMain.on` (1540) | `vaultDelete` | `src/renderer/safeStorageTokenStore.ts:53, 119, 120, 121` — M-WINDOWS-11 |
-|`vault:is-available` | sendSync | none | `boolean` | `ipcMain.on` (1559) | `vaultIsAvailable` | `src/renderer/safeStorageTokenStore.ts:54` — M-WINDOWS-11 |
-| `deeplink:open` | push | `string` | — | `webContents.send` (182) | `onDeeplink` | `src/renderer/main.ts:676` |
-|`media-play-pause` | push | none | — | `webContents.send` (684, 933, 1004) | `onMediaPlayPause` | `src/renderer/electronBridge.ts:303` |
-|`media-stop` | push | none | — | `webContents.send` (934, 1005) | `onMediaStop` | `src/renderer/electronBridge.ts:330` |
-|`media-rewind` | push | none | — | `webContents.send` (679, 1007) | `onMediaRewind` | `src/renderer/electronBridge.ts:336` |
-|`media-forward` | push | none | — | `webContents.send` (689, 1008) | `onMediaForward` | `src/renderer/electronBridge.ts:345` |
-|`open-settings` | push | none | — | `webContents.send` (1183) | `onOpenSettings` | `src/renderer/electronBridge.ts:354` |
-|`update:available` | push | `{ version: string }` | — | `webContents.send` (743) | `onUpdateAvailable` | No renderer subscriber; the preload listener exists for API completeness (updater UX is main-driven) |
-|`update:progress` | push | `{ percent: number }` | — | `webContents.send` (787) | `onUpdateProgress` | No renderer subscriber; the preload listener exists for API completeness (updater UX is main-driven) |
-|`power:suspend` | push | — | — | `webContents.send` (2079) | `onPowerSuspend` | No renderer subscriber yet — the vendored shell's wake consumer (force-reconnect + SyncPlay clock re-anchor) is an upstream seam; signal wire shipped (M8) |
-|`power:resume` | push | — | — | `webContents.send` (2089) | `onPowerResume` | As `power:suspend` (M8); on resume main ALSO re-asserts the display-sleep blocker when media believed itself playing |
-|`update:downloaded` | push | `{ version: string }` | — | `webContents.send` (796) | `onUpdateDownloaded` | No renderer subscriber; the preload listener exists for API completeness (updater UX is main-driven) |
+|`get-app-path` | invoke | none | `string` | `ipcMain.handle` (1345) | `getAppPath` | Not directly called by renderer; preload-only |
+|`get-version` | invoke | none | `string` | `ipcMain.handle` (1353) | `getVersion` | Not directly called by renderer; preload-only |
+|`set-always-on-top` | send | `boolean` | — | `ipcMain.on` (1361) | `setAlwaysOnTop` | Not directly called by renderer; preload-only |
+|`minimize-to-tray` | send | none | — | `ipcMain.on` (1369) | `minimizeToTray` | Not directly called by renderer; preload-only |
+|`tray:get-minimize-to-tray` | invoke | none | `boolean` | `ipcMain.handle` (1380) | `getMinimizeToTray` | Not directly called by renderer; preload-only |
+|`tray:set-minimize-to-tray` | send | `boolean` | — | `ipcMain.on` (1390) | `setMinimizeToTray` | Not directly called by renderer; preload-only |
+|`hub:get-config` | invoke | none | `HubConfig` | `ipcMain.handle` (1410) | `hubGetConfig` | `src/renderer/main.ts:482` & `src/renderer/resolveConfig.ts:17` |
+|`hub:set-config` | invoke | `HubConfigPartial` | `boolean` | `ipcMain.handle` (1435) | `hubSetConfig` | Not directly called by renderer; preload-only |
+|`app:get-server-url` | invoke | none | `string \| null` | `ipcMain.handle` (1472) | `getServerUrl` | `src/renderer/main.ts:484` & `src/renderer/resolveConfig.ts:19` |
+|`app:set-server-url` | invoke | `string` | `boolean` | `ipcMain.handle` (1480) | `setServerUrl` | `src/renderer/main.ts:614` |
+|`app:check-server-version` | invoke | `{ apiBase: string }` | `ServerVersionCheck` | `ipcMain.handle` (1500) | `checkServerVersion` | `src/renderer/main.ts:275` |
+|`app:get-device-id` | invoke | none | `string` | `ipcMain.handle` (1545) | `getDeviceId` | `src/renderer/main.ts:483` |
+|`notification:show` | invoke | `{ title: string; body: string; clickAction?: string }` | `boolean` | `ipcMain.handle` (1857) | `showNotification` | `src/renderer/main.ts:534` (M-WINDOWS-39: the incompatible-server boot reply is this channel's consumer; main-side gates per M-WINDOWS-33/40) |
+|`gpu:get-disable-hardware-acceleration` | invoke | none | `boolean` | `ipcMain.handle` (1886) | `getDisableHardwareAcceleration` | Not directly called by renderer; preload-only |
+|`gpu:set-disable-hardware-acceleration` | invoke | `boolean` | `void` | `ipcMain.handle` (1894) | `setDisableHardwareAcceleration` | Not directly called by renderer; preload-only |
+|`gpu:get-feature-status` | invoke | none | `GPUFeatureStatus` | `ipcMain.handle` (1905) | `getGpuFeatureStatus` | Not directly called by renderer; preload-only |
+|`update:check-for-updates` | invoke | none | `UpdateState` | `ipcMain.handle` (1926) | `checkForUpdates` | Not directly called by renderer; preload-only |
+|`update:get-status` | invoke | none | `UpdateState` | `ipcMain.handle` (1956) | `getUpdateStatus` | Not directly called by renderer; preload-only |
+|`thumbar:update` | send | `{ playing: boolean }` | — | `ipcMain.on` (1707) | `updateThumbar` | `src/renderer/electronBridge.ts:72, 313` |
+|`playback:progress` | send | `{ current: number; total: number }` | — | `ipcMain.on` (1716) | `setPlaybackProgress` | `src/renderer/electronBridge.ts:73, 151, 314, 340, 349` |
+|`power:update` | send | `{ playing: boolean }` | — | `ipcMain.on` (1753) | `updatePowerBlocker` | `src/renderer/electronBridge.ts:74, 316` |
+|`deeplink:ready` | send | none | — | `ipcMain.on` (283) | `notifyDeeplinkReady` | `src/renderer/main.ts:735` (M-WINDOWS-06: fires only after `onDeeplink` subscribed; main drains its pending-deeplink queue on it) |
+|`vault:get` | sendSync | `{ key: string }` | `string \| null` | `ipcMain.on` (1611) | `vaultGet` | `src/renderer/safeStorageTokenStore.ts:51` — M-WINDOWS-11 DPAPI token vault (sync by @phlix/ui TokenStore contract; sender-pinned to the current main window) |
+|`vault:set` | sendSync | `{ key: string; value: string }` | `boolean` | `ipcMain.on` (1625) | `vaultSet` | `src/renderer/safeStorageTokenStore.ts:52` — M-WINDOWS-11 |
+|`vault:delete` | sendSync | `{ key: string }` | `boolean` | `ipcMain.on` (1644) | `vaultDelete` | `src/renderer/safeStorageTokenStore.ts:53, 119, 120, 121` — M-WINDOWS-11 |
+|`vault:is-available` | sendSync | none | `boolean` | `ipcMain.on` (1663) | `vaultIsAvailable` | `src/renderer/safeStorageTokenStore.ts:54` — M-WINDOWS-11 |
+| `deeplink:open` | push | `string` | — | `webContents.send` (182) | `onDeeplink` | `src/renderer/main.ts:726` |
+|`media-play-pause` | push | none | — | `webContents.send` (762, 1024, 1095) | `onMediaPlayPause` | `src/renderer/electronBridge.ts:303` |
+|`media-stop` | push | none | — | `webContents.send` (1025, 1096) | `onMediaStop` | `src/renderer/electronBridge.ts:330` |
+|`media-rewind` | push | none | — | `webContents.send` (756, 1098) | `onMediaRewind` | `src/renderer/electronBridge.ts:336` |
+|`media-forward` | push | none | — | `webContents.send` (768, 1099) | `onMediaForward` | `src/renderer/electronBridge.ts:345` |
+|`open-settings` | push | none | — | `webContents.send` (1287) | `onOpenSettings` | `src/renderer/electronBridge.ts:354` |
+|`update:available` | push | `{ version: string }` | — | `webContents.send` (826) | `onUpdateAvailable` | No renderer subscriber; the preload listener exists for API completeness (updater UX is main-driven) |
+|`update:progress` | push | `{ percent: number }` | — | `webContents.send` (877) | `onUpdateProgress` | No renderer subscriber; the preload listener exists for API completeness (updater UX is main-driven) |
+|`power:suspend` | push | — | — | `webContents.send` (2236) | `onPowerSuspend` | No renderer subscriber yet — the vendored shell's wake consumer (force-reconnect + SyncPlay clock re-anchor) is an upstream seam; signal wire shipped (M8) |
+|`power:resume` | push | — | — | `webContents.send` (2246) | `onPowerResume` | As `power:suspend` (M8); on resume main ALSO re-asserts the display-sleep blocker when media believed itself playing |
+|`update:downloaded` | push | `{ version: string }` | — | `webContents.send` (886) | `onUpdateDownloaded` | No renderer subscriber; the preload listener exists for API completeness (updater UX is main-driven) |
 
 ## Behavioral Tests
 

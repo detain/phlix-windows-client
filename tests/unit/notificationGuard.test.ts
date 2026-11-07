@@ -133,11 +133,19 @@ describe('notifyUser pipeline (M-WINDOWS-33 law, M-WINDOWS-40 consolidation)', (
       mainSource.indexOf("autoUpdater.on('update-available'"),
       mainSource.indexOf("autoUpdater.on('error'")
     );
+    // MW-112 rotation: the two USER-INITIATED reply arms (available-manual,
+    // not-available) now answer through answerManualCheck, whose first act is
+    // always notifyUser (its dialog is the pref-off fallback, not a second
+    // pipeline). The two automatic arms (available-automatic, ready) still
+    // call notifyUser directly. No arm escapes the pipeline; law unchanged.
     const calls = updaterArms.match(/notifyUser\(/g) || [];
-    expect(calls.length).toBe(3);
+    expect(calls.length).toBe(2);
+    const manualReplies = updaterArms.match(/answerManualCheck\(/g) || [];
+    expect(manualReplies.length).toBe(2);
     // No raw construction survives in any updater arm (M-WINDOWS-40).
     expect(updaterArms).not.toMatch(/new Notification\(/);
     // Trusted low-rate origins must not share the renderer flood budget.
-    expect((updaterArms.match(/throttle: false/g) || []).length).toBe(3);
+    // (Both direct calls carry it; the dialog fallback is outside any budget.)
+    expect((updaterArms.match(/throttle: false/g) || []).length).toBe(2);
   });
 });

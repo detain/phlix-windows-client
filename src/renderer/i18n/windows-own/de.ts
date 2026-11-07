@@ -42,6 +42,7 @@ export const WIN_DE = {
     incompatibleAction: 'Bitten Sie den Betreiber des Servers, Phlix Media Server zu aktualisieren, und klicken Sie auf "Erneut versuchen" – die Prüfung läuft sofort weiter; ein Neustart ist nicht nötig.',
     incompatibleRetry: 'Erneut versuchen'
 ,
+    incompatibleChange: 'Anderen Server verwenden',
     failTitle: 'Phlix konnte nicht starten',
     failMessage: 'Die Anwendung konnte die zum Start benötigten Daten nicht laden. Möglicherweise ist der sichere Speicher nicht verfügbar oder die Installation beschädigt. Ein erneuter Versuch hilft oft; sonst Phlix für Windows neu installieren.',
     failRetry: 'Erneut versuchen'

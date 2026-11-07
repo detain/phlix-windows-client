@@ -112,7 +112,7 @@ describe('restoreWindow() (M-WINDOWS-03)', () => {
 });
 
 // ---------------------------------------------------------------------------
-// w10/L1 (windows__casualgamer #10): restore is a RE-ENTRY surface, and a
+// w10/L1 (windows__casualgamer #4): restore is a RE-ENTRY surface, and a
 // window remembered on a since-unplugged display re-enters invisibly — the
 // on-boot bounds validation in createWindow never runs again for the life of
 // the process. The clamp law lives HERE, pure, beside the sequence law it

@@ -43,6 +43,7 @@ export const WIN_JA = {
     incompatibleAction: 'サーバー管理者に Phlix Media Server の更新を依頼し、「再試行する」を押してください。その場で再チェックされ、再起動は不要です。',
     incompatibleRetry: '再試行する'
 ,
+    incompatibleChange: '別のサーバーを使用',
     failTitle: 'Phlix を起動できませんでした',
     failMessage: 'アプリは起動に必要なデータを読み込めませんでした。安全なストレージが利用できないか、インストールが破損している可能性があります。再度試すと解決することがあります。解決しない場合は Phlix for Windows を再インストールしてください。',
     failRetry: '再試行'

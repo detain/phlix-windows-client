@@ -1,7 +1,7 @@
 /**
  * @vitest-environment node
  *
- * w10/L1 (windows__casualgamer 6): the crash-recovery dialog's Reload arm
+ * w10/L1 (windows__exploiter 2): the crash-recovery dialog's Reload arm
  * blindly called webContents.reload(). A renderer that died while a FOREIGN
  * http(s) document was committed (top-level navigations to any http(s) origin
  * stay permitted by design — M-WINDOWS-18) was therefore "recovered" into the

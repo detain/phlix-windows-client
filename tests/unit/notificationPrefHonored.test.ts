@@ -109,7 +109,7 @@ vi.mock('electron', () => ({
   ipcMain: { handle: vi.fn(), on: vi.fn(), send: vi.fn() },
   shell: { openExternal: vi.fn() },
   nativeImage: { createFromPath: vi.fn().mockReturnValue({ isEmpty: () => false, resize: vi.fn() }) },
-  dialog: { showMessageBox: vi.fn(), showMessageBoxSync: vi.fn() },
+  dialog: { showMessageBox: vi.fn().mockResolvedValue({ response: 0 }), showMessageBoxSync: vi.fn() },
   protocol: { registerSchemesAsPrivileged: vi.fn(), handle: vi.fn() },
   screen: { getAllDisplays: vi.fn().mockReturnValue([{ workArea: { x: 0, y: 0, width: 1920, height: 1080 } }]) },
   powerSaveBlocker: { start: vi.fn(), stop: vi.fn(), isStarted: vi.fn().mockReturnValue(false) },
@@ -128,7 +128,11 @@ vi.mock('electron', () => ({
 }));
 
 import '../../src/main/index';
-import { ipcMain, BrowserWindow } from 'electron';
+import { ipcMain, BrowserWindow, dialog } from 'electron';
+
+// MW-112: the electron mock replaces this with vi.fn(); vi.mocked gives the test
+// sites their mock-handle types (tsconfig.test lib predates the overload types).
+const showMessageBoxMock = vi.mocked(dialog.showMessageBox);
 
 // m4 sender law: the boot path created one window; its webContents is the trusted sender.
 function mainWebContents(): unknown {
@@ -159,9 +163,17 @@ describe('M-WINDOWS-40: notificationsEnabled gates every toast origin', () => {
     expect(toasts()).toHaveLength(0);
   });
 
-  it('the manual not-available reply stays silent when the user opted out', () => {
+  it('the manual not-available reply answers through a modal when the user opted out', () => {
+    // MW-112 [review windows__casualgamer 7]: THIS leg used to pin the
+    // silence (expect(toasts()).toHaveLength(0) was the whole test) — the pin
+    // ENCODED the defect. The M-WINDOWS-12 law says a user-initiated check
+    // must ANSWER; the notifications opt-out governs unsolicited toasts, never
+    // the reply to an explicit request. The reply therefore falls back to a
+    // modal dialog when the toast path refuses. (Silence of the TOAST is still
+    // honored below — the dialog is the answer, not a toast override.)
     prefs.notificationsEnabled = false;
     recorded.length = 0;
+    showMessageBoxMock.mockClear();
     // Arm the manual-check flag through the real IPC entry point first…
     // (the check-for-updates handler sets manualUpdateCheckPending)
     const check = invokeHandler('update:check-for-updates');
@@ -172,6 +184,13 @@ describe('M-WINDOWS-40: notificationsEnabled gates every toast origin', () => {
     handlers['update-not-available']({ version: '1.0.0' } as unknown as Record<string, unknown>);
     expect(toasts()).toHaveLength(0);
     expect(mockAutoUpdater.checkForUpdates).toHaveBeenCalled();
+    const calls = showMessageBoxMock.mock.calls as unknown[][];
+    expect(calls).toHaveLength(1);
+    expect(calls[0][1]).toMatchObject({
+      type: 'info',
+      title: "You're on the latest version",
+      message: 'Phlix 1.0.0 is already the latest version.'
+    });
   });
 
   it('with the pref on (default), the available arm toasts with the catalog copy', () => {
@@ -201,5 +220,84 @@ describe('M-WINDOWS-40: notificationsEnabled gates every toast origin', () => {
     expect(show({ sender: mainWebContents() }, { title: 'x', body: 'y' })).toBe(false);
     delete prefs.notificationsEnabled;
     expect(show({ sender: mainWebContents() }, { title: 'x', body: 'y' })).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// MW-112 [review windows__casualgamer 7]: a user-initiated "Check for
+// updates" must answer, notifications preference or not. The opt-out gates
+// UNSOLICITED toasts (every leg above stands); the manual-check replies fall
+// back to a modal dialog when the toast path refuses. Automatic checks gain
+// no dialog — silence on a check nobody asked for is the W4.9 doctrine.
+// ---------------------------------------------------------------------------
+describe('MW-112: manual-check replies answer even when the toast refuses', () => {
+  const armManualCheck = () => {
+    const check = invokeHandler('update:check-for-updates');
+    check({ sender: mainWebContents() });
+  };
+
+  it('a genuine (non-offline) error of a manual check dialogs the failure copy when opted out', () => {
+    prefs.notificationsEnabled = false;
+    recorded.length = 0;
+    showMessageBoxMock.mockClear();
+    armManualCheck();
+    handlers['error']({ message: 'unable to parse the update feed' });
+    expect(toasts()).toHaveLength(0);
+    const calls = showMessageBoxMock.mock.calls as unknown[][];
+    expect(calls).toHaveLength(1);
+    expect(calls[0][1]).toMatchObject({
+      type: 'info',
+      title: 'Update Check Failed',
+      message: 'Phlix could not check for updates right now. Try again later.'
+    });
+  });
+
+  it('the manual available reply dialogs the available copy when opted out', () => {
+    prefs.notificationsEnabled = false;
+    recorded.length = 0;
+    showMessageBoxMock.mockClear();
+    armManualCheck();
+    handlers['update-available']({ version: '9.9.9', releaseDate: '2026-01-01' });
+    expect(toasts()).toHaveLength(0);
+    const calls = showMessageBoxMock.mock.calls as unknown[][];
+    expect(calls).toHaveLength(1);
+    expect(calls[0][1]).toMatchObject({
+      type: 'info',
+      title: 'Update Available',
+      message: 'Phlix 9.9.9 is available. Click to download.'
+    });
+  });
+
+  it('an AUTOMATIC available (no pending request) stays fully silent when opted out', () => {
+    // The pin that guards the doctrine: no arming → no dialog. The pref-off
+    // silence legs at the top of this file stay true for automatic checks.
+    prefs.notificationsEnabled = false;
+    recorded.length = 0;
+    showMessageBoxMock.mockClear();
+    handlers['update-available']({ version: '9.9.9', releaseDate: '2026-01-01' });
+    expect(toasts()).toHaveLength(0);
+    expect(showMessageBoxMock).not.toHaveBeenCalled();
+  });
+
+  it('an automatic not-available never dialogs either (the flag is one-shot)', () => {
+    // Consumed-or-never-armed: after a manual check completes, the NEXT
+    // (periodic) not-available must not fire a second reply of any kind.
+    prefs.notificationsEnabled = false;
+    recorded.length = 0;
+    showMessageBoxMock.mockClear();
+    handlers['update-not-available']({ version: '1.0.0' } as unknown as Record<string, unknown>);
+    expect(toasts()).toHaveLength(0);
+    expect(showMessageBoxMock).not.toHaveBeenCalled();
+  });
+
+  it('with the pref on, the manual reply toasts and NO dialog is raised', () => {
+    delete prefs.notificationsEnabled;
+    recorded.length = 0;
+    showMessageBoxMock.mockClear();
+    armManualCheck();
+    handlers['update-not-available']({ version: '1.0.0' } as unknown as Record<string, unknown>);
+    expect(toasts()).toHaveLength(1);
+    expect(toasts()[0].options.title).toBe("You're on the latest version");
+    expect(showMessageBoxMock).not.toHaveBeenCalled();
   });
 });

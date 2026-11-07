@@ -41,6 +41,7 @@ export const WIN_IT = {
     incompatibleAction: 'Chiedi al proprietario del server di aggiornare Phlix Media Server e premi "Riprova": il controllo viene ripetuto subito, senza riavvio.',
     incompatibleRetry: 'Riprova'
 ,
+    incompatibleChange: 'Usa un altro server',
     failTitle: 'Impossibile avviare Phlix',
     failMessage: "L’applicazione non è riuscita a caricare i dati necessari all’avvio. L’archivio sicuro potrebbe non essere disponibile o l’installazione danneggiata. Riprovare spesso risolve; in caso contrario reinstalla Phlix per Windows.",
     failRetry: 'Riprova'

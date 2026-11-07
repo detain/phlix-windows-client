@@ -129,7 +129,7 @@ export function clampBoundsToDisplays(
  * sequence, false when the reference was absent or destroyed — a deliberate
  * no-op for a window that is mid-teardown, never a crash.
  *
- * w10/L1 (windows__casualgamer 10): with a geometry probe, the raise ALSO
+ * w10/L1 (windows__casualgamer 4): with a geometry probe, the raise ALSO
  * repairs the stranded-window class — a window remembered on a since-
  * unplugged display answers tray-Show/icon-click/notification-click by
  * focusing pixels nobody can see. The clamp runs AFTER the sequence (the

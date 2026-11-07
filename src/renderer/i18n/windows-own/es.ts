@@ -42,6 +42,7 @@ export const WIN_ES = {
     incompatibleAction: 'Pide al propietario del servidor que actualice Phlix Media Server y pulsa "Volver a intentarlo": la comprobación se repite en el sitio, sin reiniciar.',
     incompatibleRetry: 'Volver a intentarlo'
 ,
+    incompatibleChange: 'Usar un servidor diferente',
     failTitle: 'Phlix no pudo iniciarse',
     failMessage: 'La aplicación no pudo cargar lo necesario para abrirse. Puede que el almacenamiento seguro no esté disponible o que la instalación esté dañada. Reintentar suele ayudar; si no, reinstala Phlix para Windows.',
     failRetry: 'Reintentar'
