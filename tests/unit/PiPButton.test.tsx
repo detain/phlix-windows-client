@@ -12,7 +12,7 @@ import PiPButton from '@/components/PiPButton';
 // Mock usePlayerStore — reactive so the component's watchers (auto-PiP on play,
 // per-item listener re-sync) observe state transitions the same way they do
 // against the real Pinia store. Field names come from the REAL vendored surface
-// at pin #v0.99.22: the setup-store return in
+// at pin #v0.99.25: the setup-store return in
 // node_modules/@phlix/ui/dist/usePlayerStore-BpohCwDP.js (:213+, typed in
 // dist/stores/usePlayerStore.d.ts — Pick list at :417) exposes `current`,
 // `playing`, `position`, `duration`, … and `currentItem` appears ZERO times in

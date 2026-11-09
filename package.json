@@ -79,8 +79,8 @@
     "flipGate": "Set build.win.forceCodeSigning true only together with WIN-08 certificate provisioning — repo secrets AUTHENTICODE_CERT / AUTHENTICODE_CERT_PASSWORD (win leg) and APPX_SIGNING_CERT / APPX_SIGNING_CERT_PASSWORD (appx leg) — with signing on a windows-leg runner per docs/signing.md 'CI Signing Configuration', and update this block plus docs/signing.md and the law test in the same change. Updater half of the gate (docs/signing.md 'Auto-Update Verification'): the same change must land publisherName (win.publisherName = the certificate subject CN) into the shipped app-update.yml, because electron-updater's NsisUpdater.verifySignature skips verification when that key is absent — until then a provisioned certificate stays un-enforced by the auto-updater, whose trust is feed integrity (TLS + latest.yml sha512), never authenticity."
   },
   "dependencies": {
-    "@phlix/contracts": "github:detain/phlix-contracts#v0.5.6",
-    "@phlix/ui": "github:detain/phlix-ui#v0.99.22",
+    "@phlix/contracts": "github:detain/phlix-contracts#v0.5.7",
+    "@phlix/ui": "github:detain/phlix-ui#v0.99.25",
     "electron-log": "^5.0.0",
     "electron-store": "^8.1.0",
     "electron-updater": "^6.3.9",

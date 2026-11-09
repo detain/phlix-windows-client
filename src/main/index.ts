@@ -70,7 +70,8 @@ const deepLinkDeduper = createDeepLinkDeduper(DEEPLINK_DEDUPE_WINDOW_MS);
 // Dedup only catches BYTE-IDENTICAL urls; a protocol-launch flood of
 // DISTINCT links used to (a) grow the pending queue without bound and
 // (b) — for invite links — park a modal question per entry, locking the
-// main window on demand. Three parts, one mechanism per vector:
+// main window on demand. Four parts (the fourth is the MW-121c fold-in), one
+// mechanism per vector:
 //   * MAX_PENDING_DEEPLINKS — the queue is bounded; over-cap links are
 //     dropped AT THE DOOR, redacted-logged, first one surfaced once.
 //   * deepLinkDeliveryGate — how many parsed links may reach the renderer
@@ -79,11 +80,28 @@ const deepLinkDeduper = createDeepLinkDeduper(DEEPLINK_DEDUPE_WINDOW_MS);
 //     minute. 30/min is far past human click speed; the createToastThrottle
 //     idiom matches the notification surface's own bound.
 //   * deepLinkDropSurface — the NEW drop classes (rate + overflow) share
-//     one honest warning per minute; the pre-existing parse-rejection class
-//     keeps its per-drain law byte-identically (M-WINDOWS-15 untouched).
+//     one honest warning per minute.
+//   * deepLinkRejectSurface (MW-121c) — the parse-rejection class, which
+//     M-WINDOWS-15 coalesces to one dialog PER DRAIN: true inside a burst,
+//     but a WARM flood arrives as one pump per link, so per-drain law alone
+//     farmed one dialog per link indefinitely. Its own 30/min dialog budget
+//     closes that exposure (see the const below for why not the delivery
+//     gate); the per-drain coalescing and the redacted per-link log lines
+//     stay exactly as M-WINDOWS-15 shipped them.
 const MAX_PENDING_DEEPLINKS = 32;
 const deepLinkDeliveryGate = createToastThrottle({ limit: 30, windowMs: 60_000 });
 const deepLinkDropSurface = createToastThrottle({ limit: 1, windowMs: 60_000 });
+// MW-121c [BANK win-.25-fold]: the parse-REJECTION dialog (M-WINDOWS-15's
+// honest failure surface) sat OUTSIDE every bound. Its one-per-DRAIN
+// coalescing is real, but the warm shape — a live receiver drains one pump
+// per arriving link — turned "one per drain" into "one per link": a flood of
+// DISTINCT malformed links farmed a warning dialog forever. It now shares the
+// flood discipline through its own 30/min dialog budget, deliberately NOT the
+// delivery gate: reject-surfacing must never consume a grant meant for a
+// confirm-path link (the two budgets attack different resources). 30/min is
+// the same well-past-human-speed bound the delivery gate uses; each rejection
+// keeps its redacted log line regardless of whether a dialog surfaces.
+const deepLinkRejectSurface = createToastThrottle({ limit: 30, windowMs: 60_000 });
 let deepLinkOverflowUrl: string | null = null;
 
 // M-WINDOWS-06: pending-deeplink queue + renderer-receiver handshake.
@@ -202,7 +220,10 @@ async function pumpPendingDeepLinks(win: BrowserWindow): Promise<void> {
         // M-WINDOWS-15: the parser already logged the rejection (redacted); the
         // USER also gets told. One dialog per drain — a burst of bad links is a
         // single honest surface, not a modal pile-up (each rejection keeps its
-        // redacted log line for diagnosis).
+        // redacted log line for diagnosis). MW-121c TRUTH-TIGHTENING: that law
+        // only bounds a BURST INSIDE ONE PUMP; a warm flood arrives as many
+        // pumps of one link each, so the surface is additionally bounded by
+        // deepLinkRejectSurface's dialog budget at the tail below.
         rejectedUrls.push(url);
         continue;
       }
@@ -225,7 +246,11 @@ async function pumpPendingDeepLinks(win: BrowserWindow): Promise<void> {
   } finally {
     deepLinkDrainActive = false;
   }
-  if (rejectedUrls.length > 0) {
+  if (rejectedUrls.length > 0 && deepLinkRejectSurface(Date.now())) {
+    // MW-121c: per-drain coalescing (M-WINDOWS-15) KEPT — one dialog for a
+    // burst inside one pump — and the warm pump-per-link exposure is closed
+    // by the 30/min budget. Past the budget the per-link redacted log lines
+    // above stay as the diagnostic surface.
     showDeepLinkRejectedDialog(rejectedUrls[0]!);
   }
   // MW-121: the NEW drop classes (in-pump rate drops + door-dropped

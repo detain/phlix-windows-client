@@ -823,4 +823,33 @@ describe('MW-121 — flood discipline: cap, delivery gate, one honest surface', 
     expect(tracks.deepLinkSends.length).toBeLessThanOrEqual(GATE_LIMIT + 1);
     expect(sentPaths()).toContain('/app/media/refill-after-window');
   });
+
+  it('warm malformed flood: the rejection dialog cannot farm one warning per link (MW-121c)', async () => {
+    // M-WINDOWS-15's one-dialog-per-DRAIN coalescing survives, but the warm
+    // shape — receiver live, so every enqueue drains its own pump — left the
+    // parse-rejection class outside every bound: the drop-surface throttle
+    // only covers the rate/overflow classes, so a protocol-launch flood of
+    // DISTINCT malformed links (dedup is byte-identical only) farmed exactly
+    // one warning dialog per link, forever. The cure shares the flood
+    // discipline with the rejection class: a dedicated 30/min dialog budget
+    // (deepLinkRejectSurface — deliberately NOT the delivery gate, so
+    // reject-surfacing can never steal a confirm-path grant).
+    const REJECT_LIMIT = 30; // mirror of deepLinkRejectSurface in src/main/index.ts
+    tracks.deepLinkSends.length = 0;
+    tracks.dialogCalls.length = 0;
+    tracks.logs.length = 0;
+    announceReadyFrom(currentWindow()); // receiver live: each enqueue is its own drain
+
+    await runFlood(3_000_000, async () => {
+      for (let i = 0; i < 200; i++) {
+        enqueueViaSecondInstance(`phlix://bogus-host/mf-${i}`); // distinct unparsables
+      }
+    });
+
+    const warns = warningOptions();
+    expect(warns.length, 'a warm flood must not farm one dialog per link').toBeLessThanOrEqual(REJECT_LIMIT);
+    expect(warns.length, 'the first rejection must still surface honestly').toBeGreaterThan(0);
+    expect(tracks.deepLinkSends, 'unparsable links forward nothing').toEqual([]);
+    expect(JSON.stringify(tracks.logs), 'the per-link redacted log lines survive').toContain('[deeplink]');
+  });
 });

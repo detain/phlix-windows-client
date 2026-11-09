@@ -498,7 +498,13 @@ describe('installFocusGuard defers to the vendored ui player engine (M-WINDOWS-1
       'utf8'
     );
     expect(uiBundle).toContain('`${t}/player/:id`');
-    expect(uiBundle).toContain('let t = e.routerBase || "/app"');
+    // v0.99.25 re-vendor: the minified statement at this site reads
+    // `let t = e.routerBase ?? "/app", n = [` (the || → ?? nullish sweep in the
+    // ui review-cure waves moved the DEFAULT operator; variable letters rotate
+    // every build and are deliberately NOT asserted). Measured via grep -o over
+    // the installed .25 phlix-ui.js, 2026-11-09; rename-plant law: this literal
+    // is what the bundle actually carries.
+    expect(uiBundle).toContain('let t = e.routerBase ?? "/app"');
   });
 
   it('Space inside the player route actuates EXACTLY ONE handler (both layers installed)', () => {
