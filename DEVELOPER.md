@@ -142,7 +142,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
 ### Renderer Process (`src/renderer/`)
 
-The renderer is a thin consumer of `@phlix/ui` — no local page views (every route renders a vendored component) and no local application stores (state stays in the vendored Pinia stores) — but it is no longer zero-ownship: it ships the local surfaces listed in the tree below (player overlay components, a boot-failure screen, i18n catalogs, a DPAPI token-store adapter, media-session handlers).
+The renderer is a thin consumer of `@phlix/ui` — no local page views (every route renders a vendored component) and no local application stores (state stays in the vendored Pinia stores) — but it is no longer zero-ownship: it ships the local surfaces listed in the tree below (player overlay components, a boot-failure screen, i18n catalogs, a DPAPI token-store adapter, media-session handlers). Vault custody is a **device-class decision by design** (estate cookie-auth ruling D6c, 2026-11-05): the client carries `X-Phlix-Device-Type: windows` on every request and keeps bearer tokens sealed in the DPAPI vault — the browser-less equivalent of an httpOnly cookie (renderer JS cannot read it at rest). Cookie-mode auth is scoped to browser clients; Electron's private `app://` scheme neither persists cookies reliably across restarts nor suits the server-side Origin-CSRF model, so never add cookie/partition plumbing here — the vendored ui `tokenStore` bearer path is the contract.
 
 ```
 src/renderer/
