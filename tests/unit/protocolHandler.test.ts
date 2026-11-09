@@ -15,6 +15,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import * as path from 'path';
+import { readFileSync, statSync } from 'fs';
 
 const PROJECT_ROOT = path.resolve(__dirname, '../..');
 
@@ -350,5 +351,122 @@ describe('M11 frame-ancestors header + m7c branded refusal bodies', () => {
       expect(response.headers.get('Content-Type')).toContain('text/html');
       expect(response.headers.get('Content-Security-Policy')).toBe("frame-ancestors 'none'");
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// MW-124 [review windows__crossfe 1 — card w14/L4]: deep-route reload boot.
+//
+// Defect: vite built with base './', so index.html referenced ./assets/… .
+// The handler serves that SAME index.html as the SPA fallback for any
+// extensionless route, and at a 2+-segment route (e.g. app://-/app/player/3
+// — what a reload at a deep route re-requests) './assets/main.js' resolves
+// against the ROUTE, not /app/: /app/player/assets/main.js → ENOENT → the
+// fallback hands index.html back as the answer to a <script type="module">
+// fetch → Electron refuses a text/html module → the window is stranded on
+// the boot splash forever. A one-segment route (/app/servers) coincidentally
+// resolves './assets' → /app/assets, which is why cold boot and shallow
+// reloads always worked and hid the class.
+//
+// Cure: base '/app/' — every emitted URL is origin-rooted, so resolution is
+// route-depth-independent. Venue note that shapes these tests: under vitest
+// RENDERER_DIST_DIR resolves __dirname-relative to src/renderer (in the real
+// app it is dist/renderer), so a handler-driven probe sees the SOURCE doc
+// here, not the build artifact. The BUILT-document law is therefore asserted
+// directly against dist/renderer/index.html — CI's test job runs
+// `npm run build` before `npm test`, so those bytes are the same artifacts
+// production boots from. The static pins keep the config honest, and one
+// dynamic pin keeps the served document's refs route-independent by property.
+// ---------------------------------------------------------------------------
+describe('MW-124 — deep-route reload keeps asset URLs origin-rooted', () => {
+  const DEEP_ROUTE = 'app://-/app/player/3'; // 2-segment: './' refs break HERE
+
+  beforeEach(() => {
+    protocolHandlers.clear();
+    setupAppProtocolHandler();
+  });
+  const handler = () => protocolHandlers.get('app') as (request: { url: string }) => Promise<Response>;
+
+  function assetRefs(html: string): string[] {
+    return [...html.matchAll(/(?:src|href)="([^"]+)"/g)]
+      .map((match) => match[1])
+      .filter((ref) => !ref.startsWith('data:'));
+  }
+
+  it('vite.config.mts pins base "/app/" (static pin)', () => {
+    const config = readFileSync(path.join(PROJECT_ROOT, 'vite.config.mts'), 'utf8');
+    expect(config).toMatch(/base:\s*'\/app\/'/);
+  });
+
+  it('the dev boot arm loads the /app/ entry so dev and prod share one route space (static pin)', () => {
+    const source = readFileSync(path.join(PROJECT_ROOT, 'src', 'main', 'index.ts'), 'utf8');
+    expect(source).toContain("loadURL('http://localhost:5173/app/')");
+  });
+
+  it('the BUILT document carries no route-relative asset refs (real artifact)', () => {
+    // readFileSync on the artifact, not a handler probe: under vitest the
+    // handler answers from src/renderer (see the venue note above), so only
+    // this direct read observes what a production deep-route reload fetches.
+    const built = readFileSync(path.join(PROJECT_ROOT, 'dist', 'renderer', 'index.html'), 'utf8');
+    const refs = assetRefs(built);
+    // Vacuous-pass guard: an html with no refs would silently satisfy the law.
+    expect(refs.length).toBeGreaterThan(0);
+    for (const ref of refs) {
+      expect(
+        ref.startsWith('/app/'),
+        `relative ref "${ref}" re-resolves against the route on a deep reload (MW-124 boot-splash death)`
+      ).toBe(true);
+      // The resolution property itself, spelled out: from the deep route the
+      // ref must still land on its true asset path.
+      expect(new URL(ref, DEEP_ROUTE).pathname).toBe(ref);
+    }
+  });
+
+  it('every ref in the BUILT document maps to a real non-HTML artifact on disk', () => {
+    // The static half of "never the HTML fallback": a ref that points at a
+    // missing file is what turns the ENOENT fallback into a poisoned module
+    // script. Existence + a non-HTML extension is exactly the handler's
+    // success condition; the handler's file-serving path itself is pinned by
+    // the 'serves actual file' suite above.
+    const built = readFileSync(path.join(PROJECT_ROOT, 'dist', 'renderer', 'index.html'), 'utf8');
+    const refs = assetRefs(built).filter((ref) => ref.startsWith('/app/'));
+    expect(refs.length, 'nothing to check — the rooted-refs law above already reddened').toBeGreaterThan(0);
+    for (const ref of refs) {
+      const onDisk = path.join(PROJECT_ROOT, 'dist', 'renderer', ref.slice('/app/'.length));
+      expect(statSync(onDisk).isFile(), `${ref} names no artifact under dist/renderer`).toBe(true);
+      expect(path.extname(onDisk), `${ref} would answer as HTML — a module script fed text/html`).not.toBe('.html');
+    }
+  });
+
+  it('whatever document the handler serves on a deep route resolves its refs route-independently', async () => {
+    // Property pin over the LIVE handler answer (source doc under vitest,
+    // built doc in the app): no ref may resolve differently from the deep
+    // route than from /app/ — that divergence IS the MW-124 class.
+    const response = await handler()({ url: DEEP_ROUTE });
+    expect(response.status).toBe(200);
+    const refs = assetRefs(await response.text());
+    expect(refs.length).toBeGreaterThan(0);
+    for (const ref of refs) {
+      expect(
+        new URL(ref, DEEP_ROUTE).pathname,
+        `ref "${ref}" resolves against the route, not the SPA root`
+      ).toBe(new URL(ref, 'app://-/app/').pathname);
+    }
+  });
+
+  // Fold-bank minor (w13L10 review #2): the MW-113 async law was pinned only
+  // behaviorally (a returned-Promise probe); a future edit re-introducing
+  // readFileSync inside the handler kept the pin green because every answer
+  // still awaited. Mirror the repo's regex-pin style (see the boot-gate census
+  // in tests/unit/main.test.ts): the HANDLER REGION itself must be sync-I/O-free.
+  it('the handler region is sync-I/O-free by source law (MW-113 regex pin)', () => {
+    const source = readFileSync(path.join(PROJECT_ROOT, 'src', 'main', 'index.ts'), 'utf8');
+    const regionText = source.match(/protocol\.handle\('app',\s*async[\s\S]*?\n {2}\}\);/)?.[0];
+    expect(regionText, 'the app:// handler region vanished — retire this pin deliberately').toBeDefined();
+    // The law is about CODE: the region's own history comments name the
+    // retired readFileSync/existsSync pair.
+    const codeOnly = (regionText ?? '').replace(/^[ \t]*\/\/.*$/gm, '');
+    expect(codeOnly).not.toMatch(/readFileSync|existsSync/);
+    expect(codeOnly).toContain('await fs.promises.readFile');
   });
 });

@@ -66,6 +66,26 @@ export { parseDeepLinkUrl, extractDeepLinkUrl };
 const DEEPLINK_DEDUPE_WINDOW_MS = 2000;
 const deepLinkDeduper = createDeepLinkDeduper(DEEPLINK_DEDUPE_WINDOW_MS);
 
+// MW-121 [review windows__exploiter 3 — card w14/L4]: flood discipline.
+// Dedup only catches BYTE-IDENTICAL urls; a protocol-launch flood of
+// DISTINCT links used to (a) grow the pending queue without bound and
+// (b) — for invite links — park a modal question per entry, locking the
+// main window on demand. Three parts, one mechanism per vector:
+//   * MAX_PENDING_DEEPLINKS — the queue is bounded; over-cap links are
+//     dropped AT THE DOOR, redacted-logged, first one surfaced once.
+//   * deepLinkDeliveryGate — how many parsed links may reach the renderer
+//     (and, for invites, reach a CONFIRM DIALOG — the gate sits before the
+//     confirm precisely because the dialog is the attacked resource) per
+//     minute. 30/min is far past human click speed; the createToastThrottle
+//     idiom matches the notification surface's own bound.
+//   * deepLinkDropSurface — the NEW drop classes (rate + overflow) share
+//     one honest warning per minute; the pre-existing parse-rejection class
+//     keeps its per-drain law byte-identically (M-WINDOWS-15 untouched).
+const MAX_PENDING_DEEPLINKS = 32;
+const deepLinkDeliveryGate = createToastThrottle({ limit: 30, windowMs: 60_000 });
+const deepLinkDropSurface = createToastThrottle({ limit: 1, windowMs: 60_000 });
+let deepLinkOverflowUrl: string | null = null;
+
 // M-WINDOWS-06: pending-deeplink queue + renderer-receiver handshake.
 // History: cold-start delivery was a fixed `setTimeout(…, 1000)` armed on
 // 'browser-window-created'. That was a race, not a contract: the renderer
@@ -89,6 +109,16 @@ let deepLinkDrainActive = false;
  * same tick; anything earlier waits in the queue for the handshake.
  */
 function handleDeepLinkUrl(url: string): void {
+  // MW-121: bounded queue — over-cap links are dropped at the door (never
+  // queued), each drop keeps a redacted log line, and the first overflow of
+  // a burst is surfaced once by the next drain's drop-surface below.
+  if (pendingDeepLinks.length >= MAX_PENDING_DEEPLINKS) {
+    log.warn(`[deeplink] Pending queue full (${MAX_PENDING_DEEPLINKS}); dropping ${redactDeepLinkUrl(url)}`);
+    if (deepLinkOverflowUrl === null) {
+      deepLinkOverflowUrl = url;
+    }
+    return;
+  }
   pendingDeepLinks.push(url);
   drainPendingDeepLinks();
 }
@@ -155,6 +185,7 @@ function drainPendingDeepLinks(): void {
 async function pumpPendingDeepLinks(win: BrowserWindow): Promise<void> {
   deepLinkDrainActive = true;
   const rejectedUrls: string[] = [];
+  const rateDroppedUrls: string[] = [];
   try {
     while (pendingDeepLinks.length > 0) {
       if (win.isDestroyed()) {
@@ -175,6 +206,16 @@ async function pumpPendingDeepLinks(win: BrowserWindow): Promise<void> {
         rejectedUrls.push(url);
         continue;
       }
+      // MW-121: the delivery gate sits BEFORE the confirm on purpose — the
+      // question dialog IS the attacked resource (M-WINDOWS-31's serialization
+      // bounds modals per drain, not grants per window). An invite past the
+      // cap never earns its question; the drop is redacted-logged and joins
+      // the drain's single shared drop-surface below.
+      if (!deepLinkDeliveryGate(Date.now())) {
+        log.warn(`[deeplink] Delivery rate limit reached; dropping ${redactDeepLinkUrl(url)}`);
+        rateDroppedUrls.push(url);
+        continue;
+      }
       if (requiresDeepLinkConfirmation(path) && !(await confirmDeepLinkFollow(win, url))) {
         log.info(`[deeplink] Follow declined: ${redactDeepLinkUrl(url)}`);
         continue;
@@ -186,6 +227,16 @@ async function pumpPendingDeepLinks(win: BrowserWindow): Promise<void> {
   }
   if (rejectedUrls.length > 0) {
     showDeepLinkRejectedDialog(rejectedUrls[0]!);
+  }
+  // MW-121: the NEW drop classes (in-pump rate drops + door-dropped
+  // overflow) share one honest surface per minute — a flood can neither
+  // farm question dialogs nor farm warning dialogs. The overflow entry is
+  // consumed here whether or not it surfaces (the burst already keeps its
+  // redacted log line per dropped link).
+  const dropSurfaceUrl: string | null = rateDroppedUrls.length > 0 ? rateDroppedUrls[0]! : deepLinkOverflowUrl;
+  deepLinkOverflowUrl = null;
+  if (dropSurfaceUrl !== null && deepLinkDropSurface(Date.now())) {
+    showDeepLinkRejectedDialog(dropSurfaceUrl);
   }
 }
 
@@ -458,10 +509,25 @@ export function enforceTitleProvenance(
   documentUrl: string,
   dev: boolean = isDev
 ): void {
-  const ownDocument =
-    documentUrl.startsWith('app://-') || (dev && documentUrl.startsWith('http://localhost:5173'));
-  if (ownDocument) {
+  if (documentUrl.startsWith('app://-')) {
     return;
+  }
+  // MW-120 fold (w13L10 review, Info): the dev arm used to be a raw
+  // startsWith — a USERINFO look-alike ('http://localhost:5173@evil.example/'
+  // parses to host evil.example yet literally begins with the dev origin)
+  // and a port superstring ('http://localhost:51730/') inherited the dev
+  // entry's title rights. Parse first, then compare protocol + hostname +
+  // port for EQUALITY (the permissionGuard idiom); an unparseable URL falls
+  // through to the denial — fail closed, same as the empty-URL law above.
+  if (dev) {
+    try {
+      const url = new URL(documentUrl);
+      if (url.protocol === 'http:' && url.hostname === 'localhost' && url.port === '5173') {
+        return;
+      }
+    } catch {
+      // unparseable — the denial below owns it
+    }
   }
   event.preventDefault();
 }
@@ -536,7 +602,10 @@ function createWindow(): void {
     enforceTitleProvenance(event, mainWindow?.webContents.getURL() ?? '');
   });
   if (isDev) {
-    mainWindow.loadURL('http://localhost:5173');
+    // MW-124: vite base is '/app/', so the dev entry document lives at the
+    // /app/ path too — dev and prod now share one route space, and the same
+    // deep-reload behavior is exercised in dev that ships in prod.
+    mainWindow.loadURL('http://localhost:5173/app/');
     mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadURL(PROD_BOOT_URL);
@@ -583,6 +652,13 @@ function createWindow(): void {
     isPlaying = false;
     trayTooltipPlaying = false;
     syncTrayTooltip();
+    // MW-114 fold: the liveness mirror joins that contract (the tray
+    // outlives the window; its transport rows must not wait for a tick
+    // from a renderer that no longer exists).
+    if (transportSessionLive) {
+      transportSessionLive = false;
+      refreshTransportSurfaces();
+    }
   });
 
   // Debounced resize/move handlers for live bounds persistence
@@ -648,6 +724,15 @@ function createWindow(): void {
     isPlaying = false;
     trayTooltipPlaying = false;
     syncTrayTooltip();
+    // MW-114 fold (w13L10 review minor #4): the transport-liveness mirror
+    // obeys the same zero-on-death law — the m13 arm above covers the
+    // PLAYBACK mirrors, but transportSessionLive stayed stale-true, leaving
+    // the tray transport rows enabled and the thumbar claiming a session
+    // over a corpse until a tick the dead renderer can never send.
+    if (transportSessionLive) {
+      transportSessionLive = false;
+      refreshTransportSurfaces();
+    }
     // M-WINDOWS-09: before this the user faced a permanently dead window in
     // silence. The power-blocker release stays; on top of it, a recovery
     // affordance: reload recovers the session view (reconnect + re-route are
@@ -1841,7 +1926,13 @@ function notifyUser(
  * dialog is intentionally OK-only (default button): with notifications off
  * there is no toast click to carry the download action, and inventing
  * dialog-only button copy would churn the ×7 catalog for an arm that already
- * reports the version; the W4.9 periodic cycle re-arms the normal flow.
+ * reports the version. TRUTH (w13L10 review fold, MW-112): nothing
+ * "re-arms the normal flow" for a notifications-off user — the periodic
+ * cycle's toasts ride the same preference gate this dialog exists BECAUSE
+ * of. The dialog is a one-shot honest answer, and the copy it carries
+ * ("Click to download") is written for the toast arm; a dialog-specific
+ * body key is the queued follow-up, tracked in the w14/L4 register, not a
+ * silently-wrong comment.
  */
 function answerManualCheck(title: unknown, body: unknown, onClick?: () => void): void {
   if (notifyUser(title, body, { throttle: false, onClick })) return;

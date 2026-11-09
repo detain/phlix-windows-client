@@ -157,6 +157,28 @@ describe('enforceTitleProvenance (MW-120)', () => {
     enforceTitleProvenance(lookalike, 'http://localhost:5174/', true);
     expect(lookalike.preventDefault).toHaveBeenCalledTimes(1);
   });
+
+  // MW-120 fold (w13L10 review, Info class): the dev arm matched with
+  // startsWith — a USERINFO look-alike ('http://localhost:5173@evil.example/'
+  // parses to host evil.example, yet literally starts with the dev origin)
+  // and a port superstring ('http://localhost:51730/') both won title
+  // control in dev builds. The cure is the repo's own permissionGuard
+  // idiom: parse, then compare protocol + hostname + port for equality.
+  it('the parsed dev arm denies look-alikes a raw prefix match would admit', () => {
+    for (const url of ['http://localhost:5173@evil.example/', 'http://localhost:51730/', 'http://localhost:5173.evil.example/']) {
+      const event = titleEvent();
+      enforceTitleProvenance(event, url, true);
+      expect(event.preventDefault, url).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it('the parsed dev arm still admits the real /app/ entry and its routes', () => {
+    for (const url of ['http://localhost:5173/app/', 'http://localhost:5173/app/player/3']) {
+      const event = titleEvent();
+      enforceTitleProvenance(event, url, true);
+      expect(event.preventDefault, url).not.toHaveBeenCalled();
+    }
+  });
 });
 
 describe('MW-120 wiring (static pins — the unit law alone cannot see registration)', () => {

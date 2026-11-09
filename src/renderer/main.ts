@@ -357,6 +357,12 @@ function renderIncompatibleServerScreen(
   retryButton.addEventListener('click', () => {
     // One attempt in flight at a time; the re-render path re-arms a fresh button.
     retryButton.disabled = true;
+    // MW-119 fold (w13L10 review minor #3): the Change arm already silences
+    // the WHOLE row in flight (shared boot pipeline — a Change click during
+    // a Retry-driven boot() could race a second mount); Retry must honor the
+    // same law in the other direction. TDZ is safe: this closure only runs
+    // after changeButton is declared below.
+    changeButton.disabled = true;
     void retryCheck().then(
       (next) => {
         if (next.compatible) {
@@ -381,6 +387,11 @@ function renderIncompatibleServerScreen(
             // the verdict in hand is compatible).
             if (retryButton.isConnected) {
               retryButton.disabled = false;
+              // MW-119 fold: the pair was muzzled together — it returns
+              // together (each button only ever touches a still-live one).
+              if (changeButton.isConnected) {
+                changeButton.disabled = false;
+              }
             }
           });
         } else {
@@ -396,6 +407,10 @@ function renderIncompatibleServerScreen(
         // strand the surface disabled — the window must never dead-end.
         log.error('[Boot] Retry could not run:', err);
         retryButton.disabled = false;
+        // MW-119 fold: the pair was muzzled together; re-arm it together.
+        if (changeButton.isConnected) {
+          changeButton.disabled = false;
+        }
       }
     );
   });
@@ -601,6 +616,62 @@ export async function boot(): Promise<void> {
     foldPlaintextTokensToVault(tokenStore);
   }
 
+  // MW-110 [review windows__casualgamer 1 — card w14/L4]: the gate above can
+  // only vet the PERSISTED serverUrl — the Connect screen decides its base
+  // AFTER mount, through onConnectionChange below. Pre-cure, a first-time
+  // connect to a too-old server mounted the full app against a base the boot
+  // gate would have refused, and the check only fired next launch: a gate
+  // that cannot see the decision it exists to police is theater. Every
+  // persisted connection change now re-runs THE SAME gate (same api, same
+  // verdict SSOT in src/main/versionCheck.ts — zero new policy here). A
+  // too-old verdict is honest teardown: unmount the silently-mounted app,
+  // release the bridge + deeplink subscriptions (cleanupRenderer), and hand
+  // the window to the same persistent screen whose Retry/Change row re-boots
+  // legally. connectionGateSeq lets ONLY the latest attempt act on its
+  // verdict — a slow stale TOO_OLD must never tear down a newer, good one.
+  //
+  // Disclosed boundary: between this teardown and the next boot()'s
+  // handshake, main still believes the receiver is live (no new IPC channel
+  // is invented here — the M-WINDOWS-06 handshake law stands untouched).
+  // Deep links fired inside that window are lost exactly as they were to a
+  // crashed renderer sitting on the recovery dialog; the Retry re-boot's
+  // notifyDeeplinkReady re-announces and repairs the state.
+  let mountedApp: { unmount(): void } | null = null;
+  let connectionGateSeq = 0;
+  const recheckConnectionGate = (base: string): void => {
+    if (!api) {
+      return; // bridge-less browser boot: there is no gate to re-run
+    }
+    const seq = ++connectionGateSeq;
+    void api.checkServerVersion(base).then(
+      (verdict) => {
+        if (seq !== connectionGateSeq) {
+          return; // a newer connection attempt owns the answer now
+        }
+        if (verdict.compatible) {
+          return; // the mounted app may keep running against this base
+        }
+        log.error('[Boot] Connection change failed the server-version gate — replacing the mounted app with the incompatible-server screen');
+        mountedApp?.unmount();
+        cleanupRenderer();
+        setWindowLocale(resolveLocale());
+        try {
+          void api.showNotification?.(tWin('boot.incompatibleTitle'), tWin('boot.incompatibleIntro'));
+        } catch (err) {
+          log.warn('[Boot] Native notification unavailable:', err);
+        }
+        renderIncompatibleServerScreen(verdict, () => api.checkServerVersion(base));
+      },
+      (err: unknown) => {
+        // Same fail-open transport posture as the boot gate's check: the
+        // check catches its own failure modes main-side; a broken IPC here
+        // leaves the running app alone rather than punishing it for a
+        // verdict it never received.
+        log.error('[Boot] Connection-change version check could not run:', err);
+      }
+    );
+  };
+
   const bootConfig: BootConfig = {
     app: appMode,
     apiBase,
@@ -625,6 +696,11 @@ export async function boot(): Promise<void> {
       if (!isHub) {
         applySyncPlaySocketHint(deriveSyncPlayWsUrl(url ?? null));
       }
+      // MW-110: persisting a choice is a CONNECTION event — vet it with the
+      // same gate boot ran, or the first connect to a too-old server boots
+      // silently. An empty base (a clear) re-runs the gate's own inactive
+      // fail-open probe: no-op by construction, identical to boot.
+      recheckConnectionGate(url ?? '');
     },
     // In hub mode, land on the servers directory (not the media-server Browse page,
     // whose server-only endpoints 404 on the hub) and skip continue-watching.
@@ -655,6 +731,9 @@ export async function boot(): Promise<void> {
   }
 
   const app = createPhlixApp(bootConfig);
+  // MW-110: register the live instance BEFORE mount — a connection verdict
+  // racing in on the mount tick must find its subject.
+  mountedApp = app;
 
   app.mount('#phlix-app');
 

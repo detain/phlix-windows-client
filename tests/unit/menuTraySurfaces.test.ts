@@ -427,3 +427,79 @@ describe('MW-114 — transport surfaces reflect session liveness', () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// MW-114 fold (w13L10 review minor #4): the session-liveness mirror was
+// zeroed by neither death path. render-process-gone and 'closed' already
+// zero the PLAYBACK mirrors (m13 law: isPlaying/trayTooltipPlaying) but left
+// transportSessionLive stale-true — until the next progress tick that a dead
+// renderer never sends, the tray transport rows stay ENABLED and the thumbar
+// enabled-trio keeps claiming a live session over a corpse. The cure is the
+// same change-gated zero + refreshTransportSurfaces the progress arm uses.
+// ---------------------------------------------------------------------------
+describe('MW-114 fold — renderer death zeroes the transport liveness mirror', () => {
+  type Row = { label?: unknown; enabled?: unknown; type?: unknown };
+
+  function win(): { setThumbarButtons: ReturnType<typeof vi.fn>; on: ReturnType<typeof vi.fn>; webContents: { send: unknown } } {
+    const w = tracks.windows[tracks.windows.length - 1];
+    if (!w) throw new Error('boot window missing');
+    return w as unknown as { setThumbarButtons: ReturnType<typeof vi.fn>; on: ReturnType<typeof vi.fn>; webContents: { send: unknown } };
+  }
+
+  function fireProgress(payload: unknown): void {
+    const handler = tracks.ipcOnHandlers.get('playback:progress')?.[0];
+    if (!handler) throw new Error('playback:progress handler was not registered');
+    handler({ sender: win().webContents }, payload);
+  }
+
+  function transportRows(): Row[] {
+    return (menu.buildTrayMenuTemplate() as unknown as Row[]).filter(
+      (r) => r.type !== 'separator' && (r.label === 'Play/Pause' || r.label === 'Stop')
+    );
+  }
+
+  function fireGone(): void {
+    const handler = tracks.webContentsHandlers.get('render-process-gone')?.[0];
+    if (!handler) throw new Error('render-process-gone handler was not registered');
+    handler({}, { reason: 'crashed' });
+  }
+
+  function fireClosed(): void {
+    const call = win().on.mock.calls.find(([name]) => name === 'closed');
+    if (!call) throw new Error("'closed' handler was not registered");
+    (call[1] as () => void)();
+  }
+
+  it('render-process-gone disables the tray transport rows and rebuilds the thumbar disabled', () => {
+    fireProgress({ current: 0, total: 1000 }); // a live session is reported first
+    for (const row of transportRows()) {
+      expect(row.enabled, 'precondition: the live tick must enable the rows').toBe(true);
+    }
+    const w = win();
+    w.setThumbarButtons.mockClear();
+
+    fireGone();
+
+    for (const row of transportRows()) {
+      expect(row.enabled, `row ${String(row.label)} still claims a session over a dead renderer`).toBe(false);
+    }
+    expect(w.setThumbarButtons, 'thumbar not rebuilt on renderer death').toHaveBeenCalled();
+    const buttons = w.setThumbarButtons.mock.calls[w.setThumbarButtons.mock.calls.length - 1][0] as Array<{ flags?: unknown }>;
+    for (const button of buttons) {
+      expect(button.flags).toEqual(['disabled']);
+    }
+  });
+
+  it("'closed' zeroes the mirror too (m13 sibling contract)", () => {
+    fireProgress({ current: 0, total: 1000 });
+    for (const row of transportRows()) {
+      expect(row.enabled, 'precondition').toBe(true);
+    }
+
+    fireClosed();
+
+    for (const row of transportRows()) {
+      expect(row.enabled, `row ${String(row.label)} survived the window's death as enabled`).toBe(false);
+    }
+  });
+});

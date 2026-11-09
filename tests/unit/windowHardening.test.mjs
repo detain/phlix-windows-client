@@ -78,7 +78,10 @@ describe('M-WINDOWS-09: renderer crash gets a user-facing recovery', () => {
   it('render-process-gone releases the blocker AND offers reload', () => {
     const idx = main.indexOf("on('render-process-gone'");
     expect(idx).toBeGreaterThan(-1);
-    const slice = main.slice(idx, idx + 900);
+    // Era rotation (w14/L4, MW-114 fold): the m13 + MW-114 zero-on-death arms
+    // and their history comments grew this handler past the original 900-char
+    // window; the pin still bounds recovery to the handler's own region.
+    const slice = main.slice(idx, idx + 1600);
     expect(slice).toMatch('ensurePowerBlocker(false)');
     expect(slice).toMatch('crashRecoveryDialog()');
     expect(slice).toMatch('details.reason');

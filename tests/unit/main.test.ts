@@ -9,7 +9,10 @@ vi.mock('@phlix/ui/style.css', () => ({}));
 vi.mock('@phlix/ui/fonts.css', () => ({}));
 
 const mountSpy = vi.fn();
-const fakeApp = { mount: mountSpy };
+// MW-110: the incompatible-after-mount cure unmounts the live app; the fake
+// carries the Vue App half the cure actually calls.
+const unmountSpy = vi.fn();
+const fakeApp = { mount: mountSpy, unmount: unmountSpy };
 const createPhlixApp = vi.fn(() => fakeApp);
 // Stub the admin/hub route builders + page components main.ts pulls from @phlix/ui
 // to assemble its menu + extraRoutes. The builders return marker route arrays so
@@ -71,6 +74,7 @@ describe('boot (renderer entry)', () => {
     vi.resetModules();
     createPhlixApp.mockClear().mockReturnValue(fakeApp);
     mountSpy.mockClear();
+    unmountSpy.mockClear();
     buildPhlixHeaders.mockClear().mockReturnValue(FAKE_HEADERS);
     installElectronBridge.mockClear().mockReturnValue((() => {}) as any);
     vi.unstubAllEnvs();
@@ -658,6 +662,141 @@ describe('boot (renderer entry)', () => {
     cfg.onConnectionChange(null);
     expect(api.setServerUrl).toHaveBeenLastCalledWith('');
     expect(hintWindow()).toMatchObject({ wsUrl: null });
+  });
+
+  // ---------------------------------------------------------------------------
+  // MW-110 [review windows__casualgamer 1 — card w14/L4]: the boot gate can
+  // only vet the PERSISTED serverUrl — but the Connect screen chooses its
+  // base AFTER mount, via onConnectionChange. Before the cure a first-time
+  // connect to a too-old server booted the full app against it silently (the
+  // gate only fired NEXT launch — exactly the "silent theater" the review
+  // names: a check that cannot see the decision it is meant to police).
+  // Cure: every persisted connection change re-runs the same gate; a
+  // too-old verdict unmounts the silently-mounted app (and its bridge +
+  // deeplink subscriptions via cleanupRenderer) and hands the window to the
+  // existing persistent screen. Sequence guard: a stale verdict must never
+  // tear down a newer connection's app.
+  // ---------------------------------------------------------------------------
+
+  /** direct-mode api (empty persisted url ⇒ boot gate passes on the inactive probe). */
+  function makeDirectApi(check: (base?: string) => Promise<unknown>) {
+    return {
+      hubGetConfig: vi.fn(async () => ({ hubUrl: null, activeServerId: null, connectionMode: 'direct' })),
+      getDeviceId: vi.fn(async () => 'device-m110'),
+      getServerUrl: vi.fn(async () => null),
+      setServerUrl: vi.fn(async () => {}),
+      checkServerVersion: vi.fn(check)
+    };
+  }
+
+  async function bootMounted(container: HTMLDivElement): Promise<{ onConnectionChange: (url: string | null) => void }> {
+    const mod = await import('@/main');
+    document.body.appendChild(container);
+    await mod.boot();
+    expect(mountSpy).toHaveBeenCalledWith('#phlix-app');
+    return (createPhlixApp.mock.calls as any).at(-1)?.[0] as { onConnectionChange: (url: string | null) => void };
+  }
+
+  it('MW-110: a first connection to a too-old server replaces the mounted app with the incompatible screen', async () => {
+    const api = makeDirectApi(async (base) => (base ? TOO_OLD : OK_VERDICT));
+    setElectronApi(api);
+    const container = document.createElement('div');
+    container.id = 'phlix-app';
+
+    const cfg = await bootMounted(container);
+    try {
+      cfg.onConnectionChange('http://old-server:8096');
+
+      await vi.waitFor(() => expect(unmountSpy).toHaveBeenCalled());
+      expect(container.querySelector('[role="alert"]'), 'the persistent screen must own the window').not.toBeNull();
+      expect(container.textContent).toContain('1.0.7');
+      expect(createPhlixApp).toHaveBeenCalledTimes(1); // recovery is the screen's Retry/Change row, not a second app
+      expect(api.setServerUrl).toHaveBeenCalledWith('http://old-server:8096'); // persistence still happens
+    } finally {
+      container.remove();
+    }
+  });
+
+  it('MW-110: a compatible connection change tears nothing down', async () => {
+    const api = makeDirectApi(async () => OK_VERDICT);
+    setElectronApi(api);
+    const container = document.createElement('div');
+    container.id = 'phlix-app';
+
+    const cfg = await bootMounted(container);
+    try {
+      cfg.onConnectionChange('http://good:8096');
+      await new Promise((resolve) => setTimeout(resolve, 25));
+      expect(unmountSpy).not.toHaveBeenCalled();
+      expect(container.querySelector('[role="alert"]')).toBeNull();
+    } finally {
+      container.remove();
+    }
+  });
+
+  it('MW-110: a stale too-old verdict cannot tear down a newer compatible connection', async () => {
+    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+    const api = makeDirectApi(async (base) => {
+      if (base === 'http://slow-old:8096') {
+        await sleep(25);
+        return TOO_OLD;
+      }
+      return OK_VERDICT;
+    });
+    setElectronApi(api);
+    const container = document.createElement('div');
+    container.id = 'phlix-app';
+
+    const cfg = await bootMounted(container);
+    try {
+      cfg.onConnectionChange('http://slow-old:8096'); // probe in flight (slow)
+      cfg.onConnectionChange('http://fast-ok:8096'); // newer base answers first
+      await sleep(60); // the stale TOO_OLD verdict lands here and must be discarded
+      expect(unmountSpy, 'the newer connection owns the gate').not.toHaveBeenCalled();
+      expect(container.querySelector('[role="alert"]')).toBeNull();
+    } finally {
+      container.remove();
+    }
+  });
+
+  // MW-119 fold (w13L10 review minor #3): the recovery-row silencing is
+  // symmetric by law — Change already muzzles BOTH buttons in flight (the
+  // :396 pin). Retry drives the SAME boot pipeline (a compatible retry
+  // re-boots behind the live screen) but left Change clickable — a
+  // mid-flight change could race a second mount, and the fresh screen's
+  // stale pair... the cure mirrors the Change arm exactly: disable both on
+  // click, re-arm the still-connected pair on every rejection path.
+  it('MW-119 fold: clicking Retry silences the whole recovery row and re-arms it on boot rejection', async () => {
+    // [initial boot TOO_OLD, retry #1 verdict OK] — the resumed boot then
+    // dies at its own one-shot config outage (existing r2 pattern).
+    const api = makeGateApi([TOO_OLD, OK_VERDICT]);
+    let configCalls = 0;
+    const originalHubGetConfig = api.hubGetConfig;
+    api.hubGetConfig = vi.fn(async () => {
+      configCalls += 1;
+      if (configCalls === 2) throw new Error('DPAPI custody unavailable');
+      return originalHubGetConfig();
+    });
+    setElectronApi(api);
+    const container = await bootIntoFailureScreen();
+    try {
+      const [retry, change] = Array.from(container.querySelectorAll('button')) as HTMLButtonElement[];
+      expect(retry.textContent).toBe('Try again');
+      expect(change.textContent).toBe('Use a different server');
+      expect(change.disabled).toBe(false);
+
+      retry.click();
+      expect(retry.disabled, 'precondition: the clicked button muzzles itself').toBe(true);
+      expect(change.disabled, 'a Retry in flight drives boot() — Change shares that pipeline').toBe(true);
+
+      await vi.waitFor(() => {
+        expect(retry.disabled, 'the boot rejection must re-arm the still-connected pair').toBe(false);
+        expect(change.disabled).toBe(false);
+      });
+      expect(retry.isConnected && change.isConnected).toBe(true);
+    } finally {
+      container.remove();
+    }
   });
 });
 

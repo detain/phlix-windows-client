@@ -680,3 +680,147 @@ describe('M-WINDOWS-31 confirm-before-consume on token-bearing links', () => {
     ]);
   });
 });
+
+// ---------------------------------------------------------------------------
+// MW-121 [review windows__exploiter 3 — card w14/L4]: flood discipline.
+//
+// Defect: the pending queue was unbounded and every parsed invite parked a
+// question dialog. A protocol-launch flood of DISTINCT accept-invite links
+// (dedup only catches byte-identical URLs in a 2000ms window) therefore
+// produced one modal confirm per entry — sustained lockup of the main
+// window, plus unbounded queue memory while the pump parked behind them.
+//
+// Cure (three parts, all pinned here): (a) MAX_PENDING_DEEPLINKS entry cap —
+// overflow is dropped at the door, redacted-logged, and surfaced ONCE;
+// (b) a bounded delivery gate (createToastThrottle idiom) in front of the
+// confirm — the CONFIRM DIALOG IS the attacked resource, so a link gets a
+// question only while grants remain; (c) drop classes (rate/overflow) share
+// one honest surface per window instead of one per drain.
+//
+// Clock law: the existing file runs on REAL timers because no timer may
+// exist on the drain path; these tests additionally MOCK Date.now (the
+// gate + dedup read it) so grant math is deterministic. Each test picks a
+// base far ahead of real wall time, and tests are ≥600s apart in mock
+// terms, so every window is independent — and no later real-clock test
+// exists behind us (this describe is last). Grant state is per-vitest-file
+// module instance; other files are unaffected.
+// ---------------------------------------------------------------------------
+describe('MW-121 — flood discipline: cap, delivery gate, one honest surface', () => {
+  const GATE_LIMIT = 30; // mirror of deepLinkDeliveryGate in src/main/index.ts
+  const QUEUE_CAP = 32; // mirror of MAX_PENDING_DEEPLINKS
+  const T0 = Date.now(); // captured at collection, before any spy exists
+
+  function warningOptions(): Array<Record<string, unknown>> {
+    return tracks.dialogCalls
+      .map((args) =>
+        args.find((a) => typeof a === 'object' && a !== null && (a as { type?: string }).type === 'warning') as
+          | Record<string, unknown>
+          | undefined
+      )
+      .filter((o): o is Record<string, unknown> => o !== undefined);
+  }
+
+  async function runFlood<T>(baseOffsetMs: number, body: (clock: { now: number }) => Promise<T>): Promise<T> {
+    const clock = { now: T0 + baseOffsetMs };
+    const spy = vi.spyOn(Date, 'now').mockImplementation(() => clock.now);
+    try {
+      const result = await body(clock);
+      await tick(); // let the pump settle its tail before the clock returns
+      return result;
+    } finally {
+      spy.mockRestore();
+    }
+  }
+
+  it('warm invite flood: at most GATE_LIMIT question dialogs, none beyond it', async () => {
+    tracks.deepLinkSends.length = 0;
+    tracks.dialogCalls.length = 0;
+    tracks.logs.length = 0;
+    tracks.confirmResponse = 1; // decline every confirm — the flood never forwards
+    announceReadyFrom(currentWindow());
+
+    await runFlood(600_000, async () => {
+      for (let i = 0; i < 200; i++) {
+        enqueueViaSecondInstance(`phlix://accept-invite/FLOOD1tok${i}`);
+      }
+    });
+
+    const confirms = questionDialogOptions().length;
+    expect(confirms, 'the delivery gate must cap question dialogs per window').toBeLessThanOrEqual(GATE_LIMIT);
+    expect(confirms, 'a grant-less flood would confirm nothing at all — drive it').toBeGreaterThan(0);
+    expect(tracks.deepLinkSends, 'declined invites never forward').toEqual([]);
+    expect(warningOptions().length, 'drop class gets ONE honest surface per window').toBeLessThanOrEqual(1);
+  });
+
+  it('cold flood: queue holds at most QUEUE_CAP, every excess entry is redacted-logged as dropped', async () => {
+    tracks.deepLinkSends.length = 0;
+    tracks.dialogCalls.length = 0;
+    tracks.logs.length = 0;
+    announceReadyFrom(currentWindow());
+    fireWebContentsEvent(currentWindow(), 'did-start-loading'); // pause the receiver
+
+    await runFlood(1_200_000, async () => {
+      for (let i = 0; i < 200; i++) {
+        enqueueViaSecondInstance(`phlix://media/coldflood-${i}`);
+      }
+      announceReadyFrom(currentWindow()); // the cold-start handshake releases the bounded queue
+    });
+
+    const allLogs = JSON.stringify(tracks.logs);
+    const dropLines = (allLogs.match(/queue full/g) ?? []).length;
+    expect(dropLines, 'exactly the over-cap entries are dropped at the door').toBe(200 - QUEUE_CAP);
+    expect(tracks.deepLinkSends.length, 'the held window still gets its bounded delivery').toBeLessThanOrEqual(GATE_LIMIT);
+    expect(tracks.deepLinkSends.length).toBeGreaterThan(0);
+    // Redaction law at the NEW drop surface: media ids are not secrets, but
+    // the cap line shares the redact helper with invite traffic — assert the
+    // helper is what prints it by shape, and no raw-argv dump exists.
+    expect(allLogs).toContain('[deeplink]');
+    expect(warningOptions().length).toBeLessThanOrEqual(1);
+  });
+
+  it('malformed invite flood: secrets never surface — held ≤ cap, overflow surfaced once, all redacted', async () => {
+    tracks.deepLinkSends.length = 0;
+    tracks.dialogCalls.length = 0;
+    tracks.logs.length = 0;
+    tracks.confirmResponse = 0;
+    announceReadyFrom(currentWindow());
+    fireWebContentsEvent(currentWindow(), 'did-start-loading');
+
+    await runFlood(1_800_000, async () => {
+      for (let i = 0; i < 40; i++) {
+        enqueueViaSecondInstance(`phlix://accept-invite/SEKRITtok3n!!broken${i}`);
+      }
+      announceReadyFrom(currentWindow()); // release the drain
+    });
+
+    const surface = JSON.stringify(tracks.dialogCalls) + JSON.stringify(tracks.logs);
+    expect(surface, 'a malformed invite may still carry a live secret — nothing raw leaves').not.toContain('SEKRITtok3n');
+    const warns = warningOptions();
+    expect(warns.length, 'parse-rejection keeps its one-per-drain surface; drop classes add ≤1').toBeLessThanOrEqual(2);
+    expect(
+      warns.some((o) => String(o.detail ?? '').includes('[redacted]')),
+      'the visible detail is the redacted form'
+    ).toBe(true);
+    const dropLines = (JSON.stringify(tracks.logs).match(/queue full/g) ?? []).length;
+    expect(dropLines, 'only the over-cap tail (40-32) is door-dropped').toBe(8);
+  });
+
+  it('gate window expiry refills delivery — the bound throttles floods, never one-off links', async () => {
+    tracks.deepLinkSends.length = 0;
+    tracks.dialogCalls.length = 0;
+    announceReadyFrom(currentWindow());
+
+    await runFlood(2_400_000, async (clock) => {
+      for (let i = 0; i < 100; i++) {
+        enqueueViaSecondInstance(`phlix://media/refill-${i}`);
+      }
+      const capped = tracks.deepLinkSends.length;
+      clock.now += 60_001; // past the gate window: a lone later link is not part of any flood
+      enqueueViaSecondInstance('phlix://media/refill-after-window');
+      return capped;
+    });
+
+    expect(tracks.deepLinkSends.length).toBeLessThanOrEqual(GATE_LIMIT + 1);
+    expect(sentPaths()).toContain('/app/media/refill-after-window');
+  });
+});
