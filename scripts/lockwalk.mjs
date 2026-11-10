@@ -131,7 +131,10 @@ const NESTED_NODE_RE = /\/node_modules\/@phlix\/[\w-]+$/;
 // and RE-VERIFIED AGAIN 2026-11-09 for the contracts v0.5.7 + ui v0.99.25 wave
 // (all three refs below re-peeled against the live remotes via `git ls-remote` this
 // window — contracts v0.5.7 obj eee7e776 ADVANCED, syncplay v0.1.7 obj fe687f27 HELD,
-// ui v0.99.25 obj 52ea3cb7 ADVANCED):
+// ui v0.99.25 obj 52ea3cb7 ADVANCED),
+// and RE-VERIFIED AGAIN 2026-11-10 for the ui v0.99.26 wave (all three refs re-peeled
+// against the live remotes via `git ls-remote` this window — ui v0.99.26 obj 74c120bc
+// ADVANCED, contracts v0.5.7 obj eee7e776 HELD, syncplay v0.1.7 obj fe687f27 HELD):
 //   phlix-contracts v0.5.7 -> bedfe69b  (annotated tag object eee7e776; its manifest
 //                                         `version` field is HONEST - reads 0.5.7 at the
 //                                         tag (measured off the installed node; npm 11
@@ -156,8 +159,12 @@ const NESTED_NODE_RE = /\/node_modules\/@phlix\/[\w-]+$/;
 //                                         error-code census are the only @phlix/contracts
 //                                         consumers in src/ + tests/). The equality era
 //                                         RESTORED at the ui v0.99.9 re-pin CARRIES through
-//                                         v0.99.10-v0.99.22 and this contracts v0.5.7 +
-//                                         ui v0.99.25 move: ui's manifest requests
+//                                         v0.99.10-v0.99.22, the contracts v0.5.7 +
+//                                         ui v0.99.25 move, and the ui v0.99.26 re-pin
+//                                         (2026-11-10: ui's contracts words UNCHANGED —
+//                                         `#v0.5.7` still requested outright, measured via
+//                                         git show at dc2e70fe AND off the installed node):
+//                                         ui's manifest requests
 //                                         `#v0.5.7` outright (measured via git show at
 //                                         6e1ce2d8 AND independently off the installed
 //                                         node) - both the root->contracts and
@@ -247,7 +254,7 @@ export const EXPECTED = {
     // the installed node; the normalization the v0.5.2 release commit ac669ca opened carries
     // through), so this row walks the plain tag-derived version. The override MECHANISM stays
     // armed for a future stale-field tag; none is active — the ui row retired its own at
-    // v0.99.7 (field honest at bc1d29bf) and v0.99.8 through v0.99.25 carry it.
+    // v0.99.7 (field honest at bc1d29bf) and v0.99.8 through v0.99.26 carry it.
     // PRIOR ROW — v0.5.6 (peel c89c8420, 2026-11-04, wave-5 consumer cascade): the route
     // manifest MOVED then — regen #36 payload 412->415 tuples, md5 91579683...->90b79e35...
     // (registry 5d1783a7 205 codes + mcp-scopes 8c92c070 HELD), honest field at c89c8420.
@@ -259,9 +266,41 @@ export const EXPECTED = {
     repo: 'git+ssh://git@github.com/detain/phlix-syncplay.git',
   },
   '@phlix/ui': {
-    tag: 'v0.99.25',
-    sha: '6e1ce2d8795729d2965b88a2de4642cd37dd9096',
-    // v0.99.25 re-pin (2026-11-09, the .25 consumer wave over this repo's .22-era pin): the
+    tag: 'v0.99.26',
+    sha: 'dc2e70fea43355aa7f56bc29f5c8e78195be8628',
+    // v0.99.26 re-pin (2026-11-10, the .26 consumer wave over this repo's .25-era pin): the
+    // honest-field era carries — the annotated tag (object 74c120bc) peels to dc2e70fe and
+    // its manifest reads 0.99.26 (off the codeload tarball AND the installed node; npm writes
+    // lock version 0.99.26), so this row keeps walking the plain tag-derived version; no
+    // manifestVersion override. The window 6e1ce2d8..dc2e70fe is seven ui commits: the w21L4
+    // lane (CU-126 pinia peer ^3.0.0||^4.0.0 + LW-072 PageHint named at root barrel), CP-014
+    // cookie custody (CookieTokenStore/credentialsPolicy/boot probe), the memo-keying pin
+    // test wave, CP-016 401 single-flight refresh + credentials-consistent logout, the
+    // CP-017 custody suites, and the w32L2 HOLD/ORDER + multi-tick rounds pins, closed by the
+    // release ritual itself. THE CONTRACTS EDGE RIDES UNCHANGED: .26's manifest still requests
+    // `#v0.5.7` outright (measured via git show at dc2e70fe, off the codeload tag payload
+    // package.json AND independently off the installed node_modules/@phlix/ui/package.json) —
+    // root keeps `#v0.5.7`, byte-equality holds, plain rule 1, the waiver map stays
+    // present-but-empty — the SIXTEENTH straight equality-era move. The syncplay edge rides
+    // ui's unchanged `#v0.1.7` request (0.1.7@1a80b1d1 untouched). The ONE new lock line at
+    // this step is the ui node's `peerDependencies.pinia` widening `^3.0.0` → `^3.0.0 ||
+    // ^4.0.0` (e2c45746's honest manifest field; the lock records manifest peers, root pinia
+    // stays ^3.0.0/3.0.4 hoisted — the widened range only ADDS acceptance, resolution
+    // unchanged). Locale posture: deliberate HOLD — ui src/i18n measured EMPTY across
+    // 6e1ce2d8..dc2e70fe (0 files), catalog stays 542 both sides, PIN + SOURCE_REF stay
+    // anchored at 6e1ce2d8 (eighth deliberate hold). Identity MEASURED this lane, codeload
+    // tag payload == installed node byte-ident (diff -r over dist/, 889 files; tarball md5
+    // 937a8512fe3d35236fb7ece8893828fd, 27,048,600 B): phlix-ui.js 7cea63d4..., player.js
+    // a6428a08..., phlix-ui.umd.cjs e35db384..., player.umd.cjs 01bc6133...; PlayerPage
+    // carriers rotated to PlayerPage-5onGq7ES.js 708772c4f3c6f6bc2ca4a314d5ce5357 /
+    // PlayerPage-C5iwUiHp.cjs 8e181563bdaa74d6a30392cfdc9f2f02 (the .25-era pair
+    // Bp-fkb06.js / BtnPW08u.cjs is gone). The electronBridge bundle-reality literals
+    // ('let t = e.routerBase ?? "/app", n = [' and the `${t}/player/:id` route template)
+    // SURVIVED the step byte-identically (measured via grep -o over the installed .26
+    // phlix-ui.js — zero rotation owed, the assertion stayed green THROUGH the bump; the
+    // stamp prose re-dated). usePlayerStore-BpohCwDP.js rode byte-ident too (chunk-hash
+    // identity — the .25-era :213+/417 coordinates re-verified accurate on .26 bytes).
+    // PRIOR ROW — v0.99.25 re-pin (2026-11-09, the .25 consumer wave over this repo's .22-era pin): the
     // honest-field era carries — the annotated tag (object 52ea3cb7) peels to 6e1ce2d8 and
     // its manifest reads 0.99.25 (off the tarball + the installed node; npm writes lock
     // version 0.99.25), so this row keeps walking the plain tag-derived version; no
@@ -272,18 +311,19 @@ export const EXPECTED = {
     // catalog-bound rails, dead wire DTOs deleted with stay-retired pins) plus the .23
     // release that landed RED-CI (11 syncplay inbound-decode reds — its release-ritual scope
     // crept the syncplay pin to #v0.1.8), the 1a9f5472 erratum restoring #v0.1.7, and the
-    // .24/.25 green cuts. THE CONTRACTS EDGE ADVANCES WITH IT: .25's manifest requests
+    // .24/.25 green cuts. THE CONTRACTS EDGE ADVANCED WITH IT: .25's manifest requests
     // `#v0.5.7` outright (measured via git show at 6e1ce2d8, off the tarball package.json
-    // AND independently off the installed node) — root moved to the same tag in this commit,
+    // AND independently off the installed node) — root moved to the same tag in that commit,
     // byte-equality holds, plain rule 1, the waiver map stays present-but-empty.
     // The locales tree MOVED (eighth genuine re-vendor — v0.99.5, v0.99.8, v0.99.12,
-    // v0.99.14, v0.99.15, v0.99.19, v0.99.21, and this v0.99.25): six locale files shifted
+    // v0.99.14, v0.99.15, v0.99.19, v0.99.21, and that v0.99.25): six locale files shifted
     // (tree 4c264a97→d5e169d0, +16 keys each, zero removals — auth: passwordRecoveryHint,
     // confirmPasswordRequired, sessionExpired, noMediaTitle, noMediaHint; browse:
     // continueWatching, nextUp, recommended, mostWatched, noLibrariesTitle,
     // noLibrariesDescription, the playlist/season loadErrorTitle pair, loadErrorSchedulesTitle,
     // loadErrorTagsTitle, loadErrorStreamLimitsTitle), messages.ts 0a181db6→431bf59c,
-    // catalog 526→542, the index.ts pair held; SOURCE_REF + PIN advance to 6e1ce2d8 in this
+    // catalog 526→542, the index.ts pair held; SOURCE_REF + PIN advanced to the 6e1ce2d8
+    // peel in that
     // commit (pre-sync conviction: the installed-bundle law went red on exactly the 16 fresh
     // keys, measured). Identity MEASURED this lane, codeload tag payload == installed node
     // byte-ident (diff -r over dist/, 889 files): phlix-ui.js 0083016a..., player.js
@@ -460,7 +500,12 @@ export const EXPECTED = {
 // onto the one hoisted 0.5.7@bedfe69b copy (npm 11 `ci`: single hoisted node, zero nested dirs,
 // lock-node identities cross-checked against a fresh-resolve oracle — MATCH on all three @phlix
 // nodes), and the syncplay edge rides ui's unchanged `#v0.1.7` request. Zero ratified hoists on all
-// four edges; the walker measures green.
+// four edges; the walker measures green. CARRIED again at the ui v0.99.26 re-pin (2026-11-10): ui
+// v0.99.26's manifest STILL requests `#v0.5.7` outright (measured via git show at dc2e70fe AND off
+// the installed node) — root's contracts pin UNMOVED, the SIXTEENTH straight equality-era move,
+// both edges ride plain rule 1 onto the one hoisted 0.5.7@bedfe69b copy, and the syncplay edge
+// rides ui's unchanged `#v0.1.7` request. Zero ratified hoists on all four edges; the walker
+// measures green.
 export const RATIFIED_HOISTS = {};
 
 export function readRepoJson(name) {

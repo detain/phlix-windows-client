@@ -41,7 +41,10 @@
  *     526→542 (login-guidance auth.* + empty/error browse.* rails from ui's w12-w16
  *     review cures), six locale files shifted (+18 lines each), the index.ts pair held
  *     once more, locales tree 4c264a97→d5e169d0, messages.ts 0a181db6→431bf59c; PIN
- *     advanced to the 6e1ce2d8 peel); the
+ *     advanced to the 6e1ce2d8 peel), and CARRIED as a deliberate HOLD at v0.99.26
+ *     (2026-11-10, the .26 consumer wave — locales tree and messages.ts byte-identical
+ *     across 6e1ce2d8..dc2e70fe (git diff --name-only -- src/i18n EMPTY), catalog 542
+ *     unchanged, eighth deliberate hold; PIN + SOURCE_REF stayed anchored at 6e1ce2d8); the
  *     formerly-ahead keys keep focused cross-bundle laws),
  *     placeholder parity, CLDR segment law (incl. the documented
  *     additive exception), diacritics/CJK sanity, and PIN/hash drift guards

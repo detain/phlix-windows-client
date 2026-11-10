@@ -498,20 +498,23 @@ describe('installFocusGuard defers to the vendored ui player engine (M-WINDOWS-1
       'utf8'
     );
     expect(uiBundle).toContain('`${t}/player/:id`');
-    // v0.99.25 re-vendor: the minified statement at this site reads
+    // v0.99.26 re-vendor (literal byte-ident across the .25→.26 bump): the minified
+    // statement at this site reads
     // `let t = e.routerBase ?? "/app", n = [` (the || → ?? nullish sweep in the
     // ui review-cure waves moved the DEFAULT operator; variable letters rotate
-    // every build and are deliberately NOT asserted). Measured via grep -o over
-    // the installed .25 phlix-ui.js, 2026-11-09; rename-plant law: this literal
+    // every build and are deliberately NOT asserted). Re-measured via grep -o over
+    // the installed .26 phlix-ui.js, 2026-11-10; rename-plant law: this literal
     // is what the bundle actually carries.
     expect(uiBundle).toContain('let t = e.routerBase ?? "/app"');
   });
 
   it('Space inside the player route actuates EXACTLY ONE handler (both layers installed)', () => {
     // Faithful replica of the vendored engine's installed arms for the keys
-    // the relay mirrors (dist/shortcuts-Ck2yBFUB.js y():277-311 —
-    // Space→playPause :279, ArrowLeft/Right→seekBy(∓5) :282-283), attached at
-    // document level exactly like the real installer `b()` (:316-324).
+    // the relay mirrors (dist/shortcuts-BqUhFpRJ.js b()'s arms switch :295-331 —
+    // Space→playPause :296, ArrowLeft/Right→seekBy(∓5) :299-300), attached at
+    // document level exactly like the real installer `x()`/`i()` (:333-341;
+    // re-measured at the .26 install 2026-11-10 — the chunk re-hashed from
+    // shortcuts-Ck2yBFUB.js at this bump, the arms are byte-equivalent).
     const engine = { playPause: vi.fn(), seekBy: vi.fn() };
     const engineKeydown = (ev: Event) => {
       const e = ev as KeyboardEvent;
@@ -660,7 +663,9 @@ describe('installFocusGuard defers to the vendored ui player engine (M-WINDOWS-1
  * keys — Ctrl/Cmd+Arrow (word navigation), Alt+Arrow (browser history) and
  * Ctrl/Cmd+Space all became transport actions because `e.code` is modifier-
  * agnostic. The vendored installer `b()` refuses exactly the ctrl/meta/alt
- * set (@phlix/ui v0.99.10 dist/shortcuts-Ck2yBFUB.js:318); off-route the
+ * set (@phlix/ui v0.99.26 dist/shortcuts-BqUhFpRJ.js:335 inside the installer's `i()`;
+ * historically anchored at v0.99.10's shortcuts-Ck2yBFUB.js:318 — the chunk re-hashed at
+ * the .26 bump, same refusal); off-route the
  * relay now mirrors that gate precisely — Shift stays ungated, and bare-key
  * relay is untouched (the original suite above pins both).
  */

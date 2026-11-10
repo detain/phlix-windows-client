@@ -2,7 +2,7 @@
 
 > **Era snapshot (M-WINDOWS-54, 2026-10-31):** every row below was measured against
 > `@phlix/ui` **v0.98.39**. The runtime this repo pins today is
-> `github:detain/phlix-ui#v0.99.25`; the v0.99.x wave (playlist management, theme
+> `github:detain/phlix-ui#v0.99.26`; the v0.99.x wave (playlist management, theme
 > sources, socket-hint seams, …) has NOT been re-inventoried here. Use this table
 > as the historical baseline and the method to re-derive it — do not trust an
 > individual row as live truth without re-running the headless dist analysis
