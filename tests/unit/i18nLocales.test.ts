@@ -44,7 +44,15 @@
  *     advanced to the 6e1ce2d8 peel), and CARRIED as a deliberate HOLD at v0.99.26
  *     (2026-11-10, the .26 consumer wave — locales tree and messages.ts byte-identical
  *     across 6e1ce2d8..dc2e70fe (git diff --name-only -- src/i18n EMPTY), catalog 542
- *     unchanged, eighth deliberate hold; PIN + SOURCE_REF stayed anchored at 6e1ce2d8); the
+ *     unchanged, eighth deliberate hold; PIN + SOURCE_REF stayed anchored at 6e1ce2d8), and
+ *     RE-VENDORED AGAIN at v0.99.27 (2026-11-11, the session-rows consumer wave — the
+ *     NINTH genuine move: +24 keys 542→566 (settings.tabSessions + the 23-key sessions.*
+ *     block: eyebrow/title/desc/cardTitle/count/thisDevice/unknownDevice/created/lastUsed/
+ *     refresh/loading/revoke/revokeAll/revokeConfirm/revokeAllConfirm/revokeSuccess/
+ *     revokeError/revokeOthersSuccess/revokeOthersError/loadErrorTitle/loadError/
+ *     emptyTitle/emptyDescription), six locale files shifted (+26 lines each), the index.ts
+ *     pair held (blob b921cc0c both sides), locales tree d5e169d0→72f38393, messages.ts
+ *     431bf59c→8ba3d1c4; PIN + SOURCE_REF advanced to the 1f906979 peel); the
  *     formerly-ahead keys keep focused cross-bundle laws),
  *     placeholder parity, CLDR segment law (incl. the documented
  *     additive exception), diacritics/CJK sanity, and PIN/hash drift guards
@@ -298,7 +306,17 @@ describe('ui bundles — key-set identity and installed coverage', () => {
     // noLibrariesDescription, the playlist/season loadErrorTitle pair,
     // loadErrorSchedulesTitle, loadErrorTagsTitle, loadErrorStreamLimitsTitle} — ui's
     // w12-w16 review-cure login-guidance and empty/error rails) and the re-vendor at
-    // the 6e1ce2d8 peel put BOTH sides at 542 flattened keys.
+    // the 6e1ce2d8 peel put BOTH sides at 542 flattened keys; and at v0.99.27 (2026-11-11,
+    // the session-rows consumer wave) the tree moved a NINTH time — six locale files
+    // shifted (+26 lines each), the index.ts pair held at blob b921cc0c, locales tree
+    // d5e169d0→72f38393, messages.ts 431bf59c→8ba3d1c4, +24 keys with zero removed
+    // (settings.tabSessions + the 23-key sessions.* block: sessions.{eyebrow, title,
+    // desc, cardTitle, count, thisDevice, unknownDevice, created, lastUsed, refresh,
+    // loading, revoke, revokeAll, revokeConfirm, revokeAllConfirm, revokeSuccess,
+    // revokeError, revokeOthersSuccess, revokeOthersError, loadErrorTitle, loadError,
+    // emptyTitle, emptyDescription}) — and the re-vendor at the 1f906979 peel put BOTH
+    // sides at 566 flattened keys (esbuild-methodology counters, calibrated against the
+    // registered 542).
     // The relation stays exact set equality in BOTH directions (installed ⊆ bundle
     // is separately pinned above; this pins bundle ⊆ installed and, with it,
     // the empty extras set). The seven keys are additionally pinned present

@@ -31,8 +31,10 @@
  * carried unchanged through the contracts v0.5.6 + ui v0.99.16 wave-5 cascade (BOTH pins moving
  * together), the ui v0.99.17/v0.99.19/v0.99.20/v0.99.21 re-pins (contracts HELD), the owner's ui
  * v0.99.22 re-pin (contracts HELD at the same words), the contracts v0.5.7 + ui v0.99.25
- * together-move, and the ui v0.99.26 re-pin (2026-11-10 — contracts HELD: ui v0.99.26 STILL
- * requests `#v0.5.7` outright, measured via git show at dc2e70fe AND off the installed node). Like
+ * together-move, the ui v0.99.26 re-pin (2026-11-10 — contracts HELD: ui v0.99.26 STILL
+ * requests `#v0.5.7` outright, measured via git show at dc2e70fe AND off the installed node),
+ * and the ui v0.99.27 re-pin (2026-11-11 — contracts HELD again: ui v0.99.27 STILL requests
+ * `#v0.5.7` outright, measured via git show at 1f906979 AND off the installed node). Like
  * tests/unit/copyright.test.mjs it lives outside the
  * TypeScript project (tsconfig.json's `include` is ["src/renderer"]), so
  * `npm run typecheck` never sees it, while vitest's `include` glob for
@@ -108,7 +110,7 @@ describe('S442 — @phlix/contracts direct pin is current', () => {
   });
 });
 
-describe('ui v0.99.9 re-pin carried through v0.99.10, the contracts v0.5.4 + ui v0.99.12 re-pin, the ui v0.99.13 carry, the contracts v0.5.5 + ui v0.99.14 cascade, the ui v0.99.15 gate-3 wave, the contracts v0.5.6 + ui v0.99.16 wave-5 cascade, the v0.99.17-v0.99.21 re-pins, the owner v0.99.22 re-pin, the contracts v0.5.7 + ui v0.99.25 together-move, and the ui v0.99.26 carry — equality era: ui line byte-pinned to the same #v0.5.7 words as root, zero waivers, zero nested copies', () => {
+describe('ui v0.99.9 re-pin carried through v0.99.10, the contracts v0.5.4 + ui v0.99.12 re-pin, the ui v0.99.13 carry, the contracts v0.5.5 + ui v0.99.14 cascade, the ui v0.99.15 gate-3 wave, the contracts v0.5.6 + ui v0.99.16 wave-5 cascade, the v0.99.17-v0.99.21 re-pins, the owner v0.99.22 re-pin, the contracts v0.5.7 + ui v0.99.25 together-move, the ui v0.99.26 carry, and the ui v0.99.27 carry — equality era: ui line byte-pinned to the same #v0.5.7 words as root, zero waivers, zero nested copies', () => {
   // History of this guard: ui's manifest once requested contracts #v0.4.5 while
   // this repo's direct pin rode higher — the divergence S442 documented and the
   // lockwalk ratified until W82 retired that exception; the W85 dual-repin restored
@@ -125,7 +127,9 @@ describe('ui v0.99.9 re-pin carried through v0.99.10, the contracts v0.5.4 + ui 
   // owner's v0.99.22 re-pin (all at `#v0.5.6`), and the contracts v0.5.7 + ui v0.99.25 together-move
   // (2026-11-09 — BOTH pins advance TOGETHER again, byte-identically), carried at the ui v0.99.26
   // re-pin (2026-11-10 — contracts HELD: ui v0.99.26 repeats those exact `#v0.5.7` words, measured
-  // via git show at dc2e70fe AND off the installed node): installed ui
+  // via git show at dc2e70fe AND off the installed node), and carried again at the ui v0.99.27
+  // re-pin (2026-11-11 — contracts HELD once more: ui v0.99.27 repeats those exact `#v0.5.7` words
+  // again, measured via git show at 1f906979 AND off the installed node): installed ui
   // requests
   // `#v0.5.7` outright (measured via git show at 6e1ce2d8, off the codeload tag payload AND
   // independently off the installed node_modules/@phlix/ui/package.json; the .16-era witness at
@@ -152,15 +156,16 @@ describe('ui v0.99.9 re-pin carried through v0.99.10, the contracts v0.5.4 + ui 
     expect(installed.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.5.7');
     // The syncplay request leg tracks the ui manifest era: it rode `#v0.1.6` through
     // v0.99.12–v0.99.14, ADVANCED to `#v0.1.7` with v0.99.15, and RIDES `#v0.1.7` unchanged through
-    // v0.99.25 and this v0.99.26 (measured via git show at dc2e70fe AND off this installed manifest —
+    // v0.99.25, the v0.99.26 re-pin and this v0.99.27 (measured via git show at 1f906979 AND off
+    // this installed manifest —
     // the two witnesses must agree by construction).
     expect(installed.dependencies['@phlix/syncplay']).toBe('github:detain/phlix-syncplay#v0.1.7');
     // The equality era's steady state: zero ratified hoists — the waiver's written
     // retirement condition (#v0.5.3-or-newer requested outright) fired at ui v0.99.9
     // and holds through v0.99.12/#v0.5.4, v0.99.13, the v0.99.14/#v0.5.5 move, the
     // v0.99.15/#v0.5.5 carry, the v0.99.16/#v0.5.6 together-move, the v0.99.17-v0.99.21 and the
-    // owner's v0.99.22 carries at #v0.5.6, the v0.99.25/#v0.5.7 together-move, and this
-    // v0.99.26 carry at #v0.5.7 — zero ratified
+    // owner's v0.99.22 carries at #v0.5.6, the v0.99.25/#v0.5.7 together-move, the v0.99.26 carry, and this
+    // v0.99.27 carry at #v0.5.7 — zero ratified
     // hoists on either contracts edge throughout.
     expect(RATIFIED_HOISTS).toEqual({});
     expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.5.2']).toBeUndefined();
