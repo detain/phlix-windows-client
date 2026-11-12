@@ -18,7 +18,17 @@ export default defineConfig({
     headless: true,  // restore to true — we use --headless=new in Chromium args
     viewport: { width: 1280, height: 870 },
     actionTimeout: 10_000,
-    trace: 'on-first-retry',
+    // WIN-43: 'on-first-retry' never fired — retries is 0, so no trace was ever
+    // recorded. 'retain-on-failure' records every run and keeps trace.zip only
+    // when the test fails (outputDir test-results/ — gitignored); preferred over
+    // retries: 1, which would double the 20-min CI smoke leg. The spec's
+    // connectOverCDP default context is instrumented by the runner.
+    // screenshots: false is load-bearing: on a failure the spec's afterEach
+    // kills Electron before the runner finalizes the trace, the disconnect
+    // deletes the connection's artifacts dir, and in-flight screencast frames
+    // then fail with ENOENT and a truncated trace.zip (probed on 1.62.1).
+    // DOM snapshots + actions + network + console still land in the trace.
+    trace: { mode: 'retain-on-failure', screenshots: false },
   },
   projects: [
     {

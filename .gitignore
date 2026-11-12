@@ -7,7 +7,8 @@ coverage
 # this as ignored; the ignore is now real.
 release/
 *.tsbuildinfo
-# Playwright smoke-run artifacts (config's default outputDir, see playwright.config.ts)
+# Playwright smoke-run artifacts (config's default outputDir, see playwright.config.ts),
+# including the trace.zip that trace: 'retain-on-failure' keeps for a failed run
 test-results
 
 
