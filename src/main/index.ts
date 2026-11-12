@@ -8,7 +8,7 @@ import { app, BrowserWindow, Menu, Tray, ipcMain, shell, nativeImage, dialog, pr
 import type { MessageBoxOptions, ThumbarButton } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { isPathSafe } from './pathUtils';
 import { validateExternalUrl, validateNavigationUrl, isFetchableApiBase, summarizeUrlForLog, scrubErrorForLog } from './urlValidator';
 import { checkMinServerVersion, detectHubShapedBase, MIN_SERVER_VERSION, type ServerVersionCheck } from './versionCheck';
@@ -122,7 +122,7 @@ let deepLinkDrainActive = false;
 
 /**
  * The single entry point for every deep link the app receives (cold start,
- * second-instance argv, macOS open-url, notification click). Enqueue, then
+ * second-instance argv, notification click). Enqueue, then
  * attempt the drain: a warm, subscribed renderer receives the link on the
  * same tick; anything earlier waits in the queue for the handshake.
  */
@@ -825,7 +825,19 @@ const THUMBAR_GLYPH_FILES = {
 
 type ThumbarGlyphName = keyof typeof THUMBAR_GLYPH_FILES;
 
+// WIN-39: decode once per glyph — the thumbar rebuilds on every play-state
+// flip, so the decoded NativeImage is memoized (the files never change at runtime).
+const thumbarGlyphCache = new Map<ThumbarGlyphName, Electron.NativeImage>();
+
 function loadThumbarGlyph(glyph: ThumbarGlyphName): Electron.NativeImage {
+  const cached = thumbarGlyphCache.get(glyph);
+  if (cached) return cached;
+  const loaded = decodeThumbarGlyph(glyph);
+  thumbarGlyphCache.set(glyph, loaded);
+  return loaded;
+}
+
+function decodeThumbarGlyph(glyph: ThumbarGlyphName): Electron.NativeImage {
   const glyphImage = nativeImage.createFromPath(path.join(__dirname, '../../build', THUMBAR_GLYPH_FILES[glyph]));
   if (!glyphImage.isEmpty()) return glyphImage;
   const iconPath = path.join(__dirname, '../../build/icon.png');
@@ -1709,11 +1721,14 @@ const vaultCustody = createSecretCustody({
   } satisfies SettingsSink
 });
 
-// m4 (review windows__exploiter 1 / secnet m1): sender identity is THE trust
-// boundary for every channel that writes config/custody or mirrors state into
-// main-process surfaces — previously only vault:* and deeplink:ready checked
-// it, resting on the preload gate alone. Today inert (single window:
-// setWindowOpenHandler always denies); the guards make that fact structural.
+// m4 (review windows__exploiter 1 / secnet m1): the trust BOUNDARY is the
+// preload gate (src/preload/index.ts withholds electronAPI from every
+// document that is not this shell's own boot page — a foreign page has no
+// bridge to call). senderTrusted is the defense-in-depth belt on top: it
+// proves the sender is the current main window's webContents, NOT that the
+// document inside it is ours (no URL provenance is checked here). Today inert
+// (single window: setWindowOpenHandler always denies); the guards make that
+// fact structural.
 // w10/L1 (review windows__exploiter 1) completes the sweep: EVERY registered
 // channel now passes this gate, including the pure reads (paths, version,
 // tray/GPU/update preferences). Refusals answer neutral defaults — never the
@@ -1810,7 +1825,10 @@ export function downloadUrlTrusted(rawUrl: unknown): boolean {
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
   // I-w1: loopback law single-sourced through permissionGuard.isLoopbackHostname
   // (bracket-aware: WHATWG yields '[::1]'; the bare '::1' arm was dead code).
-  if (isLoopbackHostname(url.hostname)) return true;
+  // WIN-56: loopback is pinned to the vite dev port (strictPort 5173); a
+  // loopback media server/hub is trusted only via the persisted-base arm below
+  // (exact origin = host:port), not by host alone.
+  if (isLoopbackHostname(url.hostname) && url.port === '5173') return true;
   const bases = [configCustody.read('serverUrl'), configCustody.read('hubUrl')];
   return bases.some((base) => {
     if (typeof base !== 'string' || base.length === 0) return false;
@@ -2283,7 +2301,18 @@ export function setupAppProtocolHandler(): void {
       };
       const contentType = mimeTypes[ext] || 'application/octet-stream';
       return new Response(fileContent, {
-        headers: { 'Content-Type': contentType, 'Content-Security-Policy': APP_FRAME_CSP }
+        headers: {
+          'Content-Type': contentType,
+          'Content-Security-Policy': APP_FRAME_CSP,
+          // WIN-40: Vite emits content-hashed filenames under assets/ — safe to
+          // cache forever; ETag from the bytes lets revalidation 304 anyway.
+          ...(relativePath.startsWith('assets/')
+            ? {
+                'Cache-Control': 'public, max-age=31536000, immutable',
+                ETag: `"${createHash('sha1').update(fileContent).digest('hex')}"`
+              }
+            : {})
+        }
       });
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
@@ -2395,20 +2424,15 @@ app.whenReady().then(() => {
   // pendingDeepLinks queue (M-WINDOWS-06) — do not add a second dispatch here.
 });
 
-// Handle open-url event on macOS
-app.on('open-url', (event, url) => {
-  event.preventDefault();
-  // W3: redact — the URL may carry a one-time invite token.
-  log.info(`[deeplink] open-url event: ${redactDeepLinkUrl(url)}`);
-  handleDeepLinkUrl(url);
-});
-
+// WIN-41: this is a Windows-only shell (no macOS target ships); the darwin
+// open-url arm was removed (docs/deep-links.md). Quit when every window closes.
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+  app.quit();
 });
 
+// WIN-41 roadmap gate: 'activate' never fires on Windows; it is retained ONLY
+// as the window re-creation seam the deepLinkDrain 'window replaced' test
+// drives. Inert here — delete together with that test if it is ever re-seamed.
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();

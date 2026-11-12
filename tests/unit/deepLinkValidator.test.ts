@@ -239,9 +239,8 @@ describe('src/main/index.ts deep-link wiring (regression shields)', () => {
     expect(mainSource).not.toMatch(/Cold start URL detected: \$\{coldStartUrl\}/);
   });
 
-  it('logs the open-url event redacted, never raw', () => {
-    expect(mainSource).toMatch(/open-url event: \$\{redactDeepLinkUrl\(url\)\}/);
-    expect(mainSource).not.toMatch(/open-url event: \$\{url\}/);
+  it('has no darwin open-url arm (WIN-41: Windows-only shell)', () => {
+    expect(mainSource).not.toMatch(/app\.on\('open-url'/);
   });
 
   it('dispatches the cold-start deep link exactly once (W-low a)', () => {
@@ -293,15 +292,15 @@ describe('src/main/index.ts deep-link wiring (regression shields)', () => {
   });
 
   it('classifies deep-link consumption through a SINGLE gate seam (REVIEW-w09L2windows Major)', () => {
-    // All four delivery arms (cold-start argv, second-instance, open-url,
+    // All delivery arms (cold-start argv, second-instance,
     // notification clickAction) funnel through handleDeepLinkUrl → the one
     // pump, and the pump calls the consent classifier exactly once. A second
     // call site would mean a leg classifying for itself — the shape that let
-    // a gate miss become a bypass. Definition + 4 dispatch arms = 5.
+    // a gate miss become a bypass. Definition + 3 dispatch arms = 4.
     const gateCalls = mainSource.match(/requiresDeepLinkConfirmation\(/g) ?? [];
     expect(gateCalls, 'import carries no parens — exactly one classification call site').toHaveLength(1);
     const dispatches = mainSource.match(/handleDeepLinkUrl\(/g) ?? [];
-    expect(dispatches, 'definition + four delivery arms').toHaveLength(5);
+    expect(dispatches, 'definition + three delivery arms').toHaveLength(4);
   });
 });
 

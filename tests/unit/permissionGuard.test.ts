@@ -120,7 +120,7 @@ describe('m15/w10: the clipboard carve-out is origin- AND port-bound (review win
     expect(guardSource).toMatch(/return url\.protocol === 'http:' && url\.port === '5173' && isLoopbackHostname\(url\.hostname\);/);
     expect(mainSource).toMatch(/import \{ installPermissionGuard, isLoopbackHostname \} from '\.\/permissionGuard';/);
     // downloadUrlTrusted's loopback arm routes through the same helper...
-    expect(mainSource).toMatch(/if \(isLoopbackHostname\(url\.hostname\)\) return true;/);
+    expect(mainSource).toMatch(/if \(isLoopbackHostname\(url\.hostname\) && url\.port === '5173'\) return true;/);
     // ...and the unmatchable bare comparison is gone from BOTH files (extinction).
     expect(guardSource).not.toMatch(/hostname === '::1'/);
     expect(mainSource).not.toMatch(/hostname === '::1'/);
