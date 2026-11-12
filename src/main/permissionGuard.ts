@@ -60,8 +60,8 @@ export function allowPermission(permission: unknown): boolean {
  * Single source of the loopback HOST law for both trust sites: this module's
  * `isTrustedRequesterUrl` (permission carve-out — where it is additionally
  * PORT-bound to the dev server, see w10/L1 below) and index.ts's
- * `downloadUrlTrusted` (will-download default-deny — deliberately host-broad:
- * a download from any loopback origin is the reviewed m14 posture).
+ * `downloadUrlTrusted` (will-download default-deny — port-pinned to 5173;
+ * other loopback origins only via persisted base).
  */
 export function isLoopbackHostname(hostname: string): boolean {
   return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';

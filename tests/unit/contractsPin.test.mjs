@@ -86,11 +86,11 @@ describe('S442 — @phlix/contracts direct pin is current', () => {
   });
 
   it('declares the v0.5.7 tag in package.json', () => {
-    expect(pkg.dependencies['@phlix/contracts']).toBe(EXPECTED_CONTRACTS_RANGE);
+    expect(pkg.devDependencies['@phlix/contracts']).toBe(EXPECTED_CONTRACTS_RANGE);
   });
 
   it('mirrors that exact declaration in the lockfile root package', () => {
-    expect(lock.packages[''].dependencies['@phlix/contracts']).toBe(EXPECTED_CONTRACTS_RANGE);
+    expect(lock.packages[''].devDependencies['@phlix/contracts']).toBe(EXPECTED_CONTRACTS_RANGE);
   });
 
   it('resolves the hoisted @phlix/contracts to the v0.5.7 target, not a drifted commit', () => {
@@ -149,7 +149,7 @@ describe('ui v0.99.9 re-pin carried through v0.99.10, the contracts v0.5.4 + ui 
     // words to the root pin — the divergence-era .not.toBe law stays flipped back to .toBe, and
     // a hand-split of the two lines (or a ui downgrade to a pre-#v0.5.7-era tag without
     // re-ratifying a waiver) goes red on both lines until this file is re-measured.
-    expect(ui.dependencies['@phlix/contracts']).toBe(pkg.dependencies['@phlix/contracts']);
+    expect(ui.dependencies['@phlix/contracts']).toBe(pkg.devDependencies['@phlix/contracts']);
     // The installed tree independently proves the lock line is the manifest's verbatim
     // words, not a hand-edit: falsifying either tag here trips this witness.
     const installed = readJson('node_modules/@phlix/ui/package.json');

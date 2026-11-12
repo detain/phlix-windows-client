@@ -137,8 +137,8 @@ describe('S450 — lockwalk: resolutions match requested github-tag pins', () =>
 
   it('keeps the direct pins (root package.json vs lock root) identical', () => {
     for (const dep of Object.keys(EXPECTED)) {
-      if (pkg.dependencies[dep]) {
-        expect(lock.packages[''].dependencies[dep]).toBe(pkg.dependencies[dep]);
+      if (pkg.devDependencies[dep]) {
+        expect(lock.packages[''].devDependencies[dep]).toBe(pkg.devDependencies[dep]);
       }
     }
   });
@@ -325,7 +325,7 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
 
   it('REGRESSION: flags an unreferenced @phlix node (orphan)', () => {
     const broken = structuredClone(lock);
-    delete broken.packages[''].dependencies['@phlix/contracts'];
+    delete broken.packages[''].devDependencies['@phlix/contracts'];
     delete broken.packages['node_modules/@phlix/ui'].dependencies['@phlix/contracts'];
     const { findings } = walk(broken);
     expect(findings.some((f) => f.startsWith('orphan-node:'))).toBe(true);
@@ -414,7 +414,7 @@ describe('ui v0.99.9 re-pin carried through v0.99.10, the contracts v0.5.4 + ui 
     expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.5.2']).toBeUndefined();
     const ui = lock.packages['node_modules/@phlix/ui'];
     expect(ui.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.5.7');
-    expect(ui.dependencies['@phlix/contracts']).toBe(pkg.dependencies['@phlix/contracts']);
+    expect(ui.dependencies['@phlix/contracts']).toBe(pkg.devDependencies['@phlix/contracts']);
     const uiRow = EXPECTED['@phlix/ui'];
     expect(uiRow.tag).toBe('v0.99.27');
     expect(uiRow.sha).toBe('1f9069793f7195eb8b5c101d435725daad18a403');

@@ -586,7 +586,10 @@ export function walk(lock) {
   );
 
   for (const [key, node] of edgeSources) {
-    for (const [dep, spec] of Object.entries(node.dependencies ?? {})) {
+    // WIN-S12: the renderer-only @phlix/* packages ride the root's devDependencies
+    // (the vite bundle inlines them), so the root edge set is dependencies + devDependencies.
+    const requests = key === '' ? { ...node.dependencies, ...node.devDependencies } : node.dependencies ?? {};
+    for (const [dep, spec] of Object.entries(requests)) {
       if (!PHLIX_PKG_RE.test(dep)) continue;
       const parsed = parsePhlixGitSpec(spec);
       if (!parsed) {
