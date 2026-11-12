@@ -7,7 +7,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { reactive, nextTick } from 'vue';
-import PiPButton from '@/components/PiPButton';
+import PiPButton, { peekPiPVideoCache } from '@/components/PiPButton';
 
 // Mock usePlayerStore — reactive so the component's watchers (auto-PiP on play,
 // per-item listener re-sync) observe state transitions the same way they do
@@ -261,5 +261,102 @@ describe('PiPButton leave + pause law (MW-059/MW-060)', () => {
     expect(wrapper.find('button.pip-button').exists(), 'no media item: affordance hidden').toBe(false);
 
     wrapper.unmount();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// WIN-11: listener capture + cache release. Cleanup used to re-resolve the
+// video via getActiveVideo(), so when the DOM's <video> changed (item swap) or
+// the old one went readyState 0 before teardown, the listeners were removed
+// from the wrong element (or none) and stayed live on the old one; and the
+// module-level cache pinned the detached <video> after unmount.
+// ---------------------------------------------------------------------------
+describe('PiPButton listener capture + cache release (WIN-11)', () => {
+  let querySpy: ReturnType<typeof vi.spyOn>;
+
+  function makeVideo(): HTMLVideoElement {
+    const v = document.createElement('video');
+    Object.defineProperty(v, 'readyState', { value: 4, configurable: true });
+    return v;
+  }
+
+  beforeEach(() => {
+    localStorage.clear();
+    mockPlayer.playing = false;
+    mockPlayer.current = null;
+    Object.defineProperty(document, 'pictureInPictureEnabled', { value: true, configurable: true });
+    Object.defineProperty(document, 'pictureInPictureElement', { value: null, writable: true, configurable: true });
+  });
+
+  afterEach(() => {
+    querySpy?.mockRestore();
+  });
+
+  it('detaches from the element it attached to when the DOM video changes on item swap', async () => {
+    const first = makeVideo();
+    const second = makeVideo();
+    const removeFirst = vi.spyOn(first, 'removeEventListener');
+    const removeSecond = vi.spyOn(second, 'removeEventListener');
+    querySpy = vi.spyOn(document, 'querySelector').mockReturnValue(first);
+    mockPlayer.current = { id: 'a', name: 'a', type: 'movie', poster_url: null };
+    const wrapper = mount(PiPButton, { global: { stubs: { teleport: true } } });
+
+    // The player swaps in a NEW <video> for the next item.
+    querySpy.mockReturnValue(second);
+    mockPlayer.current = { id: 'b', name: 'b', type: 'movie', poster_url: null };
+    await nextTick();
+
+    expect(removeFirst).toHaveBeenCalledWith('enterpictureinpicture', expect.any(Function));
+    expect(removeFirst).toHaveBeenCalledWith('leavepictureinpicture', expect.any(Function));
+    expect(removeSecond, 'nothing was attached to the new element yet — no stray remove').not.toHaveBeenCalled();
+
+    // The OLD element's events must no longer drive state.
+    localStorage.setItem('phlix-pip-enabled', 'true');
+    first.dispatchEvent(new Event('leavepictureinpicture'));
+    await nextTick();
+    expect(localStorage.getItem('phlix-pip-enabled'), 'stale listener on the old video fired').toBe('true');
+
+    // The NEW element's events do.
+    second.dispatchEvent(new Event('leavepictureinpicture'));
+    await nextTick();
+    expect(localStorage.getItem('phlix-pip-enabled')).toBeNull();
+
+    wrapper.unmount();
+  });
+
+  it('removes listeners on unmount even when the video is no longer resolvable', async () => {
+    const video = makeVideo();
+    const removeSpy = vi.spyOn(video, 'removeEventListener');
+    querySpy = vi.spyOn(document, 'querySelector').mockReturnValue(video);
+    mockPlayer.current = { id: 'c', name: 'c', type: 'movie', poster_url: null };
+    const wrapper = mount(PiPButton, { global: { stubs: { teleport: true } } });
+    await nextTick();
+    // Only the unmount below may count (earlier specs' still-mounted
+    // instances re-sync on `current` changes and touch the same spy).
+    removeSpy.mockClear();
+
+    // Teardown order: the player emptied the <video> before the overlay unmounts.
+    querySpy.mockReturnValue(null);
+    wrapper.unmount();
+
+    expect(removeSpy).toHaveBeenCalledWith('enterpictureinpicture', expect.any(Function));
+    expect(removeSpy).toHaveBeenCalledWith('leavepictureinpicture', expect.any(Function));
+  });
+
+  it('releases the module-level video cache on unmount', async () => {
+    const video = makeVideo();
+    video.dataset.phlixVideoId = '7';
+    querySpy = vi.spyOn(document, 'querySelector').mockReturnValue(video);
+    mockPlayer.current = { id: 'd', name: 'd', type: 'movie', poster_url: null };
+    const wrapper = mount(PiPButton, { global: { stubs: { teleport: true } } });
+
+    expect(peekPiPVideoCache()).toEqual({ element: video, id: 7 });
+
+    wrapper.unmount();
+
+    expect(peekPiPVideoCache(), 'a detached <video> must not stay pinned after unmount').toEqual({
+      element: null,
+      id: null
+    });
   });
 });

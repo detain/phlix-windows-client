@@ -30,6 +30,24 @@ function isPiPSupported(): boolean {
 let cachedVideoElement: HTMLVideoElement | null = null;
 let cachedVideoId: number | null = null;
 
+/**
+ * Drop the module-level video cache so an unmounted player's (detached)
+ * <video> is not pinned in memory for the life of the renderer (WIN-11).
+ */
+function releaseVideoCache(): void {
+  cachedVideoElement = null;
+  cachedVideoId = null;
+}
+
+/**
+ * Read-only view of the module-level cache — test seam only, so specs can
+ * assert the unmount release without reaching into module state.
+ * @internal
+ */
+export function peekPiPVideoCache(): { element: HTMLVideoElement | null; id: number | null } {
+  return { element: cachedVideoElement, id: cachedVideoId };
+}
+
 function getActiveVideo(): HTMLVideoElement | null {
   // Try the PiP document first (if we're already in PiP)
   const pipDoc = document.pictureInPictureElement as HTMLVideoElement | null;
@@ -106,25 +124,35 @@ const PiPButton = defineComponent({
       clearAutoPiPPref();
     };
 
+    // The exact element the listeners were attached to (WIN-11). Cleanup must
+    // detach from THIS element, never from a fresh getActiveVideo() lookup:
+    // by teardown / item change the DOM may hold a different <video>, or the
+    // old one may read readyState 0 / display:none (lookup returns null) — a
+    // re-resolve would then leave both listeners stranded on the old element.
+    let attachedVideo: HTMLVideoElement | null = null;
+
+    const cleanupVideoListeners = () => {
+      const video = attachedVideo;
+      attachedVideo = null;
+      if (!video) return;
+
+      video.removeEventListener('enterpictureinpicture', handleEnter);
+      video.removeEventListener('leavepictureinpicture', handleLeave);
+    };
+
     const setupVideoListeners = () => {
+      // Never stack a second attachment: release whatever we still hold first.
+      cleanupVideoListeners();
       if (!pipSupported.value) return;
       const video = getActiveVideo();
       if (!video) return;
 
       video.addEventListener('enterpictureinpicture', handleEnter);
       video.addEventListener('leavepictureinpicture', handleLeave);
+      attachedVideo = video;
 
       // Check current state
       isInPiP.value = document.pictureInPictureElement === video;
-    };
-
-    const cleanupVideoListeners = () => {
-      if (!pipSupported.value) return;
-      const video = getActiveVideo();
-      if (!video) return;
-
-      video.removeEventListener('enterpictureinpicture', handleEnter);
-      video.removeEventListener('leavepictureinpicture', handleLeave);
     };
 
     onMounted(() => {
@@ -141,6 +169,7 @@ const PiPButton = defineComponent({
 
     onUnmounted(() => {
       cleanupVideoListeners();
+      releaseVideoCache();
     });
 
     // Re-sync when player item changes
