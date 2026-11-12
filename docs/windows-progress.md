@@ -13,7 +13,6 @@ Dated: 2026-11-07 (relocated to `docs/` 2026-11-12; the root `windows-progress.m
 > APPX_SIGNING_CERT_PASSWORD). Rows are kept verbatim as history — model: the dated
 > banner law of `docs/ci-baseline.md`.
 
-
 ## Phases W0–W4 — Foundation, UI parity, cleanup, hardening, packaging
 
 | Step | Status | Reviews | SHA | Notes |
@@ -60,6 +59,7 @@ Dated: 2026-11-07 (relocated to `docs/` 2026-11-12; the root `windows-progress.m
 | W4.10 | blocked | — | — | needs WINDOWS_CERT_BASE64 + WINDOWS_CERT_PASSWORD secrets from human [retired names — docs/signing.md supersedes with AUTHENTICODE_CERT / AUTHENTICODE_CERT_PASSWORD (+ APPX pair)] |
 | W4.11 | done | 1 review round | `5dfae99` | files allow-list: dist/** build/** package.json; asar:true; sourcemap:false; 215 tests |
 | W4.12 | done | 1 review round | `1c873f0` | PHLIX_DISABLE_GPU env var; disableHardwareAcceleration pref; gpu:get-feature-status IPC; 228 tests |
+
 ## Phase W5 — Performance
 | Step | Status | Reviews | SHA | Notes |
 |---|---|---|---|---|
@@ -69,6 +69,7 @@ Dated: 2026-11-07 (relocated to `docs/` 2026-11-12; the root `windows-progress.m
 | W5.4 | done | 1 review round | `7fd4d28` | perf(boot): parallelise IPC calls for faster first paint |
 | W5.5 | done | 1 review round | `4d7fdd3` | test(music): verify paging after removing the unbounded local screens |
 | W5.6 | done | 1 review round | `f9cb906` | docs(perf): record list virtualization findings and measurements |
+
 ## Phase W6 — CI and quality gates
 | Step | Status | Reviews | SHA | Notes |
 |---|---|---|---|---|
@@ -79,6 +80,7 @@ Dated: 2026-11-07 (relocated to `docs/` 2026-11-12; the root `windows-progress.m
 | W6.5 | done | 1 review round | `f55b31d` | ci(security): fix audit findings and add CodeQL and audit gating |
 | W6.6 | done | 1 review round | `0aac851` | docs(ci): record the verified CI baseline |
 | W6.7 | done | 1 review round | `2bb876c` | ci(release): add SHA256SUMS, version drift check, and latest.yml to release flow |
+
 ## Phase W7 — Documentation
 | Step | Status | Reviews | SHA | Notes |
 |---|---|---|---|---|

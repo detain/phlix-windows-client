@@ -204,6 +204,10 @@ over the current one, and decline any “update available” prompt until the fe
 at a fixed version. Settings, sign-in and playback state live under `%APPDATA%\Phlix`
 and survive an install-over — nothing user-visible is lost.
 
+## Security posture
+
+Accepted and deferred security postures (UX-only version gate, CSP breadth, updater trust, LAN http/ws, DPAPI fallback) are recorded in [`docs/security-posture.md`](docs/security-posture.md).
+
 ## Privacy & Update Checks
 
 Phlix for Windows is self-hosted software: your library, accounts, and playback data
