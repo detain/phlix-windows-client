@@ -51,7 +51,7 @@ export const WIN_ES = {
   // this locale's translations of the shipped literals).
   deeplink: {
     hubOnlyTitle: 'Este enlace pertenece a un Phlix Hub',
-    inviteBody: 'Los enlaces de invitación proceden de un Phlix Hub. Esta ventana está conectada directamente a tu servidor: abre el enlace en el navegador donde lo recibiste o usa Phlix en modo Hub.',
+    inviteBody: 'Los enlaces de invitación proceden de un Phlix Hub. Esta ventana está conectada directamente a tu servidor: abre el enlace en el navegador donde lo recibiste.',
     serverBody: 'Los enlaces de servidor pertenecen a un Phlix Hub. Esta ventana está conectada directamente a tu servidor, así que aquí no hay nada que abrir.'
   },
   overlay: {

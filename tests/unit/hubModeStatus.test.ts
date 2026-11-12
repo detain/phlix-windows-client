@@ -44,6 +44,13 @@ import { fileURLToPath } from 'node:url';
 import { describe, it, expect } from 'vitest';
 import { buildMenu, buildExtraRoutes } from '@/main';
 import { resolveAppConfig } from '@/resolveConfig';
+import { WIN_EN } from '@/i18n/windows-own/en';
+import { WIN_ES } from '@/i18n/windows-own/es';
+import { WIN_FR } from '@/i18n/windows-own/fr';
+import { WIN_DE } from '@/i18n/windows-own/de';
+import { WIN_IT } from '@/i18n/windows-own/it';
+import { WIN_PT_BR } from '@/i18n/windows-own/pt_BR';
+import { WIN_JA } from '@/i18n/windows-own/ja';
 
 const PROJECT_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const UI_DIST_DIR = join(PROJECT_ROOT, 'node_modules', '@phlix', 'ui', 'dist');
@@ -114,6 +121,20 @@ describe('Hub Mode is not enterable (M-WINDOWS-17)', () => {
 
     const limitations = readmeSection('### Known Limitations', '## Watching with friends');
     expect(limitations, 'Known Limitations lost the Hub Mode pointer added by M-WINDOWS-17').toContain('Hub Mode');
+  });
+
+  it('the hub-only deep-link refusal copy never tells the user to enter hub mode (WIN-10)', () => {
+    // The refusal fires precisely BECAUSE this build cannot enter hub mode, so
+    // "run Phlix in Hub mode" was an instruction with no path behind it. The
+    // pattern covers every shipped locale's phrasing of the retired clause.
+    const hubModeInstruction = /hub[\s-]?mod|mod[eo] hub|modalità hub|hub\s?モード|ハブモード/i;
+    const catalogs = { en: WIN_EN, es: WIN_ES, fr: WIN_FR, de: WIN_DE, it: WIN_IT, pt_BR: WIN_PT_BR, ja: WIN_JA };
+    const offenders = Object.entries(catalogs).flatMap(([tag, catalog]) =>
+      Object.entries(catalog.deeplink)
+        .filter(([, text]) => hubModeInstruction.test(text))
+        .map(([key]) => `${tag}:deeplink.${key}`)
+    );
+    expect(offenders, 'deep-link refusal copy points at a hub mode this build cannot enter').toEqual([]);
   });
 
   it('README tells the shipped-truth disposition (status heading + zero-caller admission)', () => {

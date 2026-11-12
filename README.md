@@ -573,7 +573,10 @@ API (404s on server-only routes). The hub pages (MyServers, Server Detail, Feder
 Federation-Shares, Manage-Shares, Shared-With-Me, Invite-Links, Accept-Invite, hub-admin) are
 registered by `buildMenu('hub')` / `buildExtraRoutes('hub')` and stay unreachable with the mode —
 as do the `phlix://accept-invite` and `phlix://server` deep-link arms documented in
-`docs/deep-links.md`, which today parse, resolve to the same 404 view, and re-live with the rider.
+`docs/deep-links.md`, which today parse but are refused before navigation with a native
+"This link belongs to a Phlix Hub" notice when notifications are on (open the invite in the
+browser where it arrived; with notifications off the refusal is only logged), and
+re-live with the rider.
 
 What the machinery does once a hub config exists (unit-tested via `tests/unit/resolveConfig.test.ts`
 and the status pins above):
@@ -678,7 +681,7 @@ MIT License - see project repository for details.
 ### Known Limitations
 
 - App boots to Connect screen on first launch (no default server URL; user must configure a server URL)
-- **Hub Mode** — the shipped machinery (config IPC, resolver branch, hub nav + routes) cannot be entered today: `hub:set-config` has zero callers and the pinned `@phlix/ui` bundle ships no hub-connection form — see [Hub Mode (not yet enterable)](#hub-mode-not-yet-enterable)
+- **Hub mode** — the shipped machinery (config IPC, resolver branch, hub nav + routes) cannot be entered today: `hub:set-config` has zero callers and the pinned `@phlix/ui` bundle ships no hub-connection form — see [Hub Mode (not yet enterable)](#hub-mode-not-yet-enterable)
 - Offline Downloads have no surface in this client — the shared `@phlix/ui` bundle carries no offline/download page
 - Watching with friends (SyncPlay): LIVE in server mode (nav entry + boot-derived socket hint); hub mode still has no SyncPlay entry — see [Watching with friends (SyncPlay)](#watching-with-friends-syncplay)
 

@@ -25,9 +25,14 @@ phlix://<host>/<value>
 > (`hub:set-config` has zero callers, no upstream connection form; see
 > README *Hub Mode (not yet enterable)* and `tests/unit/hubModeStatus.test.ts`)
 > [M-WINDOWS-17]. Every launch today boots server mode, so those two arms
-> parse fine yet resolve to the `/app/:pathMatch(.*)*` 404 view for every
-> real user; they become live user-facing targets with the v0.99.12
-> connection-seam rider. All app routes live under the `/app` history
+> parse fine but are refused before navigation for every real user: the
+> renderer's hub-only gate (`src/renderer/main.ts`, `HUB_ONLY_ROUTES`) shows a
+> native "This link belongs to a Phlix Hub" notice (`deeplink.*` in
+> `src/renderer/i18n/windows-own/`; invites: open the link in the browser
+> where it arrived; with notifications off the refusal is only logged) and
+> never pushes the route (were it pushed, the router
+> would fall to the `/app/:pathMatch(.*)*` 404 view). They become live
+> user-facing targets with the v0.99.12 connection-seam rider. All app routes live under the `/app` history
 > base; an unprefixed path would only match the 404 catch-all. The
 > parser ↔ route-record pin (built over the hub route set) lives in
 > `tests/unit/deepLinkRouteContract.test.ts`.
@@ -82,10 +87,10 @@ phlix://media/my-media-id
 # Start playback
 phlix://play/episode-123
 
-# Accept an invitation — hub-mode arm: 404-views today (see note above)
+# Accept an invitation — hub-mode arm: refused with a notice today (see note above)
 phlix://accept-invite/invite_token_here
 
-# View server details — hub-mode arm: 404-views today (see note above)
+# View server details — hub-mode arm: refused with a notice today (see note above)
 phlix://server/server-456
 ```
 

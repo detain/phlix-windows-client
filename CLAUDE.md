@@ -9,9 +9,9 @@ Electron + Vue 3 + TypeScript desktop client for Phlix Media Server. The rendere
 ## Commands
 
 ```bash
-npm run dev              # concurrent vite + electron (waits on :5173)
+npm run dev              # build:electron, then concurrent vite + electron (waits on :5173)
 npm run dev:vite         # vite dev server only (port 5173, strictPort)
-npm run dev:electron     # electron only (expects vite running)
+npm run dev:electron     # electron only (expects vite running + dist/main built)
 npm run build            # build:vite + build:electron
 npm run build:vite       # vite build → dist/renderer/
 npm run build:electron   # tsc -p tsconfig.main.json → dist/main/

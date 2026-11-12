@@ -52,7 +52,7 @@ export const WIN_JA = {
   // this locale's translations of the shipped literals).
   deeplink: {
     hubOnlyTitle: 'このリンクは Phlix Hub のものです',
-    inviteBody: '招待リンクは Phlix Hub から発行されます。このウィンドウはサーバーへ直接接続しているため、リンクを受け取ったブラウザで開くか、Phlix を Hub モードで実行してください。',
+    inviteBody: '招待リンクは Phlix Hub から発行されます。このウィンドウはサーバーへ直接接続しているため、リンクを受け取ったブラウザで開いてください。',
     serverBody: 'サーバーカードのリンクは Phlix Hub に属します。このウィンドウはサーバーへ直接接続しているため、ここで開く対象はありません。'
   },
   overlay: {

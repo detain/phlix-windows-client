@@ -60,7 +60,7 @@ export const WIN_EN = {
   // catalog has no interpolation seam) — component code owns `${value} ${unit}`.
   deeplink: {
     hubOnlyTitle: 'This link belongs to a Phlix Hub',
-    inviteBody: 'Invite links come from a Phlix Hub. This window is connected directly to your server — open the link in the browser where you received it, or run Phlix in Hub mode.',
+    inviteBody: 'Invite links come from a Phlix Hub. This window is connected directly to your server — open the link in the browser where you received it.',
     serverBody: 'Server-card links belong to a Phlix Hub. This window is connected directly to your server, so there is nothing to open here.'
   },
   overlay: {
