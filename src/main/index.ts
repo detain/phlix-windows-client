@@ -938,9 +938,15 @@ function setupAutoUpdater(): void {
     // M-WINDOWS-40: through notifyUser, so the notificationsEnabled opt-out
     // (and payload law) govern this origin too. Unthrottled: trusted, rare.
     if (wasManualCheck) {
+      // WIN-8: the dialog fallback (notifications opted out) gets its own
+      // body + a real Download button instead of the toast's "Click to download".
       answerManualCheck(t('updater.availableTitle'), t('updater.availableBody', { version: info.version }), () => {
         autoUpdater.downloadUpdate();
         updateState.status = 'downloading';
+      }, {
+        body: t('updater.availableDialogBody', { version: info.version }),
+        downloadLabel: t('updater.downloadButton'),
+        laterLabel: t('updater.laterButton')
       });
     } else {
       notifyUser(t('updater.availableTitle'), t('updater.availableBody', { version: info.version }), {
@@ -1061,7 +1067,9 @@ function setupAutoUpdater(): void {
 
     // W4.9: Periodic check every 6 hours
     _updateCheckTimer = setInterval(() => {
-      if (updateState.status === 'idle' || updateState.status === 'error') {
+      // WIN-9: 'available' re-arms too — a dismissed toast must not leave the
+      // update undiscoverable; the re-check re-raises the available toast.
+      if (updateState.status === 'idle' || updateState.status === 'error' || updateState.status === 'available') {
         autoUpdater.checkForUpdates().catch((err) => {
           log.warn(`[updater] Periodic check error: ${err.message}`);
         });
@@ -1959,16 +1967,31 @@ function notifyUser(
  * body key is the queued follow-up, tracked in the w14/L4 register, not a
  * silently-wrong comment.
  */
-function answerManualCheck(title: unknown, body: unknown, onClick?: () => void): void {
+function answerManualCheck(
+  title: unknown,
+  body: unknown,
+  onClick?: () => void,
+  dialogCopy?: { body: string; downloadLabel: string; laterLabel: string }
+): void {
   if (notifyUser(title, body, { throttle: false, onClick })) return;
-  const text = validateNotificationText(title, body);
+  const text = validateNotificationText(title, dialogCopy ? dialogCopy.body : body);
   if (!text.ok) {
     log.warn(`[updater] Manual-check reply dropped invalid payload: ${text.reason}`);
     return;
   }
-  const options = { type: 'info' as const, title: text.title, message: text.body, noLink: true };
+  // WIN-8: with dialog copy + an action, offer Download/Later buttons; else OK-only.
+  const withAction = Boolean(dialogCopy && onClick);
+  const options = {
+    type: 'info' as const,
+    title: text.title,
+    message: text.body,
+    noLink: true,
+    ...(withAction ? { buttons: [dialogCopy!.downloadLabel, dialogCopy!.laterLabel], defaultId: 0, cancelId: 1 } : {})
+  };
   const shown = mainWindow ? dialog.showMessageBox(mainWindow, options) : dialog.showMessageBox(options);
-  Promise.resolve(shown).catch((err) => log.warn(`[updater] Manual-check reply dialog failed: ${String(err)}`));
+  Promise.resolve(shown).then((r) => {
+    if (withAction && r && (r as { response?: number }).response === 0) onClick!();
+  }).catch((err) => log.warn(`[updater] Manual-check reply dialog failed: ${String(err)}`));
 }
 ipcMain.handle('notification:show', (event, raw: { title?: unknown; body?: unknown; clickAction?: unknown } | null | undefined) => {
   if (!senderTrusted(event)) {

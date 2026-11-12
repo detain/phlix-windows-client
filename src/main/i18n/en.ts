@@ -49,6 +49,9 @@ export const en = {
   updater: {
     availableTitle: 'Update Available',
     availableBody: 'Phlix {version} is available. Click to download.',
+    availableDialogBody: 'Phlix {version} is available.',
+    downloadButton: 'Download',
+    laterButton: 'Later',
     notAvailableTitle: "You're on the latest version",
     notAvailableBody: 'Phlix {version} is already the latest version.',
     // R-WINDOWS-09 additions (born in the catalog, M-WINDOWS-12 precedent):

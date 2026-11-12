@@ -461,3 +461,43 @@ describe('R-WINDOWS-09: manual check earns a visible failure reply', () => {
     expect(getUpdateStatus().status).toBe('idle');
   });
 });
+
+// ---------------------------------------------------------------------------
+// WIN-8 / WIN-9: persistent update-available indicator + dialog copy.
+// ---------------------------------------------------------------------------
+describe('WIN-8: manual-check dialog fallback for an available update', () => {
+  it('carries dialog-specific copy (no "Click to download") and a Download action', async () => {
+    const { Notification, dialog } = await import('electron');
+    (Notification as unknown as { isSupported: ReturnType<typeof vi.fn> }).isSupported.mockReturnValue(false);
+    const showMessageBox = dialog.showMessageBox as unknown as ReturnType<typeof vi.fn>;
+    showMessageBox.mockReset();
+    showMessageBox.mockResolvedValue({ response: 0 });
+    mockAutoUpdater.downloadUpdate.mockClear();
+    mockAutoUpdater.checkForUpdates.mockImplementation(async () => {
+      handlers['checking-for-update']();
+      handlers['update-available']({ version: '3.0.0', releaseDate: '2026-06-01' });
+    });
+    try {
+      await ipcHandler('update:check-for-updates')(trustedSender());
+      await new Promise((r) => setTimeout(r, 0));
+      expect(showMessageBox).toHaveBeenCalledTimes(1);
+      const opts = showMessageBox.mock.calls[0].at(-1) as { message: string; buttons: string[] };
+      expect(opts.message).toBe('Phlix 3.0.0 is available.');
+      expect(opts.message).not.toContain('Click to download');
+      expect(opts.buttons).toEqual(['Download', 'Later']);
+      expect(mockAutoUpdater.downloadUpdate).toHaveBeenCalledTimes(1);
+    } finally {
+      (Notification as unknown as { isSupported: ReturnType<typeof vi.fn> }).isSupported.mockReturnValue(true);
+    }
+  });
+});
+
+describe('WIN-9: periodic recheck stays armed while an update is available', () => {
+  it('the 6h gate includes the available status', async () => {
+    const { readFileSync } = await import('node:fs');
+    const src = readFileSync('src/main/index.ts', 'utf8');
+    const i = src.indexOf('Periodic check error');
+    const gate = src.slice(Math.max(0, i - 500), i);
+    expect(gate).toContain("updateState.status === 'available'");
+  });
+});

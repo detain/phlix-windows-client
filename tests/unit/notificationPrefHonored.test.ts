@@ -264,7 +264,8 @@ describe('MW-112: manual-check replies answer even when the toast refuses', () =
     expect(calls[0][1]).toMatchObject({
       type: 'info',
       title: 'Update Available',
-      message: 'Phlix 9.9.9 is available. Click to download.'
+      message: 'Phlix 9.9.9 is available.',
+      buttons: ['Download', 'Later']
     });
   });
 

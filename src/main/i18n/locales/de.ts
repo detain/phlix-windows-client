@@ -54,6 +54,9 @@ export const de = {
   updater: {
     availableTitle: 'Update verfügbar',
     availableBody: 'Phlix {version} ist verfügbar. Klicken Sie zum Herunterladen.',
+    availableDialogBody: 'Phlix {version} ist verfügbar.',
+    downloadButton: 'Herunterladen',
+    laterButton: 'Später',
     notAvailableTitle: 'Sie nutzen die neueste Version',
     notAvailableBody: 'Phlix {version} ist bereits die neueste Version.',
     checkFailedTitle: 'Update-Prüfung fehlgeschlagen',

@@ -70,6 +70,9 @@ const ORIGINAL_MAIN_PROCESS_STRINGS: Record<MainMessageKey, string> = {
 
   'updater.availableTitle': 'Update Available',
   'updater.availableBody': 'Phlix {version} is available. Click to download.',
+  'updater.availableDialogBody': 'Phlix {version} is available.',
+  'updater.downloadButton': 'Download',
+  'updater.laterButton': 'Later',
   // M-WINDOWS-12 additions (born in the catalog, not extracted — see header):
   // the "update-not-available" reply for a user-requested check.
   'updater.notAvailableTitle': "You're on the latest version",
