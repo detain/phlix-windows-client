@@ -3,7 +3,7 @@
  *
  * The build asset gate is demand-driven (windows__crossfe 6[i], w08/L2).
  *
- * scripts/check-assets.js used to require build/tray-icon.png — a file with
+ * scripts/check-assets.mjs used to require build/tray-icon.png — a file with
  * zero runtime consumers: createTray() renders the tray from the multi-size
  * build/icon.ico under the M-WINDOWS-14 DPI law (pinned in
  * windowHardening.test.mjs), and a single-size 32px PNG is exactly the
@@ -21,7 +21,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
 const read = (p) => readFileSync(resolve(__dirname, '../../', p), 'utf-8');
-const checker = read('scripts/check-assets.js');
+const checker = read('scripts/check-assets.mjs');
 const requiredBlock = checker.slice(
   checker.indexOf('const REQUIRED_ASSETS'),
   checker.indexOf('];', checker.indexOf('const REQUIRED_ASSETS'))

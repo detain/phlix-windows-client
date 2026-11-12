@@ -127,11 +127,11 @@ the SHA column is the pushed commit each run tested.
 - **typecheck** (ubuntu-26.04): `npm ci` → `vue-tsc --noEmit` → `tsc -p tsconfig.main.json --noEmit` → `vue-tsc --noEmit -p tsconfig.test.json`
 - **test** (ubuntu-26.04): `npm ci` → `npm run build` → `npm test`
 - **smoke** (ubuntu-26.04 + windows-2025 matrix): `npm ci` → Playwright install → `npm run build` → `npm run smoke`
-- **build** (windows-2025, needs: [lint, typecheck, test, smoke, audit]): `npm ci` → `node scripts/check-assets.js` → `npm run build:vite` → `npm run build:electron` → electron-builder (NSIS + APPX)
+- **build** (windows-2025, needs: [lint, typecheck, test, smoke, audit]): `npm ci` → `node scripts/check-assets.mjs` → `npm run build:vite` → `npm run build:electron` → electron-builder (NSIS + APPX)
 - **release-latest** / **release** (on tag push or master push)
 
 ### codeql.yml — Runs on every push/PR to master (src/** changes; w08/L2 master-only like the rest)
-- **analyze** (ubuntu-26.04): `npm ci` → `node scripts/check-assets.js` → `npm run build:vite` + `npm run build:electron` → CodeQL `security-extended` analysis
+- **analyze** (ubuntu-26.04): `npm ci` → `node scripts/check-assets.mjs` → `npm run build:vite` + `npm run build:electron` → CodeQL `security-extended` analysis
 
 ## Notes
 

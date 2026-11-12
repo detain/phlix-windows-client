@@ -5,7 +5,7 @@
   "description": "Phlix for Windows — desktop client for your Phlix Media Server",
   "main": "dist/main/index.js",
   "scripts": {
-    "prebuild": "node scripts/check-assets.js",
+    "prebuild": "node scripts/check-assets.mjs",
     "dev": "npm run build:electron && concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
     "dev:vite": "vite",
     "dev:electron": "wait-on http://localhost:5173 && electron .",

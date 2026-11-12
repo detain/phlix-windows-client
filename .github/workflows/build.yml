@@ -263,7 +263,7 @@ jobs:
       # build` leg honors — so the asset check runs explicitly here, keeping
       # the gate identical on all packaging paths.
       - name: Check build assets
-        run: node scripts/check-assets.js
+        run: node scripts/check-assets.mjs
 
       - name: Build renderer
         run: npm run build:vite

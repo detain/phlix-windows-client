@@ -52,7 +52,7 @@ jobs:
           # windows__devops 5[i] (w08/L2): the sub-script legs bypass the
           # package.json `prebuild` hook — run the asset check explicitly so
           # every CI build path applies the same gate.
-          node scripts/check-assets.js
+          node scripts/check-assets.mjs
           npm run build:vite
           npm run build:electron
 
