@@ -376,4 +376,108 @@ describe('SleepTimer', () => {
     expect(cancelBtn.attributes('style')).toContain('height: 24px');
     wrapper.unmount();
   });
+
+  // Law (WIN-21): the expired notice's dismiss control meets the same 24px
+  // floor as the live pill's cancel. Red on the parent: it was 20x20.
+  it('the expired-notice dismiss target is >= 24px', async () => {
+    vi.mocked(usePlayerStore).mockReturnValue({
+      playing: true,
+      pause: pauseMock
+    } as any);
+
+    const wrapper = mount(SleepTimer, {
+      global: { stubs: { teleport: true } }
+    });
+    await wrapper.find('.sleep-timer-trigger').trigger('click');
+    await wrapper.findAll('.sleep-timer-preset')[0].trigger('click');
+    vi.advanceTimersByTime(15 * 60 * 1000 + 100);
+    await wrapper.vm.$nextTick();
+    expect(wrapper.text()).toContain('Sleep timer expired');
+
+    const dismiss = wrapper.find('button[aria-label="Cancel sleep timer"]');
+    expect(dismiss.attributes('style')).toContain('width: 24px');
+    expect(dismiss.attributes('style')).toContain('height: 24px');
+
+    wrapper.unmount();
+    vi.mocked(usePlayerStore).mockReturnValue({
+      playing: false,
+      pause: pauseMock
+    } as any);
+  });
+
+  // Law (WIN-12): the countdown label ticks on a 1s setInterval, never a
+  // per-frame RAF loop (the label has 1s resolution — RAF re-rendered ~60x/s).
+  // Red on the parent: requestAnimationFrame was the loop driver.
+  it('the countdown ticks on a 1s interval, not requestAnimationFrame', async () => {
+    const rafSpy = vi.spyOn(window, 'requestAnimationFrame');
+    const intervalSpy = vi.spyOn(globalThis, 'setInterval');
+    const endTime = Date.now() + 90 * 1000;
+    localStorage.setItem('phlix-sleep-timer', JSON.stringify({ endTime, totalMinutes: 1 }));
+
+    const wrapper = mount(SleepTimer, {
+      global: { stubs: { teleport: true } }
+    });
+    await wrapper.vm.$nextTick();
+    expect(wrapper.text()).toContain('1:30');
+
+    vi.advanceTimersByTime(1000);
+    await wrapper.vm.$nextTick();
+    expect(wrapper.text()).toContain('1:29');
+
+    expect(rafSpy).not.toHaveBeenCalled();
+    expect(intervalSpy.mock.calls.some(([, ms]) => ms === 1000)).toBe(true);
+
+    // The ticker stops with the pill: cancel, then no further 1s ticks run.
+    await wrapper.find('button[aria-label="Cancel sleep timer"]').trigger('click');
+    expect(vi.getTimerCount()).toBe(0);
+    wrapper.unmount();
+  });
+
+  // Law (WIN-37): a timer that lapsed while the app was closed, found at mount
+  // with nothing playing, is cleared SILENTLY — no "expired" badge greeting a
+  // fresh launch, no pause. Red on the parent: the mount-expire path ran
+  // handleExpire, which set isExpired and rendered the notice.
+  it('a stale timer found expired at mount with nothing playing shows no notice', async () => {
+    // endTime === now: survives loadState's strict `<` purge, then the
+    // immediate endTime watcher sees remaining <= 0 — the mount-expire path.
+    const endTime = Date.now();
+    localStorage.setItem('phlix-sleep-timer', JSON.stringify({ endTime, totalMinutes: 30 }));
+
+    const wrapper = mount(SleepTimer, {
+      global: { stubs: { teleport: true } }
+    });
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.text()).not.toContain('Sleep timer expired');
+    expect(wrapper.html()).toBe('');
+    expect(pauseMock).not.toHaveBeenCalled();
+    expect(localStorage.getItem('phlix-sleep-timer')).toBeNull();
+    wrapper.unmount();
+  });
+
+  // Companion pin (WIN-37): if playback IS live at mount, the lapsed timer is
+  // a real expiry — pause lands and the notice renders.
+  it('a timer expired at mount while playback is live still expires with a notice', async () => {
+    vi.mocked(usePlayerStore).mockReturnValue({
+      playing: true,
+      pause: pauseMock
+    } as any);
+    const endTime = Date.now();
+    localStorage.setItem('phlix-sleep-timer', JSON.stringify({ endTime, totalMinutes: 30 }));
+
+    const wrapper = mount(SleepTimer, {
+      global: { stubs: { teleport: true } }
+    });
+    await wrapper.vm.$nextTick();
+
+    expect(pauseMock).toHaveBeenCalledTimes(1);
+    expect(wrapper.text()).toContain('Sleep timer expired');
+    expect(localStorage.getItem('phlix-sleep-timer')).toBeNull();
+
+    wrapper.unmount();
+    vi.mocked(usePlayerStore).mockReturnValue({
+      playing: false,
+      pause: pauseMock
+    } as any);
+  });
 });

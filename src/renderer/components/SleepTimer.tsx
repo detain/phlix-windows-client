@@ -11,8 +11,14 @@
  * - `isExpired` is set only by handleExpire and cleared only by startTimer /
  *   cancelTimer — the endTime watcher's null-arm used to wipe the expiry
  *   notice before it could ever render.
- * - The countdown RAF loop runs exactly while the pill is visible, and the
- *   pill seeds displayRemaining on arm so it never shows a stale 0:00.
+ * - The countdown ticker runs exactly while the pill is visible, and the
+ *   pill seeds displayRemaining on arm so it never shows a stale 0:00. It is
+ *   a 1s setInterval (WIN-12): the label only changes once per second, so a
+ *   requestAnimationFrame loop re-rendered the overlay ~60x/s for nothing.
+ * - A timer found already expired at MOUNT (it lapsed while the app was
+ *   closed) with no playback active is cleared silently (WIN-37): there is
+ *   nothing to fade or pause, and a fresh launch must not greet the user
+ *   with a "Sleep timer expired" badge for a timer from a past session.
  * - The fade-out is JS-stepped (volume is not a CSS property; assigning a
  *   "volume" transition made audio slam to mute).
  * - The preset menu dismisses on Escape and on mousedown outside the root
@@ -32,6 +38,8 @@ const PRESETS_MINUTES = [15, 30, 45, 60, 90, 120];
 const STORAGE_KEY = 'phlix-sleep-timer';
 const FADE_DURATION_MS = 3000;
 const FADE_STEP_MS = 100;
+/** Countdown label cadence — the label has 1s resolution (WIN-12). */
+const COUNTDOWN_TICK_MS = 1000;
 
 interface TimerState {
   endTime: number | null; // Unix ms when timer expires
@@ -123,7 +131,7 @@ const SleepTimer = defineComponent({
     const showMenu = ref(false);
     const isExpired = ref(false);
     const timeoutRef = ref<ReturnType<typeof setTimeout> | null>(null);
-    const rafRef = ref<number | null>(null);
+    const tickRef = ref<ReturnType<typeof setInterval> | null>(null);
     const fadeRef = ref<ReturnType<typeof setInterval> | null>(null);
     const displayRemaining = ref(0);
     const rootRef = ref<HTMLElement | null>(null);
@@ -141,9 +149,9 @@ const SleepTimer = defineComponent({
     };
 
     const stopCountdownLoop = () => {
-      if (rafRef.value !== null) {
-        cancelAnimationFrame(rafRef.value);
-        rafRef.value = null;
+      if (tickRef.value !== null) {
+        clearInterval(tickRef.value);
+        tickRef.value = null;
       }
     };
 
@@ -210,6 +218,7 @@ const SleepTimer = defineComponent({
     // never clear it. This null-arm deliberately does NOT touch isExpired —
     // handleExpire clears endTime itself, and wiping the flag here erased the
     // expiry notice before it could render. Only startTimer/cancelTimer clear it.
+    let mounting = true;
     watch(
       () => state.value.endTime,
       (endTime) => {
@@ -220,7 +229,13 @@ const SleepTimer = defineComponent({
 
         const remaining = endTime - Date.now();
         if (remaining <= 0) {
-          // Timer already expired while page was closed — fire immediately
+          // WIN-37: a stale timer found at mount with nothing playing lapsed
+          // while the app was closed — clear it silently (no notice, no
+          // pause). If playback IS live, expire it for real (fade + notice).
+          if (mounting && !player.playing) {
+            state.value = { endTime: null, totalMinutes: 0 };
+            return;
+          }
           handleExpire();
           return;
         }
@@ -229,27 +244,30 @@ const SleepTimer = defineComponent({
       },
       { immediate: true }
     );
+    mounting = false;
 
-    // Update countdown display via RAF while the pill is visible (endTime set,
-    // not expired) — the same condition the pill renders under, so the chip
-    // never sits on a stale value (m2).
+    // Update the countdown label on a 1s interval while the pill is visible
+    // (endTime set, not expired) — the same condition the pill renders under,
+    // so the chip never sits on a stale value (m2). The label has 1s
+    // resolution, so a per-frame RAF loop was pure re-render churn (WIN-12).
+    // The expiry setTimeout above is independent of this ticker.
     const updateCountdown = () => {
       if (!state.value.endTime || isExpired.value) {
-        rafRef.value = null;
+        stopCountdownLoop();
         return;
       }
       displayRemaining.value = Math.max(0, state.value.endTime - Date.now());
-      rafRef.value = requestAnimationFrame(updateCountdown);
     };
 
     watch(
       [() => state.value.endTime, isExpired],
       ([endTime, expired]) => {
         if (endTime && !expired) {
-          if (rafRef.value === null) {
-            // Seed immediately so the first paint is the true remainder, not 0:00.
-            displayRemaining.value = Math.max(0, endTime - Date.now());
-            rafRef.value = requestAnimationFrame(updateCountdown);
+          // Seed immediately so the first paint is the true remainder, not 0:00
+          // (also re-seeds when a new timer replaces a running one).
+          displayRemaining.value = Math.max(0, endTime - Date.now());
+          if (tickRef.value === null) {
+            tickRef.value = setInterval(updateCountdown, COUNTDOWN_TICK_MS);
           }
         } else {
           stopCountdownLoop();
@@ -387,8 +405,8 @@ const SleepTimer = defineComponent({
                   color: '#aaa',
                   cursor: 'pointer',
                   padding: 0,
-                  width: '20px',
-                  height: '20px',
+                  width: '24px',
+                  height: '24px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
