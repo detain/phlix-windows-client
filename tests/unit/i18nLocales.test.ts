@@ -97,6 +97,7 @@ import {
   WINDOW_OWN_CATALOG_TAGS,
   getWindowLocale,
   setWindowLocale,
+  windowLocaleToBcp47,
   tWin,
   type WindowOwnMessageKey,
 } from '@/i18n/windows-own';
@@ -553,6 +554,39 @@ describe('windows-own catalog (nav + boot + overlay) — key-set, baseline, leak
     expect(setWindowLocale('')).toBe('en');
     expect(getWindowLocale()).toBe('en');
     setWindowLocale('en');
+  });
+
+  it('setWindowLocale keeps <html lang> in step — BCP-47 form, every pin incl. fallback (WIN-50)', () => {
+    const expected: Record<string, string> = {
+      en: 'en', es: 'es', fr: 'fr', de: 'de', it: 'it', pt_BR: 'pt-BR', ja: 'ja'
+    };
+    expect(Object.keys(expected).sort()).toEqual([...WINDOW_OWN_CATALOG_TAGS].sort());
+    for (const tag of WINDOW_OWN_CATALOG_TAGS) {
+      document.documentElement.lang = 'xx';
+      setWindowLocale(tag);
+      expect(document.documentElement.lang, tag).toBe(expected[tag]);
+      expect(windowLocaleToBcp47(tag)).toBe(expected[tag]);
+    }
+    // Raw navigator-shaped tags canonicalize through the same law.
+    setWindowLocale('pt_PT');
+    expect(document.documentElement.lang).toBe('pt-BR');
+    setWindowLocale('fr-CA');
+    expect(document.documentElement.lang).toBe('fr');
+    // Unknown tag: English catalog AND English document language — never a
+    // stale previous locale left on the root element.
+    setWindowLocale('ja');
+    setWindowLocale('zz-ZZ');
+    expect(document.documentElement.lang).toBe('en');
+    setWindowLocale('en');
+  });
+
+  it('every renderer setWindowLocale pin site routes through the lang-syncing seam (WIN-50)', () => {
+    const mainSrc = readFileSync(join(HERE, '../../', 'src/renderer/main.ts'), 'utf8');
+    // No pin site may bypass the seam by assigning documentElement.lang itself
+    // (two writers drift); the seam is the only writer.
+    expect(mainSrc).not.toMatch(/documentElement\.lang\s*=/);
+    expect(mainSrc.match(/setWindowLocale\(/g)?.length ?? 0).toBeGreaterThanOrEqual(4);
+    expect(readFileSync(join(HERE, '../../', 'src/renderer/index.html'), 'utf8')).toMatch(/<html lang="en">/);
   });
 
   it('tWin renders every nav key per locale; unknown keys throw', () => {

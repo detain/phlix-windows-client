@@ -57,9 +57,35 @@ let activeCatalog: WindowOwnCatalog = WIN_EN;
 let activeLocale = 'en';
 
 /**
+ * Catalog tag → BCP-47 language tag for `<html lang>`. Catalog keys use the
+ * gettext underscore form (`pt_BR`); the document language attribute wants the
+ * hyphenated BCP-47 form (`pt-BR`). Every other registry tag is already a bare
+ * BCP-47 primary subtag.
+ */
+export function windowLocaleToBcp47(tag: string): string {
+  return tag.replace(/_/g, '-');
+}
+
+/**
+ * WIN-50: mirror the activated catalog onto `document.documentElement.lang`.
+ * index.html ships `lang="en"` as the pre-boot default; without this the
+ * attribute stayed English under a translated shell, so screen readers voiced
+ * fr/de/ja chrome with English pronunciation rules and the browser offered to
+ * "translate" an already-localized window. Done here — inside the one seam
+ * every boot path (regular boot, incompatible-server early return, connection
+ * re-gate, boot failure) already pins through — so no pin site can drift.
+ * Guarded for non-DOM realms (tests importing the catalog under node).
+ */
+function syncDocumentLang(tag: string): void {
+  if (typeof document === 'undefined' || !document.documentElement) return;
+  document.documentElement.lang = windowLocaleToBcp47(tag);
+}
+
+/**
  * Pin the windows-own renderer locale from a raw tag (whatever resolveLocale()
  * produced at boot). Unknown tags activate English — untranslated chrome must
- * still render working labels. Returns the catalog tag actually activated.
+ * still render working labels. Also keeps `<html lang>` in step (WIN-50).
+ * Returns the catalog tag actually activated.
  */
 export function setWindowLocale(rawLocale: string | null | undefined): string {
   const key = normalizeLocaleTag(rawLocale ?? '');
@@ -67,11 +93,11 @@ export function setWindowLocale(rawLocale: string | null | undefined): string {
   if (!catalog) {
     activeCatalog = WIN_EN;
     activeLocale = 'en';
-    return activeLocale;
+  } else {
+    activeCatalog = catalog;
+    activeLocale = key as string;
   }
-
-  activeCatalog = catalog;
-  activeLocale = key as string;
+  syncDocumentLang(activeLocale);
   return activeLocale;
 }
 

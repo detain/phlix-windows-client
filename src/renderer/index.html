@@ -1,5 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+  <!--
+    lang="en" is only the pre-boot default: setWindowLocale() (src/renderer/i18n/windows-own)
+    rewrites documentElement.lang to the resolved shell locale (BCP-47, e.g. pt-BR) on every
+    boot path (WIN-50).
+  -->
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
