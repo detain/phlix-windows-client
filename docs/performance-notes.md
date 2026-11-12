@@ -18,7 +18,7 @@
   - Implementation: the `MediaGrid` chunk (hash-named in `dist/`; locate it by symbol, not filename) derives `startIndex`/`endIndex` per viewport from `scrollTop`, `viewportHeight`, `rowHeight`, `columns`, `itemCount`, and `overscan` via the windowing helper `computeWindow()` (declared in `dist/components/virtual-grid.d.ts`).
   - Pattern: standard windowing slice — only items within `[startIndex, endIndex)` are rendered to the DOM at any time.
   - Scroll tracking: `window.scrollY` + `window.innerHeight` read through passive `scroll`/`resize` listeners, with `requestAnimationFrame`-coalesced measurement.
-  - Source: `node_modules/@phlix/ui/dist/MediaGrid-*.js` — find it by grepping for `computeWindow`, `scrollY`, `passive`, and `requestAnimationFrame`. Chunk filenames and line numbers rotate with upstream builds, so anchor on these symbols and re-measure rather than trust coordinates (same law as `docs/ui-surface.md`: coordinates rot; symbols don't).
+  - Source: `node_modules/@phlix/ui/dist/MediaGrid-*.js` — find it by grepping for `startIndex`, `scrollY`, `passive`, and `requestAnimationFrame`. Chunk filenames and line numbers rotate with upstream builds, so anchor on these symbols and re-measure rather than trust coordinates (same law as `docs/ui-surface.md`: coordinates rot; symbols don't).
   - The README (`node_modules/@phlix/ui/README.md`) explicitly documents it as `MediaGrid (virtualized)` (`### Components` section).
 
 - No `vue-virtual-scroller`, `@tanstack/vue-virtual`, `vue3-virtual-scroller`, or similar third-party lib found in `node_modules/`.

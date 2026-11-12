@@ -1,7 +1,9 @@
 # Changelog
 
-All notable changes to **phlix-windows-client** are documented here. The format is
-based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+All notable changes to **phlix-windows-client** are documented here. Entries are
+reverse-chronological and use free-form wave headings (e.g. `Chore`, `Fixed + Docs`); this file does
+not strictly follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) categories, and
+historical entries are preserved verbatim.
 
 ---
 
