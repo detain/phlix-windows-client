@@ -6,7 +6,7 @@
   "main": "dist/main/index.js",
   "scripts": {
     "prebuild": "node scripts/check-assets.js",
-    "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
+    "dev": "npm run build:electron && concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
     "dev:vite": "vite",
     "dev:electron": "wait-on http://localhost:5173 && electron .",
     "build": "npm run build:vite && npm run build:electron",

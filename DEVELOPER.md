@@ -237,8 +237,15 @@ the two rotate together.
    npm run dev
    ```
 
+   | Script | What it runs | Prerequisite |
+   |--------|--------------|--------------|
+   | `npm run dev` | `build:electron` first, then `dev:vite` + `dev:electron` under `concurrently` | none — it compiles `dist/main/` itself, so a fresh clone works; a main/preload compile error stops it at the `build:electron` step, before Vite or Electron start |
+   | `npm run dev:vite` | Vite dev server only (port 5173, `strictPort`) | none |
+   | `npm run dev:electron` | `wait-on http://localhost:5173 && electron .` | **`dist/main/` must already exist** (`npm run build:electron`, or a prior `npm run dev`) — `electron .` loads `main: dist/main/index.js`, and on a fresh clone that file is missing (Electron reports it cannot load the app) |
+
 2. **Code changes:**
-   - Main process: Electron auto-launches via `wait-on`
+   - Main process: Electron auto-launches via `wait-on`; main/preload edits need a restart of
+     `npm run dev` (which recompiles `dist/main/` on start)
    - Renderer: Vite hot reloads automatically
 
 3. **Debug:**
@@ -400,6 +407,8 @@ Main process requires full app restart. Run:
 ```bash
 npm run dev
 ```
+`npm run dev` recompiles `dist/main/` (`build:electron`) before launching; if you start
+`dev:electron` on its own, run `npm run build:electron` first or Electron loads the stale build.
 
 ### Preload script errors
 

@@ -72,6 +72,22 @@ describe('package scripts publish-safety (M-WINDOWS-28)', () => {
   });
 });
 
+describe('dev script builds electron main first (WIN-44)', () => {
+  it('npm run dev compiles dist/main before launching electron', () => {
+    // `main` points at dist/main/index.js (gitignored). Without build:electron ahead of the
+    // concurrent launch, a fresh-clone `npm run dev` dies inside Electron ("Unable to load
+    // app") instead of failing at a named build step.
+    expect(pkg.main).toBe('dist/main/index.js');
+    expect(pkg.scripts.dev).toMatch(/^npm run build:electron && concurrently /);
+    expect(pkg.scripts.dev).toContain('npm run dev:electron');
+  });
+
+  it('DEVELOPER.md states the dist/main prerequisite for dev:electron', () => {
+    expect(developer).toMatch(/`npm run dev` \| `build:electron` first/);
+    expect(developer).toMatch(/`npm run dev:electron`[^\n]*`dist\/main\/` must already exist/);
+  });
+});
+
 describe('signing.md artifact name (M-WINDOWS-13)', () => {
   it('names the artifact the build actually produces', () => {
     // package.json build.nsis.artifactName = ${productName}-Setup-${version}.${ext}
