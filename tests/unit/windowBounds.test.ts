@@ -6,7 +6,8 @@
  * Verifies:
  * - Bounds round-trip: save → store.get returns same value
  * - Debounce: rapid resize events produce only one store write (use fake timers)
- * - Off-screen detection: isBoundsOnScreen returns false for a window entirely outside all displays
+ * - Off-screen detection: isBoundsOnScreen returns false for a window whose title bar is
+ *   unreachable (WIN-53 — not merely one entirely outside all displays)
  * - Off-screen fallback: when saved bounds are off-screen, x/y are undefined and default dimensions are used
  */
 
@@ -84,18 +85,25 @@ describe('windowBounds persistence', () => {
       expect(mainSource).toMatch(/screen\.getAllDisplays\(\)/);
     });
 
-    it('the overlap math lives in ONE source — windowRestore.boundsOnScreen (w10/L1)', () => {
-      // The law moved, the geometry did not: the restore clamp and the boot
-      // validation must never disagree about what "on-screen" means, so the
-      // four overlap comparisons are pinned once, at their new home, and
-      // index.ts delegates (windowBounds pin above keeps the call site).
+    it('the reachability math lives in ONE source — windowRestore.boundsOnScreen (w10/L1, WIN-53)', () => {
+      // The law moved (w10/L1) and then tightened (WIN-53): the restore clamp
+      // and the boot validation must never disagree about what "on-screen"
+      // means, so the title-bar-band intersection is pinned once, at its
+      // home, and index.ts delegates (windowBounds pin above keeps the call
+      // site). Behavior goldens live in windowRestore.test.ts.
       const restoreSource = readFileSync(resolve(PROJECT_ROOT, 'src/main/windowRestore.ts'), 'utf-8');
-      expect(restoreSource).toMatch(/bounds\.x\s*<\s*wa\.x\s*\+\s*wa\.width/);
-      expect(restoreSource).toMatch(/bounds\.x\s*\+\s*bounds\.width\s*>\s*wa\.x/);
-      expect(restoreSource).toMatch(/bounds\.y\s*<\s*wa\.y\s*\+\s*wa\.height/);
-      expect(restoreSource).toMatch(/bounds\.y\s*\+\s*bounds\.height\s*>\s*wa\.y/);
-      // index.ts no longer carries a SECOND copy of the comparisons.
+      expect(restoreSource).toMatch(/export const TITLEBAR_BAND_PX\s*=\s*32;/);
+      expect(restoreSource).toMatch(/export const TITLEBAR_MIN_REACH_PX\s*=\s*100;/);
+      expect(restoreSource).toMatch(
+        /const reach = Math\.min\(bounds\.x \+ bounds\.width, wa\.x \+ wa\.width\) - Math\.max\(bounds\.x, wa\.x\)/
+      );
+      expect(restoreSource).toMatch(
+        /const depth = Math\.min\(bounds\.y \+ bandHeight, wa\.y \+ wa\.height\) - Math\.max\(bounds\.y, wa\.y\)/
+      );
+      // index.ts carries NO second copy of the geometry — neither the old
+      // any-pixel comparisons nor the new band intersection.
       expect(mainSource).not.toMatch(/bounds\.x\s*<\s*wa\.x\s*\+\s*wa\.width/);
+      expect(mainSource).not.toMatch(/TITLEBAR_BAND_PX|wa\.x \+ wa\.width\) - Math\.max/);
     });
 
     it('off-screen bounds trigger fallback to defaults', () => {

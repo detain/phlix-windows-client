@@ -72,28 +72,63 @@ export interface RestoreBoundsProbe {
 }
 
 /**
- * Does `bounds` overlap at least one display work area?
+ * Height of the window's top band — the strip a native (framed) title bar
+ * occupies, carrying the drag handle and the caption buttons. Measured from
+ * the window's outer top edge, which is where Electron's `getBounds()` puts
+ * `y` for a framed window.
+ */
+export const TITLEBAR_BAND_PX = 32;
+
+/**
+ * Minimum horizontal run of the top band that must land inside ONE display's
+ * work area (WIN-53): roughly a grab handle's worth of title bar, so the
+ * user can always get a cursor on it to drag the window home.
+ */
+export const TITLEBAR_MIN_REACH_PX = 100;
+
+/**
+ * Minimum vertical slice of the top band that must land inside that same
+ * work area: half the band, so a sliver of caption peeking over the bottom
+ * edge (or the band tucked behind a top-docked taskbar) does not count, while
+ * Windows' maximized-window outset (bounds starting a few px above the work
+ * area) still does.
+ */
+export const TITLEBAR_MIN_DEPTH_PX = TITLEBAR_BAND_PX / 2;
+
+/**
+ * Is `bounds` reachable — is enough of its title bar inside one display work
+ * area for the user to grab it?
  *
  * THE single source of the on-screen law (w10/L1): createWindow's boot
  * validation and the restore clamp below must never disagree about what
- * "on-screen" means. One pixel of overlap counts — the generous edge rule the
- * boot path has always used, moved verbatim.
+ * "on-screen" means.
+ *
+ * WIN-53: the old rule (any one pixel of the whole rectangle overlapping a
+ * work area) accepted rects whose BODY peeked in while the title bar — the
+ * drag handle every recovery gesture starts on — sat above the screen top or
+ * off a side edge, so a window restored there could never be dragged back.
+ * The law now reads the top band only: its intersection with a single work
+ * area must be at least TITLEBAR_MIN_REACH_PX wide and TITLEBAR_MIN_DEPTH_PX
+ * deep (each capped by the window's own size, with a 1px floor, so a tiny
+ * rect is judged against itself and a degenerate one never passes on a
+ * zero-area touch).
  */
 export function boundsOnScreen(bounds: WindowBounds, displays: ReadonlyArray<DisplayFrame>): boolean {
+  const bandHeight = Math.min(TITLEBAR_BAND_PX, bounds.height);
+  const needWidth = Math.max(1, Math.min(TITLEBAR_MIN_REACH_PX, bounds.width));
+  const needDepth = Math.max(1, Math.min(TITLEBAR_MIN_DEPTH_PX, bandHeight));
   return displays.some((display) => {
     const wa = display.workArea;
-    return (
-      bounds.x < wa.x + wa.width &&
-      bounds.x + bounds.width > wa.x &&
-      bounds.y < wa.y + wa.height &&
-      bounds.y + bounds.height > wa.y
-    );
+    const reach = Math.min(bounds.x + bounds.width, wa.x + wa.width) - Math.max(bounds.x, wa.x);
+    const depth = Math.min(bounds.y + bandHeight, wa.y + wa.height) - Math.max(bounds.y, wa.y);
+    return reach >= needWidth && depth >= needDepth;
   });
 }
 
 /**
- * Drag an off-screen rectangle back onto the primary display's work area:
- * fitted to it, centered. On-screen bounds (or no display data at all — a
+ * Drag an off-screen rectangle — one whose title bar is unreachable per
+ * `boundsOnScreen` — back onto the primary display's work area: fitted to
+ * it, centered. On-screen bounds (or no display data at all — a
  * blind move to degenerate frames is worse than a patient one) return
  * unchanged, so the caller's identity check makes "do nothing" the common
  * path's only cost.

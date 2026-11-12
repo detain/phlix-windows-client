@@ -21,6 +21,9 @@ import {
   boundsOnScreen,
   clampBoundsToDisplays,
   restoreWindow,
+  TITLEBAR_BAND_PX,
+  TITLEBAR_MIN_DEPTH_PX,
+  TITLEBAR_MIN_REACH_PX,
   type DisplayFrame,
   type RestorableWindow,
   type WindowBounds
@@ -144,15 +147,76 @@ function fakeProbe(state: { bounds: WindowBounds } & ReturnType<typeof fakeDispl
 
 describe('boundsOnScreen() (w10/L1 — the moved single source of the createWindow law)', () => {
   const geo = fakeDisplays();
-  it('overlapping ANY display work area counts as on-screen, edge-touch included', () => {
+  it('a reachable title bar on ANY display work area counts as on-screen', () => {
     expect(boundsOnScreen({ x: 100, y: 100, width: 1280, height: 870 }, geo.displays)).toBe(true);
-    // One pixel of overlap is overlap — the same generous rule createWindow used before.
-    expect(boundsOnScreen({ x: 1919, y: 1079, width: 10, height: 10 }, geo.displays)).toBe(true);
     expect(boundsOnScreen({ x: 2000, y: 10, width: 100, height: 100 }, geo.displays)).toBe(true); // second monitor
   });
   it('fully outside every display — and the no-display venue — are off-screen', () => {
     expect(boundsOnScreen({ x: 5000, y: 5000, width: 1280, height: 870 }, geo.displays)).toBe(false);
     expect(boundsOnScreen({ x: 100, y: 100, width: 1280, height: 870 }, [])).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// WIN-53: titlebar reachability. The w10/L1 law accepted ONE pixel of any
+// overlap, so a rect whose body peeked in while its title bar sat above the
+// screen top (or off a side edge) passed boot validation and the restore
+// clamp alike — and a window there can never be dragged home. The law now
+// reads the top TITLEBAR_BAND_PX band: >= TITLEBAR_MIN_REACH_PX wide and
+// >= TITLEBAR_MIN_DEPTH_PX deep inside ONE work area. Every boundary below
+// is paid for on both sides so an off-by-one or a dropped term reddens.
+// ---------------------------------------------------------------------------
+
+describe('boundsOnScreen() titlebar reachability (WIN-53)', () => {
+  const geo = fakeDisplays();
+  it('the law constants are the documented ~100px grab handle on a 32px band', () => {
+    expect(TITLEBAR_BAND_PX).toBe(32);
+    expect(TITLEBAR_MIN_REACH_PX).toBe(100);
+    expect(TITLEBAR_MIN_DEPTH_PX).toBe(16);
+  });
+  it('a one-pixel corner sliver is NO LONGER on-screen (the rotated w10/L1 edge-touch golden)', () => {
+    expect(boundsOnScreen({ x: 1919, y: 1079, width: 10, height: 10 }, geo.displays)).toBe(false);
+  });
+  it('body visible, title bar above the screen top: off-screen', () => {
+    // 370px of body inside the primary frame — the old rule said "fine".
+    expect(boundsOnScreen({ x: 100, y: -500, width: 1280, height: 870 }, geo.displays)).toBe(false);
+  });
+  it('title bar hanging off the left edge: 99px of reach fails, 100px passes', () => {
+    expect(boundsOnScreen({ x: -1181, y: 100, width: 1280, height: 870 }, geo.displays)).toBe(false);
+    expect(boundsOnScreen({ x: -1180, y: 100, width: 1280, height: 870 }, geo.displays)).toBe(true);
+  });
+  it('title bar hanging off the right edge of the last display: same 100px boundary', () => {
+    // second display spans x 1920..4480
+    expect(boundsOnScreen({ x: 4381, y: 100, width: 1280, height: 870 }, geo.displays)).toBe(false);
+    expect(boundsOnScreen({ x: 4380, y: 100, width: 1280, height: 870 }, geo.displays)).toBe(true);
+  });
+  it('band depth: 15px of caption over the bottom edge fails, 16px passes', () => {
+    expect(boundsOnScreen({ x: 100, y: 1065, width: 1280, height: 870 }, [geo.primary])).toBe(false);
+    expect(boundsOnScreen({ x: 100, y: 1064, width: 1280, height: 870 }, [geo.primary])).toBe(true);
+  });
+  it('band depth at the top: 17px above the work area fails, 16px passes', () => {
+    expect(boundsOnScreen({ x: 100, y: -17, width: 1280, height: 870 }, geo.displays)).toBe(false);
+    expect(boundsOnScreen({ x: 100, y: -16, width: 1280, height: 870 }, geo.displays)).toBe(true);
+  });
+  it('Windows maximized outset (-8,-8, +16 each way) stays on-screen', () => {
+    expect(boundsOnScreen({ x: -8, y: -8, width: 1936, height: 1056 }, geo.displays)).toBe(true);
+  });
+  it('band tucked under a top-docked taskbar (work area starts at y=40) is off-screen', () => {
+    const topBar: DisplayFrame = { workArea: { x: 0, y: 40, width: 1920, height: 1040 } };
+    expect(boundsOnScreen({ x: 100, y: 0, width: 1280, height: 870 }, [topBar])).toBe(false);
+    expect(boundsOnScreen({ x: 100, y: 40, width: 1280, height: 870 }, [topBar])).toBe(true);
+  });
+  it('reach is judged per display: 60px on each of two monitors does not add up', () => {
+    const left: DisplayFrame = { workArea: { x: 0, y: 0, width: 1920, height: 1080 } };
+    const right: DisplayFrame = { workArea: { x: 1920, y: 0, width: 1920, height: 1080 } };
+    // Band spans x 1860..1980: 60px on each frame, neither a full grab
+    // handle. Conservative by design — the clamp recenters it.
+    expect(boundsOnScreen({ x: 1860, y: 100, width: 120, height: 870 }, [left, right])).toBe(false);
+  });
+  it('a window narrower/shorter than the thresholds is judged against itself, never on a zero-area touch', () => {
+    expect(boundsOnScreen({ x: 10, y: 10, width: 50, height: 10 }, geo.displays)).toBe(true);
+    expect(boundsOnScreen({ x: 1920 - 49, y: 10, width: 50, height: 10 }, [geo.primary])).toBe(false);
+    expect(boundsOnScreen({ x: 1920, y: 10, width: 0, height: 0 }, [geo.primary])).toBe(false);
   });
 });
 
@@ -186,6 +250,15 @@ describe('clampBoundsToDisplays() (w10/L1)', () => {
     expect(clampBoundsToDisplays(stranded, [primary, aux], primary))
       .toEqual({ x: -1600, y: 345, width: 1280, height: 870 });
   });
+  it('WIN-53: body on-screen but title bar above the top is clamped home (fitted, centered)', () => {
+    expect(clampBoundsToDisplays({ x: 100, y: -500, width: 1280, height: 870 }, geo.displays, geo.primary))
+      .toEqual({ x: 320, y: 105, width: 1280, height: 870 });
+  });
+  it('WIN-53: the clamped result is itself reachable — the clamp is a fixed point', () => {
+    const once = clampBoundsToDisplays({ x: -1181, y: 100, width: 1280, height: 870 }, geo.displays, geo.primary);
+    expect(boundsOnScreen(once, geo.displays)).toBe(true);
+    expect(clampBoundsToDisplays(once, geo.displays, geo.primary)).toEqual(once);
+  });
   it('with NO display data at all the clamp no-ops — never blind-move to NaN', () => {
     const bounds = { x: 5000, y: 5000, width: 1280, height: 870 };
     expect(clampBoundsToDisplays(bounds, [], { workArea: { x: 0, y: 0, width: 0, height: 0 } })).toEqual(bounds);
@@ -217,6 +290,14 @@ describe('restoreWindow(window, probe) (w10/L1 stranded-window cure)', () => {
     restoreWindow(win, probe);
 
     expect(probe.sets).toHaveLength(1);
+  });
+  it('WIN-53: a window whose title bar is unreachable is written home once on restore', () => {
+    const win = fakeWindow({ visible: true });
+    const probe = fakeProbe({ bounds: { x: 100, y: -500, width: 1280, height: 870 }, ...fakeDisplays() });
+
+    expect(restoreWindow(win, probe)).toBe(true);
+    expect(win.calls).toEqual(['focus']);
+    expect(probe.sets).toEqual([{ x: 320, y: 105, width: 1280, height: 870 }]);
   });
   it('destroyed window with a probe: still the deliberate no-op — probe untouched', () => {
     const win = fakeWindow({ destroyed: true });
