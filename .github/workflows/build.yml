@@ -378,7 +378,36 @@ jobs:
     # artifacts are always served zipped — a Release is the only way to offer a
     # bare, clickable installer.) Skipped on PRs and tag pushes (tags cut a
     # versioned release via the `release` job below).
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    #
+    # WIN-15 / WIN-S13 — uncancellable delete+create. The workflow-level
+    # `concurrency: cancel-in-progress: true` cancels an in-flight master run the
+    # moment a newer push lands. Under the old plain guard, a cancel arriving
+    # between "delete latest" and "publish latest" left NO rolling release at
+    # all, so README's direct `releases/download/latest/...` link 404'd until the
+    # next green master run (≈45 min of packaging later — or never, if that run
+    # went red). Two guards close that hole:
+    #   1. `always() && needs.build.result == 'success'` — on a run cancel,
+    #      GitHub re-evaluates each running job's `if:` and cancels only jobs
+    #      whose condition turns false; `always()` keeps this one alive once the
+    #      build legs are green, so delete+create always completes as a pair.
+    #      (`always()` alone would also fire after a red/cancelled build, which
+    #      the explicit `needs.build.result` check forbids — a red build never
+    #      publishes.)
+    #   2. The job-level concurrency group below serializes publishers across
+    #      runs WITHOUT cancelling: an older surviving run finishes its pair
+    #      first, then the newer run's pair replaces it.
+    # The delete+create pair itself lives in ONE step with every fallible input
+    # (both artifacts, checksums, notes) prepared beforehand, and the create is
+    # retried, so a transient API failure after the delete re-publishes instead
+    # of leaving the release absent.
+    if: >-
+      always() &&
+      needs.build.result == 'success' &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/master'
+    concurrency:
+      group: release-latest-${{ github.repository }}
+      cancel-in-progress: false
     runs-on: ubuntu-26.04
     timeout-minutes: 15
     permissions:
@@ -413,42 +442,66 @@ jobs:
           sha256sum "${files[@]}" > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
-      - name: Reset "latest" release + tag
-        # Delete any existing rolling release and its tag so the recreated one
-        # points at this commit and carries only the freshly-built installers
-        # (no stale assets from a prior master build accumulate).
-        run: gh release delete latest --yes --cleanup-tag || true
+      - name: Write "latest" release notes
+        # Prepared BEFORE the delete so nothing fallible sits between the
+        # delete and the create (WIN-S13).
+        env:
+          BUILD_SHA: ${{ github.sha }}
+        run: |
+          cat > release-notes.md <<NOTES
+          Rolling build of the latest \`master\` commit (${BUILD_SHA}).
+          Download the raw installer directly — no zip:
+          - **\`.exe\`** — NSIS installer (desktop install)
+          - **\`.appx\`** — sideload package (installing an unsigned \`.appx\`
+            requires a trusted certificate or Developer Mode — prefer the \`.exe\`)
+
+          **Unsigned build:** no Authenticode certificate is provisioned for
+          this project yet, so SmartScreen shows "Windows protected your PC"
+          with publisher **Unknown** on first run — expected behavior of
+          unsigned software, not a sign of malware. Verify the download
+          against **SHA256SUMS.txt** and follow the README section *"First
+          run: 'Windows protected your PC'"* (Get-FileHash check, then More
+          info → Run anyway). Signing status and future path: \`docs/signing.md\`.
+          NOTES
+          cat release-notes.md
+
+      - name: Replace "latest" release + tag
+        # Delete any existing rolling release and its tag, then recreate it so
+        # the tag points at this commit and the release carries only the
+        # freshly-built installers (no stale assets from a prior master build
+        # accumulate). Delete and create share this one step inside the
+        # uncancellable job (see the job comment): the pair always completes.
+        # A failed create is retried; a half-created release (created, an
+        # asset upload failed) is cleaned before the retry so the next attempt
+        # starts from the same empty state.
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          BUILD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          assets=(artifacts/nsis/*.exe artifacts/appx/*.appx artifacts/SHA256SUMS.txt)
+          if [ ${#assets[@]} -ne 3 ]; then echo "::error::expected 3 release assets (exe, appx, SHA256SUMS.txt), got ${#assets[@]}" >&2; exit 1; fi
 
-      - name: Publish "latest" prerelease
-        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
-        with:
-          tag_name: latest
-          name: Latest (master)
-          body: |
-            Rolling build of the latest `master` commit (${{ github.sha }}).
-            Download the raw installer directly — no zip:
-            - **`.exe`** — NSIS installer (desktop install)
-            - **`.appx`** — sideload package (installing an unsigned `.appx`
-              requires a trusted certificate or Developer Mode — prefer the `.exe`)
+          gh release delete latest --yes --cleanup-tag || true
 
-            **Unsigned build:** no Authenticode certificate is provisioned for
-            this project yet, so SmartScreen shows "Windows protected your PC"
-            with publisher **Unknown** on first run — expected behavior of
-            unsigned software, not a sign of malware. Verify the download
-            against **SHA256SUMS.txt** and follow the README section *"First
-            run: 'Windows protected your PC'"* (Get-FileHash check, then More
-            info → Run anyway). Signing status and future path: `docs/signing.md`.
-          prerelease: true
-          make_latest: false
-          target_commitish: ${{ github.sha }}
-          files: |
-            artifacts/nsis/*.exe
-            artifacts/appx/*.appx
-            artifacts/SHA256SUMS.txt
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          for attempt in 1 2 3; do
+            if gh release create latest "${assets[@]}" \
+                 --title "Latest (master)" \
+                 --notes-file release-notes.md \
+                 --prerelease \
+                 --latest=false \
+                 --target "$BUILD_SHA"; then
+              echo "Published 'latest' at ${BUILD_SHA} (attempt ${attempt})"
+              exit 0
+            fi
+            echo "::warning::publishing 'latest' failed (attempt ${attempt}/3); cleaning up and retrying"
+            gh release delete latest --yes --cleanup-tag || true
+            sleep $((attempt * 10))
+          done
+          echo "::error::could not publish the rolling 'latest' release after 3 attempts — README's direct download link is down until the next green master run (or a manual re-run of this job)" >&2
+          exit 1
 
   release:
     name: Create Release
