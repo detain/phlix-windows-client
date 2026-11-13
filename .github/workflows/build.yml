@@ -173,6 +173,18 @@ jobs:
         if: matrix.os == 'windows-2025'
         run: npm run smoke
 
+      # WIN-S15: Playwright keeps trace.zip (trace: retain-on-failure) in
+      # test-results/ only for a failed test; without this upload the runner
+      # discards it, so a red smoke run could not be inspected.
+      - name: Upload smoke test results (on failure)
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: smoke-test-results-${{ matrix.os }}
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
   # ─── audit ────────────────────────────────────────────────────────────────────
   # Dependabot was evaluated but not used — this repo follows a no-PR-push-to-master
   # workflow (tags are the release trigger), so Dependabot's PR model doesn't fit.
