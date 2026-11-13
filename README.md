@@ -153,18 +153,18 @@ directly to your library.
 ### Keyboard shortcuts
 
 Two shortcuts are registered app-wide by the native menu. Everything the
-shell relays or the web player's own engine handles is bare-key and
+Electron shell relays or the web player's own engine handles is bare-key and
 document-scoped — no menu row displays a key it does not register:
 
 | Keys | What they do | Scope |
 |------|--------------|-------|
 | `F11` | Toggle fullscreen | Anywhere in the app (registered menu accelerator) |
 | `Ctrl` + `,` | Open Settings | Anywhere in the app (registered menu accelerator) |
-| `Space`, `←`, `→` | Play/pause, seek −10 s / +10 s | Everywhere **outside** the player: the shell relays these bare keys document-wide to the running playback — text fields and button activation are exempt, so typing is never hijacked. Inside the player route the shared web player's own keyboard engine owns the same keys, and the relay deliberately stands down there so nothing double-fires. They are deliberately *not* registered as menu accelerators, and the Playback menu rows carry no hint for them. Tray/thumbar/menu **clicks** route the same actions to the player regardless of focus. |
+| `Space`, `←`, `→` | Play/pause, seek −10 s / +10 s | Everywhere **outside** the player: the Electron shell relays these bare keys document-wide to the running playback — text fields and button activation are exempt, so typing is never hijacked. Inside the player route the shared web player's own keyboard engine owns the same keys, and the relay deliberately stands down there so nothing double-fires. They are deliberately *not* registered as menu accelerators, and the Playback menu rows carry no hint for them. Tray/thumbar/menu **clicks** route the same actions to the player regardless of focus. |
 | `Ctrl` + `Z`/`X`/`C`/`V`, `Ctrl` + `A` | Undo, cut, copy, paste, select all | Editable text and selections (standard Windows Edit-menu roles) |
 
 The Playback menu's transport rows display no shortcut text: a menu row that
-shows a key it does not register is a promise the shell breaks whenever focus
+shows a key it does not register is a promise the Electron shell breaks whenever focus
 sits elsewhere. The disabled info row at the bottom of that menu names the
 keys and their scope instead. `tests/unit/menuTraySurfaces.test.ts` pins both
 halves of that law — the transport rows register (and display) no accelerators,
@@ -341,7 +341,7 @@ the session both end). Turning `minimizeToTray` off in the View menu makes
 | `PHLIX_FORCE_PRODUCTION` | (unset) | Truthy value makes an unpackaged tree boot the production `app://` path instead of the Vite dev server — what the smoke test uses to exercise the real boot URL without a packaged installer |
 
 There is no environment variable for hub mode; its runtime channel (`hub:set-config`) exists in
-the shell but ships no caller today — see *Hub Mode (not yet enterable)* below.
+the Electron shell but ships no caller today — see *Hub Mode (not yet enterable)* below.
 
 ## Building the App
 
@@ -568,7 +568,7 @@ The build workflow produces:
 
 ## Hub Mode (not yet enterable)
 
-**Status, measured at this build:** the shell ships the full hub-mode *machinery* — persisted
+**Status, measured at this build:** the Electron shell ships the full hub-mode *machinery* — persisted
 config IPC, the boot-time mode resolver branch, hub navigation, and hub page routes — but there
 is **no in-app way to enter hub mode**: the configuration writer `hub:set-config` has zero
 callers, and every desktop screen (Settings included) is the pinned `@phlix/ui` bundle, which
@@ -618,7 +618,7 @@ copy (Features + What Works bullets, how-to steps), and retire the pins together
   appears on a hard failure offers Reload; if the window stays blank instead,
   set the escape-hatch environment variable and relaunch:
   `setx PHLIX_DISABLE_GPU 1` in PowerShell (takes effect for apps started from
-  the next sign-in onward), or launch once from a shell with
+  the next sign-in onward), or launch once from a terminal with
   `$env:PHLIX_DISABLE_GPU='1'` prepended. Hardware acceleration then stays off
   for that install. A persisted `disableHardwareAcceleration` preference exists
   in the app store and is applied at launch, but the bundled settings screen
@@ -678,7 +678,7 @@ MIT License - see project repository for details.
 ### What Works
 
 - **Electron shell** — Main/preload/renderer architecture with secure `contextBridge` IPC
-- **Thin renderer + local surfaces** — Boots `@phlix/ui` via `createPhlixApp()`; ships local player overlays (SleepTimer/PiP via `overlay.tsx`), a boot-failure screen with Retry, own i18n catalogs, and a DPAPI token-store adapter WIRED into the shell's `tokenStore` seam (auth tokens seal into `%APPDATA%` via safeStorage; plaintext rows fold on first launch)
+- **Thin renderer + local surfaces** — Boots `@phlix/ui` via `createPhlixApp()`; ships local player overlays (SleepTimer/PiP via `overlay.tsx`), a boot-failure screen with Retry, own i18n catalogs, and a DPAPI token-store adapter WIRED into the vendored ui's `tokenStore` seam (auth tokens seal into `%APPDATA%` via safeStorage; plaintext rows fold on first launch)
 - **System tray** — Minimize-to-tray, tray menu with media controls
 - **Native menus** — Full File/Edit/Playback/View/Help menu bar; the registered accelerators (`F11`, `Ctrl+,`) plus native Edit roles — see *Keyboard shortcuts*
 - **Media keys** — Thumbar buttons and tray/menu transport entries (Play/Pause, Stop, Rewind/Forward 10s) routed into the player; the player's own `Space`/`←`/`→` stay focus-scoped on purpose
@@ -696,7 +696,7 @@ MIT License - see project repository for details.
 ## Watching with friends (SyncPlay)
 
 **Watch with friends from the desktop app, in server mode.** The `SyncPlay` page
-(`/app/syncplay`) is registered by the shared shell, the video player carries the
+(`/app/syncplay`) is registered by the shared @phlix/ui app, the video player carries the
 SyncPlay controls (create/join room), and the top-bar nav now shows the entry. Room
 listing, create and join ride ordinary REST calls to your server; playback sync runs
 over the WebSocket your server exposes on port 8097.
@@ -707,8 +707,8 @@ ships (`@phlix/ui` v0.99.27, see `package.json`):
 - **The host-configurable seam.** The shared room socket prefers a `wsUrl` socket
   hint (upstream `phlix-ui` `94579936`, R12-02) over its legacy same-origin
   derivation. This app's boot derives the hint — `ws(s)://<your-server-host>:8097` —
-  from the connected server's URL and hands it to the shell before mount; changing
-  the connection updates it live (the shell reads it at every dial). The legacy
+  from the connected server's URL and hands it to the vendored ui before mount; changing
+  the connection updates it live (the vendored ui reads it at every dial). The legacy
   same-origin path survives only as the fail-soft fallback when nothing is
   connected yet.
 - **Hub mode stays withheld.** No SyncPlay nav entry there on purpose: hub rooms
@@ -716,7 +716,7 @@ ships (`@phlix/ui` v0.99.27, see `package.json`):
   surfacing watch parties in hub mode needs relay-aware evidence first. This is
   rider leg 4 of `M-WINDOWS-04`; until it lands, hub users can still SyncPlay from
   the web player their server serves.
-- **TLS and proxies are visible now.** The shell inherits the Windows system
+- **TLS and proxies are visible now.** The Electron shell inherits the Windows system
   proxy for everything it dials itself (REST probes, the updater, and `wss://`
   :8097 sync sockets). Self-signed or corporate-intercepted certificates still
   fail closed — that is the security posture — but they no longer fail silent:

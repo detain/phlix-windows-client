@@ -52,7 +52,7 @@ retired wrapper left behind both redden the suite.
 |`open-settings` | push | none | — | `webContents.send` (1417) | `onOpenSettings` | `src/renderer/electronBridge.ts:354` |
 |`update:available` | push | `{ version: string }` | — | `webContents.send` (948) | `onUpdateAvailable` | No renderer subscriber; the preload listener exists for API completeness (updater UX is main-driven) |
 |`update:progress` | push | `{ percent: number }` | — | `webContents.send` (1005) | `onUpdateProgress` | No renderer subscriber; the preload listener exists for API completeness (updater UX is main-driven) |
-|`power:suspend` | push | — | — | `webContents.send` (2404) | `onPowerSuspend` | No renderer subscriber yet — the vendored shell's wake consumer (force-reconnect + SyncPlay clock re-anchor) is an upstream seam; signal wire shipped (M8) |
+|`power:suspend` | push | — | — | `webContents.send` (2404) | `onPowerSuspend` | No renderer subscriber yet — the vendored ui's wake consumer (force-reconnect + SyncPlay clock re-anchor) is an upstream seam; signal wire shipped (M8) |
 |`power:resume` | push | — | — | `webContents.send` (2414) | `onPowerResume` | As `power:suspend` (M8); on resume main ALSO re-asserts the display-sleep blocker when media believed itself playing |
 |`update:downloaded` | push | `{ version: string }` | — | `webContents.send` (1014) | `onUpdateDownloaded` | No renderer subscriber; the preload listener exists for API completeness (updater UX is main-driven) |
 

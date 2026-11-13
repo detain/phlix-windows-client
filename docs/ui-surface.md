@@ -24,7 +24,7 @@ in the reference web-ui (`phlix-server/web-ui`), and which are wired in this rep
   Verdicts were re-derived against the shipped `buildMenu`/`buildExtraRoutes` and the router that
   `createPhlixApp` builds from them at the pinned `@phlix/ui` v0.99.27 (route dump, both modes);
   the **web-ui column stays the v0.98.39-era measurement**.
-- Shell renders **no default nav** once `menu` is supplied — behavior of
+- The shared @phlix/ui app renders **no default nav** once `menu` is supplied — behavior of
   `@phlix/ui`'s own `createPhlixApp` (no windows-side code involved)
 
 ## Status Key
@@ -39,9 +39,9 @@ in the reference web-ui (`phlix-server/web-ui`), and which are wired in this rep
 
 ## Root Pages (43)
 
-Shell routes (`browse`, `media`, `season`, `library`, `player`, `login`, `signup`, `connect`,
+App routes (`browse`, `media`, `season`, `library`, `player`, `login`, `signup`, `connect`,
 `settings`, `explore`, `recommendations`, `history`, `syncplay`, `music`, `parental`, plus
-`playlists`, `playlists/:id`, `profiles`) are registered in **both** modes; a page with a shell
+`playlists`, `playlists/:id`, `profiles`) are registered in **both** modes; a page with an app
 route but no menu entry in a mode is UNREACHABLE there, not MISSING. `playlists`, `profiles`
 and the hub `mcp-tokens` route are v0.99.x additions outside the 66-row inventory.
 
@@ -55,7 +55,7 @@ and the hub `mcp-tokens` route are v0.99.x additions outside the 66-row inventor
 | BookDetailPage | via BooksPage | OK (extraRoutes) | server: MISSING / hub: MISSING |
 | BookReaderPage | via BooksPage | OK (extraRoutes) | server: MISSING / hub: MISSING |
 | BooksPage | `/app/books` | OK (extraRoutes) | server: MISSING (dead nav link: `buildMenu` `books` has no registered route) / hub: MISSING |
-| BrowsePage | `/app` | OK (menu) | server: OK (buildMenu) / hub: UNREACHABLE (shell route, not in hub menu) |
+| BrowsePage | `/app` | OK (menu) | server: OK (buildMenu) / hub: UNREACHABLE (app route, not in hub menu) |
 | ConnectPage | `/app/connect` | UNREACHABLE | server: UNREACHABLE / hub: UNREACHABLE |
 | ExplorePage | `/app/explore` | UNREACHABLE | server: OK (buildMenu) / hub: OK (buildMenu) |
 | FederationPage | `/app/federation` | UNREACHABLE | server: MISSING / hub: OK (buildMenu) |
@@ -69,7 +69,7 @@ and the hub `mcp-tokens` route are v0.99.x additions outside the 66-row inventor
 | MusicAlbumPage | `/app/music/album/:name` | OK (extraRoutes) | server: MISSING / hub: MISSING |
 | MusicArtistPage | `/app/music/artist/:name` | OK (extraRoutes) | server: MISSING / hub: MISSING |
 | MusicArtistsPage | `/app/music/artists` | OK (extraRoutes) | server: MISSING / hub: MISSING |
-| MusicLibraryPage | `/app/music` | UNREACHABLE | server: OK (buildMenu) / hub: UNREACHABLE (shell route, not in hub menu) |
+| MusicLibraryPage | `/app/music` | UNREACHABLE | server: OK (buildMenu) / hub: UNREACHABLE (app route, not in hub menu) |
 | MusicPlayerPage | `/app/music/player` | OK (extraRoutes) | server: MISSING / hub: MISSING |
 | MusicTracksPage | `/app/music/tracks` | OK (extraRoutes) | server: MISSING / hub: MISSING |
 | MyServersPage | `/app/servers` | UNREACHABLE | server: MISSING / hub: OK (buildMenu) |
@@ -85,7 +85,7 @@ and the hub `mcp-tokens` route are v0.99.x additions outside the 66-row inventor
 | SeasonPage | `/app/media/:id/season/:season` | UNREACHABLE | server: UNREACHABLE / hub: UNREACHABLE |
 | SecuritySettingsPage | `/app/admin/security` | OK (buildAdminRoutes) | server: MISSING / hub: MISSING |
 | ServerDetailPage | `/app/server/:id` | MISSING | server: MISSING / hub: UNREACHABLE (route only, deep-linked) |
-| SettingsPage | `/app/settings` | OK (menu) | server: OK (buildMenu) / hub: UNREACHABLE (shell route, not in hub menu) |
+| SettingsPage | `/app/settings` | OK (menu) | server: OK (buildMenu) / hub: UNREACHABLE (app route, not in hub menu) |
 | SharedWithMePage | `/app/shared` | MISSING | server: MISSING / hub: OK (buildMenu) |
 | SignupPage | `/app/signup` | UNREACHABLE | server: UNREACHABLE / hub: UNREACHABLE |
 | SyncPlayPage | `/app/syncplay` | OK (menu) | server: OK (buildMenu) / hub: UNREACHABLE (nav deliberately withheld — relay rider leg 4; details below) |
@@ -146,7 +146,7 @@ All admin pages are registered at `/app/admin/{path}` via `buildAdminRoutes()` /
 
 ---
 
-## Hub Pages — 8 of 8 Routed (6 with a nav entry)
+## Hub Pages — 8 of 8 Routed (5 with a nav entry)
 
 The eight hub pages from `@phlix/ui` (v0.98.39), against the shipped hub `buildMenu` and
 `buildExtraRoutes('hub')`. Hub mode itself is not enterable in the shipped build (see
@@ -199,7 +199,7 @@ syncplay, settings (7 menu-linked root pages) + 20 admin pages via `buildAdminRo
 27. Four further `buildMenu` entries — `books`, `audiobooks`, `photos`, `search` — point at
 routes that are NOT registered in the shipped build (`buildExtraRoutes('server')` carries only
 the admin section and `library/scan`), so they are counted MISSING (dead nav links, they land
-on the shell catch-all); the router dump at v0.99.27 confirms no `/app/books`,
+on the app catch-all); the router dump at v0.99.27 confirms no `/app/books`,
 `/app/audiobooks`, `/app/photo/albums` or `/app/search` route. `library/scan` is an
 admin-gated route with no menu entry (UNREACHABLE). `SecuritySettingsPage` has no route at
 v0.99.27 in either mode.
