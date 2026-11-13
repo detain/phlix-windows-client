@@ -20,6 +20,7 @@ import {
   createDeepLinkDeduper
 } from './deepLinkValidator';
 import { getMainLocale, setMainLocale, t } from './i18n';
+import { resolveLaunchBackground, sanitizeLaunchBackground } from './launchTheme';
 import { boundsOnScreen, restoreWindow, type RestoreBoundsProbe } from './windowRestore';
 import { validateNotificationText, createToastThrottle } from './notificationGuard';
 import { installPermissionGuard, isLoopbackHostname } from './permissionGuard';
@@ -378,6 +379,8 @@ const store = new Store<{
   serverUrl?: string | null;
   deviceId?: string;
   notificationsEnabled?: boolean;
+  /** WIN-52: mirror of the active theme's --bg (see launchTheme.ts). */
+  launchBackground?: string;
 }>();
 
 // M-WINDOWS-15: store-preference GPU arm at MODULE scope (see the env-arm note
@@ -581,7 +584,8 @@ function createWindow(): void {
     // together they keep the chrome label trustworthy while navigation stays
     // open (see that block's comment for the narrowing rejection).
     title: 'Phlix',
-    backgroundColor: '#1a1a2e',
+    // WIN-52: persisted-theme mirror (default Nocturne when absent/invalid).
+    backgroundColor: resolveLaunchBackground(store.get('launchBackground')),
     show: false,
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
@@ -2037,6 +2041,18 @@ ipcMain.handle('notification:show', (event, raw: { title?: unknown; body?: unkno
       }
     }
   });
+});
+
+// WIN-52: renderer reports the active theme's --bg; validated hex only.
+ipcMain.handle('theme:set-launch-background', (event, color: unknown) => {
+  if (!senderTrusted(event)) {
+    log.warn('[ipc] theme:set-launch-background refused (WIN-52)');
+    return false;
+  }
+  const clean = sanitizeLaunchBackground(color);
+  if (!clean) return false;
+  store.set('launchBackground', clean);
+  return true;
 });
 
 // W4.12: GPU escape hatch — get/set disableHardwareAcceleration preference

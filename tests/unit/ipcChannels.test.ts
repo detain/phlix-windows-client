@@ -494,6 +494,7 @@ describe('IPC channel pairing', () => {
         'hub:get-config',
         'hub:set-config',
         'notification:show',
+        'theme:set-launch-background',
         'tray:get-minimize-to-tray',
         'update:check-for-updates',
         'update:get-status'
@@ -514,6 +515,7 @@ describe('IPC channel pairing', () => {
         'hub:get-config',
         'hub:set-config',
         'notification:show',
+        'theme:set-launch-background',
         'tray:get-minimize-to-tray',
         'update:check-for-updates',
         'update:get-status'

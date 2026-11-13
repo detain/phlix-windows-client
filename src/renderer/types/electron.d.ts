@@ -84,6 +84,8 @@ declare global {
       updatePowerBlocker: (playing: boolean) => void;
       /** W4.7: shows a native system notification; returns true if shown, false if not */
       showNotification: (title: string, body: string, clickAction?: string) => Promise<boolean>;
+      /** WIN-52: persists the active theme --bg for the next launch's window background */
+      setLaunchBackground: (color: string) => Promise<boolean>;
       /** W4.12: gets the disableHardwareAcceleration preference */
       getDisableHardwareAcceleration: () => Promise<boolean>;
       /** W4.12: sets the disableHardwareAcceleration preference */

@@ -33,6 +33,7 @@ import log from 'electron-log';
 import { installElectronBridge } from './electronBridge';
 import { setOverlayShared } from './overlayShared';
 import { applyFailureScreenContainer, setRecoveryBusy, styleRecoveryButton } from './bootScreenStyle';
+import { startLaunchThemeReporter } from './launchThemeReporter';
 import { SafeStorageTokenStore } from './safeStorageTokenStore';
 // M-WINDOWS-35: the shell's second SMTC installer import was removed here —
 // transport ownership belongs to the vendored @phlix/ui player store;
@@ -746,6 +747,8 @@ export async function boot(): Promise<void> {
   mountedApp = app;
 
   app.mount('#phlix-app');
+  // WIN-52: mirror the active theme's --bg to main for next launch's window chrome.
+  startLaunchThemeReporter(window.electronAPI);
 
   // M-WINDOWS-01: Vue owns the window now — retire the pre-JS boot splash.
   document.getElementById('boot-splash')?.remove();

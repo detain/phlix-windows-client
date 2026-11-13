@@ -211,6 +211,9 @@ const electronApiSurface = {
   getDisableHardwareAcceleration: () => ipcRenderer.invoke('gpu:get-disable-hardware-acceleration'),
   setDisableHardwareAcceleration: (value: boolean) => ipcRenderer.invoke('gpu:set-disable-hardware-acceleration', value),
 
+  // WIN-52: launch-chrome theme mirror (active theme --bg -> next-launch backgroundColor)
+  setLaunchBackground: (color: string) => ipcRenderer.invoke('theme:set-launch-background', color),
+
   // W4.12: GPU feature status for diagnostics
   getGpuFeatureStatus: () => ipcRenderer.invoke('gpu:get-feature-status'),
 
