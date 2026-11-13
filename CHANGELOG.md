@@ -9,6 +9,13 @@ historical entries are preserved verbatim.
 
 ## [Unreleased]
 
+### Chore — .28 consumer wave (WIN-S31): re-pin `@phlix/ui` `#v0.99.27` → `#v0.99.28` + REAL locale re-vendor (566→650, tenth genuine move) — 2026-11-12
+
+- **Scope:** tag obj `29b6a8c5`, peel `dfe8fc65`; contracts HELD at `#v0.5.7` (ui .28 manifest still requests it), equality era carried, zero ratified hoists, audit allowlist untouched.
+- **Pin + lock (surgical):** `package.json` one line; `package-lock.json` 3+/3− (root deps echo, ui node version + resolved).
+- **Locale re-vendor:** six bundles re-synced via `scripts/sync-ui-locale-bundles.mjs` (SOURCE_REF + PIN advanced to the `dfe8fc65` peel); +85 / -1 flattened keys (`syncplay.privateRoom` removed upstream).
+- **Era rotations:** `lockwalk.mjs` ui row, `lockwalk.test.mjs` legs; docs pin stamps rotated (README, DEVELOPER, AGENTS, CLAUDE, ui-surface, ADR 005, i18n.md).
+
 ### Chore — .27 consumer wave: re-vendor `@phlix/ui` `#v0.99.26` → `#v0.99.27` (seventeenth straight equality-era move) + REAL locale re-vendor (542→566 — ninth genuine move, the sessions block) — 2026-11-11
 
 - **Scope:** the windows leg of the ui `v0.99.27` release wave (tag obj `c262b681`, peel `1f906979`, origin-verified by ls-remote this window; codeload tarball md5 `79bd2668…` / 27,101,204 B — re-derived from origin, not copied). The `@phlix/contracts` pin **UNMOVED** at `#v0.5.7` (`bedfe69b` HELD): ui v0.99.27's manifest requests that same tag outright (measured via git show at the peel AND off the installed node), so the byte-equality era continues unbroken — the SEVENTEENTH straight equality-era move, `RATIFIED_HOISTS` stays `{}`. `@phlix/syncplay` rides ui's unchanged `#v0.1.7` request (`1a80b1d1` HELD). Unlike the `.26` pin+guard+docs class, this wave's diff DOES touch `src/` — the six re-vendored locale bundles under `src/renderer/i18n/ui-locale-bundles/` — so `codeql.yml`'s `src/**` filter triggers this time. `scripts/audit-gate.mjs` + allow-list `{GHSA-3g3m-2fjr-6pw4, GHSA-g3hv-75wg-m249}` and mirror tests ZERO-TOUCH (owner-gated law; re-verify duty 2027-02-04 not due); no new wire codes; no `dist/` staging.

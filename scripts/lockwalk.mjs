@@ -270,8 +270,16 @@ export const EXPECTED = {
     repo: 'git+ssh://git@github.com/detain/phlix-syncplay.git',
   },
   '@phlix/ui': {
-    tag: 'v0.99.27',
-    sha: '1f9069793f7195eb8b5c101d435725daad18a403',
+    tag: 'v0.99.28',
+    sha: 'dfe8fc6586e41728b4dcdc1a22a2bf8d19e74e01',
+    // v0.99.28 re-pin (2026-11-12, WIN-S31, the .28 consumer wave over this repo's .27 pin): the
+    // honest-field era carries — the annotated tag (object 29b6a8c5) peels to dfe8fc65 and its
+    // manifest reads 0.99.28 (lock version 0.99.28), so this row walks the plain tag-derived
+    // version; no manifestVersion override. THE CONTRACTS EDGE RIDES UNCHANGED: .28's manifest
+    // still requests `#v0.5.7` (measured via git show at dfe8fc65) — root keeps `#v0.5.7`,
+    // byte-equality holds, the waiver map stays empty. Locale posture: GENUINE RE-VENDOR, six
+    // locale files shifted; SOURCE_REF + PIN advance to the dfe8fc65 peel in this commit.
+    // PRIOR ROW — v0.99.27 (peel 1f906979, 2026-11-11):
     // v0.99.27 re-pin (2026-11-11, the .27 session-rows consumer wave over this repo's .26-era pin):
     // the honest-field era carries — the annotated tag (object c262b681) peels to 1f906979 and its
     // manifest reads 0.99.27 (off the codeload tarball AND the installed node; npm 11 writes lock

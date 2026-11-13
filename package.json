@@ -87,7 +87,7 @@
   "devDependencies": {
     "@eslint/js": "^9.0.0",
     "@phlix/contracts": "github:detain/phlix-contracts#v0.5.7",
-    "@phlix/ui": "github:detain/phlix-ui#v0.99.27",
+    "@phlix/ui": "github:detain/phlix-ui#v0.99.28",
     "@playwright/test": "^1.49.0",
     "@vitejs/plugin-vue": "^6.0.0",
     "@vitejs/plugin-vue-jsx": "^5.1.6",

@@ -275,25 +275,25 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
       staleWord.some(
         (f) =>
           f.startsWith('request-vs-resolved:') &&
-          f.includes('@phlix/ui#v0.99.27') &&
+          f.includes('@phlix/ui#v0.99.28') &&
           f.includes('version 0.99.4') &&
-          f.includes('pinned version line reads 0.99.27'),
+          f.includes('pinned version line reads 0.99.28'),
       ),
     ).toBe(true);
 
     const furtherBehind = structuredClone(lock);
     furtherBehind.packages['node_modules/@phlix/ui'] = {
       ...furtherBehind.packages['node_modules/@phlix/ui'],
-      version: '0.99.26',
+      version: '0.99.27',
     };
     const ahead = walk(furtherBehind).findings;
     expect(
       ahead.some(
         (f) =>
           f.startsWith('request-vs-resolved:') &&
-          f.includes('@phlix/ui#v0.99.27') &&
-          f.includes('version 0.99.26') &&
-          f.includes('pinned version line reads 0.99.27'),
+          f.includes('@phlix/ui#v0.99.28') &&
+          f.includes('version 0.99.27') &&
+          f.includes('pinned version line reads 0.99.28'),
       ),
     ).toBe(true);
 
@@ -307,8 +307,8 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
       shaFindings.some(
         (f) =>
           f.startsWith('request-vs-resolved:') &&
-          f.includes('@phlix/ui#v0.99.27') &&
-          f.includes('not the pinned v0.99.27 peel 1f9069793f7195eb8b5c101d435725daad18a403'),
+          f.includes('@phlix/ui#v0.99.28') &&
+          f.includes('not the pinned v0.99.28 peel dfe8fc6586e41728b4dcdc1a22a2bf8d19e74e01'),
       ),
     ).toBe(true);
   });
@@ -332,7 +332,7 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
   });
 });
 
-describe('ui v0.99.9 re-pin carried through v0.99.10, the contracts v0.5.4 + ui v0.99.12 re-pin, the ui v0.99.13 re-pin, the contracts v0.5.5 + ui v0.99.14 cascade, the ui v0.99.15 gate-3 wave, the contracts v0.5.6 + ui v0.99.16 wave-5 cascade, the ui v0.99.17 re-pin, the ui v0.99.19 re-pin, the ui v0.99.20 re-pin, the ui v0.99.21 re-pin, the ui v0.99.22 re-pin, the contracts v0.5.7 + ui v0.99.25 wave, the ui v0.99.26 re-pin, and the ui v0.99.27 re-pin — the waiver era stays over: zero ratified hoists, byte-equality holds', () => {
+describe('ui v0.99.9 re-pin carried through v0.99.10, the contracts v0.5.4 + ui v0.99.12 re-pin, the ui v0.99.13 re-pin, the contracts v0.5.5 + ui v0.99.14 cascade, the ui v0.99.15 gate-3 wave, the contracts v0.5.6 + ui v0.99.16 wave-5 cascade, the ui v0.99.17 re-pin, the ui v0.99.19 re-pin, the ui v0.99.20 re-pin, the ui v0.99.21 re-pin, the ui v0.99.22 re-pin, the contracts v0.5.7 + ui v0.99.25 wave, the ui v0.99.26 re-pin, and the ui v0.99.27 re-pin, and the ui v0.99.28 re-pin (WIN-S31, 2026-11-12; contracts HELD at #v0.5.7) — the waiver era stays over: zero ratified hoists, byte-equality holds', () => {
   it('RATIFIED_HOISTS is empty: the written law fired its retirement condition a fourth time and equality has carried since', () => {
     // The divergence era that opened at the contracts v0.5.3 re-pin (2026-10-01) ENDED
     // at the ui v0.99.9 re-pin (2026-10-03): ui v0.99.9 requests the direct pin
@@ -416,10 +416,10 @@ describe('ui v0.99.9 re-pin carried through v0.99.10, the contracts v0.5.4 + ui 
     expect(ui.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.5.7');
     expect(ui.dependencies['@phlix/contracts']).toBe(pkg.devDependencies['@phlix/contracts']);
     const uiRow = EXPECTED['@phlix/ui'];
-    expect(uiRow.tag).toBe('v0.99.27');
-    expect(uiRow.sha).toBe('1f9069793f7195eb8b5c101d435725daad18a403');
+    expect(uiRow.tag).toBe('v0.99.28');
+    expect(uiRow.sha).toBe('dfe8fc6586e41728b4dcdc1a22a2bf8d19e74e01');
     expect(uiRow.manifestVersion).toBeUndefined();
-    expect(ui.version).toBe('0.99.27');
+    expect(ui.version).toBe('0.99.28');
     const { findings } = walk(lock);
     expect(findings).toEqual([]);
   });
