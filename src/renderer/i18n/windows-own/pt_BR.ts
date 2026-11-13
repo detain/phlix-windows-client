@@ -48,7 +48,8 @@ export const WIN_PT_BR = {
     incompatibleChange: 'Usar um servidor diferente',
     failTitle: 'O Phlix não pôde iniciar',
     failMessage: 'O aplicativo não conseguiu carregar o que é necessário para abrir. O armazenamento seguro pode estar indisponível ou a instalação danificada. Tentar novamente geralmente resolve; caso contrário, reinstale o Phlix para Windows.',
-    failRetry: 'Tentar novamente'
+    failRetry: 'Tentar novamente',
+    checking: 'Verificando…'
   },
   // M-WINDOWS-11: player-overlay labels (see en.ts law note; values are
   // this locale's translations of the shipped literals).

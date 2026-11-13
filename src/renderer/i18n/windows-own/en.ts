@@ -49,7 +49,8 @@ export const WIN_EN = {
     incompatibleChange: 'Use a different server',
     failTitle: 'Phlix could not start',
     failMessage: 'The application failed to load what it needs to open. Secure storage may be unavailable, or the installation damaged. Trying again often helps; otherwise reinstall Phlix for Windows.',
-    failRetry: 'Try again'
+    failRetry: 'Try again',
+    checking: 'Checking…'
   },
   // M-WINDOWS-11 (review windows__casualgamer m11): the player-overlay surface
   // (SleepTimer + PiPButton) shipped hardcoded English while everything else

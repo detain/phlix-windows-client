@@ -32,6 +32,7 @@ import { setWindowLocale, tWin } from './i18n/windows-own';
 import log from 'electron-log';
 import { installElectronBridge } from './electronBridge';
 import { setOverlayShared } from './overlayShared';
+import { applyFailureScreenContainer, setRecoveryBusy, styleRecoveryButton } from './bootScreenStyle';
 import { SafeStorageTokenStore } from './safeStorageTokenStore';
 // M-WINDOWS-35: the shell's second SMTC installer import was removed here —
 // transport ownership belongs to the vendored @phlix/ui player store;
@@ -326,11 +327,7 @@ function renderIncompatibleServerScreen(
   // incompatibility message forever.
   document.getElementById('boot-splash')?.remove();
   document.title = tWin('boot.incompatibleTitle');
-  container.setAttribute('style', [
-    'display:flex', 'align-items:center', 'justify-content:center', 'height:100vh',
-    'padding:24px', 'box-sizing:border-box', 'background:#1a1a2e', 'color:#e8e8f0',
-    'font-family:system-ui,-apple-system,"Segoe UI",sans-serif', 'text-align:center'
-  ].join(';') + ';');
+  applyFailureScreenContainer(container);
 
   const box = document.createElement('div');
   box.setAttribute('role', 'alert');
@@ -368,20 +365,17 @@ function renderIncompatibleServerScreen(
   const retryButton = document.createElement('button');
   retryButton.type = 'button';
   retryButton.textContent = tWin('boot.incompatibleRetry');
-  retryButton.setAttribute('style', [
-    'margin:24px auto 0', 'display:inline-block', 'padding:10px 22px',
-    'font-size:14px', 'font-family:inherit', 'color:#e8e8f0', 'background:#26264a',
-    'border:1px solid #3a3a5e', 'border-radius:6px', 'cursor:pointer'
-  ].join(';') + ';');
+  retryButton.style.margin = '24px auto 0';
+  styleRecoveryButton(retryButton, 'primary');
   retryButton.addEventListener('click', () => {
     // One attempt in flight at a time; the re-render path re-arms a fresh button.
-    retryButton.disabled = true;
+    setRecoveryBusy(retryButton, true, tWin('boot.checking'));
     // MW-119 fold (w13L10 review minor #3): the Change arm already silences
     // the WHOLE row in flight (shared boot pipeline — a Change click during
     // a Retry-driven boot() could race a second mount); Retry must honor the
     // same law in the other direction. TDZ is safe: this closure only runs
     // after changeButton is declared below.
-    changeButton.disabled = true;
+    setRecoveryBusy(changeButton, true);
     void retryCheck().then(
       (next) => {
         if (next.compatible) {
@@ -405,11 +399,11 @@ function renderIncompatibleServerScreen(
             // user's reality (a stale "too old" re-render would be a lie —
             // the verdict in hand is compatible).
             if (retryButton.isConnected) {
-              retryButton.disabled = false;
+              setRecoveryBusy(retryButton, false);
               // MW-119 fold: the pair was muzzled together — it returns
               // together (each button only ever touches a still-live one).
               if (changeButton.isConnected) {
-                changeButton.disabled = false;
+                setRecoveryBusy(changeButton, false);
               }
             }
           });
@@ -425,10 +419,10 @@ function renderIncompatibleServerScreen(
         // if the IPC transport itself breaks. Re-arm the button rather than
         // strand the surface disabled — the window must never dead-end.
         log.error('[Boot] Retry could not run:', err);
-        retryButton.disabled = false;
+        setRecoveryBusy(retryButton, false);
         // MW-119 fold: the pair was muzzled together; re-arm it together.
         if (changeButton.isConnected) {
-          changeButton.disabled = false;
+          setRecoveryBusy(changeButton, false);
         }
       }
     );
@@ -449,19 +443,16 @@ function renderIncompatibleServerScreen(
   const changeButton = document.createElement('button');
   changeButton.type = 'button';
   changeButton.textContent = tWin('boot.incompatibleChange');
-  changeButton.setAttribute('style', [
-    'margin:24px 0 0', 'display:inline-block', 'padding:10px 22px',
-    'font-size:14px', 'font-family:inherit', 'color:#e8e8f0', 'background:transparent',
-    'border:1px solid #3a3a5e', 'border-radius:6px', 'cursor:pointer', 'margin-left:12px'
-  ].join(';') + ';');
+  changeButton.style.margin = '24px 0 0 12px';
+  styleRecoveryButton(changeButton, 'secondary');
   changeButton.addEventListener('click', () => {
     // Same surface law as Retry, extended across BOTH buttons: an attempt in
     // flight silences the whole recovery row (they share one boot pipeline —
     // a Retry mid-change-server flight could race a second mount), and every
     // rejection path re-arms the still-connected screen instead of stranding
     // dead buttons.
-    changeButton.disabled = true;
-    retryButton.disabled = true;
+    setRecoveryBusy(changeButton, true, tWin('boot.checking'));
+    setRecoveryBusy(retryButton, true);
     const reseat = async (): Promise<void> => {
       // Hub mode is NOT enterable in this build (M-WINDOWS-17: the hub-config
       // writer has zero production callers), so clearing the server URL is
@@ -477,8 +468,8 @@ function renderIncompatibleServerScreen(
       // off-document pair must not touch anyone's state.
       log.error('[Boot] Change-server attempt failed:', err);
       if (changeButton.isConnected) {
-        changeButton.disabled = false;
-        retryButton.disabled = false;
+        setRecoveryBusy(changeButton, false);
+        setRecoveryBusy(retryButton, false);
       }
     });
   });
@@ -879,27 +870,34 @@ export function renderBootFailure(): void {
   const panel = document.createElement('div');
   panel.id = 'boot-failure';
   panel.setAttribute('role', 'alert');
+  applyFailureScreenContainer(panel, { overlay: true });
+  const card = document.createElement('div');
+  card.style.maxWidth = '520px';
   const title = document.createElement('h1');
   title.textContent = tWin('boot.failTitle');
+  title.setAttribute('style', 'font-size:22px;margin:0 0 12px;');
   const message = document.createElement('p');
   message.textContent = tWin('boot.failMessage');
+  message.setAttribute('style', 'font-size:15px;margin:0 0 20px;');
   const retry = document.createElement('button');
   retry.type = 'button';
   retry.textContent = tWin('boot.failRetry');
+  styleRecoveryButton(retry, 'primary');
   retry.addEventListener('click', () => {
     // Deliberate re-run: config IPC + version gate are all re-readable, and
     // a panel is only still mounted while nothing else owns the window —
     // the same resumed-boot reasoning as the incompatible screen's Retry.
-    retry.disabled = true;
+    setRecoveryBusy(retry, true, tWin('boot.checking'));
     void boot().catch((err: unknown) => {
       log.error('[Boot] retried boot() failed:', err);
-      retry.disabled = false;
+      setRecoveryBusy(retry, false);
       renderBootFailure();
     });
   });
-  panel.appendChild(title);
-  panel.appendChild(message);
-  panel.appendChild(retry);
+  card.appendChild(title);
+  card.appendChild(message);
+  card.appendChild(retry);
+  panel.appendChild(card);
   document.body.appendChild(panel);
   // windows__gameux 5[m] (MW-089): the boot-failure counterpart of the
   // incompatible screen's focus-by-construction law — Retry owns keyboard

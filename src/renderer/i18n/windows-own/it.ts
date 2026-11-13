@@ -44,7 +44,8 @@ export const WIN_IT = {
     incompatibleChange: 'Usa un altro server',
     failTitle: 'Impossibile avviare Phlix',
     failMessage: "L’applicazione non è riuscita a caricare i dati necessari all’avvio. L’archivio sicuro potrebbe non essere disponibile o l’installazione danneggiata. Riprovare spesso risolve; in caso contrario reinstalla Phlix per Windows.",
-    failRetry: 'Riprova'
+    failRetry: 'Riprova',
+    checking: 'Controllo in corso…'
   },
   // M-WINDOWS-11: player-overlay labels (see en.ts law note; values are
   // this locale's translations of the shipped literals).

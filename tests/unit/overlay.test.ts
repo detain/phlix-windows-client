@@ -152,10 +152,10 @@ describe('overlay entry point', () => {
   });
 
   // M1 (2026-11 review): the overlay MUST register the MAIN app's pinia —
-  // boot() exposes it as window.__phlixPinia before importing ./overlay.
+  // boot() hands it over via overlayShared before importing ./overlay.
   // A fresh createPinia() in production meant the PiP/sleep overlays read
   // private store copies that never change → flagship surfaces never rendered.
-  it('registers window.__phlixPinia (the main app instance) instead of a fresh pinia', async () => {
+  it('registers the overlayShared pinia (the main app instance) instead of a fresh pinia', async () => {
     const root = document.createElement('div');
     root.id = 'player-supplement-root';
     document.body.appendChild(root);

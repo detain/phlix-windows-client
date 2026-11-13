@@ -1084,8 +1084,8 @@ describe('m7 boot-failure surface (renderBootFailure)', () => {
   it('the auto-boot arm catches, and the Retry re-arms instead of stranding (M-WINDOWS-16 r2 discipline)', () => {
     const source = readFileSync(path.resolve(__dirname, '../../src/renderer/main.ts'), 'utf8');
     expect(source).toMatch(/void boot\(\)\.catch/);
-    expect(source).toMatch(/retry\.disabled = true;/);
-    expect(source).toMatch(/retry\.disabled = false;/);
+    expect(source).toMatch(/setRecoveryBusy\(retry, true,/);
+    expect(source).toMatch(/setRecoveryBusy\(retry, false\);/);
     // No detail from the rejection reaches the screen — only the log keeps it.
     expect(source).toMatch(/renderBootFailure\(\)/);
     expect(source).not.toMatch(/renderBootFailure\([^)]*err/);

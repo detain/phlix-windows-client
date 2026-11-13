@@ -48,7 +48,7 @@ describe('PlayerSupplement', () => {
     await mockRouter.push('/');
     // Spy on setInterval to verify it's never called
     setIntervalSpy = vi.spyOn(global, 'setInterval').mockImplementation(() => 1 as any);
-    // Set up window.__phlixRouter for the component
+    // Hand the router to the component via overlayShared
     setOverlayShared({ router: mockRouter as any });
   });
 
@@ -144,9 +144,9 @@ describe('PlayerSupplement', () => {
     expect(unregisterMock).toHaveBeenCalledTimes(1);
   });
 
-  it('does not crash and renders nothing when window.__phlixRouter is absent', async () => {
+  it('does not crash and renders nothing when the overlayShared router is absent', async () => {
     // Simulates running outside the Electron shell — e.g. plain browser dev context
-    // where boot() never runs and __phlixRouter is never defined.
+    // where boot() never runs and the overlayShared router is never set.
     // When getPhlixRouter() returns undefined, afterEach is skipped (router?.afterEach
     // short-circuits) and unregisterRouter falls back to a no-op, so unmount is safe.
     setOverlayShared({});

@@ -46,7 +46,8 @@ export const WIN_JA = {
     incompatibleChange: '別のサーバーを使用',
     failTitle: 'Phlix を起動できませんでした',
     failMessage: 'アプリは起動に必要なデータを読み込めませんでした。安全なストレージが利用できないか、インストールが破損している可能性があります。再度試すと解決することがあります。解決しない場合は Phlix for Windows を再インストールしてください。',
-    failRetry: '再試行'
+    failRetry: '再試行',
+    checking: '確認中…'
   },
   // M-WINDOWS-11: player-overlay labels (see en.ts law note; values are
   // this locale's translations of the shipped literals).
