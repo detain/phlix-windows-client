@@ -1,5 +1,7 @@
 # ADR-001: App URL Protocol
 
+**Status: Accepted** — in force as of 2026-11-12.
+
 ## Context
 
 The renderer needs to load its entry HTML and module scripts. `loadFile` with a `file://` URL was tried first but produced a blank window.

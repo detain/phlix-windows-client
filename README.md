@@ -27,6 +27,8 @@ Developer-facing file headers and log lines keep the descriptive phrase "Phlix M
 Server Client for Windows" (machine-pinned by `tests/unit/copyright.test.mjs`); it reads
 as "[[Phlix Media Server] Client] for Windows", and only humans should parse prose.
 
+Informal usage: in user-facing copy, "your Phlix server" (lowercase `server`) is the sanctioned plain-language form of **Phlix Media Server**; both denote the same server product and neither ever names this app.
+
 ## Features
 
 - **Media Library Browser** - Browse and search your media collection (provided by `@phlix/ui`)

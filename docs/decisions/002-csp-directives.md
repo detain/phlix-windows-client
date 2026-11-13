@@ -1,5 +1,7 @@
 # ADR-002: CSP Directives
 
+**Status: Accepted** — in force as of 2026-11-12.
+
 ## Context
 
 The renderer loads media from arbitrary LAN servers (http://), runs hls.js workers (blob: workers), connects to WebSocket hubs (wss:, and cleartext ws: in direct mode), and uses Vue scoped styles (requires 'unsafe-inline' in style-src).

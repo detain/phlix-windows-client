@@ -1,5 +1,7 @@
 # ADR-006: Boot Smoke Test
 
+**Status: Accepted** — in force as of 2026-11-12.
+
 ## Context
 
 Two P0 defects reached published artifacts: (1) preload script was written to a path nothing loads, (2) packaged renderer couldn't fetch its module scripts. CI ran zero tests before packaging.

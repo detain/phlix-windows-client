@@ -1,5 +1,7 @@
 # ADR-003: ElectronAPI is Optional
 
+**Status: Accepted** — in force as of 2026-11-12.
+
 ## Context
 
 The type definition for `window.electronAPI` asserted a guarantee the runtime did not provide — it was typed as always present, but in a plain browser dev context (no Electron) it was undefined. This hid the preload P0 bug from `vue-tsc`.
