@@ -23,6 +23,9 @@ import PiPButton from './PiPButton';
  */
 const PLAYER_ROUTE_NAME = 'player';
 
+/** WIN-51: pointer-idle delay before the overlay column fades out. */
+export const OVERLAY_IDLE_MS = 3000;
+
 /**
  * PlayerSupplement is a Vue component that renders all P3-S4 player overlays.
  * It only renders when the player page is active.
@@ -43,8 +46,58 @@ const PlayerSupplement = defineComponent({
       active.value = to.name === PLAYER_ROUTE_NAME;
     }) ?? (() => {});
 
+    // WIN-51: the column sits above the player; during fullscreen / TV playback
+    // it must not linger over the picture. The vendored player exposes no public
+    // control-visibility seam, so fade after IDLE_MS of pointer idle, reveal on
+    // pointer/touch movement, and keyboard focus summons it. Timer is a one-shot
+    // setTimeout (never setInterval).
+    const visible = ref(true);
+    let idleTimer: ReturnType<typeof setTimeout> | null = null;
+    let hasFocus = false;
+    const clearIdle = () => {
+      if (idleTimer !== null) {
+        clearTimeout(idleTimer);
+        idleTimer = null;
+      }
+    };
+    const armIdle = () => {
+      clearIdle();
+      if (hasFocus) return;
+      idleTimer = setTimeout(() => {
+        idleTimer = null;
+        visible.value = false;
+      }, OVERLAY_IDLE_MS);
+    };
+    const summon = () => {
+      visible.value = true;
+      armIdle();
+    };
+    const onFocusIn = () => {
+      hasFocus = true;
+      visible.value = true;
+      clearIdle();
+    };
+    const onFocusOut = () => {
+      hasFocus = false;
+      armIdle();
+    };
+    const onKeyDown = () => summon();
+    const events: Array<[string, EventListener]> = [
+      ['pointermove', summon],
+      ['pointerdown', summon],
+      ['keydown', onKeyDown],
+    ];
+    if (typeof window !== 'undefined') {
+      for (const [n, h] of events) window.addEventListener(n, h, { passive: true });
+      armIdle();
+    }
+
     onUnmounted(() => {
       unregisterRouter();
+      clearIdle();
+      if (typeof window !== 'undefined') {
+        for (const [n, h] of events) window.removeEventListener(n, h);
+      }
     });
 
     return () => {
@@ -62,7 +115,12 @@ const PlayerSupplement = defineComponent({
               alignItems: 'center',
               gap: '8px',
               zIndex: 100,
+              opacity: visible.value ? 1 : 0,
+              pointerEvents: visible.value ? 'auto' : 'none',
+              transition: 'opacity 250ms ease',
             }}
+            onFocusin={onFocusIn}
+            onFocusout={onFocusOut}
           >
             <SleepTimer />
             <PiPButton />

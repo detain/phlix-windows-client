@@ -182,4 +182,36 @@ describe('PlayerSupplement', () => {
     // no nextTick, no afterEach callback fired
     expect(wrapper.find('.sleep-timer-mock').exists()).toBe(true);
   });
+
+  it('WIN-51: fades after 3s pointer idle, reveals on move, focus summons', async () => {
+    vi.useFakeTimers();
+    try {
+      await mockRouter.push('/app/player/1');
+      const wrapper = mount(PlayerSupplement, {
+        global: { stubs: { teleport: true }, plugins: [mockRouter] },
+        attachTo: document.body
+      });
+      const col = () => wrapper.find('div').element as HTMLElement;
+      expect(col().style.opacity).toBe('1');
+      vi.advanceTimersByTime(3100);
+      await nextTick();
+      expect(col().style.opacity).toBe('0');
+      window.dispatchEvent(new Event('pointermove'));
+      await nextTick();
+      expect(col().style.opacity).toBe('1');
+      vi.advanceTimersByTime(3100);
+      await nextTick();
+      expect(col().style.opacity).toBe('0');
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab' }));
+      await nextTick();
+      expect(col().style.opacity).toBe('1');
+      col().dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+      vi.advanceTimersByTime(10000);
+      await nextTick();
+      expect(col().style.opacity).toBe('1');
+      wrapper.unmount();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
