@@ -888,8 +888,36 @@ export function renderBootFailure(): void {
     // a panel is only still mounted while nothing else owns the window —
     // the same resumed-boot reasoning as the incompatible screen's Retry.
     setRecoveryBusy(retry, true, tWin('boot.checking'));
+    setRecoveryBusy(change, true);
     void boot().catch((err: unknown) => {
       log.error('[Boot] retried boot() failed:', err);
+      setRecoveryBusy(retry, false);
+      setRecoveryBusy(change, false);
+      renderBootFailure();
+    });
+  });
+  // WIN-S2 (WIN-1): the boot-failure panel used to offer Retry only — a
+  // wrong/retired persisted server URL that makes boot() throw was a dead end
+  // short of hand-editing storage. Same escape hatch as the too-old screen's
+  // "Use a different server": clear the persisted URL (the legal ''-clear on
+  // app:set-server-url), then re-run boot(), which routes the empty base to
+  // the Connect screen. The vendored ui already ships its own connection
+  // clear() for in-app surfaces, so no ui-side change rides here.
+  const change = document.createElement('button');
+  change.type = 'button';
+  change.textContent = tWin('boot.incompatibleChange');
+  change.style.margin = '24px 0 0 12px';
+  styleRecoveryButton(change, 'secondary');
+  change.addEventListener('click', () => {
+    setRecoveryBusy(change, true, tWin('boot.checking'));
+    setRecoveryBusy(retry, true);
+    const reseat = async (): Promise<void> => {
+      await window.electronAPI?.setServerUrl('');
+      await boot();
+    };
+    void reseat().catch((err: unknown) => {
+      log.error('[Boot] Change-server attempt from boot-failure failed:', err);
+      setRecoveryBusy(change, false);
       setRecoveryBusy(retry, false);
       renderBootFailure();
     });
@@ -897,6 +925,7 @@ export function renderBootFailure(): void {
   card.appendChild(title);
   card.appendChild(message);
   card.appendChild(retry);
+  card.appendChild(change);
   panel.appendChild(card);
   document.body.appendChild(panel);
   // windows__gameux 5[m] (MW-089): the boot-failure counterpart of the

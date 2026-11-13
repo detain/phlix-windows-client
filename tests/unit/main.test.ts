@@ -1081,6 +1081,26 @@ describe('m7 boot-failure surface (renderBootFailure)', () => {
     }
   });
 
+  it('WIN-S2: carries a "Use a different server" button that clears the persisted URL before re-booting', async () => {
+    const mod = await import('@/main');
+    const setServerUrl = vi.fn().mockResolvedValue(undefined);
+    (window as unknown as { electronAPI?: unknown }).electronAPI = { setServerUrl };
+    try {
+      mod.renderBootFailure();
+      const buttons = document.querySelectorAll<HTMLButtonElement>('#boot-failure button');
+      expect(buttons.length).toBe(2);
+      expect(buttons[0].textContent).toBe('Try again');
+      expect(buttons[1].textContent).toBe('Use a different server');
+      expect(buttons[1].dataset.variant).toBe('secondary');
+      buttons[1].click();
+      await Promise.resolve();
+      expect(setServerUrl).toHaveBeenCalledWith('');
+    } finally {
+      delete (window as unknown as { electronAPI?: unknown }).electronAPI;
+      document.getElementById('boot-failure')?.remove();
+    }
+  });
+
   it('the auto-boot arm catches, and the Retry re-arms instead of stranding (M-WINDOWS-16 r2 discipline)', () => {
     const source = readFileSync(path.resolve(__dirname, '../../src/renderer/main.ts'), 'utf8');
     expect(source).toMatch(/void boot\(\)\.catch/);

@@ -143,6 +143,10 @@ is really a wrong address rather than an old server, press **Use a different ser
 alongside it: the stored URL is cleared and the Connect screen reopens, so you can point
 the app at another Phlix Media Server without restarting.
 
+The same **Use a different server** button also appears on the "Phlix could not start"
+screen (shown when startup itself fails), next to **Try again**, so a stale or
+mistyped stored address never leaves you without a way forward.
+
 After a successful connect, your server URL and login persist, so later launches go
 directly to your library.
 
