@@ -1101,6 +1101,72 @@ describe('m7 boot-failure surface (renderBootFailure)', () => {
     }
   });
 
+  // WIN-S2 (carry): the click must also RE-RUN boot() after the clear (observed
+  // through boot's own config IPC + the mount), go busy while it runs, and
+  // re-arm both buttons when the clear or the re-boot dies.
+  function bootableApi(overrides: Record<string, unknown> = {}) {
+    return {
+      hubGetConfig: vi.fn(async () => ({ hubUrl: '', activeServerId: null, connectionMode: 'direct' })),
+      getDeviceId: vi.fn(async () => 'device-abc'),
+      getServerUrl: vi.fn(async () => null),
+      checkServerVersion: vi.fn(async () => ({ compatible: true, serverVersion: '2.0.0', minimumVersion: '1.1.0' })),
+      setServerUrl: vi.fn(async () => {}),
+      ...overrides
+    };
+  }
+
+  it('WIN-S2: "Use a different server" goes busy, clears the URL, then re-runs boot() through to the mount', async () => {
+    const mod = await import('@/main');
+    mountSpy.mockClear();
+    const api = bootableApi();
+    (window as unknown as { electronAPI?: unknown }).electronAPI = api;
+    const mount = document.createElement('div');
+    mount.id = 'phlix-app';
+    document.body.appendChild(mount);
+    try {
+      mod.renderBootFailure();
+      const buttons = document.querySelectorAll<HTMLButtonElement>('#boot-failure button');
+      buttons[1].click();
+      // Busy immediately (both buttons), before any await resolves.
+      expect(buttons[1].disabled).toBe(true);
+      expect(buttons[0].disabled).toBe(true);
+      await vi.waitFor(() => expect(mountSpy).toHaveBeenCalledWith('#phlix-app'));
+      expect(api.setServerUrl).toHaveBeenCalledWith('');
+      // boot() ran AFTER the clear: its config IPC fired, and ordering holds.
+      expect(api.hubGetConfig).toHaveBeenCalled();
+      expect(api.setServerUrl.mock.invocationCallOrder[0]).toBeLessThan(api.hubGetConfig.mock.invocationCallOrder[0]);
+    } finally {
+      delete (window as unknown as { electronAPI?: unknown }).electronAPI;
+      mount.remove();
+      document.getElementById('boot-failure')?.remove();
+    }
+  });
+
+  it('WIN-S2: when the clear (or the re-boot) rejects, both buttons re-arm and the failure is logged', async () => {
+    const mod = await import('@/main');
+    const errorSpy = vi.spyOn(log, 'error').mockImplementation(() => {});
+    const api = bootableApi({ setServerUrl: vi.fn().mockRejectedValue(new Error('store write failed')) });
+    (window as unknown as { electronAPI?: unknown }).electronAPI = api;
+    try {
+      mod.renderBootFailure();
+      const buttons = document.querySelectorAll<HTMLButtonElement>('#boot-failure button');
+      buttons[1].click();
+      expect(buttons[1].disabled).toBe(true);
+      await vi.waitFor(() => expect(buttons[1].disabled).toBe(false));
+      expect(buttons[0].disabled).toBe(false);
+      expect(api.hubGetConfig).not.toHaveBeenCalled(); // boot() never ran past a failed clear
+      expect(errorSpy).toHaveBeenCalledWith(
+        '[Boot] Change-server attempt from boot-failure failed:',
+        expect.objectContaining({ message: 'store write failed' })
+      );
+      expect(document.querySelectorAll('#boot-failure').length).toBe(1);
+    } finally {
+      errorSpy.mockRestore();
+      delete (window as unknown as { electronAPI?: unknown }).electronAPI;
+      document.getElementById('boot-failure')?.remove();
+    }
+  });
+
   it('the auto-boot arm catches, and the Retry re-arms instead of stranding (M-WINDOWS-16 r2 discipline)', () => {
     const source = readFileSync(path.resolve(__dirname, '../../src/renderer/main.ts'), 'utf8');
     expect(source).toMatch(/void boot\(\)\.catch/);

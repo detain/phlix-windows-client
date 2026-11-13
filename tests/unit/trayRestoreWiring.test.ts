@@ -454,6 +454,25 @@ describe('stranded-window clamp on the real wiring (w10/L1)', () => {
     });
   });
 
+  it('WIN-S10: a fullscreen window (display bounds under a top-docked taskbar) is raised but never setBounds-clamped', () => {
+    const win = mainWin();
+    resetWindow(win);
+    // Bounds that FAIL the band-depth law (stand-in for display bounds sitting
+    // above a top-docked taskbar's work area; the mocked work area is
+    // unshifted) — they would be re-centered if the probe ran.
+    win.getBounds = () => ({ x: 0, y: -5000, width: 1920, height: 1080 });
+    const original = win.isFullScreen;
+    win.isFullScreen = () => true;
+    (win.setBounds as ReturnType<typeof vi.fn>).mockClear();
+    try {
+      trayHandler('click')();
+      expect(win.calls).toEqual(['show', 'focus']);
+      expect(win.setBounds as ReturnType<typeof vi.fn>).not.toHaveBeenCalled();
+    } finally {
+      win.isFullScreen = original;
+    }
+  });
+
   it('on-screen raise writes no geometry at all', () => {
     const win = mainWin();
     resetWindow(win);

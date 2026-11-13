@@ -205,10 +205,40 @@ describe('PlayerSupplement', () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab' }));
       await nextTick();
       expect(col().style.opacity).toBe('1');
-      col().dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+      // Keyboard focus (:focus-visible) holds the column up indefinitely.
+      const colEl = col(); // VTU find() itself calls element.matches — hold the node before spying
+      const matchesSpy = vi.spyOn(colEl, 'matches').mockImplementation((sel: string) => sel === ':focus-visible');
+      colEl.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
       vi.advanceTimersByTime(10000);
       await nextTick();
-      expect(col().style.opacity).toBe('1');
+      expect(colEl.style.opacity).toBe('1');
+      matchesSpy.mockRestore();
+      wrapper.unmount();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  // WIN-S7: a clicked button retains focus after the pointer leaves; that
+  // pointer-originated (non :focus-visible) focus must NOT pin the column.
+  it('WIN-S7: pointer-originated focus does not pin the column — it still fades after idle', async () => {
+    vi.useFakeTimers();
+    try {
+      await mockRouter.push('/app/player/321');
+      const wrapper = mount(PlayerSupplement, {
+        global: { stubs: { teleport: true }, plugins: [mockRouter] },
+        attachTo: document.body
+      });
+      const col = () => wrapper.find('div').element as HTMLElement;
+      const colEl = col(); // hold the node: VTU find() itself calls element.matches
+      const matchesSpy = vi.spyOn(colEl, 'matches').mockImplementation(() => false);
+      colEl.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+      await nextTick();
+      expect(colEl.style.opacity).toBe('1');
+      vi.advanceTimersByTime(3100);
+      await nextTick();
+      expect(colEl.style.opacity).toBe('0');
+      matchesSpy.mockRestore();
       wrapper.unmount();
     } finally {
       vi.useRealTimers();

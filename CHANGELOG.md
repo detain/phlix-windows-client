@@ -9,6 +9,15 @@ historical entries are preserved verbatim.
 
 ## [Unreleased]
 
+### Fixed + CI + Docs — deferred minors sweep (WIN-S2/S4/S7/S9/S10/S15/S19/S22/S31) — 2026-11-13
+
+- **Sleep timer countdown (WIN-S4):** the label rounds up (`Math.ceil`), so a ticker that fires a hair late no longer skips `14:59` or stutters at second boundaries; jitter-aware pin (advance 1001 ms, expect `14:59`).
+- **Restore on a fullscreen window (WIN-S10):** `restoreProbe` returns no probe while the window is fullscreen, so tray / second-instance / notification restores no longer `setBounds` a fullscreen window on a display with a top-docked taskbar; pinned.
+- **Player overlay (WIN-S7):** only keyboard (`:focus-visible`) focus holds the supplement column visible; a clicked button's retained focus no longer prevents the idle fade.
+- **CI (WIN-S15):** both smoke jobs (test.yml, build.yml) upload `test-results/` (Playwright `trace.zip`) on failure via the SHA-pinned `actions/upload-artifact`.
+- **Pins/tests (WIN-S2/S9/S31):** boot-failure "Use a different server" asserts the boot() re-run, busy and re-arm paths; regression pins for the WIN-39 thumbar glyph memo and WIN-40 asset Cache-Control/ETag headers; contracts/i18n era narratives extended to .28/650.
+- **Docs (WIN-S19/S22):** docs/i18n.md hash-delta cells for v0.99.14/.15/.19 carry real `locales`/`messages.ts` hash deltas; docs/deep-links.md clarifier rewrapped; docs/ipc-channels.md main-handler coordinates re-measured for the shifted `src/main/index.ts` (blessed in-commit).
+
 ### Docs — WIN-S23 README/DEVELOPER/CONTRIBUTING truth + style sweep (WIN-16/17/24/25/27/28/30/32/34/45) — 2026-11-13
 
 - Suite counts re-measured serially (86 files / 1159 tests) and rotated in README and DEVELOPER.md.

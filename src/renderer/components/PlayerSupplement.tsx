@@ -72,7 +72,23 @@ const PlayerSupplement = defineComponent({
       visible.value = true;
       armIdle();
     };
-    const onFocusIn = () => {
+    const onFocusIn = (e: Event) => {
+      // WIN-S7: a clicked button keeps focus after the pointer leaves, which
+      // pinned the column visible until blur. Only KEYBOARD focus (the
+      // :focus-visible heuristic) holds the column up; pointer-originated
+      // focus leaves the idle fade running. `matches` throwing (very old
+      // engines) falls back to the old always-hold behaviour.
+      let keyboardFocus = true;
+      try {
+        const target = e.target as Element | null;
+        if (target && typeof target.matches === 'function') keyboardFocus = target.matches(':focus-visible');
+      } catch {
+        keyboardFocus = true;
+      }
+      if (!keyboardFocus) {
+        summon();
+        return;
+      }
       hasFocus = true;
       visible.value = true;
       clearIdle();

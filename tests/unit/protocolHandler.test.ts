@@ -15,7 +15,8 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import * as path from 'path';
-import { readFileSync, statSync } from 'fs';
+import { readFileSync, statSync, promises as fsPromises } from 'fs';
+import { createHash } from 'crypto';
 
 const PROJECT_ROOT = path.resolve(__dirname, '../..');
 
@@ -324,6 +325,37 @@ describe('M11 frame-ancestors header + m7c branded refusal bodies', () => {
     const response = await handler()({ url: 'app://-/app/index.html' });
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Security-Policy')).toBe("frame-ancestors 'none'");
+  });
+
+  // WIN-S9 (carry of WIN-40): content-hashed assets/ files are cache-forever
+  // with an ETag from their bytes; the SPA document and non-assets/ files are
+  // NOT (the document must always revalidate).
+  it('WIN-40: assets/ files carry immutable Cache-Control and a byte-derived ETag', async () => {
+    // The handler serves from src/renderer under vitest (no built assets/ dir
+    // there), so feed the one assets/ read through a spy — the header logic
+    // under test is the handler's, not the disk's.
+    const bytes = Buffer.from('console.log("hashed-asset");');
+    const realRead = fsPromises.readFile.bind(fsPromises);
+    const readSpy = vi.spyOn(fsPromises, 'readFile').mockImplementation(((p: unknown, ...rest: unknown[]) =>
+      String(p).replace(/\\/g, '/').endsWith('/assets/index-abc123.js')
+        ? Promise.resolve(bytes)
+        : (realRead as (...a: unknown[]) => Promise<unknown>)(p, ...rest)) as typeof fsPromises.readFile);
+    try {
+      const response = await handler()({ url: 'app://-/app/assets/index-abc123.js' });
+      expect(response.status).toBe(200);
+      expect(response.headers.get('Content-Type')).toBe('application/javascript');
+      expect(response.headers.get('Cache-Control')).toBe('public, max-age=31536000, immutable');
+      expect(response.headers.get('ETag')).toBe(`"${createHash('sha1').update(bytes).digest('hex')}"`);
+    } finally {
+      readSpy.mockRestore();
+    }
+  });
+
+  it('WIN-40: the SPA document never gets the immutable cache headers', async () => {
+    const response = await handler()({ url: 'app://-/app/index.html' });
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Cache-Control')).toBeNull();
+    expect(response.headers.get('ETag')).toBeNull();
   });
 
   it('a wrong-host refusal is a branded HTML document, not bare text, and echoes nothing', async () => {

@@ -75,7 +75,11 @@ function saveState(state: TimerState): void {
 }
 
 function formatCountdown(remainingMs: number): string {
-  const totalSec = Math.max(0, Math.floor(remainingMs / 1000));
+  // WIN-S4: ceil, not floor. The 1s ticker is phase-locked to the arm instant,
+  // and real timers fire at-or-after their schedule, so the first tick sees
+  // e.g. 898999ms: floor would paint 14:58 and skip 14:59 (and stutter at
+  // later boundaries). Ceil keeps the label on the whole second still ahead.
+  const totalSec = Math.max(0, Math.ceil(remainingMs / 1000));
   const h = Math.floor(totalSec / 3600);
   const m = Math.floor((totalSec % 3600) / 60);
   const s = totalSec % 60;

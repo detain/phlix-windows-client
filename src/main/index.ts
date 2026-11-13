@@ -480,6 +480,12 @@ function isBoundsOnScreen(bounds: WindowBounds): boolean {
  */
 function restoreProbe(window: Electron.BrowserWindow | null | undefined): RestoreBoundsProbe | undefined {
   if (!window) return undefined;
+  // WIN-S10: a fullscreen window's bounds ARE the display bounds, which fail
+  // the title-bar band-depth law on a display with a top-docked taskbar (band
+  // sits above the work area's y) — the clamp would setBounds a fullscreen
+  // window. Fullscreen has no reachable-title-bar notion; skip the clamp and
+  // let restoreWindow run its raise sequence untouched.
+  if (window.isFullScreen()) return undefined;
   return {
     get: () => window.getBounds(),
     set: (next) => window.setBounds(next),

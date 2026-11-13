@@ -133,3 +133,29 @@ describe('type definitions (W4.5)', () => {
     expect(typesSource).toMatch(/setPlaybackProgress:\s*\(\s*current:\s*number\s*,\s*total:\s*number\s*\)\s*=>\s*void/);
   });
 });
+
+// WIN-S9 (carry of WIN-39): the thumbar rebuilds on every play-state flip, so
+// each glyph is decoded ONCE and memoized. Pin the memo so a refactor back to
+// a per-rebuild createFromPath redden.
+describe('WIN-39 thumbar glyph memo', () => {
+  it('loadThumbarGlyph reads a module-level Map cache before decoding, and stores the decode', () => {
+    expect(mainSource).toMatch(/const thumbarGlyphCache = new Map<ThumbarGlyphName, Electron\.NativeImage>\(\)/);
+    const loader = mainSource.match(/function loadThumbarGlyph\([\s\S]*?\n}\n/);
+    expect(loader).not.toBeNull();
+    const body = loader![0];
+    const getAt = body.indexOf('thumbarGlyphCache.get(glyph)');
+    const decodeAt = body.indexOf('decodeThumbarGlyph(glyph)');
+    const setAt = body.indexOf('thumbarGlyphCache.set(glyph');
+    expect(getAt).toBeGreaterThan(-1);
+    expect(decodeAt).toBeGreaterThan(getAt); // cache hit returns before any decode
+    expect(setAt).toBeGreaterThan(decodeAt);
+    expect(body).toMatch(/if \(cached\) return cached;/);
+  });
+
+  it('only the memoizing loader decodes glyph files (no direct per-rebuild createFromPath of a glyph)', () => {
+    const decoders = mainSource.match(/createFromPath\(path\.join\(__dirname, '..\/..\/build', THUMBAR_GLYPH_FILES/g) ?? [];
+    expect(decoders).toHaveLength(1);
+    expect(mainSource).not.toMatch(/setupThumbarButtons[\s\S]{0,200}createFromPath\(path\.join\(__dirname, '..\/..\/build', THUMBAR_GLYPH_FILES/);
+  });
+});
+

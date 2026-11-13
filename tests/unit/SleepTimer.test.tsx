@@ -433,6 +433,26 @@ describe('SleepTimer', () => {
     wrapper.unmount();
   });
 
+  // Law (WIN-S4): real timers fire at-or-after the schedule, never before. A
+  // tick that lands 1ms late (advance 1001ms) must still show 14:59 — Math.floor
+  // painted 14:58 and skipped 14:59 entirely.
+  it('WIN-S4: a jittered first tick (1001ms) shows 15:00 -> 14:59, never skipping a second', async () => {
+    const endTime = Date.now() + 15 * 60 * 1000;
+    localStorage.setItem('phlix-sleep-timer', JSON.stringify({ endTime, totalMinutes: 15 }));
+
+    const wrapper = mount(SleepTimer, {
+      global: { stubs: { teleport: true } }
+    });
+    await wrapper.vm.$nextTick();
+    expect(wrapper.text()).toContain('15:00');
+
+    vi.advanceTimersByTime(1001);
+    await wrapper.vm.$nextTick();
+    expect(wrapper.text()).toContain('14:59');
+    expect(wrapper.text()).not.toContain('14:58');
+    wrapper.unmount();
+  });
+
   // Law (WIN-37): a timer that lapsed while the app was closed, found at mount
   // with nothing playing, is cleared SILENTLY — no "expired" badge greeting a
   // fresh launch, no pause. Red on the parent: the mount-expire path ran
