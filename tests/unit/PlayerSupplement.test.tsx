@@ -11,6 +11,7 @@ import type { ComponentPublicInstance } from 'vue';
 import { createRouter, createMemoryHistory } from 'vue-router';
 import type { RouteLocationNormalized } from 'vue-router';
 import PlayerSupplement from '@/components/PlayerSupplement';
+import { setOverlayShared } from '@/overlayShared';
 
 vi.mock('@/components/SleepTimer', () => ({ default: { template: '<div class="sleep-timer-mock" />' } }));
 vi.mock('@/components/PiPButton', () => ({ default: { template: '<div class="pip-button-mock" />' } }));
@@ -22,9 +23,11 @@ const unregisterMock = vi.fn(() => {});
 const mockRouter = createRouter({
   history: createMemoryHistory(),
   routes: [
-    { path: '/app/player/:id', component: { template: '<div>Player</div>' } },
+    { path: '/app/player/:id', name: 'player', component: { template: '<div>Player</div>' } },
     // Non-player routes - renders nothing (active will be false since no :id param)
     { path: '/app/servers', component: { template: '<div>Servers</div>' } },
+    // Non-player route that ALSO carries an :id param (WIN-36 regression row)
+    { path: '/app/media/:id', name: 'media', component: { template: '<div>Media</div>' } },
     { path: '/', component: { template: '<div>Root</div>' } }
   ]
 });
@@ -46,11 +49,7 @@ describe('PlayerSupplement', () => {
     // Spy on setInterval to verify it's never called
     setIntervalSpy = vi.spyOn(global, 'setInterval').mockImplementation(() => 1 as any);
     // Set up window.__phlixRouter for the component
-    Object.defineProperty(window, '__phlixRouter', {
-      value: mockRouter,
-      writable: true,
-      configurable: true
-    });
+    setOverlayShared({ router: mockRouter as any });
   });
 
   afterEach(() => {
@@ -118,7 +117,7 @@ describe('PlayerSupplement', () => {
     await mockRouter.isReady();
 
     // Trigger the stored callback to simulate afterEach invocation
-    const toRoute = { params: { id: '456' } } as any;
+    const toRoute = { name: 'player', params: { id: '456' } } as any;
     afterEachCallbacks.forEach((cb) => cb(toRoute));
     await nextTick();
 
@@ -150,11 +149,7 @@ describe('PlayerSupplement', () => {
     // where boot() never runs and __phlixRouter is never defined.
     // When getPhlixRouter() returns undefined, afterEach is skipped (router?.afterEach
     // short-circuits) and unregisterRouter falls back to a no-op, so unmount is safe.
-    Object.defineProperty(window, '__phlixRouter', {
-      value: undefined,
-      writable: true,
-      configurable: true
-    });
+    setOverlayShared({});
 
     const wrapper = mount(PlayerSupplement, {
       global: {
@@ -167,5 +162,24 @@ describe('PlayerSupplement', () => {
     expect(wrapper.html()).toBe('');
     // Must not have fallen back to setInterval polling
     expect(setIntervalSpy).not.toHaveBeenCalled();
+  });
+
+  // WIN-36: gate on the route NAME, never params.id.
+  it('stays hidden on a non-player route that carries an :id param', async () => {
+    await mockRouter.push('/app/media/77');
+    const wrapper = mount(PlayerSupplement, { global: { stubs: { teleport: true }, plugins: [mockRouter] } });
+    expect(wrapper.html()).toBe('');
+    // ...and an afterEach to such a route does not flip it on
+    afterEachCallbacks.forEach((cb) => cb({ name: 'media', params: { id: '9' } } as any));
+    await nextTick();
+    expect(wrapper.html()).toBe('');
+  });
+
+  // WIN-6: boot parked on /player/:id fires no afterEach — active is seeded synchronously.
+  it('is active on the FIRST render when the router is already parked on the player route', async () => {
+    await mockRouter.push('/app/player/321');
+    const wrapper = mount(PlayerSupplement, { global: { stubs: { teleport: true }, plugins: [mockRouter] } });
+    // no nextTick, no afterEach callback fired
+    expect(wrapper.find('.sleep-timer-mock').exists()).toBe(true);
   });
 });

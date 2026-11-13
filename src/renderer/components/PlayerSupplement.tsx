@@ -10,23 +10,18 @@
  */
 
 import { defineComponent, ref, onUnmounted } from 'vue';
-import { useRoute, type RouteLocationNormalized } from 'vue-router';
+import { useRoute } from 'vue-router';
+import { getOverlayRouter } from '../overlayShared';
 import SleepTimer from './SleepTimer';
 import PiPButton from './PiPButton';
 
 /**
- * Retrieves the phlix-ui router that was exposed on the window object
- * by the main app during boot. This router carries the actual route definitions
- * including /app/player/:id, allowing this overlay to subscribe to navigation
- * events from the shared app.
- *
- * The router's afterEach callback receives vue-router's RouteLocationNormalized.
- * We only read the `params.id` field needed to detect player activation;
- * other route fields are intentionally ignored.
+ * WIN-36: the player route is identified by its route NAME ('player', the
+ * @phlix/ui route for /app/player/:id), never by the presence of params.id —
+ * any other route carrying an :id param (media detail, etc.) used to flip the
+ * overlay on.
  */
-function getPhlixRouter() {
-  return (window as unknown as { __phlixRouter?: { afterEach: (cb: (to: RouteLocationNormalized) => void) => () => void } }).__phlixRouter;
-}
+const PLAYER_ROUTE_NAME = 'player';
 
 /**
  * PlayerSupplement is a Vue component that renders all P3-S4 player overlays.
@@ -36,13 +31,16 @@ const PlayerSupplement = defineComponent({
   name: 'PlayerSupplement',
   setup() {
     const route = useRoute();
-    const active = ref(Boolean(route.params.id));
+    // The main app's router is resolved lazily here (per mount), so a re-boot's
+    // fresh router is always the one seen. Seed `active` SYNCHRONOUSLY from its
+    // currentRoute (WIN-6: boot parked on /player/:id fires no afterEach), then
+    // follow navigation. Falls back to the local route outside the shell.
+    const router = getOverlayRouter();
+    const seedName = router?.currentRoute?.value?.name ?? route?.name;
+    const active = ref(seedName === PLAYER_ROUTE_NAME);
 
-    // Subscribe to router navigation events to detect player route changes
-    // without polling window.location.pathname.
-    const router = getPhlixRouter();
     const unregisterRouter = router?.afterEach((to) => {
-      active.value = Boolean(to.params.id);
+      active.value = to.name === PLAYER_ROUTE_NAME;
     }) ?? (() => {});
 
     onUnmounted(() => {

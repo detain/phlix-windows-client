@@ -56,7 +56,7 @@ vi.mock('@/electronBridge', () => ({
 // that requires a DOM environment (window/location), which is not available
 // during main.test.ts module import before jsdom is fully initialized.
 // The overlay is tested in overlay.test.ts.
-vi.mock('@/overlay', () => ({}));
+vi.mock('@/overlay', () => ({ remount: vi.fn() }));
 
 type WindowLike = { electronAPI?: unknown };
 const getWindow = () => globalThis as unknown as { window: WindowLike };

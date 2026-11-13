@@ -31,6 +31,7 @@ import { messagesForLocale, resolveLocale } from './i18n';
 import { setWindowLocale, tWin } from './i18n/windows-own';
 import log from 'electron-log';
 import { installElectronBridge } from './electronBridge';
+import { setOverlayShared } from './overlayShared';
 import { SafeStorageTokenStore } from './safeStorageTokenStore';
 // M-WINDOWS-35: the shell's second SMTC installer import was removed here —
 // transport ownership belongs to the vendored @phlix/ui player store;
@@ -49,6 +50,24 @@ function cleanupRenderer(): void {
   _cleanupBridge = null;
   _cleanupDeeplink?.();
   _cleanupDeeplink = null;
+}
+
+/** True once ./overlay has been imported (its module-load mount ran for that boot). */
+let overlayLoaded = false;
+
+// WIN-38: teardown hooks live at MODULE scope, registered once. Registering
+// them inside boot() stacked a fresh beforeunload listener / HMR dispose per
+// (re-)boot, so cleanupRenderer ran N times on unload.
+// HMR dispose: clean up all renderer resources before Vite replaces the module.
+import.meta.hot?.dispose(() => {
+  cleanupRenderer();
+});
+// beforeunload mirrors it for non-HMR refreshes/navigation. Guard with typeof
+// to support test environments that don't provide addEventListener.
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+  window.addEventListener('beforeunload', () => {
+    cleanupRenderer();
+  });
 }
 
 /** The boot-time config this renderer hands to createPhlixApp (typed alias for the mirror below). */
@@ -747,16 +766,10 @@ export async function boot(): Promise<void> {
   // AFTER the vendored store's capability-gated mediaSession handlers and
   // clobbering them. Removed; the store owns the SMTC transport alone.
 
-  // Expose phlix-ui router so overlay components can subscribe to navigation events
-  // This is consumed by PlayerSupplement to detect player route changes without polling
+  // Hand the phlix-ui router to the overlay so it can subscribe to navigation
+  // events (module-local hand-off, WIN-48 — no window globals); published
+  // together with the pinia below, before the overlay is (re)mounted.
   const phlixRouter = app.config?.globalProperties?.$router;
-  if (phlixRouter) {
-    Object.defineProperty(window, '__phlixRouter', {
-      value: phlixRouter,
-      writable: false,
-      configurable: true
-    });
-  }
 
   // Flush deep link queue once router is ready
   const router = app.config?.globalProperties?.$router as { isReady?: () => Promise<void>; push: (to: string) => unknown } | undefined;
@@ -815,36 +828,21 @@ export async function boot(): Promise<void> {
   }
 
   // M1 (2026-11 review): the overlay second app must read the SAME pinia
-  // instance the vendored engine mutates. Exposed with the same window-
-  // global pattern as __phlixRouter above; overlay.tsx consumes it BEFORE
-  // its module-level app.use() so usePlayerStore() resolves the live stores.
-  // A fresh createPinia() there meant the PiP/sleep overlays watched a
-  // private, never-updating store copy — they never rendered in production.
+  // instance the vendored engine mutates (a fresh createPinia() there meant the
+  // PiP/sleep overlays watched a private, never-updating store copy). Handed
+  // over through ./overlayShared BEFORE the overlay builds its app.
   const phlixPinia = app.config?.globalProperties?.$pinia;
-  if (phlixPinia) {
-    Object.defineProperty(window, '__phlixPinia', {
-      value: phlixPinia,
-      writable: false,
-      configurable: true
-    });
-  }
+  setOverlayShared({ router: phlixRouter, pinia: phlixPinia });
 
   // Mount Vue overlay for P3-S4 player UX features (skip/sleep/PiP)
-  // Imported dynamically after Vue app mounts so the shared Pinia is exposed
-  void import('./overlay');
-
-  // HMR dispose hook: clean up all renderer resources before Vite replaces the module
-  import.meta.hot?.dispose(() => {
-    cleanupRenderer();
+  // Imported dynamically after Vue app mounts so the shared Pinia is exposed.
+  // The first import mounts at module load; the module is then cached, so every
+  // later boot must remount() it against the fresh pinia/router (WIN-7).
+  const overlayAlreadyLoaded = overlayLoaded;
+  overlayLoaded = true;
+  void import('./overlay').then((overlay) => {
+    if (overlayAlreadyLoaded) overlay.remount();
   });
-
-  // beforeunload cleanup: mirrors HMR dispose for non-HMR page refreshes/navigation
-  // Guard with typeof to support test environments (jsdom) that don't provide addEventListener
-  if (typeof window.addEventListener === 'function') {
-    window.addEventListener('beforeunload', () => {
-      cleanupRenderer();
-    });
-  }
 }
 
 // Auto-boot only when the mount target exists. Unit tests import this module for

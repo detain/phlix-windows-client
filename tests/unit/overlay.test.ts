@@ -161,7 +161,8 @@ describe('overlay entry point', () => {
     document.body.appendChild(root);
 
     const shared = { __pinia: 'shared-from-main-app' };
-    Object.defineProperty(window, '__phlixPinia', { value: shared, configurable: true });
+    const { setOverlayShared } = await import('@/overlayShared');
+    setOverlayShared({ pinia: shared as any });
 
     const piniaMod = await import('pinia');
     const createPiniaMock = piniaMod.createPinia as unknown as ReturnType<typeof vi.fn>;
@@ -174,7 +175,38 @@ describe('overlay entry point', () => {
     expect(createPiniaMock).not.toHaveBeenCalled();
 
     document.body.removeChild(root);
-    delete (window as unknown as { __phlixPinia?: unknown }).__phlixPinia;
+    setOverlayShared({});
+    vi.useRealTimers();
+  });
+
+  // WIN-7: the module is cached across boots; a second boot must remount()
+  // against the NEW pinia, unmounting the first instance.
+  it('remount() unmounts the live app and mounts a rebuilt one with the fresh pinia', async () => {
+    const root = document.createElement('div');
+    root.id = 'player-supplement-root';
+    document.body.appendChild(root);
+
+    const { setOverlayShared } = await import('@/overlayShared');
+    setOverlayShared({ pinia: { __pinia: 'boot-1' } as any });
+
+    vi.useFakeTimers();
+    const mod = await import('@/overlay');
+    vi.advanceTimersByTime(0);
+    expect(mockApp.mount).toHaveBeenCalledTimes(1);
+    expect(createApp).toHaveBeenCalledTimes(1);
+
+    const second = { __pinia: 'boot-2' };
+    setOverlayShared({ pinia: second as any });
+    mockApp.unmount = vi.fn();
+    mod.remount();
+
+    expect(mockApp.unmount).toHaveBeenCalledTimes(1);
+    expect(createApp).toHaveBeenCalledTimes(2);
+    expect(mockApp.use).toHaveBeenCalledWith(second);
+    expect(mockApp.mount).toHaveBeenCalledTimes(2);
+
+    setOverlayShared({});
+    document.body.removeChild(root);
     vi.useRealTimers();
   });
 });

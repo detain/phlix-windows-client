@@ -49,7 +49,7 @@ vi.mock('@/electronBridge', () => ({
 }));
 
 // Overlay needs full app context; irrelevant to the config seam.
-vi.mock('@/overlay', () => ({}));
+vi.mock('@/overlay', () => ({ remount: vi.fn() }));
 
 type WindowLike = { electronAPI?: unknown };
 const getWindow = () => globalThis as unknown as { window: WindowLike };
