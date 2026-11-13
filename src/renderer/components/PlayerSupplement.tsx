@@ -48,7 +48,7 @@ const PlayerSupplement = defineComponent({
 
     // WIN-51: the column sits above the player; during fullscreen / TV playback
     // it must not linger over the picture. The vendored player exposes no public
-    // control-visibility seam, so fade after IDLE_MS of pointer idle, reveal on
+    // control-visibility seam, so fade after OVERLAY_IDLE_MS of pointer idle, reveal on
     // pointer/touch movement, and keyboard focus summons it. Timer is a one-shot
     // setTimeout (never setInterval).
     const visible = ref(true);
