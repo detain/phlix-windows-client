@@ -19,7 +19,8 @@ phlix://<host>/<value>
 
 > Every target above is a route record that actually exists: `media`/`play`
 > ship inside the vendored `@phlix/ui` router (no literal `/play` route exists —
-> `phlix://play/{id}` maps to the player route `/app/player/{id}`), `accept-invite`/`server` are
+> `phlix://play/{id}` maps to the player route `/app/player/{id}`),
+> `accept-invite`/`server` are
 > hub-mode routes registered by this repo — but they register only while
 > hub mode runs, and hub mode is not enterable in the shipped build
 > (`hub:set-config` has zero callers, no upstream connection form; see

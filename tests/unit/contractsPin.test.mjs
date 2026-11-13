@@ -138,6 +138,9 @@ describe('ui v0.99.9 re-pin carried through v0.99.10, the contracts v0.5.4 + ui 
   // holds — the @v0.5.2 waiver stays retired per its own written law (fired at v0.99.9), map
   // present-but-empty ever since. npm dedupes ui's edges onto the single hoisted 0.5.7 copy (no
   // nested node in the lock, no nested dir on disk).
+  // Era note (ui v0.99.28, 2026-11-12; catalog 566->650 keys): the .28 re-vendor moved the locale
+  // tree but NOT the contracts edge - ui v0.99.28 still requested `#v0.5.7` while the root had
+  // already moved to `#v0.5.8` (the brief divergence era, closed at the ui v1.0.0 re-pin).
   // Fail-loud on every face of the new truth, BOTH directions: FALSELY-DIVERGENT —
   // root and ui lock lines hand-edited apart while the installed manifest agrees;
   // STALE-DRIFT — ui's words changing from `#v0.5.7` without a live waiver (the

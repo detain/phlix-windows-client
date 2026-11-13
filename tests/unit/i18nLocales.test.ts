@@ -318,6 +318,12 @@ describe('ui bundles — key-set identity and installed coverage', () => {
     // emptyTitle, emptyDescription}) — and the re-vendor at the 1f906979 peel put BOTH
     // sides at 566 flattened keys (esbuild-methodology counters, calibrated against the
     // registered 542).
+    // At v0.99.28 (2026-11-12, the shell/avatar/palette consumer wave) the tree moved a TENTH
+    // time: locales tree 72f38393→0180244f, messages.ts 8ba3d1c4→ddfce348, index.ts held,
+    // 566→650 flattened keys (+85 adds across shell, profiles.avatar*, palette, invite,
+    // itemActions, browse, playlist, sessions; -1: syncplay.privateRoom removed), and the
+    // re-vendor at the dfe8fc65 peel put BOTH sides at 650. The v1.0.0 re-pin (2026-11-13) was
+    // a hold: dfe8fc65..5901e055 touches no locale file, so the counters stay at 650.
     // The relation stays exact set equality in BOTH directions (installed ⊆ bundle
     // is separately pinned above; this pins bundle ⊆ installed and, with it,
     // the empty extras set). The seven keys are additionally pinned present
