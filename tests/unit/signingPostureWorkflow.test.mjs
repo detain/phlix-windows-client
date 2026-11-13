@@ -130,11 +130,15 @@ describe('M-WINDOWS-08 signing posture is told honestly (docs + release bodies)'
   });
 
   it('the rolling "latest" release body discloses the unsigned posture (structural, not comment-masked)', () => {
-    const step = jobSteps('release-latest').find(
-      (s) => String(s.uses ?? '').startsWith('softprops/action-gh-release') && s.with?.tag_name === 'latest'
-    );
-    if (!step) throw new Error("release-latest job has no softprops step publishing tag 'latest'");
-    const body = String(step.with?.body ?? '');
+    // WIN-S13: the rolling release is published by `gh release create` from a
+    // notes file written by an earlier step (so nothing fallible sits between
+    // delete and create). The disclosure lives in that notes step's script.
+    const steps = jobSteps('release-latest');
+    const notesStep = steps.find((s) => /release-notes\.md/.test(String(s.run ?? '')) && /cat > release-notes\.md/.test(String(s.run ?? '')));
+    if (!notesStep) throw new Error('release-latest job has no step writing release-notes.md');
+    const publishStep = steps.find((s) => /gh release create latest[\s\S]*--notes-file release-notes\.md/.test(String(s.run ?? '')));
+    if (!publishStep) throw new Error("release-latest job has no step publishing tag 'latest' from release-notes.md");
+    const body = String(notesStep.run ?? '');
     expect(body.toLowerCase()).toContain('unsigned');
     expect(body).toMatch(/SmartScreen|verify/i);
   });

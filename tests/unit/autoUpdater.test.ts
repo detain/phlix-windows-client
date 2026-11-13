@@ -481,7 +481,7 @@ describe('WIN-8: manual-check dialog fallback for an available update', () => {
       await ipcHandler('update:check-for-updates')(trustedSender());
       await new Promise((r) => setTimeout(r, 0));
       expect(showMessageBox).toHaveBeenCalledTimes(1);
-      const opts = showMessageBox.mock.calls[0].at(-1) as { message: string; buttons: string[] };
+      const opts = (showMessageBox.mock.calls[0] as any[]).slice(-1)[0] as { message: string; buttons: string[] };
       expect(opts.message).toBe('Phlix 3.0.0 is available.');
       expect(opts.message).not.toContain('Click to download');
       expect(opts.buttons).toEqual(['Download', 'Later']);
