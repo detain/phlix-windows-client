@@ -49,7 +49,7 @@ CI runs on fork PRs, with two honest caveats:
   posture, packaging). Fixes that belong upstream should be filed against that
   package instead of patching `node_modules` or any vendored copy — vendored
   bundles are never hand-edited here.
-- Auth tokens custody: renderer tokens are sealed via DPAPI/safeStorage
+- Auth token custody: renderer tokens are sealed via DPAPI/safeStorage
   (`src/renderer/safeStorageTokenStore.ts` ↔ main-process vault handlers); keep it
   that way in any auth-adjacent change.
 

@@ -13,29 +13,29 @@ Process* below).
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    MAIN PROCESS                          │
-│  - Window management                                     │
-│  - System tray                                           │
-│  - Native menus                                          │
-│  - IPC handlers (incl. app:get/set-server-url,           │
-│    app:get-device-id, hub:get/set-config)                │
-│  - App lifecycle                                         │
+│                    MAIN PROCESS                         │
+│  - Window management                                    │
+│  - System tray                                          │
+│  - Native menus                                         │
+│  - IPC handlers (incl. app:get/set-server-url,          │
+│    app:get-device-id, hub:get/set-config)               │
+│  - App lifecycle                                        │
 └─────────────────────────────────────────────────────────┘
                            │
                     contextBridge
                     (preload/index.ts)
                            │
 ┌─────────────────────────────────────────────────────────┐
-│                   RENDERER PROCESS                        │
-│  boot() (main.ts)                                        │
-│    ├─ resolveAppConfig()  → app-mode + apiBase           │
-│    ├─ buildPhlixHeaders()  (@phlix/contracts)            │
-│    ├─ createPhlixApp(config)  (@phlix/ui: Vue 3 +        │
-│    │     Pinia + vue-router — the entire UI)             │
-│    ├─ app.mount('#phlix-app')                            │
-│    └─ installElectronBridge(app)                         │
-│         └─ Electron media/window IPC → usePlayerStore    │
-│            + router                                      │
+│                   RENDERER PROCESS                      │
+│  boot() (main.ts)                                       │
+│    ├─ resolveAppConfig()  → app-mode + apiBase          │
+│    ├─ buildPhlixHeaders()  (@phlix/contracts)           │
+│    ├─ createPhlixApp(config)  (@phlix/ui: Vue 3 +       │
+│    │     Pinia + vue-router — the entire UI)            │
+│    ├─ app.mount('#phlix-app')                           │
+│    └─ installElectronBridge(app)                        │
+│         └─ Electron media/window IPC → usePlayerStore   │
+│            + router                                     │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -269,7 +269,7 @@ npm test -- --coverage
 ### Test Structure
 
 Tests use Vitest (`jsdom`, `@vitejs/plugin-vue`) with TypeScript. The suite has grown
-far past its three-file origin: 80 files in `tests/unit/` (~1043 tests as of 2026-11-08 —
+far past its three-file origin: 84 test files in `tests/` (~1154 tests as of 2026-11-12 —
 `npx vitest run --reporter=verbose` is the source of truth, do not trust any count
 written here long-term) plus one Playwright smoke spec (`tests/smoke/boot.spec.ts`,
 CI-gated on real Electron). The original trio:

@@ -122,7 +122,7 @@ the SHA column is the pushed commit each run tested.
 - **test** (ubuntu-26.04 + windows-2025 matrix): `npm ci` → `npm run build` → `npm test` → `npm test -- --coverage` + Codecov/Codacy upload → `node scripts/audit-gate.mjs` (audit runs LAST — a red earlier step can never skip the audit signal, and the audit's own raw exit code still hard-gates the job)
 - **smoke** (ubuntu-26.04 + windows-2025 matrix): `npm ci` → Playwright install → `npm run build` → `npm run smoke` (with xvfb-run on Linux)
 
-### build.yml — Runs on push to master with tags, PRs to master (src/** changes)
+### build.yml — Runs on push to master (and `v*.*.*` tags) and on PRs to master
 - **lint** (ubuntu-26.04): `npm ci` → `npm run lint`
 - **typecheck** (ubuntu-26.04): `npm ci` → `vue-tsc --noEmit` → `tsc -p tsconfig.main.json --noEmit` → `vue-tsc --noEmit -p tsconfig.test.json`
 - **test** (ubuntu-26.04): `npm ci` → `npm run build` → `npm test`
@@ -130,7 +130,7 @@ the SHA column is the pushed commit each run tested.
 - **build** (windows-2025, needs: [lint, typecheck, test, smoke, audit]): `npm ci` → `node scripts/check-assets.mjs` → `npm run build:vite` → `npm run build:electron` → electron-builder (NSIS + APPX)
 - **release-latest** / **release** (on tag push or master push)
 
-### codeql.yml — Runs on every push/PR to master (src/** changes; w08/L2 master-only like the rest)
+### codeql.yml — Runs on push/PR to master touching `src/**` or `.github/workflows/codeql.yml` itself (w08/L2 master-only like the rest)
 - **analyze** (ubuntu-26.04): `npm ci` → `node scripts/check-assets.mjs` → `npm run build:vite` + `npm run build:electron` → CodeQL `security-extended` analysis
 
 ## Notes

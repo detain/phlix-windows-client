@@ -33,7 +33,7 @@ as "[[Phlix Media Server] Client] for Windows", and only humans should parse pro
 - **Video Player** - Full-featured video playback with controls
 - **System Tray Integration** - Minimize to tray with media controls
 - **Native Menus** - Full application menu with keyboard shortcuts
-- **Media Key Support** - Media key support via thumbar buttons and tray/menu keyboard accelerators (Play/Pause, Stop, Rewind/Forward 10s bridged into the player)
+- **Media Keys** - Thumbar buttons and tray/menu transport entries (Play/Pause, Stop, Rewind/Forward 10s) routed into the player
 - **Authentication** - Secure login with session persistence (handled by `@phlix/ui`)
 - **Shared UI** - Modern Vue 3 interface from `@phlix/ui` with the Nocturne theme (deliberate default — the client does not follow the OS dark/light preference; one consistent look across every launch is the estate-wide brand posture. Change it any time in Settings, which persists to your server profile)
 - **Settings Management** - Configurable preferences including minimize-to-tray behavior and a desktop-notifications toggle (View menu or tray menu)
@@ -280,7 +280,7 @@ For development:
    > userconfig before rerunning. CI installs on the Node 24 bundled npm.
 
    > Behind a restrictive firewall/proxy? `npm install` downloads the prebuilt
-   > Electron binary (~110 MB) from GitHub release objects — the single longest
+   > Electron binary (~110 MiB) from GitHub release objects — the single longest
    > step of a source install (CI budgets ~10 min for it). Point it at a mirror
    > with `$env:ELECTRON_MIRROR = 'https://npmmirror.com/mirrors/electron/'`
    > (PowerShell) before installing, and give npm its proxy the usual way
