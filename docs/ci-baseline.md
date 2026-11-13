@@ -122,7 +122,7 @@ the SHA column is the pushed commit each run tested.
 - **test** (ubuntu-26.04 + windows-2025 matrix): `npm ci` → `npm run build` → `npm test` → `npm test -- --coverage` + Codecov/Codacy upload → `node scripts/audit-gate.mjs` (audit runs LAST — a red earlier step can never skip the audit signal, and the audit's own raw exit code still hard-gates the job)
 - **smoke** (ubuntu-26.04 + windows-2025 matrix): `npm ci` → Playwright install → `npm run build` → `npm run smoke` (with xvfb-run on Linux)
 
-### build.yml — Runs on push to master (and `v*.*.*` tags) and on PRs to master
+### build.yml — Runs on push to master (and `v*.*.*` tags) and on PRs to master (PRs path-filtered: src/**, package.json, build.yml)
 - **lint** (ubuntu-26.04): `npm ci` → `npm run lint`
 - **typecheck** (ubuntu-26.04): `npm ci` → `vue-tsc --noEmit` → `tsc -p tsconfig.main.json --noEmit` → `vue-tsc --noEmit -p tsconfig.test.json`
 - **test** (ubuntu-26.04): `npm ci` → `npm run build` → `npm test`
