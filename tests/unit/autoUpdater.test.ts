@@ -50,6 +50,14 @@ vi.mock('electron-log', () => ({
   }
 }));
 
+// electron-store@12 refuses to construct outside an Electron process (the old
+// v8 tolerated the mocked electron module); stub it like the sibling suites.
+vi.mock('electron-store', () => ({
+  default: vi.fn(function () {
+    return { get: vi.fn((_key: string, fallback?: unknown) => fallback), set: vi.fn() };
+  })
+}));
+
 vi.mock('electron-updater', () => ({
   autoUpdater: mockAutoUpdater
 }));

@@ -375,7 +375,7 @@ const store = new Store<{
   disableHardwareAcceleration: boolean;
   hubUrl?: string | null;
   activeServerId?: string | null;
-  connectionMode?: string;
+  connectionMode?: string | null;
   serverUrl?: string | null;
   deviceId?: string;
   notificationsEnabled?: boolean;

@@ -81,14 +81,14 @@
   },
   "dependencies": {
     "electron-log": "^5.0.0",
-    "electron-store": "^8.1.0",
+    "electron-store": "^12.0.0",
     "electron-updater": "^6.8.11"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@phlix/contracts": "github:detain/phlix-contracts#v0.5.8",
     "@phlix/ui": "github:detain/phlix-ui#v1.0.0",
-    "@playwright/test": "^1.65.0",
+    "@playwright/test": "^1.65.1",
     "@vitejs/plugin-vue": "^6.0.11",
     "@vitejs/plugin-vue-jsx": "^5.1.6",
     "@vitest/coverage-v8": "^5.1.0",
@@ -97,7 +97,7 @@
     "concurrently": "^10.0.7",
     "electron": "^45.3.2",
     "electron-builder": "^26.18.0",
-    "eslint": "^10.14.0",
+    "eslint": "^10.15.0",
     "eslint-plugin-vue": "^10.12.1",
     "globals": "^17.14.0",
     "js-yaml": "^5.5.0",
