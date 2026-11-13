@@ -18,8 +18,8 @@ phlix://<host>/<value>
 | `server` | `/app/server/{id}` | `phlix://server/abc123` | Navigate to a server |
 
 > Every target above is a route record that actually exists: `media`/`play`
-> ship inside the vendored `@phlix/ui` router (there is no `/play/:id`
-> record — playback is the player route), `accept-invite`/`server` are
+> ship inside the vendored `@phlix/ui` router (no literal `/play` route exists —
+> `phlix://play/{id}` maps to the player route `/app/player/{id}`), `accept-invite`/`server` are
 > hub-mode routes registered by this repo — but they register only while
 > hub mode runs, and hub mode is not enterable in the shipped build
 > (`hub:set-config` has zero callers, no upstream connection form; see
@@ -55,7 +55,16 @@ phlix://<host>/<value>
 3. **Value**: Must not be empty and must match the required format for that host
 4. **Security**: Path traversal attempts (`../`), null byte injection, and other suspicious patterns are rejected and logged
 
-All rejections are logged with `[deeplink]` prefix at warn level — and logging is not the only surface [M-WINDOWS-15]: a link the app received but could not route is also shown to the user. Each delivery (drain) pass that hits one or more rejections raises exactly ONE warning dialog ("Could Not Open Link"; title and message are localized from the main-process catalog, all 7 locales) for the first rejected link of that pass — never a modal pile-up, while every individual rejection keeps its own log line. The dialog's detail line carries only the REDACTED form of the link: query strings and fragments are dropped, and an `accept-invite` path segment renders as `[redacted]`, because a malformed invite candidate may still contain a live one-time token. Valid links never trigger this dialog.
+All rejections are logged with `[deeplink]` prefix at warn level — and logging is not the only surface [M-WINDOWS-15]: a link the app received but could not route is also shown to the user. Each delivery (drain) pass that hits one or more rejections raises exactly ONE warning dialog ("Could Not Open Link"; title and message are localized from the main-process catalog, all 7 locales) for the first rejected link of that pass — never a modal pile-up, while every individual rejection keeps its own log line. The dialog's detail line carries only the REDACTED form of the link: query strings and fragments are dropped, and an `accept-invite` path segment renders as `[redacted]`, because a malformed invite candidate may still contain a live one-time token. Valid links never trigger this dialog. The dialog is itself throttled: `deepLinkRejectSurface` allows at most 30 rejection dialogs per 60 s (`src/main/index.ts:104`, `:249`); past that budget each rejection keeps only its redacted log line.
+
+### Flood control
+
+Deep-link arrival is bounded so a flood of `phlix://` links can neither pile up memory nor farm dialogs (MW-121; `src/main/index.ts:91-134`, `:249`, `:263`):
+
+- **Pending queue cap** — `MAX_PENDING_DEEPLINKS = 32`. Over-cap links are dropped at the door (never queued); each drop keeps a redacted log line.
+- **Delivery gate** — `deepLinkDeliveryGate` (30 links per 60 s) rate-limits delivery to the renderer; rate-dropped links are not delivered.
+- **Drop surface** — rate drops and door-dropped overflow share one dialog per minute (`deepLinkDropSurface`, limit 1 per 60 s). Its detail line shows only the redacted link form (query/fragment dropped; `accept-invite` segment as `[redacted]`).
+- **Reject surface** — see above: a separate 30/min budget (`deepLinkRejectSurface`) so reject-surfacing never consumes a delivery-gate grant.
 
 ## Arrival Paths
 

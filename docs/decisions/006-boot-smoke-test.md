@@ -6,7 +6,7 @@ Two P0 defects reached published artifacts: (1) preload script was written to a 
 
 ## Decision
 
-Added smoke test (`npm run smoke`) that launches Electron in a VM and asserts:
+Added smoke test (`npm run smoke`) that launches Electron on CI runners (ubuntu + windows) and asserts:
 
 1. Window opens
 2. Tray icon appears
@@ -15,4 +15,4 @@ Added smoke test (`npm run smoke`) that launches Electron in a VM and asserts:
 
 ## Consequences
 
-Any future regression in the boot sequence will fail CI before packaging. The smoke test cannot run in a headless environment without Xvfb — it is gated to Linux CI with `xvfb-run`.
+Any future regression in the boot sequence will fail CI before packaging. The smoke test cannot run in a headless environment without Xvfb — it runs on the ubuntu-26.04 + windows-2025 smoke matrix (`.github/workflows/test.yml`, `build.yml`): Linux under `xvfb-run`, Windows natively.

@@ -44,7 +44,7 @@ CI runs on fork PRs, with two honest caveats:
 ## Scope notes
 
 - This client targets **Windows 10/11 x64** only.
-- UI shell behavior (pages, stores, syncplay protocol handling) lives upstream in
+- Shared-ui behavior (pages, stores, syncplay protocol handling) lives upstream in
   **`@phlix/ui`**; this repo is the desktop shell (windowing, tray, IPC, security
   posture, packaging). Fixes that belong upstream should be filed against that
   package instead of patching `node_modules` or any vendored copy — vendored
