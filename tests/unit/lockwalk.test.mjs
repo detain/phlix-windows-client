@@ -113,7 +113,7 @@ const pkg = readRepoJson('package.json');
 // The hoisted contracts node's honest version at the v0.5.7 pin (field re-normalized
 // at v0.5.2 by ac669ca and carried through v0.5.3 through v0.5.7 — the manifestVersion override era
 // is over; see contractsPin.test.mjs).
-const CONTRACTS_HONEST_VERSION = '0.5.7';
+const CONTRACTS_HONEST_VERSION = '0.5.8';
 
 describe('S450 — lockwalk: resolutions match requested github-tag pins', () => {
   it('is the S450 lane guard', () => {
@@ -215,14 +215,14 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
       const rv = findings.filter((f) => f.startsWith('request-vs-resolved:'));
       // Root requests #v0.5.7: plain rule 1 (no override — the wanted version reads
       // 0.5.7 straight off the tag).
-      const rootEdge = rv.find((f) => f.includes('(root) requests @phlix/contracts#v0.5.7'));
+      const rootEdge = rv.find((f) => f.includes('(root) requests @phlix/contracts#v0.5.8'));
       expect(rootEdge).toBeDefined();
       if (edit.version === CONTRACTS_HONEST_VERSION) {
         // Case (c): sha-only drift under the honest version — the peel naming fires.
-        expect(rootEdge).toContain('not the pinned v0.5.7 peel bedfe69beb1b971756f4814d76ae36cb2c8e630d');
+        expect(rootEdge).toContain('not the pinned v0.5.8 peel e5a33809e9659ab40325aae4e92411b464ddbcd7');
       } else {
         // Cases (a)/(b): wrong version line — rule 1 names the tag-derived truth.
-        expect(rootEdge).toContain('pinned version line reads 0.5.7');
+        expect(rootEdge).toContain('pinned version line reads 0.5.8');
       }
       // ui requests the SAME #v0.5.7 words since the contracts v0.5.7 + ui v0.99.25
       // together-move — the edge rode `#v0.5.6` through the ui v0.99.16 re-pin (its own tag
@@ -237,16 +237,13 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
       // node_modules/@phlix/ui/package.json) — the identical
       // rule-1 edge must light on the ui edge too (mutating the single hoisted node
       // provably reds both requesters).
-      const uiEdge = rv.find((f) => f.includes('node_modules/@phlix/ui requests @phlix/contracts#v0.5.7'));
+      // The ui edge still requests `#v0.5.7` (ui v0.99.28's manifest) and is ratified by the exact-match
+      // RATIFIED_HOISTS waiver, so drift surfaces as ratified-hoist-drift rather than rule 1.
+      expect(rv.find((f) => f.includes('node_modules/@phlix/ui requests @phlix/contracts#v0.5.7'))).toBeUndefined();
+      const uiEdge = findings.find(
+        (f) => f.startsWith('ratified-hoist-drift:') && f.includes('node_modules/@phlix/ui requests @phlix/contracts#v0.5.7'),
+      );
       expect(uiEdge).toBeDefined();
-      if (edit.version === CONTRACTS_HONEST_VERSION) {
-        expect(uiEdge).toContain('not the pinned v0.5.7 peel bedfe69beb1b971756f4814d76ae36cb2c8e630d');
-      } else {
-        expect(uiEdge).toContain('pinned version line reads 0.5.7');
-      }
-      // The waiver map is empty — a ratified-hoist finding can never be produced in
-      // the equality era (dead-waiver-silent law).
-      expect(findings.some((f) => f.startsWith('ratified-hoist-drift:'))).toBe(false);
     }
   });
 
@@ -333,7 +330,7 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
 });
 
 describe('ui v0.99.9 re-pin carried through v0.99.10, the contracts v0.5.4 + ui v0.99.12 re-pin, the ui v0.99.13 re-pin, the contracts v0.5.5 + ui v0.99.14 cascade, the ui v0.99.15 gate-3 wave, the contracts v0.5.6 + ui v0.99.16 wave-5 cascade, the ui v0.99.17 re-pin, the ui v0.99.19 re-pin, the ui v0.99.20 re-pin, the ui v0.99.21 re-pin, the ui v0.99.22 re-pin, the contracts v0.5.7 + ui v0.99.25 wave, the ui v0.99.26 re-pin, and the ui v0.99.27 re-pin, and the ui v0.99.28 re-pin (WIN-S31, 2026-11-12; contracts HELD at #v0.5.7) — the waiver era stays over: zero ratified hoists, byte-equality holds', () => {
-  it('RATIFIED_HOISTS is empty: the written law fired its retirement condition a fourth time and equality has carried since', () => {
+  it('RATIFIED_HOISTS carries exactly one exact-match waiver: ui #v0.5.7 over the hoisted 0.5.8 copy (contracts v0.5.8 re-pin, 2026-11-13 — the divergence era returns; the earlier retirements are history)', () => {
     // The divergence era that opened at the contracts v0.5.3 re-pin (2026-10-01) ENDED
     // at the ui v0.99.9 re-pin (2026-10-03): ui v0.99.9 requests the direct pin
     // `#v0.5.3` outright (measured via git show at cc931723), satisfying the waiver's
@@ -388,11 +385,16 @@ describe('ui v0.99.9 re-pin carried through v0.99.10, the contracts v0.5.4 + ui 
     // the steady-state monument of the equality eras (this retirement has now fired four
     // times: v0.4.5-era → v0.99.2, v0.4.7-era → v0.99.6…v0.99.7, v0.5.2-edge era → the
     // @v0.5.2 waiver's retirement here at v0.99.9).
-    expect(RATIFIED_HOISTS).toEqual({});
-    expect(Object.keys(RATIFIED_HOISTS)).toEqual([]);
+    expect(RATIFIED_HOISTS).toEqual({
+      'node_modules/@phlix/ui>@phlix/contracts@v0.5.7': {
+        version: '0.5.8',
+        sha: 'e5a33809e9659ab40325aae4e92411b464ddbcd7',
+      },
+    });
+    expect(Object.keys(RATIFIED_HOISTS)).toHaveLength(1);
   });
 
-  it('dead exception keys stay dead, the ui contracts line is byte-pinned to root (#v0.5.7, equality carried), the ui override stays retired, and the walk is clean', () => {
+  it('dead exception keys stay dead, the ui contracts line is byte-pinned to its own manifest words (#v0.5.7, NOT equal to root #v0.5.8), the ui override stays retired, and the walk is clean', () => {
     // Mutation-proof in BOTH directions on the ui→contracts edge: the older divergence
     // words (#v0.4.5, #v0.4.7, #v0.5.1) and the last-live waiver key (@v0.5.2) must
     // never silently return as live map keys. ui's request is now byte-IDENTICAL to the
@@ -412,9 +414,10 @@ describe('ui v0.99.9 re-pin carried through v0.99.10, the contracts v0.5.4 + ui 
     expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.4.7']).toBeUndefined();
     expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.5.1']).toBeUndefined();
     expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.5.2']).toBeUndefined();
+    expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.5.7']).toBeDefined();
     const ui = lock.packages['node_modules/@phlix/ui'];
     expect(ui.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.5.7');
-    expect(ui.dependencies['@phlix/contracts']).toBe(pkg.devDependencies['@phlix/contracts']);
+    expect(ui.dependencies['@phlix/contracts']).not.toBe(pkg.devDependencies['@phlix/contracts']);
     const uiRow = EXPECTED['@phlix/ui'];
     expect(uiRow.tag).toBe('v0.99.28');
     expect(uiRow.sha).toBe('dfe8fc6586e41728b4dcdc1a22a2bf8d19e74e01');

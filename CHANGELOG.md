@@ -9,6 +9,12 @@ historical entries are preserved verbatim.
 
 ## [Unreleased]
 
+### Chore — CTR-S14 cascade: re-pin `@phlix/contracts` `#v0.5.7` → `#v0.5.8` — 2026-11-13
+
+- **Scope:** tag obj `9be24a33`, peel `e5a33809`; `@phlix/ui` HELD at `#v0.99.28`. Lock rotated via `npm install --package-lock-only` (version `0.5.8`, resolved peel `e5a33809`).
+- **Divergence era returns:** ui v0.99.28's manifest still requests contracts `#v0.5.7`, so `RATIFIED_HOISTS` re-adds the exact-match waiver `node_modules/@phlix/ui>@phlix/contracts@v0.5.7` (0.5.8@e5a33809; npm deduped, no nested copy). It dies when a ui tag requests `#v0.5.8`-or-newer. Error-code census HELD at 205 (md5 `5d1783a7`).
+- **Tests:** `contractsPin` / `lockwalk` rotated to the new pin and divergence-era law (no gate weakened).
+
 ### Chore — .28 consumer wave (WIN-S31): re-pin `@phlix/ui` `#v0.99.27` → `#v0.99.28` + REAL locale re-vendor (566→650, tenth genuine move) — 2026-11-12
 
 - **Scope:** tag obj `29b6a8c5`, peel `dfe8fc65`; contracts HELD at `#v0.5.7` (ui .28 manifest still requests it), equality era carried, zero ratified hoists, audit allowlist untouched.

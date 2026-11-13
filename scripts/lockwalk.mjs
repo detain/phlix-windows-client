@@ -241,8 +241,13 @@ const NESTED_NODE_RE = /\/node_modules\/@phlix\/[\w-]+$/;
 //                                         ui->syncplay request rides `#v0.1.7` unchanged from v0.99.15.)
 export const EXPECTED = {
   '@phlix/contracts': {
-    tag: 'v0.5.7',
-    sha: 'bedfe69beb1b971756f4814d76ae36cb2c8e630d',
+    tag: 'v0.5.8',
+    sha: 'e5a33809e9659ab40325aae4e92411b464ddbcd7',
+    // v0.5.8 re-pin (2026-11-13, CTR-S14 cascade, ui HELD at v0.99.28): the honest-field era carries
+    // (reads 0.5.8 at e5a33809; the manifestVersion override stays RETIRED), so this row walks the
+    // plain tag-derived version. ui v0.99.28's own manifest STILL requests `#v0.5.7`, so the
+    // ui->contracts edge diverges from root again and is ratified in RATIFIED_HOISTS below.
+    // PRIOR ROW — v0.5.7 (peel bedfe69b):
     // v0.5.7 re-pin (2026-11-09, the .25 consumer wave — ui v0.99.25's own manifest requests
     // `#v0.5.7`, so BOTH pins advance together and byte-equality holds): the trio HELD
     // byte-identically across v0.5.6→v0.5.7 (error-codes 5d1783a71a3c4e12... 205 codes,
@@ -565,7 +570,18 @@ export const EXPECTED = {
 // root's contracts pin UNMOVED, the SEVENTEENTH straight equality-era move, both edges ride plain
 // rule 1 onto the one hoisted 0.5.7@bedfe69b copy, and the syncplay edge rides ui's unchanged
 // `#v0.1.7` request. Zero ratified hoists on all four edges; the walker measures green.
-export const RATIFIED_HOISTS = {};
+// RE-ADDED at the contracts v0.5.8 re-pin (2026-11-13, CTR-S14 cascade): the direct pin advanced to
+// `#v0.5.8` while the INSTALLED ui v0.99.28 still requests `#v0.5.7` (measured via git show at
+// dfe8fc65 AND off the installed node_modules/@phlix/ui/package.json). Fresh exact-match entry under
+// the same law — version AND sha of the hoisted 0.5.8@e5a33809 copy; npm 11.19.1 observed dedupe (no
+// nested node in the lock, no nested dir on disk). It dies when a ui tag requests `#v0.5.8`-or-newer
+// outright.
+export const RATIFIED_HOISTS = {
+  'node_modules/@phlix/ui>@phlix/contracts@v0.5.7': {
+    version: '0.5.8',
+    sha: 'e5a33809e9659ab40325aae4e92411b464ddbcd7',
+  },
+};
 
 export function readRepoJson(name) {
   return JSON.parse(readFileSync(fileURLToPath(new URL(`../${name}`, import.meta.url)), 'utf8'));

@@ -69,10 +69,10 @@ const LANE_TOKEN = 'S442WINDOWSPINX5V2';
 // condition — and v0.5.3 through v0.5.7 CARRY the honest field (reads 0.5.7 at bedfe69b, measured via
 // git show), so npm writes version 0.5.7 in the lock with no override.
 // The identity proof remains the `resolved` peel sha.
-const EXPECTED_CONTRACTS_RANGE = 'github:detain/phlix-contracts#v0.5.7';
+const EXPECTED_CONTRACTS_RANGE = 'github:detain/phlix-contracts#v0.5.8';
 const EXPECTED_CONTRACTS_RESOLVED =
-  'git+ssh://git@github.com/detain/phlix-contracts.git#bedfe69beb1b971756f4814d76ae36cb2c8e630d';
-const EXPECTED_CONTRACTS_VERSION = '0.5.7';
+  'git+ssh://git@github.com/detain/phlix-contracts.git#e5a33809e9659ab40325aae4e92411b464ddbcd7';
+const EXPECTED_CONTRACTS_VERSION = '0.5.8';
 
 const root = new URL('../../', import.meta.url);
 const readJson = (rel) => JSON.parse(readFileSync(fileURLToPath(new URL(rel, root)), 'utf8'));
@@ -85,7 +85,7 @@ describe('S442 — @phlix/contracts direct pin is current', () => {
     expect(LANE_TOKEN).toMatch(/^S442/);
   });
 
-  it('declares the v0.5.7 tag in package.json', () => {
+  it('declares the v0.5.8 tag in package.json', () => {
     expect(pkg.devDependencies['@phlix/contracts']).toBe(EXPECTED_CONTRACTS_RANGE);
   });
 
@@ -93,7 +93,7 @@ describe('S442 — @phlix/contracts direct pin is current', () => {
     expect(lock.packages[''].devDependencies['@phlix/contracts']).toBe(EXPECTED_CONTRACTS_RANGE);
   });
 
-  it('resolves the hoisted @phlix/contracts to the v0.5.7 target, not a drifted commit', () => {
+  it('resolves the hoisted @phlix/contracts to the v0.5.8 target, not a drifted commit', () => {
     const entry = lock.packages['node_modules/@phlix/contracts'];
     expect(entry.version).toBe(EXPECTED_CONTRACTS_VERSION);
     expect(entry.resolved).toBe(EXPECTED_CONTRACTS_RESOLVED);
@@ -104,8 +104,8 @@ describe('S442 — @phlix/contracts direct pin is current', () => {
     // bedfe69b). Rule 1 checks this row against the plain tag-derived version; a
     // hand-revived override goes red here.
     const contracts = EXPECTED['@phlix/contracts'];
-    expect(contracts.tag).toBe('v0.5.7');
-    expect(contracts.sha).toBe('bedfe69beb1b971756f4814d76ae36cb2c8e630d');
+    expect(contracts.tag).toBe('v0.5.8');
+    expect(contracts.sha).toBe('e5a33809e9659ab40325aae4e92411b464ddbcd7');
     expect(contracts.manifestVersion).toBeUndefined();
   });
 });
@@ -142,14 +142,16 @@ describe('ui v0.99.9 re-pin carried through v0.99.10, the contracts v0.5.4 + ui 
   // root and ui lock lines hand-edited apart while the installed manifest agrees;
   // STALE-DRIFT — ui's words changing from `#v0.5.7` without a live waiver (the
   // installed tree is the independent witness).
-  it("keeps ui's lock-declared contracts request byte-pinned to its manifest's #v0.5.7 words — EQUAL to root", () => {
+  it("keeps ui's lock-declared contracts request byte-pinned to its manifest's #v0.5.7 words — NOT equal to root (v0.5.8 divergence era)", () => {
     const ui = lock.packages['node_modules/@phlix/ui'];
     expect(ui.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.5.7');
     // Equality era (carried since v0.99.9, re-confirmed at this move): ui declares the identical
     // words to the root pin — the divergence-era .not.toBe law stays flipped back to .toBe, and
     // a hand-split of the two lines (or a ui downgrade to a pre-#v0.5.7-era tag without
     // re-ratifying a waiver) goes red on both lines until this file is re-measured.
-    expect(ui.dependencies['@phlix/contracts']).toBe(pkg.devDependencies['@phlix/contracts']);
+    // Divergence era (contracts v0.5.8 re-pin, 2026-11-13): root moved to #v0.5.8 while ui v0.99.28 still
+    // requests #v0.5.7 — the lines differ and the exact-match waiver below ratifies the hoist.
+    expect(ui.dependencies['@phlix/contracts']).not.toBe(pkg.devDependencies['@phlix/contracts']);
     // The installed tree independently proves the lock line is the manifest's verbatim
     // words, not a hand-edit: falsifying either tag here trips this witness.
     const installed = readJson('node_modules/@phlix/ui/package.json');
@@ -167,7 +169,12 @@ describe('ui v0.99.9 re-pin carried through v0.99.10, the contracts v0.5.4 + ui 
     // owner's v0.99.22 carries at #v0.5.6, the v0.99.25/#v0.5.7 together-move, the v0.99.26 carry, and this
     // v0.99.27 carry at #v0.5.7 — zero ratified
     // hoists on either contracts edge throughout.
-    expect(RATIFIED_HOISTS).toEqual({});
+    expect(RATIFIED_HOISTS).toEqual({
+      'node_modules/@phlix/ui>@phlix/contracts@v0.5.7': {
+        version: EXPECTED_CONTRACTS_VERSION,
+        sha: 'e5a33809e9659ab40325aae4e92411b464ddbcd7',
+      },
+    });
     expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.5.2']).toBeUndefined();
     expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.4.7']).toBeUndefined();
     expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.5.1']).toBeUndefined();
@@ -186,7 +193,7 @@ describe('ui v0.99.9 re-pin carried through v0.99.10, the contracts v0.5.4 + ui 
     ).toBe(false);
   });
 
-  it('hoists a single @phlix/contracts resolution at the pinned version, v0.5.7 content on disk', () => {
+  it('hoists a single @phlix/contracts resolution at the pinned version, v0.5.8 content on disk', () => {
     const entry = lock.packages['node_modules/@phlix/contracts'];
     expect(entry.version).toBe(EXPECTED_CONTRACTS_VERSION);
     const installed = readJson('node_modules/@phlix/contracts/package.json');
