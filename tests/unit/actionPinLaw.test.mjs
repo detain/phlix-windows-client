@@ -5,10 +5,10 @@
  * full commit SHA with a tag-carrying comment (estate SHA-pin law).
  *
  * WHY: review `windows__devops` MAJ-3 enumerated repo-wide floating major tags
- * (`actions/checkout@v6`, `actions/setup-node@v6`, `actions/upload-artifact@v7`,
- * `actions/download-artifact@v8`, `codecov/codecov-action@v6`,
+ * (`actions/checkout@v7`, `actions/setup-node@v7`, `actions/upload-artifact@v7`,
+ * `actions/download-artifact@v8`, `codecov/codecov-action@v7`,
  * `codacy/codacy-coverage-reporter-action@v1`, `softprops/action-gh-release@v3`,
- * `github/codeql-action/{init,analyze}@v3`). Floating tags are mutable refs:
+ * `github/codeql-action/{init,analyze}@v4`). Floating tags are mutable refs:
  * an upstream tag re-point (hijack or accident) changes what this repo's CI —
  * including the two `permissions: contents: write` release jobs that publish
  * the installers the auto-update story depends on — executes the next run,
@@ -19,14 +19,14 @@
  * `gh api repos/{owner}/{repo}/git/ref/tags/{major}` peeled to the commit, at
  * the exact major each workflow already floated to — pins are behavior-
  * neutral: each freezes what the float resolved to TODAY):
- *  - actions/checkout       d23441a4… = v6.1.0 — byte-identical to the estate
+ *  - actions/checkout       3d3c42e5… = v7.0.1 — byte-identical to the estate
  *                           precedent (25 pinned uses, e.g. phlix-hub
  *                           .github/workflows/ci.yml + docker.yml).
  *  - codacy/…               89d6c85c… = v1.3.0 — byte-identical to the estate
  *                           precedent (22 pinned uses, e.g. phlix-anidb).
- *  - codecov/…              fb8b3582… = v6.0.2 — the peel the estate recorded
+ *  - codecov/…              303a32d7… = v7.1.1 — the peel the estate recorded
  *                           for its codecov→v6 bump (phlix-mobile 3bec415).
- *  - setup-node             24997072… = v6.5.0 — no estate pin existed; live
+ *  - setup-node             949feb24… = v7.1.0 — no estate pin existed; live
  *                           v6 HEAD at resolution time.
  *  - upload-artifact        cf430e03… = v7.0.2 — live v7 HEAD; the earlier
  *                           estate freeze (phlix-console 043fb46d, v7.0.1) is
@@ -34,9 +34,9 @@
  *                           pin follows the float, not the stale freeze.
  *  - download-artifact      9000827c… = v8.0.2 — same story (console 3e5f45b2
  *                           = v8.0.1 predates the v8.0.2 patch).
- *  - softprops/…            efb35369… = v3.0.3 — live v3 HEAD; console/mobile
+ *  - softprops/…            8a0cd651… = v3.0.4 — live v3 HEAD; console/mobile
  *                           froze v3.0.2 (3d0d9888) before v3.0.3 shipped.
- *  - github/codeql-action   4bfa242a… = v3.39.1 — live v3 HEAD (v3.39.1 tag).
+ *  - github/codeql-action   33d7b85d… = v4.39.3 — live v4 HEAD (v4.39.3 tag).
  *
  * Bump procedure: re-resolve refs/tags/{major} upstream, move BOTH the commit
  * and the comment together, and re-pin this ledger in the same commit — a
@@ -64,15 +64,15 @@ const workflowsDir = path.join(repoRoot, '.github', 'workflows');
 
 /** The estate-resolved pin ledger (see header for provenance). */
 const PIN_LEDGER = {
-  'actions/checkout': { commit: 'd23441a48e516b6c34aea4fa41551a30e30af803', version: 'v6.1.0' },
+  'actions/checkout': { commit: '3d3c42e5aac5ba805825da76410c181273ba90b1', version: 'v7.0.1' },
   'actions/cache': { commit: '55cc8345863c7cc4c66a329aec7e433d2d1c52a9', version: 'v6.1.0' },
-  'actions/setup-node': { commit: '249970729cb0ef3589644e2896645e5dc5ba9c38', version: 'v6.5.0' },
+  'actions/setup-node': { commit: '949feb2413d6458794dcd2491c4babbbce0c15c1', version: 'v7.1.0' },
   'actions/upload-artifact': { commit: 'cf430e030ddbb5b0abf93d22962f4752f3646cd9', version: 'v7.0.2' },
   'actions/download-artifact': { commit: '9000827ccba6bdab643e8b6fd33ac0654aef8333', version: 'v8.0.2' },
-  'codecov/codecov-action': { commit: 'fb8b3582c8e4def4969c97caa2f19720cb33a72f', version: 'v6.0.2' },
+  'codecov/codecov-action': { commit: '303a32d7a59b442fa8d48b6a1cc6825c09c847a5', version: 'v7.1.1' },
   'codacy/codacy-coverage-reporter-action': { commit: '89d6c85cfafaec52c72b6c5e8b2878d33104c699', version: 'v1.3.0' },
-  'softprops/action-gh-release': { commit: 'efb35369e0ad2afab669f228072c1b0d510eae64', version: 'v3.0.3' },
-  'github/codeql-action': { commit: '4bfa242aa49c5f7c6770b98670d354a7dfac05f8', version: 'v3.39.1' },
+  'softprops/action-gh-release': { commit: '8a0cd651e5b2365bd640854a3fa5dfc70e4875f3', version: 'v3.0.4' },
+  'github/codeql-action': { commit: '33d7b85da1a04171e211befe2c739303b9a4c066', version: 'v4.39.3' },
 };
 
 const workflowFiles = readdirSync(workflowsDir).filter((f) => /\.ya?ml$/.test(f)).sort();

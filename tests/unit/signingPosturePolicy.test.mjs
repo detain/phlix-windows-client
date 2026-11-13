@@ -127,7 +127,7 @@ describe('M-WINDOWS-18 signing posture — package.json policy', () => {
 describe('M-WINDOWS-18 signing posture — vendor proof at the installed app-builder-lib', () => {
   it('is written against a 26.x builder whose major matches the declared range', () => {
     expect(abiVersion).toMatch(/^26\./);
-    expect(pkg.devDependencies['electron-builder']).toBe('^26.8.1');
+    expect(pkg.devDependencies['electron-builder']).toBe('^26.18.0');
   });
 
   it('scheme.json forbids unknown keys in build and build.win, and legitimizes forceCodeSigning as the Windows knob', () => {

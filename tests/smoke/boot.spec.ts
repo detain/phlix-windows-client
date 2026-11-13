@@ -179,7 +179,8 @@ test('boot smoke test', async () => {
   } catch (connectError) {
     killElectronProcess(electronProcess);
     throw new Error(
-      `Failed to connect to Electron via CDP: ${connectError}\n--- child output ---\n${childOutput}`
+      `Failed to connect to Electron via CDP: ${connectError}\n--- child output ---\n${childOutput}`,
+      { cause: connectError }
     );
   }
 

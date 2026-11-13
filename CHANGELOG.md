@@ -9,6 +9,14 @@ historical entries are preserved verbatim.
 
 ## [Unreleased]
 
+### Chore + CI — dependency and Actions upgrade to latest compatible — 2026-11-13
+
+- **Toolchain:** electron 42 -> 45, vite 7 -> 8, eslint + @eslint/js 9 -> 10, typescript 5.9 -> 6.0.3, pinia 3 -> 4, jsdom 29 -> 31, globals 16 -> 17, concurrently 8 -> 10, wait-on 7 -> 9; in-range bumps for vitest/coverage-v8 5.1, vue 3.5.45, vue-router 5.5, vue-tsc 3.3.14, @vue/test-utils 2.5, playwright 1.65, electron-builder 26.18, electron-updater 6.8.11, typescript-eslint, eslint-plugin-vue, js-yaml. Git-dependency pins (@phlix/ui, @phlix/contracts) untouched.
+- **Held back, with reasons:** typescript stays on 6.0.3 (7.x is outside typescript-eslint 8.72's `<6.1.0` peer range); electron-store stays on 8.2.0 (9+ is ESM-only and the CommonJS main/preload build constructs the stores synchronously at load; an ESM main migration is a separate change).
+- **Lint fixes required by ESLint 10's new recommended rules:** removed a useless assignment in the app-protocol handler and in `foldOneTokenKey`, attached `cause` to the smoke-test CDP error. `docs/ipc-channels.md` power handler coordinates shifted by one line; signing-posture test now pins electron-builder `^26.18.0`.
+- **Actions (SHA-pinned, ledger in tests/unit/actionPinLaw.test.mjs):** checkout v7.0.1, setup-node v7.1.0, codecov-action v7.1.1, action-gh-release v3.0.4, codeql-action v4.39.3. Node 24 stays the CI runtime.
+- **Audit:** `scripts/audit-gate.mjs` passes with the same two reviewed advisory ids (glob, minimatch); allow-list unchanged. Raw moderate count rises because eslint 10 and @vue/test-utils 2.5 re-propagate those same two advisories through new parent packages.
+
 ### Fixed + CI + Docs — deferred minors sweep (WIN-S2/S4/S7/S9/S10/S15/S19/S22/S31) — 2026-11-13
 
 - **Sleep timer countdown (WIN-S4):** the label rounds up (`Math.ceil`), so a ticker that fires a hair late no longer skips `14:59` or stutters at second boundaries; jitter-aware pin (advance 1001 ms, expect `14:59`).

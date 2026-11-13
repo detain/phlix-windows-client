@@ -2266,7 +2266,6 @@ export function setupAppProtocolHandler(): void {
     }
 
     const routingPath = urlPath;
-    let relativePath = routingPath;
 
     // If path doesn't look like a file request (no extension), treat as SPA route
     // Serve index.html for any path that doesn't have a file extension
@@ -2289,7 +2288,7 @@ export function setupAppProtocolHandler(): void {
     // File request - map to dist/renderer/assets/...
     // routingPath is like /app/assets/main.js
     // We want assets/main.js
-    relativePath = routingPath.replace(/^\/app\//, '');
+    const relativePath = routingPath.replace(/^\/app\//, '');
 
     // Path traversal protection: ensure resolved path is within RENDERER_DIST_DIR
     if (!isPathSafe(RENDERER_DIST_DIR, relativePath)) {

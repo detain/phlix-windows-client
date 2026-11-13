@@ -112,7 +112,7 @@ function foldOneTokenKey(
   readVault: () => unknown,
   writeVault: (raw: string) => void
 ): void {
-  let plain: string | null = null;
+  let plain: string | null;
   try {
     plain = localStorage.getItem(plainKey);
   } catch {
