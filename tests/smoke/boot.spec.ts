@@ -178,10 +178,12 @@ test('boot smoke test', async () => {
     browser = await chromium.connectOverCDP(cdpUrl, { timeout: 30_000 });
   } catch (connectError) {
     killElectronProcess(electronProcess);
-    throw new Error(
-      `Failed to connect to Electron via CDP: ${connectError}\n--- child output ---\n${childOutput}`,
-      { cause: connectError }
+    // tsconfig lib is ES2020 (no ErrorOptions): attach the cause by hand.
+    const wrapped = new Error(
+      `Failed to connect to Electron via CDP: ${connectError}\n--- child output ---\n${childOutput}`
     );
+    (wrapped as Error & { cause?: unknown }).cause = connectError;
+    throw wrapped;
   }
 
   // Get or create the first browser context and its pages
