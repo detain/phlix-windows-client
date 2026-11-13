@@ -68,7 +68,7 @@ The main process is responsible for:
    - File menu (`t('menu.file')`): Settings row `t('menu.settings')` with accelerator `CmdOrCtrl+,` → `openSettings()`, separator, `quit` role
    - Edit menu — the native `editMenu` role (Undo/Redo, Cut/Copy/Paste/Select All; Electron renders native localized labels), added by review M5
    - Playback menu (Play/Pause, Stop, Rewind 10s, Forward 10s, Fullscreen `F11`) — `buildPlaybackMenuTemplate()`; the F11 row is the **only** fullscreen entry — M-WINDOWS-41 removed the duplicate View-submenu role row so one accelerator lives on one labeled, catalog-translated row
-   - View menu: the `resetZoom`/`zoomIn`/`zoomOut` role trio + the two preference checkboxes **Minimize-to-Tray** and **Notifications**, kept in lockstep with the tray menu by `refreshShellMenus()`; the `reload`/`forceReload`/`toggleDevTools` trio is a development affordance — compiled out of the production menu, M-WINDOWS-32)
+   - View menu: the `resetZoom`/`zoomIn`/`zoomOut` role trio + the two preference checkboxes **Minimize-to-Tray** and **Notifications**, kept in lockstep with the tray menu by `refreshShellMenus()`; the `reload`/`forceReload`/`toggleDevTools` trio is a development affordance — compiled out of the production menu (M-WINDOWS-32)
    - Help menu: About row (`t('menu.about')` → `showAbout()`) and Check-for-updates row (`t('menu.checkForUpdates')` → `autoUpdater.checkForUpdates()`)
 
 4. **IPC Communication**
@@ -211,7 +211,7 @@ by pinia's and vue-router's `.use()` inside `createPhlixApp`, so they exist afte
 The bridge is a no-op when `window.electronAPI` is absent, and returns a single cleanup function that
 unregisters every listener.
 
-## UI & State
+## UI & state
 
 All screens, theming, and application state live in the shared `@phlix/ui` app (Pinia stores +
 vue-router, router base `/app`), and every route renders a vendored page view — the no-forking
@@ -225,7 +225,7 @@ the player overlay components (`src/renderer/components/`, mounted by the second
 (`src/renderer/mediaSession.ts`), the windows-own i18n catalogs (`src/renderer/i18n/`), and the
 route table, nav entries and admin gating that place the vendored views under `/app/*`
 (`buildExtraRoutes` / `buildMenu`, both in `main.ts`). No Pinia stores are defined here — all
-application state stays in the vendored ones. README *UI & State* carries the same enumeration;
+application state stays in the vendored ones. README *UI & state* carries the same enumeration;
 the two rotate together.
 
 ## Building and Testing
@@ -266,10 +266,10 @@ npm test -- --watch
 npm test -- --coverage
 ```
 
-### Test Structure
+### Test structure
 
 Tests use Vitest (`jsdom`, `@vitejs/plugin-vue`) with TypeScript. The suite has grown
-far past its three-file origin: 84 test files in `tests/` (~1154 tests as of 2026-11-12 —
+far past its three-file origin: 86 test files in `tests/` (1159 tests as of 2026-11-13 —
 `npx vitest run --reporter=verbose` is the source of truth, do not trust any count
 written here long-term) plus one Playwright smoke spec (`tests/smoke/boot.spec.ts`,
 CI-gated on real Electron). The original trio:

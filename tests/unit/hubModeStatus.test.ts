@@ -116,10 +116,10 @@ describe('Hub Mode is not enterable (M-WINDOWS-17)', () => {
   });
 
   it('Hub Mode is absent from "What Works" and present in "Known Limitations"', () => {
-    const whatWorks = readmeSection('### What Works', '### Known Limitations');
+    const whatWorks = readmeSection('### What works', '### Known limitations');
     expect(whatWorks, 'Hub Mode listed under What Works though it cannot be entered').not.toContain('Hub Mode');
 
-    const limitations = readmeSection('### Known Limitations', '## Watching with friends');
+    const limitations = readmeSection('### Known limitations', '## Watching with friends');
     expect(limitations, 'Known Limitations lost the Hub Mode pointer added by M-WINDOWS-17').toContain('Hub Mode');
   });
 

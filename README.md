@@ -8,7 +8,7 @@
 
 A native Windows desktop application for the Phlix Media Server, built with Electron, Vue 3, and TypeScript. The user interface is provided by the shared **`@phlix/ui`** Vue app; this repo is a thin Electron shell + consumer.
 
-## Project Overview
+## Project overview
 
 Phlix for Windows is the native desktop client for your Phlix Media Server, enabling users to browse, stream, and manage their media library with native Windows integration: system tray, media keys, and native menus. The entire renderer UI is the shared `@phlix/ui` app booted via `createPhlixApp(config)`, so screens and theming stay in sync with the other Phlix clients.
 
@@ -40,7 +40,7 @@ Informal usage: in user-facing copy, "your Phlix server" (lowercase `server`) is
 - **Shared UI** - Modern Vue 3 interface from `@phlix/ui` with the Nocturne theme (deliberate default — the client does not follow the OS dark/light preference; one consistent look across every launch is the estate-wide brand posture. Change it any time in Settings, which persists to your server profile)
 - **Settings Management** - Configurable preferences including minimize-to-tray behavior and a desktop-notifications toggle (View menu or tray menu)
 
-## Minimum Server Version
+## Minimum server version
 
 Phlix for Windows requires Phlix Media Server **1.1.0** or later — the first server release
 where the capabilities this client drives are stable: skip-intro markers, media facets,
@@ -61,11 +61,11 @@ check your edition in Settings → System → About before downloading. Download
 
 ### What is published today
 
-As of 2026-11-07 the releases page carries one rolling build: **“Latest (master)”**, rebuilt
+As of 2026-11-07 the releases page carries one rolling build: **"Latest (master)"**, rebuilt
 and replaced on every **green** push to `master`. It wears a *Pre-release* label because no stable
 `v*` release has been cut yet — the label does not mean “broken”; it is the current official
 download. (Publishing the first stable, versioned release is a maintainer release-process
-decision — see *Release Process* below.)
+decision — see *Release process* below.)
 
 The word “green” carries a disclosure: the republish chain is gated end-to-end — install, tests,
 smoke, packaging, and the dependency audit gate (`scripts/audit-gate.mjs`) must all pass on the
@@ -75,7 +75,7 @@ the last green master build for a while was `4e55fc02` (2026-10-30); from 2026-1
 audit-gate decision of 2026-11-06 two standing dev-chain advisories failed every push’s audit
 leg, leaving the page up to 27 commits behind `master` while these words promised per-push
 rebuilds. The cure went through the gate’s reviewed allow-list law rather than around it
-(step 3 of *Release Process* below names the two admitted advisory ids and their re-verify
+(step 3 of *Release process* below names the two admitted advisory ids and their re-verify
 date); the gate itself stays strict — an advisory outside that list still freezes the chain.
 
 Pick the asset that fits:
@@ -94,12 +94,12 @@ page rather than bookmarking an old link.
 installs inside your Windows profile (no admin prompt; you choose the folder) and adds a
 **Phlix** entry to the Start menu. The first time you run it, SmartScreen wants a word:
 
-### First run: “Windows protected your PC”
+### First run: "Windows protected your PC"
 
 The installers are **not code-signed** — no Authenticode certificate is provisioned for this
-project yet — so SmartScreen shows a blue **“Windows protected your PC”** dialog and reports
+project yet — so SmartScreen shows a blue **"Windows protected your PC"** dialog and reports
 the publisher as **Unknown**. That is the expected behavior of unsigned software, not a sign
-the file is malicious, and there is no “verified publisher” here. To proceed safely:
+the file is malicious, and there is no "verified publisher" here. To proceed safely:
 
 1. Optional but recommended — verify the download. Also save `SHA256SUMS.txt` from the
    release page into the same folder, then run both lines in PowerShell from that folder:
@@ -119,8 +119,8 @@ the file is malicious, and there is no “verified publisher” here. To proceed
    and the installer's line in `SHA256SUMS.txt` is keyed by its staging path,
    `nsis/Phlix-Setup-1.0.0.exe` — the file name itself is identical to the asset you
    downloaded (the `nsis/` prefix is the only addition).
-2. In the SmartScreen dialog, click the small **“More info”** link.
-3. Click **“Run anyway”**.
+2. In the SmartScreen dialog, click the small **"More info"** link.
+3. Click **"Run anyway"**.
 
 Once a signing certificate is provisioned this dialog will no longer appear
 (see [`docs/signing.md`](docs/signing.md) for the developer-side story).
@@ -188,12 +188,12 @@ security-review-gated future feature, not available today.
 
 The app includes an update check (Help → *Check for updates*, plus a background check about
 every 6 hours), but **today it finds nothing and — for now — says nothing**: it deliberately
-ignores pre-releases, and only the rolling “Latest (master)” pre-release exists. With no
+ignores pre-releases, and only the rolling "Latest (master)" pre-release exists. With no
 stable release on the feed to compare against, the check's endpoint answers 404, which the
 client files as an offline-class failure — logged, not shown — so even a manual check stays
 silent. A reply is reserved for a live stable feed: once the first versioned release is
-published, a manual check that finds nothing answers with a “You're on the latest
-version” notification, while the background checks stay quiet. Until stable
+published, a manual check that finds nothing answers with a "You're on the latest
+version" notification, while the background checks stay quiet. Until stable
 versioned releases are published, getting a new build means re-downloading the current
 installer from the [releases page](https://github.com/detain/phlix-windows-client/releases)
 and installing over the old one. Release notes for versioned releases appear on that same
@@ -206,7 +206,7 @@ under Deployment), but clients that already installed it will **not** downgrade
 themselves — the updater only ever moves forward. Recover by installing the previous
 version: download its installer from the
 [releases page](https://github.com/detain/phlix-windows-client/releases), install it
-over the current one, and decline any “update available” prompt until the feed points
+over the current one, and decline any "update available" prompt until the feed points
 at a fixed version. Settings, sign-in and playback state live under `%APPDATA%\Phlix`
 and survive an install-over — nothing user-visible is lost.
 
@@ -214,7 +214,7 @@ and survive an install-over — nothing user-visible is lost.
 
 Accepted and deferred security postures (UX-only version gate, CSP breadth, updater trust, LAN http/ws, DPAPI fallback) are recorded in [`docs/security-posture.md`](docs/security-posture.md).
 
-## Privacy & Update Checks
+## Privacy & update checks
 
 Phlix for Windows is self-hosted software: your library, accounts, and playback data
 live on **your** server. The app makes exactly two kinds of network calls:
@@ -305,7 +305,7 @@ as the product name **Phlix**, while a from-source run uses the package name
 - **Windows (installed app)**: `%APPDATA%\Phlix`
 - **Windows (running from source)**: `%APPDATA%\phlix-windows`
 
-### Configuration Options
+### Configuration options
 
 | Setting (electron-store key) | Default | Description |
 |---------|---------|-------------|
@@ -327,12 +327,12 @@ signed-in session stays live — the renderer, any open WebSocket connections
 (syncplay rooms, hub relay) and your stored tokens keep working, and anyone
 with access to your Windows session can bring the window back from the tray
 and act as you. Phlix has no app-level lock screen of its own, so treat the
-tray-minimised state like an unlocked laptop: **lock Windows** when you step
+tray-minimized state like an unlocked laptop: **lock Windows** when you step
 away, or quit properly via the tray menu's **Quit** entry (media playback and
 the session both end). Turning `minimizeToTray` off in the View menu makes
 **×** quit outright instead; media-key/SMTC workflows are unaffected either way.
 
-### Environment Variables
+### Environment variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -345,9 +345,9 @@ the session both end). Turning `minimizeToTray` off in the View menu makes
 There is no environment variable for hub mode; its runtime channel (`hub:set-config`) exists in
 the Electron shell but ships no caller today — see *Hub Mode (not yet enterable)* below.
 
-## Building the App
+## Building the app
 
-### Development Mode
+### Development mode
 
 Run the application in development mode with hot reload:
 
@@ -362,7 +362,7 @@ This starts:
   once (`electron .`), so restart the dev command after editing `src/main/**` or
   `src/preload/**` (DEVELOPER.md's troubleshooting entry walks this through).
 
-### Production Build
+### Production build
 
 **Build both renderer and main process:**
 ```bash
@@ -397,7 +397,7 @@ The packaged output will be in the `release/` directory.
 
 ## Testing
 
-### Running Tests
+### Running tests
 
 ```bash
 # Run all tests
@@ -410,7 +410,7 @@ npm test -- --watch
 npm test -- --coverage
 ```
 
-### Test Structure
+### Test structure
 
 Tests live in `tests/` — run `npm test` to execute the full suite.
 
@@ -437,7 +437,7 @@ phlix-windows-client/
 │   │   └── index.ts    # Main entry point, window management, IPC, tray
 │   ├── preload/        # Preload script (context bridge)
 │   │   └── index.ts    # Secure IPC exposure to renderer
-│   └── renderer/       # Thin @phlix/ui consumer PLUS local surfaces (see UI & State)
+│   └── renderer/       # Thin @phlix/ui consumer PLUS local surfaces (see UI & state)
 │       ├── main.ts            # Entry: boot() → createPhlixApp() → mount → installElectronBridge; renders the too-old-server boot-failure screen (renderIncompatibleServerScreen) with Retry
 │       ├── overlay.tsx        # Second Vue app entry (dynamic import from boot): mounts player overlays on #player-supplement-root
 │       ├── components/        # Local player overlay components: PlayerSupplement · SleepTimer · PiPButton
@@ -451,7 +451,7 @@ phlix-windows-client/
 │       ├── vite-env.d.ts
 │       └── types/electron.d.ts
 ├── tests/
-│   └── unit/           # 80 law-pin cohorts as of 2026-11-08 (re-measure; see DEVELOPER.md "Test Structure") — founding trio: resolveConfig · electronBridge · main
+│   └── unit/           # 86 test files as of 2026-11-13 (re-measure; see DEVELOPER.md "Test structure") — founding trio: resolveConfig · electronBridge · main
 ├── build/              # Build resources (icons)
 ├── release/            # Packaged application output (gitignored)
 ├── package.json
@@ -463,7 +463,7 @@ phlix-windows-client/
 
 ## Architecture
 
-### Electron Process Model
+### Electron process model
 
 1. **Main Process** (`src/main/index.ts`)
    - Creates BrowserWindow
@@ -477,12 +477,12 @@ phlix-windows-client/
    - Relays media control events to the renderer
 
 3. **Renderer Process** (`src/renderer/`)
-   - A thin consumer of the shared `@phlix/ui` Vue app, booted via `createPhlixApp(config)` — plus enumerated local surfaces: player overlay components, a boot-failure screen, i18n catalogs, a DPAPI token-store adapter (see *UI & State* below)
+   - A thin consumer of the shared `@phlix/ui` Vue app, booted via `createPhlixApp(config)` — plus enumerated local surfaces: player overlay components, a boot-failure screen, i18n catalogs, a DPAPI token-store adapter (see *UI & state* below)
    - Vue 3 + Pinia + vue-router (peer deps of `@phlix/ui`)
      - Pinned to `@phlix/ui` `github:detain/phlix-ui#v1.0.0` and `@phlix/contracts` `github:detain/phlix-contracts#v0.5.8`
    - Vite (`@vitejs/plugin-vue`) for development and bundling
 
-### UI & State
+### UI & state
 
 All screens, theming, and application state live in the shared **`@phlix/ui`** app (Pinia stores + vue-router), and every route renders a vendored page view. Along that consumer, this repo ships its own local surfaces: player overlay components (`src/renderer/components/PlayerSupplement.tsx`, `SleepTimer.tsx`, `PiPButton.tsx`, mounted by the separate app entry `src/renderer/overlay.tsx`), a DOM-rendered boot-failure screen for too-old servers with a working Retry (`renderIncompatibleServerScreen` in `src/renderer/main.ts`), a DPAPI-backed `TokenStore` adapter wired into the ui `tokenStore` seam — auth tokens seal into `%APPDATA%` via safeStorage instead of localStorage (`src/renderer/safeStorageTokenStore.ts`), `navigator.mediaSession`/SMTC handlers (`src/renderer/mediaSession.ts`), and its own i18n catalogs (`src/renderer/i18n/` — seven windows-own locales over the vendored ui bundles). The route table, nav entries and admin gating that place the vendored pages under `/app/*` are likewise authored locally (the routes and admin gating in `buildExtraRoutes`, the nav entries in `buildMenu` — both in `main.ts`). Configuration passed to `createPhlixApp` (app-mode, `apiBase`, `deviceHeaders`, theme, branding) is resolved at boot from Electron config; device headers are built with `@phlix/contracts` `buildPhlixHeaders`. Electron tray/menu events are bridged into `@phlix/ui`'s player store and router by `src/renderer/electronBridge.ts`. Token custody here is **device-class by design, not a deferral**: the `X-Phlix-Device-Type: windows` header rides every request, and auth stays a bearer token that `boot()` seals into the DPAPI vault — the browser-less counterpart of an httpOnly cookie, since renderer JS cannot read the sealed store at rest. Cookie-mode auth on this estate is scoped to browser clients: Chromium does not reliably persist cookies for the private `app://` scheme across restarts, and that origin interacts badly with the server-side Origin-CSRF posture (the hub's CORS policy already names `app://-` as its own origin class). So this client does not adopt cookie custody — the vendored ui bundle's `tokenStore` bearer path is the contract (estate cookie-auth design, owner ruling D6c, 2026-11-05).
 
@@ -492,13 +492,13 @@ All screens, theming, and application state live in the shared **`@phlix/ui`** a
 
 The project uses GitHub Actions for continuous integration:
 
-- **test.yml** - Runs on every push/PR to validate code
+- **test.yml** - Runs on every push to `master` and every PR targeting `master` to validate code
 - **build.yml** - Builds NSIS + APPX installers on every master push (publishing them to the rolling `latest` prerelease) and, on `v*.*.*` tags, creates the versioned GitHub Release with checksum and updater-feed files attached
-- **codeql.yml** - GitHub Code Scanning (`security-extended` queries) on pushes/PRs touching `src/**`; findings land in the repo's Security tab, it gates nothing by itself
+- **codeql.yml** - GitHub Code Scanning (`security-extended` queries) on pushes to `master` and PRs targeting `master` that touch `src/**` or `.github/workflows/codeql.yml` itself; findings land in the repo's Security tab and it gates nothing by itself
 
 > **Note:** For local development use `npm install`. For automated CI pipelines (including the GitHub Actions workflows above), use `npm ci` — it performs a clean, reproducible install from the lockfile, which is faster and safer than `npm install` in CI environments.
 
-### Release Process
+### Release process
 
 0. **Update `CHANGELOG.md` first.** It is hand-maintained (newest entries prepend
    under `## [Unreleased]`-style headers at the top; history below is verbatim and
@@ -542,7 +542,7 @@ force-installed — a download starts only when the user clicks *Install update*
    update checks fail quietly, which is the same no-op-as-today behavior the
    *Getting updates* section already describes.
 2. **Prefer a hotfix over a rollback.** If a corrected build is quick, cut the next
-   patch tag normally (see *Release Process*): clients that never accepted the bad
+   patch tag normally (see *Release process*): clients that never accepted the bad
    update move straight to the fix on their next check (≤ 6 h, or Help →
    *Check for updates*).
 3. **Never delete an older release.** It **is** the rollback target — its asset trio
@@ -562,7 +562,7 @@ force-installed — a download starts only when the user clicks *Install update*
 The note above applies here too: none of this has executed end-to-end yet, and the
 first real bad release is the rehearsal for this section.
 
-### Windows Installer
+### Windows installer
 
 The build workflow produces:
 - **NSIS Installer** - Traditional `.exe` installer
@@ -602,14 +602,14 @@ and the status pins above):
 **Rider:** entering hub mode needs an `@phlix/ui` connection seam (a hub/server entry form in
 the shared Settings or Connect surface — this repo's thin-consumer law forbids a windows-owned
 settings page). The other half of that same upstream v0.99.12 wave — the `tokenStore` seam behind
-`src/renderer/safeStorageTokenStore.ts` — has since shipped and is wired (see *UI & State*); the
+`src/renderer/safeStorageTokenStore.ts` — has since shipped and is wired (see *UI & state*); the
 connection seam never landed, so hub mode stays withheld. When the tripwire pins redden because that seam shipped
 or a caller landed, wire `boot()` to the existing `hubSetConfig` channel, restore the enterable
-copy (Features + What Works bullets, how-to steps), and retire the pins together.
+copy (Features + What works bullets, how-to steps), and retire the pins together.
 
 ## Troubleshooting
 
-### Common Issues
+### Common issues
 
 **App doesn't start:**
 - Relaunch **Phlix** from the Start menu; if it only minimized, use the tray
@@ -658,7 +658,7 @@ import log from 'electron-log';
 log.info('Application started');
 ```
 
-## Uninstall & Stored Data
+## Uninstall & stored data
 
 Remove it like any other app — Settings → Apps → **Phlix** → Uninstall (or the Start-menu
 uninstall entry). The per-user install lives in `%LOCALAPPDATA%\Programs\Phlix` unless a
@@ -677,7 +677,7 @@ MIT License - see project repository for details.
 
 ## Status
 
-### What Works
+### What works
 
 - **Electron shell** — Main/preload/renderer architecture with secure `contextBridge` IPC
 - **Thin renderer + local surfaces** — Boots `@phlix/ui` via `createPhlixApp()`; ships local player overlays (SleepTimer/PiP via `overlay.tsx`), a boot-failure screen with Retry, own i18n catalogs, and a DPAPI token-store adapter WIRED into the vendored ui's `tokenStore` seam (auth tokens seal into `%APPDATA%` via safeStorage; plaintext rows fold on first launch)
@@ -686,9 +686,9 @@ MIT License - see project repository for details.
 - **Media keys** — Thumbar buttons and tray/menu transport entries (Play/Pause, Stop, Rewind/Forward 10s) routed into the player; the player's own `Space`/`←`/`→` stay focus-scoped on purpose
 - **Packaging** — NSIS x64 installer and APPX via `electron-builder`
 - **CI pipeline** — ESLint, vue-tsc, tsc -p tsconfig.main.json, vitest, npm audit, smoke test gate on every PR/push
-- **Coverage** — The authoritative coverage gate is vitest's enforced `lines: 54` threshold, enforced on the one CI leg that actually runs coverage — the ubuntu `npm test -- --coverage` job in `.github/workflows/test.yml` (the windows leg and the build-pipeline test run execute bare `npm test`, on which thresholds cannot fire); Codecov/Codacy uploads additionally run best-effort on that same ubuntu leg only (their tokens are not provisioned for this repo — uploads are known to 404; see `docs/ci-baseline.md`)
+- **Coverage** — The authoritative coverage gate is vitest's `lines: 54` threshold, enforced on the one CI leg that actually runs coverage — the ubuntu `npm test -- --coverage` job in `.github/workflows/test.yml` (the windows leg and the build-pipeline test run execute bare `npm test`, on which thresholds cannot fire); Codecov/Codacy uploads additionally run best-effort on that same ubuntu leg only (their tokens are not provisioned for this repo — uploads are known to 404; see `docs/ci-baseline.md`)
 
-### Known Limitations
+### Known limitations
 
 - App boots to Connect screen on first launch (no default server URL; user must configure a server URL)
 - **Hub mode** — the shipped machinery (config IPC, resolver branch, hub nav + routes) cannot be entered today: `hub:set-config` has zero callers and the pinned `@phlix/ui` bundle ships no hub-connection form — see [Hub Mode (not yet enterable)](#hub-mode-not-yet-enterable)
@@ -742,3 +742,5 @@ go stale.
 For issues and feature requests, please use the GitHub issue tracker.
 Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for gates,
 fork-CI secret behavior, and scope boundaries.
+
+> **Ledger ids.** Ids such as `M-WINDOWS-NN` in this README and docs point at entries in `CHANGELOG.md`; see *Ledger ids* in `CONTRIBUTING.md`.

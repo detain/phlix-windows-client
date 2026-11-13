@@ -53,4 +53,12 @@ CI runs on fork PRs, with two honest caveats:
   (`src/renderer/safeStorageTokenStore.ts` ↔ main-process vault handlers); keep it
   that way in any auth-adjacent change.
 
+## Ledger ids
+
+Docs, code comments and test headers cite fix-campaign ledger ids such as
+`M-WINDOWS-NN` (a numbered review finding) and review-lane tags such as
+`windows__secnet`. They are provenance pointers, not requirements: the full
+history of every id lives in `CHANGELOG.md`'s entries. Cite an id at most once
+per section and never inside a heading.
+
 Questions? Open an issue first for anything bigger than a typo or an obvious bug.

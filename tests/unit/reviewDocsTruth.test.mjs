@@ -59,7 +59,7 @@ describe('keyboard shortcuts are documented, honestly scoped (m22)', () => {
 
 describe('GPU blank-window path ships to users (m23)', () => {
   it('Troubleshooting names PHLIX_DISABLE_GPU with a Windows set method', () => {
-    const trouble = README.slice(README.indexOf('### Common Issues'));
+    const trouble = README.slice(README.indexOf('### Common issues'));
     expect(trouble).toMatch(/blank or black window/i);
     expect(trouble).toMatch(/setx PHLIX_DISABLE_GPU 1/);
   });
@@ -162,7 +162,7 @@ describe('contributor guidance exists (D10)', () => {
 
 describe('release process owns the changelog (D11)', () => {
   it('step 0 tells the human to update CHANGELOG.md before tagging', () => {
-    const rel = README.slice(README.indexOf('### Release Process'));
+    const rel = README.slice(README.indexOf('### Release process'));
     expect(rel).toMatch(/0\. \*\*Update `CHANGELOG\.md` first\.\*\*/);
     expect(rel).toMatch(/generate_release_notes/);
   });

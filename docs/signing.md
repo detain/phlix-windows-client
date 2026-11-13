@@ -195,7 +195,7 @@ misconfiguration this section exists to forbid: the flag on, no certs.
 
 ---
 
-## Auto-Update Verification: Integrity Today, Authenticity Only After `publisherName` (windows__secnet 3[m])
+## Auto-Update Verification: Integrity Today, Authenticity Only After `publisherName`
 
 The forceCodeSigning story above governs **build-time signing of the
 artifact**. The auto-updater has a SEPARATE verification seam, and in the

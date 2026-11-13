@@ -9,6 +9,12 @@ historical entries are preserved verbatim.
 
 ## [Unreleased]
 
+### Docs — WIN-S23 README/DEVELOPER/CONTRIBUTING truth + style sweep (WIN-16/17/24/25/27/28/30/32/34/45) — 2026-11-13
+
+- Suite counts re-measured serially (86 files / 1159 tests) and rotated in README and DEVELOPER.md.
+- Quote convention: straight quotes around verbatim UI-copy citations, curly in prose; sentence-case README headings (cross-refs and pinning tests updated); US spelling (`minimized`, `behavior`); CI bullets name the master triggers and the codeql.yml self-path; "enforced" duplication and an unopened paren fixed.
+- Ledger-id hygiene: lane tags removed from headings in docs/signing.md and docs/ci-baseline.md; new *Ledger ids* footnote in CONTRIBUTING.md.
+
 ### Chore — adopt `@phlix/ui` `#v0.99.28` → `#v1.0.0`; contracts waiver dropped, equality restored — 2026-11-13
 
 - **Scope:** tag obj `7adff710`, peel `5901e055`; lock rotated (version `1.0.0`, resolved peel `5901e055`). v1.0.0's manifest requests contracts `#v0.5.8` outright, byte-equal to root.

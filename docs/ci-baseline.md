@@ -116,7 +116,10 @@ the SHA column is the pushed commit each run tested.
 
 ## Workflow Structure Summary
 
-### test.yml — Runs on every push/PR to master (w08/L2: master-only — the retired main/develop entries could never fire)
+### test.yml — Runs on every push and PR to master
+
+Master-only: the retired main/develop trigger entries could never fire in this master-only repo.
+
 - **lint** (ubuntu-26.04): `npm ci` → `npm run lint`
 - **types** (ubuntu-26.04): `npm ci` → `vue-tsc --noEmit` → `tsc -p tsconfig.main.json --noEmit` → `vue-tsc --noEmit -p tsconfig.test.json`
 - **test** (ubuntu-26.04 + windows-2025 matrix): `npm ci` → `npm run build` → `npm test` → `npm test -- --coverage` + Codecov/Codacy upload → `node scripts/audit-gate.mjs` (audit runs LAST — a red earlier step can never skip the audit signal, and the audit's own raw exit code still hard-gates the job)
@@ -137,7 +140,7 @@ the SHA column is the pushed commit each run tested.
 
 - **No W5.x perf gates in CI.** Performance optimizations (W5.1-5.6) are implemented in code but not enforced via explicit CI thresholds. This is acceptable as performance was improved and there is no regression tracking infrastructure in place.
 - **Lockfile integrity** is enforced via `npm ci` (always uses package-lock.json; `npm install` is not used in CI).
-- **Matrix strategy** for smoke/test runs on both ubuntu-26.04 and windows-2025 for cross-platform coverage. Both labels are deliberately pinned (m31): no workflow anywhere floats a `-latest` label, so a hosted-image rollover can never silently change the toolchain under the release chain.
+- **Matrix strategy** for smoke/test runs on both ubuntu-26.04 and windows-2025 for cross-platform coverage. Both labels are deliberately pinned: no workflow anywhere floats a `-latest` label, so a hosted-image rollover can never silently change the toolchain under the release chain.
 - **Fail-fast** is enabled on all workflows via `cancel-in-progress: true` on concurrency groups.
 
 ## Mutation Proof

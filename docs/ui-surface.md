@@ -109,7 +109,7 @@ All admin pages are registered at `/app/admin/{path}` via `buildAdminRoutes()` /
 > Live bundle analysis confirms 23 distinct pages and 20 via `buildAdminRoutes()`.
 
 **Verified 2026-08-05 (W1.7 — headless analysis of @phlix/ui v0.98.39 dist):**
-- SettingsPage is **schema-driven** (v0.90 behaviour): `SettingsResponse` provides `types`
+- SettingsPage is **schema-driven** (v0.90 behavior): `SettingsResponse` provides `types`
   (bool/int/float/string), `meta` (labels, helpText, enum, validation bounds), `overridden`
   keys. Not a hardcoded form.
 - PluginsPage supports: list, enable/disable, catalog browse, detail view (with manifest
