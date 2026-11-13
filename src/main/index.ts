@@ -602,7 +602,11 @@ function createWindow(): void {
       // can read packaged-ness from (its process.argv). The preload trust
       // gate denies every http: document when the flag is present — the dev
       // vite entry must be dead weight in a packaged shell.
-      additionalArguments: app.isPackaged ? ['--phlix-packaged'] : []
+      additionalArguments: [
+        ...(app.isPackaged ? ['--phlix-packaged'] : []),
+        // WIN-S30: pre-JS html/splash tint (read by the preload; hex-only).
+        `--phlix-launch-bg=${resolveLaunchBackground(store.get('launchBackground'))}`
+      ]
     }
   };
 

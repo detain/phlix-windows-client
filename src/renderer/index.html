@@ -29,11 +29,11 @@
       review's sanctioned cure is exactly this single role=status announcement.
     -->
     <style>
-      html, body { margin: 0; background: #1a1a2e; }
+      html, body { margin: 0; background: var(--launch-bg, #1a1a2e); }
       #boot-splash {
         position: fixed; inset: 0; z-index: 0;
         display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
-        background: #1a1a2e; color: #e8e8f0;
+        background: var(--launch-bg, #1a1a2e); color: #e8e8f0;
         font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
       }
       #boot-splash .boot-splash-wordmark { font-size: 26px; font-weight: 600; letter-spacing: 0.06em; }

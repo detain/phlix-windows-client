@@ -281,7 +281,7 @@ describe('main-process posture the preload gate relies on', () => {
   it('R-WINDOWS-08: main stamps the packaged argv flag gated on app.isPackaged', () => {
     // The exact conditional shape (flag array iff packaged, empty otherwise).
     expect(mainSource).toMatch(
-      /additionalArguments:\s*app\.isPackaged\s*\?\s*\['--phlix-packaged'\]\s*:\s*\[\]/
+      /additionalArguments:\s*\[\s*\.\.\.\(app\.isPackaged\s*\?\s*\['--phlix-packaged'\]\s*:\s*\[\]\)/
     );
     // Cross-file string identity: the exported preload constant is the SAME
     // token main plants — a rename on one side without the other reddens.

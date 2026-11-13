@@ -727,6 +727,9 @@ export async function boot(): Promise<void> {
     // consistent look across every launch is the estate-wide brand posture
     // (server/hub web-uis fixed-default the same); a personal choice still
     // exists in in-app Settings and flows from the server, never from the OS.
+    // WIN-S30: the launch window/splash ground mirrors the last applied theme
+    // --bg (launchThemeReporter -> main store -> preload --launch-bg); this pin
+    // only governs the ui store until the server theme loads.
     defaultTheme: 'nocturne',
     branding: { wordmark: 'Phlix' },
     ...(messages ? { messages } : {}),

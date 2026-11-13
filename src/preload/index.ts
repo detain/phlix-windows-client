@@ -69,6 +69,48 @@ export interface PreloadContext {
  */
 export const PHLIX_PACKAGED_ARGV_FLAG = '--phlix-packaged';
 
+/**
+ * WIN-S30: main stamps `--phlix-launch-bg=#hex` (the mirrored theme --bg) into
+ * additionalArguments; before first paint we expose it as the `--launch-bg`
+ * custom property on <html> so index.html's html/body/#boot-splash ground
+ * matches the window backgroundColor. Hex-only; anything else is ignored.
+ */
+export const PHLIX_LAUNCH_BG_ARGV_PREFIX = '--phlix-launch-bg=';
+export function launchBgFromArgv(argv: readonly string[]): string | null {
+  const a = argv.find((x) => x.startsWith(PHLIX_LAUNCH_BG_ARGV_PREFIX));
+  const v = a ? a.slice(PHLIX_LAUNCH_BG_ARGV_PREFIX.length) : '';
+  return /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(v) ? v : null;
+}
+function applyLaunchBg(): void {
+  try {
+    const bg = launchBgFromArgv(process.argv);
+    if (!bg) return;
+    // tsconfig.main has no DOM lib; the preload runs in a renderer context.
+    const g = globalThis as unknown as {
+      document: {
+        documentElement: { style: { setProperty(k: string, v: string): void } } | null;
+      };
+      MutationObserver: new (cb: () => void) => {
+        observe(t: unknown, o: { childList: boolean }): void;
+        disconnect(): void;
+      };
+    };
+    const set = (): boolean => {
+      if (!g.document.documentElement) return false;
+      g.document.documentElement.style.setProperty('--launch-bg', bg);
+      return true;
+    };
+    if (set()) return;
+    const mo = new g.MutationObserver(() => {
+      if (set()) mo.disconnect();
+    });
+    mo.observe(g.document, { childList: true });
+  } catch {
+    /* cosmetic only */
+  }
+}
+applyLaunchBg();
+
 /** Boot documents whose origin may hold the privileged bridge. */
 export const TRUSTED_BOOT_TARGETS: ReadonlyArray<{ protocol: string; host: string }> = [
   { protocol: 'app:', host: '-' },              // prod  (PROD_BOOT_URL 'app://-/app/')
