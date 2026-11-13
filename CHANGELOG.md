@@ -9,6 +9,12 @@ historical entries are preserved verbatim.
 
 ## [Unreleased]
 
+### Chore — adopt `@phlix/ui` `#v0.99.28` → `#v1.0.0`; contracts waiver dropped, equality restored — 2026-11-13
+
+- **Scope:** tag obj `7adff710`, peel `5901e055`; lock rotated (version `1.0.0`, resolved peel `5901e055`). v1.0.0's manifest requests contracts `#v0.5.8` outright, byte-equal to root.
+- **Waiver dropped:** the `node_modules/@phlix/ui>@phlix/contracts@v0.5.7` `RATIFIED_HOISTS` entry (added by the contracts v0.5.8 re-pin) is removed and the plain equality law restored; `lockwalk` EXPECTED ui row, `lockwalk` / `contractsPin` tests and comments re-measured (no test weakened; the ui edge again goes through plain rule 1).
+- **Locale posture:** HELD — `dfe8fc65..5901e055` touches no locale file; `SOURCE_REF` + `PIN` ref advance to `5901e055`, vendored bundles byte-identical.
+
 ### Chore — CTR-S14 cascade: re-pin `@phlix/contracts` `#v0.5.7` → `#v0.5.8` — 2026-11-13
 
 - **Scope:** tag obj `9be24a33`, peel `e5a33809`; `@phlix/ui` HELD at `#v0.99.28`. Lock rotated via `npm install --package-lock-only` (version `0.5.8`, resolved peel `e5a33809`).

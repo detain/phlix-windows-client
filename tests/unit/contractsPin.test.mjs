@@ -142,20 +142,20 @@ describe('ui v0.99.9 re-pin carried through v0.99.10, the contracts v0.5.4 + ui 
   // root and ui lock lines hand-edited apart while the installed manifest agrees;
   // STALE-DRIFT — ui's words changing from `#v0.5.7` without a live waiver (the
   // installed tree is the independent witness).
-  it("keeps ui's lock-declared contracts request byte-pinned to its manifest's #v0.5.7 words — NOT equal to root (v0.5.8 divergence era)", () => {
+  it("keeps ui's lock-declared contracts request byte-pinned to its manifest's #v0.5.8 words — EQUAL to root (equality restored at ui v1.0.0)", () => {
     const ui = lock.packages['node_modules/@phlix/ui'];
-    expect(ui.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.5.7');
+    expect(ui.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.5.8');
     // Equality era (carried since v0.99.9, re-confirmed at this move): ui declares the identical
     // words to the root pin — the divergence-era .not.toBe law stays flipped back to .toBe, and
     // a hand-split of the two lines (or a ui downgrade to a pre-#v0.5.7-era tag without
     // re-ratifying a waiver) goes red on both lines until this file is re-measured.
-    // Divergence era (contracts v0.5.8 re-pin, 2026-11-13): root moved to #v0.5.8 while ui v0.99.28 still
-    // requests #v0.5.7 — the lines differ and the exact-match waiver below ratifies the hoist.
-    expect(ui.dependencies['@phlix/contracts']).not.toBe(pkg.devDependencies['@phlix/contracts']);
+    // The brief divergence era (contracts v0.5.8 re-pin, ui v0.99.28 still on #v0.5.7) ended at the
+    // ui v1.0.0 re-pin (2026-11-13): ui requests #v0.5.8 outright, the lines are byte-equal again.
+    expect(ui.dependencies['@phlix/contracts']).toBe(pkg.devDependencies['@phlix/contracts']);
     // The installed tree independently proves the lock line is the manifest's verbatim
     // words, not a hand-edit: falsifying either tag here trips this witness.
     const installed = readJson('node_modules/@phlix/ui/package.json');
-    expect(installed.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.5.7');
+    expect(installed.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.5.8');
     // The syncplay request leg tracks the ui manifest era: it rode `#v0.1.6` through
     // v0.99.12–v0.99.14, ADVANCED to `#v0.1.7` with v0.99.15, and RIDES `#v0.1.7` unchanged through
     // v0.99.25, the v0.99.26 re-pin and this v0.99.27 (measured via git show at 1f906979 AND off
@@ -168,13 +168,10 @@ describe('ui v0.99.9 re-pin carried through v0.99.10, the contracts v0.5.4 + ui 
     // v0.99.15/#v0.5.5 carry, the v0.99.16/#v0.5.6 together-move, the v0.99.17-v0.99.21 and the
     // owner's v0.99.22 carries at #v0.5.6, the v0.99.25/#v0.5.7 together-move, the v0.99.26 carry, and this
     // v0.99.27 carry at #v0.5.7 — zero ratified
-    // hoists on either contracts edge throughout.
-    expect(RATIFIED_HOISTS).toEqual({
-      'node_modules/@phlix/ui>@phlix/contracts@v0.5.7': {
-        version: EXPECTED_CONTRACTS_VERSION,
-        sha: 'e5a33809e9659ab40325aae4e92411b464ddbcd7',
-      },
-    });
+    // hoists on either contracts edge throughout. The one exception (the contracts v0.5.8 re-pin's
+    // ui #v0.5.7 waiver, while ui v0.99.28 lagged) retired at the ui v1.0.0 re-pin, 2026-11-13.
+    expect(RATIFIED_HOISTS).toEqual({});
+    expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.5.7']).toBeUndefined();
     expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.5.2']).toBeUndefined();
     expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.4.7']).toBeUndefined();
     expect(RATIFIED_HOISTS['node_modules/@phlix/ui>@phlix/contracts@v0.5.1']).toBeUndefined();

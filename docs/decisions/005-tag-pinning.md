@@ -8,7 +8,7 @@
 
 ## Decision
 
-Pin by GitHub tag (e.g., `github:detain/phlix-ui#v0.98.34` — an example as of 2026-08; the live pin is whatever `package.json` carries, v0.99.28 at 2026-11-12). The `dist/` directory is built before the tag is created — `@phlix/ui`'s `dist/` is included in the tarball at tag time.
+Pin by GitHub tag (e.g., `github:detain/phlix-ui#v0.98.34` — an example as of 2026-08; the live pin is whatever `package.json` carries, v1.0.0 at 2026-11-13). The `dist/` directory is built before the tag is created — `@phlix/ui`'s `dist/` is included in the tarball at tag time.
 
 ## Consequences
 

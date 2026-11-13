@@ -275,8 +275,17 @@ export const EXPECTED = {
     repo: 'git+ssh://git@github.com/detain/phlix-syncplay.git',
   },
   '@phlix/ui': {
-    tag: 'v0.99.28',
-    sha: 'dfe8fc6586e41728b4dcdc1a22a2bf8d19e74e01',
+    tag: 'v1.0.0',
+    sha: '5901e05518d14875087bfa99f2130e555d69ea9f',
+    // v1.0.0 re-pin (2026-11-13, the ui v1.0.0 adoption cascade over this repo's .28 pin): the
+    // honest-field era carries — the annotated tag (object 7adff710) peels to 5901e055 and its
+    // manifest reads 1.0.0 (lock version 1.0.0), so this row walks the plain tag-derived version;
+    // no manifestVersion override. THE CONTRACTS EDGE CONVERGES: v1.0.0's manifest requests
+    // `#v0.5.8` outright (measured off the installed node_modules/@phlix/ui/package.json) —
+    // byte-equal to root, so the v0.5.7 ratified hoist is DROPPED and plain rule 1 / equality
+    // is restored. The syncplay edge rides ui's unchanged `#v0.1.7` request. Locale posture:
+    // HELD (the dfe8fc65..5901e055 window touches no locale file; only the vendor ref advances).
+    // PRIOR ROW — v0.99.28 (peel dfe8fc65):
     // v0.99.28 re-pin (2026-11-12, WIN-S31, the .28 consumer wave over this repo's .27 pin): the
     // honest-field era carries — the annotated tag (object 29b6a8c5) peels to dfe8fc65 and its
     // manifest reads 0.99.28 (lock version 0.99.28), so this row walks the plain tag-derived
@@ -570,18 +579,13 @@ export const EXPECTED = {
 // root's contracts pin UNMOVED, the SEVENTEENTH straight equality-era move, both edges ride plain
 // rule 1 onto the one hoisted 0.5.7@bedfe69b copy, and the syncplay edge rides ui's unchanged
 // `#v0.1.7` request. Zero ratified hoists on all four edges; the walker measures green.
-// RE-ADDED at the contracts v0.5.8 re-pin (2026-11-13, CTR-S14 cascade): the direct pin advanced to
-// `#v0.5.8` while the INSTALLED ui v0.99.28 still requests `#v0.5.7` (measured via git show at
-// dfe8fc65 AND off the installed node_modules/@phlix/ui/package.json). Fresh exact-match entry under
-// the same law — version AND sha of the hoisted 0.5.8@e5a33809 copy; npm 11.19.1 observed dedupe (no
-// nested node in the lock, no nested dir on disk). It dies when a ui tag requests `#v0.5.8`-or-newer
-// outright.
-export const RATIFIED_HOISTS = {
-  'node_modules/@phlix/ui>@phlix/contracts@v0.5.7': {
-    version: '0.5.8',
-    sha: 'e5a33809e9659ab40325aae4e92411b464ddbcd7',
-  },
-};
+// The contracts v0.5.8 re-pin (2026-11-13, CTR-S14 cascade) briefly re-added an exact-match
+// `node_modules/@phlix/ui>@phlix/contracts@v0.5.7` waiver while ui v0.99.28 still requested
+// `#v0.5.7`. It RETIRED at the ui v1.0.0 re-pin (2026-11-13): v1.0.0's manifest requests `#v0.5.8`
+// outright (measured off the installed node_modules/@phlix/ui/package.json), satisfying the waiver's
+// own retirement condition — equality is restored, both contracts edges ride plain rule 1 onto the one
+// hoisted 0.5.8@e5a33809 copy, and the map is empty again.
+export const RATIFIED_HOISTS = {};
 
 export function readRepoJson(name) {
   return JSON.parse(readFileSync(fileURLToPath(new URL(`../${name}`, import.meta.url)), 'utf8'));
