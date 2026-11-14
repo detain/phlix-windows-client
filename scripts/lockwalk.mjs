@@ -275,8 +275,12 @@ export const EXPECTED = {
     repo: 'git+ssh://git@github.com/detain/phlix-syncplay.git',
   },
   '@phlix/ui': {
-    tag: 'v1.0.0',
-    sha: '5901e05518d14875087bfa99f2130e555d69ea9f',
+    tag: 'v1.0.2',
+    sha: 'ef4d07af0d46121ca4cd8b28121cd92a356a839e',
+    // v1.0.2 re-pin (2026-11-13): the annotated tag peels to ef4d07af and its manifest reads 1.0.2;
+    // plain tag-derived version, no manifestVersion override. The contracts edge rides unchanged
+    // (`#v0.5.8`), syncplay `#v0.1.7`; no locale file moved (v1.0.0..v1.0.2) so locales are HELD.
+    // PRIOR ROW — v1.0.0 (peel 5901e055):
     // v1.0.0 re-pin (2026-11-13, the ui v1.0.0 adoption cascade over this repo's .28 pin): the
     // honest-field era carries — the annotated tag (object 7adff710) peels to 5901e055 and its
     // manifest reads 1.0.0 (lock version 1.0.0), so this row walks the plain tag-derived version;

@@ -323,7 +323,7 @@ describe('ui bundles — key-set identity and installed coverage', () => {
     // 566→650 flattened keys (+85 adds across shell, profiles.avatar*, palette, invite,
     // itemActions, browse, playlist, sessions; -1: syncplay.privateRoom removed), and the
     // re-vendor at the dfe8fc65 peel put BOTH sides at 650. The v1.0.0 re-pin (2026-11-13) was
-    // a hold: dfe8fc65..5901e055 touches no locale file, so the counters stay at 650.
+    // a hold: dfe8fc65..5901e055 touches no locale file, so the counters stay at 650. The v1.0.2 re-pin (2026-11-13) was likewise a hold (5901e055..ef4d07af touches no locale file).
     // The relation stays exact set equality in BOTH directions (installed ⊆ bundle
     // is separately pinned above; this pins bundle ⊆ installed and, with it,
     // the empty extras set). The seven keys are additionally pinned present

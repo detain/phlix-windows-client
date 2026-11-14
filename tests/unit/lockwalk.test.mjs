@@ -277,9 +277,9 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
       staleWord.some(
         (f) =>
           f.startsWith('request-vs-resolved:') &&
-          f.includes('@phlix/ui#v1.0.0') &&
+          f.includes('@phlix/ui#v1.0.2') &&
           f.includes('version 0.99.4') &&
-          f.includes('pinned version line reads 1.0.0'),
+          f.includes('pinned version line reads 1.0.2'),
       ),
     ).toBe(true);
 
@@ -293,9 +293,9 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
       ahead.some(
         (f) =>
           f.startsWith('request-vs-resolved:') &&
-          f.includes('@phlix/ui#v1.0.0') &&
+          f.includes('@phlix/ui#v1.0.2') &&
           f.includes('version 0.99.28') &&
-          f.includes('pinned version line reads 1.0.0'),
+          f.includes('pinned version line reads 1.0.2'),
       ),
     ).toBe(true);
 
@@ -309,8 +309,8 @@ describe('S450 — the walker discriminates (mutation proofs)', () => {
       shaFindings.some(
         (f) =>
           f.startsWith('request-vs-resolved:') &&
-          f.includes('@phlix/ui#v1.0.0') &&
-          f.includes('not the pinned v1.0.0 peel 5901e05518d14875087bfa99f2130e555d69ea9f'),
+          f.includes('@phlix/ui#v1.0.2') &&
+          f.includes('not the pinned v1.0.2 peel ef4d07af0d46121ca4cd8b28121cd92a356a839e'),
       ),
     ).toBe(true);
   });
@@ -419,10 +419,10 @@ describe('ui v0.99.9 re-pin carried through v0.99.10, the contracts v0.5.4 + ui 
     expect(ui.dependencies['@phlix/contracts']).toBe('github:detain/phlix-contracts#v0.5.8');
     expect(ui.dependencies['@phlix/contracts']).toBe(pkg.devDependencies['@phlix/contracts']);
     const uiRow = EXPECTED['@phlix/ui'];
-    expect(uiRow.tag).toBe('v1.0.0');
-    expect(uiRow.sha).toBe('5901e05518d14875087bfa99f2130e555d69ea9f');
+    expect(uiRow.tag).toBe('v1.0.2');
+    expect(uiRow.sha).toBe('ef4d07af0d46121ca4cd8b28121cd92a356a839e');
     expect(uiRow.manifestVersion).toBeUndefined();
-    expect(ui.version).toBe('1.0.0');
+    expect(ui.version).toBe('1.0.2');
     const { findings } = walk(lock);
     expect(findings).toEqual([]);
   });

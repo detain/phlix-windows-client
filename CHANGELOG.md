@@ -9,6 +9,10 @@ historical entries are preserved verbatim.
 
 ## [Unreleased]
 
+### Chore — @phlix/ui re-pin v1.0.0 -> v1.0.2 — 2026-11-13
+
+- `@phlix/ui` pin `github:detain/phlix-ui#v1.0.2` (peel `ef4d07af`); `@phlix/contracts` already at the latest tag v0.5.8 (unchanged; ui v1.0.2 still requests `#v0.5.8`, syncplay `#v0.1.7`). Locale vendor HELD (no locale file moved), `SOURCE_REF` advanced; lockwalk pin row and docs updated. Clears the hub UI Pin Skew (S181) report for this consumer.
+
 ### Chore + CI — dependency and Actions upgrade to latest compatible — 2026-11-13
 
 - **Toolchain:** electron 42 -> 45, vite 7 -> 8, eslint + @eslint/js 9 -> 10, typescript 5.9 -> 6.0.3, pinia 3 -> 4, jsdom 29 -> 31, globals 16 -> 17, concurrently 8 -> 10, wait-on 7 -> 9; in-range bumps for vitest/coverage-v8 5.1, vue 3.5.45, vue-router 5.5, vue-tsc 3.3.14, @vue/test-utils 2.5, playwright 1.65, electron-builder 26.18, electron-updater 6.8.11, typescript-eslint, eslint-plugin-vue, js-yaml. Git-dependency pins (@phlix/ui, @phlix/contracts) untouched.
