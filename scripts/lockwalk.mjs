@@ -275,8 +275,21 @@ export const EXPECTED = {
     repo: 'git+ssh://git@github.com/detain/phlix-syncplay.git',
   },
   '@phlix/ui': {
-    tag: 'v1.0.2',
-    sha: 'ef4d07af0d46121ca4cd8b28121cd92a356a839e',
+    tag: 'v1.0.3',
+    sha: '1381cab3314fd7099991866d1fc0636d140b024d',
+    // v1.0.3 re-pin (2026-11-20): the annotated tag (object 2149a26f) peels to 1381cab3 and its
+    // manifest reads 1.0.3; plain tag-derived version, no manifestVersion override. THE CONTRACTS
+    // EDGE RIDES UNCHANGED — v1.0.3's manifest requests `#v0.5.8` outright (measured via
+    // `git show 1381cab3:package.json`, byte-equal to root), so the waiver map stays present-but-
+    // empty (plain rule 1); syncplay `#v0.1.7` rides too. ui's runtime dependency RANGES moved
+    // (apexcharts ^5.16.0, hls.js ^1.7.4, vue3-apexcharts ^1.11.3) — the hoisted resolutions
+    // already sat at those versions, so the lock delta is exactly the pin echo + version +
+    // resolved + three range lines (6+/6−), zero node churn. Locale posture: HELD — the window
+    // ef4d07af..1381cab3 (player shortcut-gate aba92bc3 + dist rebuild fb8f54da + ui-side
+    // toolchain/lib upgrades 29fb2f0c/e10df977, devDeps-only, consumer-invisible) touches no
+    // src/i18n file; all seven vendored source hashes byte-ident across the refs, so the PIN
+    // table's hash entries stay and only the ref advances.
+    // PRIOR ROW — v1.0.2 (peel ef4d07af):
     // v1.0.2 re-pin (2026-11-13): the annotated tag peels to ef4d07af and its manifest reads 1.0.2;
     // plain tag-derived version, no manifestVersion override. The contracts edge rides unchanged
     // (`#v0.5.8`), syncplay `#v0.1.7`; no locale file moved (v1.0.0..v1.0.2) so locales are HELD.
